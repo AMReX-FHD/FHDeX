@@ -33,6 +33,7 @@ AMREX_GPU_MANAGED amrex::Real                               multispec::monomer_m
 AMREX_GPU_MANAGED int                                       multispec::n_gex;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_1;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_2;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_3;
   
 int                                                         multispec::midpoint_stoch_mass_flux_type;
 AMREX_GPU_MANAGED int                                       multispec::avg_type;
@@ -107,6 +108,7 @@ void InitializeMultispecNamespace() {
     for (int i=0; i<MAX_SPECIES; ++i) {
         c_init_1[i] = 1.;   // initial values for c
         c_init_2[i] = 1.;
+        c_init_3[i] = 1.;        
     }
   
     // Thermodynamic and transport properties:
@@ -253,6 +255,11 @@ void InitializeMultispecNamespace() {
             c_init_2[i] = temp[i];
         }
     }
+    if(pp.queryarr("c_init_3",temp)) {
+        for (int i=0; i<nspecies; ++i) {
+            c_init_3[i] = temp[i];
+        }
+    }    
     if(pp.queryarr("Dtherm",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             Dtherm[i] = temp[i];
@@ -306,3 +313,4 @@ void InitializeMultispecNamespace() {
     pp.query("zero_eps_on_wall_left_end",zero_eps_on_wall_left_end);
     pp.query("zero_eps_on_wall_right_start",zero_eps_on_wall_right_start);
 }
+

@@ -1,7 +1,8 @@
  # Problem specification
   prob_lo = 0.      0.       0. # physical lo coordinate
   #prob_hi = 9.6e-7 9.6e-7 9.6e-7  # physical hi coordinate
-  prob_hi = 25.6e-3 12.8e-3 25.6e-3   # physical hi coordinate
+#  prob_hi = 512e-4 256e-4 512e-4   # physical hi coordinate
+  prob_hi = 384e-4 192e-4 384e-4   # physical hi coordinate
 
  # cell_depth = 1.0e-7
 
@@ -11,16 +12,20 @@
   plot_base_name= plt
 
   # number of cells in domain
-  n_cells = 128 64 128
+  n_cells = 192 96 192
+  max_grid_size = 96 48 48
   # max number of cells in a box
-  max_grid_size = 32 64 32
 
   # Time-step control
-  fixed_dt = 6.e-9
+  fixed_dt = 0.0000001
+  # fixed_dt = 6.e-13
+
+  advection_type = 2
 
   # Controls for number of steps between actions
-  max_step = 1000000
-  plot_int = 5
+  #max_step = 1000000
+  max_step = 20000
+  plot_int = 100
   chk_int = 1000
   restart = -1
 
@@ -73,20 +78,22 @@
 
   # Thermodynamic and transport properties:
   #----------------------
-  nspecies = 2
-  #molmass = 2.4e-22 2.4e-22  # molecular masses for nspecies (mass per molecule, *not* molar mass)
-  fh_monomers = 1. 1.
+  nspecies = 3
+  #molmass = 2.4e-22 2.4e-22 2.4e-22  # molecular masses for nspecies (mass per molecule, *not* molar mass)
+  fh_monomers = 1. 1. 1.
   monomer_mass = 6.e-23
   use_flory_huggins = 1
-  fh_chi = 0. 3.5 3.5 0.
-  fh_kappa = 0. 3.e-14 3.e-14 0.
+  fh_chi = 0. 3.5 3.5 3.5 0. 0. 3.5 0. 0.
+  #fh_chi = 0. 3.5 3.5 0.
+  fh_kappa = 0. 3.e-14 3.e-14 3.e-14 0. 0. 3.e-14 0. 0.
+  #fh_kappa = 0. 3.e-14 3.e-14 0.
   fh_tension = 24.3386
   fh_ce = 0.037874
   contact_angle_lo =  90. 110. 90.
   contact_angle_hi =  90. 110. 90.
 
 
-  rhobar = 1. 1.     # pure component densities for all species
+  rhobar = 1. 1. 1.    # pure component densities for all species
   rho0 = 1.
 
 
@@ -94,8 +101,10 @@
   is_ideal_mixture = 0
 
   # initial values for c
-  c_init_1 = 0.037874 0.962126
-  c_init_2 = 0.962126 0.037874
+  c_init_1 = 0.015 0.97 0.015
+  c_init_2 = 0.97 0.015 0.015
+  c_init_3 = 0.015 0.015 0.97
+  
   smoothing_width = 0.
   radius_cyl = 0.0125
 
@@ -104,11 +113,12 @@
   # The values are red row by row starting from top going down
   # (this allows easy addition/deletion of new species/rows)
   # So D_12; D_13, D_23; D_14, D_24, D_34; ...
-  Dbar = 2.e-5 # Maxwell-Stefan diffusion constant
+  #Dbar = 2.e-5 # Maxwell-Stefan diffusion constant
+  Dbar = 1.e-7 1.e-7 2.e-5
 
   use_charged_fluid = 0
   dielectric_const = 9.2e-20
-  charge_per_mass = 0. 0.
+  charge_per_mass = 0. 0. 0.
 
   #use_multiphase = 1
   #alpha_gex = 4.

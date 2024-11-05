@@ -9,8 +9,6 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  MultiFab& rho_in,
                  const Geometry& geom)
 {
-
-    std::cout << "Prob type: " << prob_type << std::endl;
     
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
@@ -442,20 +440,30 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             });
 
 
-        } else if (prob_type == 17) {
+        } else if (prob_type == 17 || prob_type == 18) {
 
             /*
-	       torus
+	       colliding droplets
             */
 	    amrex::Real rad = radius_cyl;
-            amrex::Real alpha = contact_angle_lo[1];
+        amrex::Real alpha = contact_angle_lo[1];
+        
+        Real rad2 = 0.00212;
+        GpuArray<Real,AMREX_SPACEDIM> droplet_center;
+        
+        AMREX_D_TERM(droplet_center[0] = center[0];,
+                     droplet_center[1] = rad*std::cos(alpha)+rad+rad2;,
+                     droplet_center[2] = center[2];);        
 
 	    int nsub = 10;
 	    Real factor = nsub;
 	    Real dxsub = dx[0]/factor;
 	    Real dysub = dx[1]/factor;
 	    Real dzsub = dx[2]/factor;
-            Real x,y,z;
+        Real x,y,z;
+        Real x2,y2,z2;        
+        Real veldrop = -100.;
+        //Print() << rad*std::cos(alpha)+rad << ", " << rad2 << ", " << dx[1] << std::endl;
 	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -464,6 +472,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                    c(i,j,k,n) = 0.;
                }
             Real x,y,z;
+            Real x2,y2,z2;            
 
             for(int i1=0; i1<nsub; ++i1) {
             for(int j1=0; j1<nsub; ++j1) {
@@ -472,8 +481,13 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
                              y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - rad*std::cos(alpha);,
                              z = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - center[2];);
+                             
+                AMREX_D_TERM(x2 = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - droplet_center[0];,
+                             y2 = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - droplet_center[1];,
+                             z2 = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - droplet_center[2];);                             
 
                 Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
+                Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);                
 
                 if (smoothing_width == 0.) {
 
@@ -482,7 +496,17 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                         for (int n=0; n<nspecies; ++n) {
                             c(i,j,k,n) += c_init_1[n];
                         }
-                    } else {
+                    } else if (r2 < rad2){
+                        for (int n=0; n<nspecies; ++n) {
+                            if(prob_type == 17)
+                            {
+                                c(i,j,k,n) += c_init_3[n];
+                            }else if(prob_type == 18)
+                            {
+                                c(i,j,k,n) += c_init_1[n];                            
+                            }
+                        }
+                    }else{
                         for (int n=0; n<nspecies; ++n) {
                             c(i,j,k,n) += c_init_2[n];
                         }
@@ -491,8 +515,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 } else {
                     // smooth interface
                     for (int n=0; n<nspecies; ++n) {
-                        c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                            0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
+                        c(i,j,k,n) += c_init_1[n] + 
+                                     (c_init_2[n]-c_init_1[n]) *0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0]))) +
+                                     (c_init_3[n]-c_init_1[n]) *0.5*(1. + std::tanh((r2-rad2)/(smoothing_width*dx[0])));
                     }
                 }
              }    
@@ -501,6 +526,24 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/(factor*factor*factor);
                }
+            });
+            
+            const Array4<Real> & vmac = (umac[1]).array(mfi);
+            Box bx_vmac = mfi.tilebox(nodal_flag_y);
+
+            amrex::ParallelFor(bx_vmac, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real x2,y2,z2;
+                AMREX_D_TERM(x2 = prob_lo[0] + (i+0.5)*dx[0] - droplet_center[0];,
+                             y2 = prob_lo[1] + (j)*dx[1] - droplet_center[1];,
+                             z2 = prob_lo[2] + (k+0.5)*dx[2] - droplet_center[2];);
+
+                Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);
+                if (r2 < rad2) {
+                    for (int n=0; n<nspecies; ++n) {
+                        vmac(i,j,k) = veldrop;
+                    }
+                } 
             });
 
 
