@@ -306,25 +306,10 @@ void IntegrateKScalar(const MultiFab& cov_mag,
 {
     int npts = n_cells[0]/2;
     
-    Gpu::DeviceVector<Real> phisum_device(npts);
-    Gpu::DeviceVector<int>  phicnt_device(npts);
-//    Gpu::HostVector<Real> phisum_host(npts);
-//    Gpu::HostVector<int>  phicnt_host(npts);
-    
-    Gpu::HostVector<Real> phisum_host(npts);
-    
+    Gpu::DeviceVector<Real> phisum_device(npts, 0);
+    Gpu::DeviceVector<int>  phicnt_device(npts, 0);
     Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
     int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
-    
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-      phisum_ptr[d] = 0.;
-      phicnt_ptr[d] = 0;
-    });
-//    for (int d=0; d<npts; ++d) {
-//	phisum_host[d] = 0.;
-//	phicnt_host[d] = 0;
-//    }
 
     int comp_gpu = comp;
     int nx = n_cells[0]; 
@@ -360,22 +345,20 @@ void IntegrateKScalar(const MultiFab& cov_mag,
             }
         });
     }
-    
+
+    Gpu::HostVector<Real> phisum_host(npts);
+    Gpu::HostVector<int>  phicnt_host(npts);
+    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, phicnt_device.begin(), phicnt_device.end(), phicnt_host.begin());
     Gpu::streamSynchronize();
-        
-    ParallelDescriptor::ReduceRealSum(phisum_device.dataPtr(),npts);
-    ParallelDescriptor::ReduceIntSum(phicnt_device.dataPtr(),npts);
+
+    ParallelDescriptor::ReduceRealSum(phisum_host.dataPtr(),npts);
+    ParallelDescriptor::ReduceIntSum(phicnt_host.dataPtr(),npts);
         
     Real dk = 1.;
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-        if (d != 0) {
-        phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
-        }
-    });
-    
-    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
-    Gpu::streamSynchronize();
+    for (int d = 1; d < npts; ++d) {
+        phisum_host[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_host[d];
+    }
     
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
@@ -399,20 +382,11 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
 {
     int npts = n_cells[0]/2;
     
-    Gpu::DeviceVector<Real> phisum_device(npts);
-    Gpu::DeviceVector<int>  phicnt_device(npts);
-   
-    Gpu::HostVector<Real> phisum_host(npts);
-    
+    Gpu::DeviceVector<Real> phisum_device(npts, 0);
+    Gpu::DeviceVector<int>  phicnt_device(npts, 0);
     Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
     int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
-    
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-      phisum_ptr[d] = 0.;
-      phicnt_ptr[d] = 0;
-    });
-    
+
     int comp_gpu = comp;
     int nx = n_cells[0]; 
     int ny = n_cells[1]; 
@@ -448,21 +422,19 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
         });
     }
     
+    Gpu::HostVector<Real> phisum_host(npts);
+    Gpu::HostVector<int>  phicnt_host(npts);
+    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, phicnt_device.begin(), phicnt_device.end(), phicnt_host.begin());
     Gpu::streamSynchronize();
 
-    ParallelDescriptor::ReduceRealSum(phisum_device.dataPtr(),npts);
-    ParallelDescriptor::ReduceIntSum(phicnt_device.dataPtr(),npts);
+    ParallelDescriptor::ReduceRealSum(phisum_host.dataPtr(),npts);
+    ParallelDescriptor::ReduceIntSum(phicnt_host.dataPtr(),npts);
         
     Real dk = 1.;
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-        if (d != 0) {
-        phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
-        }
-    });
-    
-    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
-    Gpu::streamSynchronize();
+    for (int d = 1; d < npts; ++d) {
+        phisum_host[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_host[d];
+    }
     
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
