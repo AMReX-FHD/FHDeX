@@ -11,6 +11,12 @@
 using namespace std;
 using namespace amrex;
 
+
+/*
+ *   Inputs:
+ *      -i  input file (this needs to be given)
+ *      -b  number of bins (will default if not given)
+ */  
 int main (int argc, char* argv[]) {
 
     amrex::Initialize(argc,argv);
@@ -37,6 +43,13 @@ int main (int argc, char* argv[]) {
         }
     }
 
+    if (plt_file == "")
+    {
+        std::cerr << "No input file given!\n";
+        return 1;
+    }
+
+    // if no output file name is given, use the plt file name and append with _sf_raw.csv
     if (out_name == "") {
         out_name += plt_file + "_sf_raw.csv";
     } 
@@ -61,7 +74,7 @@ int main (int argc, char* argv[]) {
         const auto hi = amrex::ubound(bx);
         const Array4<Real>& mfdata = mf.array(mfi);
 
-        for (auto n=0; n<1; ++n) {
+        for (auto n=0; n<1; ++n) {                          // only look at the first component 
             for (auto k = lo.z; k <= hi.z; ++k) {
                 for (auto j = lo.y; j <= hi.y; ++j) {
                     for (auto i = lo.x; i <= hi.x; ++i) {
