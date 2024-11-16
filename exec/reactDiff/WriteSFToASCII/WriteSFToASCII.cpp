@@ -61,11 +61,16 @@ int main (int argc, char* argv[]) {
     // read in plotfile to MultiFab
     VisMF::Read(mf, plt_file);
 
+    // figure out the center cell
+    auto domain_box = mf.boxArray().minimalBox();
+
+    auto center_x = ceil(domain_box.length(0)/2.);
+    auto center_y = ceil(domain_box.length(1)/2.);
+#if (AMREX_SPACEDIM == 3)
+    auto center_z = ceil(domain_box.length(2)/2.);
+#endif
+
     std::vector<std::pair<double, double>> sf_flat;
-       
-    // TODO: need to figure out how to know the center from the level_0 data 
-    const int center_x = 32;
-    const int center_y = 32;
 
     for ( MFIter mfi(mf,false); mfi.isValid(); ++mfi ) {
 
@@ -74,20 +79,29 @@ int main (int argc, char* argv[]) {
         const auto hi = amrex::ubound(bx);
         const Array4<Real>& mfdata = mf.array(mfi);
 
-        for (auto n=0; n<1; ++n) {                          // only look at the first component 
+        for (auto n=0; n<1; ++n) { 
+
+#if (AMREX_SPACEDIM == 3)
             for (auto k = lo.z; k <= hi.z; ++k) {
+#endif
                 for (auto j = lo.y; j <= hi.y; ++j) {
                     for (auto i = lo.x; i <= hi.x; ++i) {
                         auto dk_x = i - center_x;
                         auto dk_y = j - center_y;
+#if (AMREX_SPACEDIM == 2)
                         auto dk = sqrt(dk_x*dk_x + dk_y*dk_y);
-
+                        sf_flat.push_back(std::make_pair(dk, mfdata(i,j,0,n)));
+#elif (AMREX_SPACEDIM == 3)
+                        auto dk_z = k - center_z;
+                        auto dk = sqrt(dk_x*dk_x + dk_y*dk_y + dk_z*dk_z);
                         sf_flat.push_back(std::make_pair(dk, mfdata(i,j,k,n)));
+#endif
                     } 
                 } 
             } 
+#if (AMREX_SPACEDIM == 3)
         }
-
+#endif
     } // end MFIter
 
     // sort 
@@ -114,12 +128,22 @@ int main (int argc, char* argv[]) {
     }
     else 
     {
-        // simple way to make sure there are no empty bins
+        // simple way to make sure there are no empty bins        
+#if (AMREX_SPACEDIM == 2)
         if (n_bins > 2*center_x || n_bins > 2*center_y) {
-            n_bins = 2*center_x;
+            n_bins = 2 * int(std::min(center_x, center_y));
+            
             std::cout << "The number of bins exceeds the number of cells in one direction!\n";
             std::cout << "Setting n_bins = " << n_bins << "\n";
         }
+#elif (AMREX_SPACEDIM == 3)
+        if (n_bins > 2*center_x || n_bins > 2*center_y || 2*center_z) {
+            n_bins = 2 * int(std::min({center_x, center_y, center_z})); 
+            
+            std::cout << "The number of bins exceeds the number of cells in one direction!\n";
+            std::cout << "Setting n_bins = " << n_bins << "\n";
+        }
+#endif
 
         // bin ranges
         auto max_dk = std::max_element(sf_flat.begin(), sf_flat.end(),
@@ -157,9 +181,6 @@ int main (int argc, char* argv[]) {
         }
 
     }
-    
-    
-    std::cout << "... and we are done!\n\n";
 
 }
 
