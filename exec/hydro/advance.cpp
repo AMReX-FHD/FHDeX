@@ -135,14 +135,18 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // call GMRES to compute predictor
   GMRES gmres(ba,dmap,geom);
+
+
   gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
               alpha_fc,beta,beta_ed,gamma,
               theta_alpha,geom,norm_pre_rhs);
+
 
   // for deterministic overdamped, we are done with the time step
   if (algorithm_type == 1 && variance_coef_mom == 0.) {
       for (int d=0; d<AMREX_SPACEDIM; d++) {
           MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
+
       }
       return;
   }
@@ -218,10 +222,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
   }
 
+
   // call GMRES here
   gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
               alpha_fc,beta,beta_ed,gamma,
               theta_alpha,geom,norm_pre_rhs);
+
     
   gmres_abs_tol = gmres_abs_tol_in; // Restore the desired tolerance
 

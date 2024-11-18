@@ -1,6 +1,12 @@
-//#include "common_functions.H"
-#include "multispec_functions.H"
+#include "common_functions.H"
 #include "InhomogeneousBCVal.H"
+#include "multispec_functions.H"
+
+// orig
+//#include "multispec_functions.H"
+//#include "InhomogeneousBCVal.H"
+
+using namespace multispec;
 
 // Ghost cell filling routine.
 // Fills in ALL ghost cells to the value ON the boundary.

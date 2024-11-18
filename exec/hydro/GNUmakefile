@@ -1,14 +1,15 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../amrex/
+AMREX_HOME ?= ../../../../amrex/
 
 DEBUG     = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
-DIM       = 3
+DIM       = 2
 MAX_SPEC      = 8
+MAX_ELEM      = 28
 
 TINY_PROFILE = FALSE
 
@@ -22,9 +23,14 @@ include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
 
+include ../../src_multispec/Make.package
+VPATH_LOCATIONS   += ../../src_multispec/
+INCLUDE_LOCATIONS += ../../src_multispec/
+
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
+
 
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
@@ -37,6 +43,10 @@ INCLUDE_LOCATIONS += ../../src_gmres/
 include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
+
+VPATH_LOCATIONS   += ../../src_multispec/
+INCLUDE_LOCATIONS += ../../src_multispec/
+CEXE_SOURCES += multispec_namespace.H
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
@@ -53,6 +63,9 @@ ifeq ($(USE_CUDA),TRUE)
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+MAXELEMENT := $(strip $(MAX_ELEM))
+DEFINES += -DMAX_ELEMENT=$(MAXELEMENT)
 
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)

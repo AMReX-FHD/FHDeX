@@ -25,6 +25,38 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     MultiFab conc(ba,dmap,nspecies,0);
 
+    // ASA
+    if (prob_type == 10) {
+
+        Box slab(geom.Domain()); slab.setRange(0,0);  // This creates a box on the x-face only
+	int scomps = 2*nspecies+6;
+        FArrayBox my_stuff(slab,scomps);                  // This creates a FAB on that box with 10 components 
+
+	std::string filename = "data.fab";
+	std::ifstream read_me(filename);
+	my_stuff.readFrom(read_me); 
+
+        int ioproc = ParallelDescriptor::IOProcessorNumber();  // I/O rank
+        int numpts = my_stuff.nComp() * slab.numPts();
+        ParallelDescriptor::Bcast(my_stuff.dataPtr(),numpts,ioproc);
+
+        const Array4<Real>& init_data = my_stuff.array();
+
+        for (MFIter mfi(rho_in); mfi.isValid(); ++mfi ) {
+            Box bx = mfi.tilebox();
+
+            const Array4<Real>& c = conc.array(mfi);
+	    int offset = nspecies+1;
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                    for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = init_data(j,k,0,n+offset);
+                    }
+            });
+	} // mfi
+    } // prob_type = 10
+
     // set velocity to zero; overwrite below if needed
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umac[d].setVal(0.);
@@ -55,13 +87,14 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Real x,y,z;
-//                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
-//                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
-//                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
-			        y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+//                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+//				y = prob_lo[1] + (j+0.5)*dx[1] - 1.6e-6 ;,
+//                            z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
 				//y = prob_lo[1] + (j+0.5)*dx[1] - 1.6e-6 ;,
+			        //y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              //y = prob_lo[1] + (j+0.5)*dx[1] - rad*std::cos(alpha) ;,
 
                 Real r = (AMREX_SPACEDIM == 1) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
@@ -419,7 +452,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 if (smoothing_width == 0.) {
 
                     // discontinuous interface
-                    if (y < film_thickness-x+0.5*(prob_hi[0]-prob_lo[0])) {
+                    //if (y < film_thickness-x+0.5*(prob_hi[0]-prob_lo[0])) {
+                    if (y < film_thickness) {
                         for (int n=0; n<nspecies; ++n) {
                             c(i,j,k,n) += c_init_1[n];
                         }
@@ -441,6 +475,58 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/(factor*factor);
                }
+            });
+
+            const Array4<Real> & umac_data = (umac[0]).array(mfi);
+            Box bx_umac = mfi.tilebox(nodal_flag_x);
+
+	   //  Real veljet = 4082.e0;
+	    Real veljet = 100.e0;
+
+            amrex::ParallelFor(bx_umac, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real x,y,z;
+                y = prob_lo[1] + (j+0.5)*dx[1] - center[1];
+
+                   umac_data(i,j,k) = veljet*(j+0.5)/64.;
+
+            });
+
+
+        } else if (prob_type == 21) {
+
+            /*
+	       thin film
+            */
+            //Real rad = L[0] / 8.;
+	    int nsub = 10;
+	    Real factor = nsub;
+	    Real dxsub = dx[0]/factor;
+	    Real dysub = dx[1]/factor;
+	    Real dzsub = dx[2]/factor;
+            Real x,y,z;
+	    amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
+            
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+               for (int n=0; n<nspecies; ++n) {
+                   c(i,j,k,n) = 0.;
+               }
+
+
+	       if(j >= 32) {
+                    c(i,j,k,0) = .955;
+                    c(i,j,k,1) = .015;
+                    c(i,j,k,2) = .030;
+		} else if ( j>= 28 && i >= 25 && i < 35 ) {
+                    c(i,j,k,0) = .03;
+                    c(i,j,k,1) = .72;
+                    c(i,j,k,2) = .25;
+		} else {
+                    c(i,j,k,0) = .03;
+                    c(i,j,k,1) = .94;
+                    c(i,j,k,2) = .03;
+	        }
             });
 
 
@@ -858,7 +944,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     c(i,j,k,1) = c(i,j,k,1) - charge_per_mass[2]/charge_per_mass[1]*c_loc;
                 }
             });
-        } else {
+        } else if (prob_type != 10 ) {
             Abort("Init.cpp: Invalid prob_type");
         }
     }

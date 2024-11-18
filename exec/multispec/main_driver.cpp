@@ -605,14 +605,17 @@ void main_driver(const char* argv)
                              Real z = offset[2] + (k+0.5)*dx[2]);
                 amrex::Real sig_noise = 4.;
                 amrex::Real threshold = fh_ce;
-		threshold = .3;
+		//threshold = .3;
                 amrex::Real alpha = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-(sig_noise+1.)*c_init_1[0]);
                 alpha = std::max(0.,alpha);
+		alpha = data_arr(i,j,k,1) >= 0.5 ? 1. : 0.;
                 amrex::Real beta = (data_arr(i,j,k,1)-c_init_1[0])/(1.-2.*c_init_1[0]);
                 if(beta < (sig_noise-1.)*c_init_1[0]/(1.-2.*c_init_1[0])){
                     beta = 0.;
                 }
                 //amrex::Real gam = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-2.*sig_noise*c_init_1[0]);
+		beta = (data_arr(i,j,k,1)-0.3)/(1.-2.*0.3);
+                beta = std::min(1.,std::max(0.,beta));
                 amrex::Real gam = (data_arr(i,j,k,1)-threshold)/(1.-2.*threshold);
                 gam = std::min(1.,std::max(0.,gam));
                 return {alpha,beta,gam,
@@ -654,7 +657,7 @@ void main_driver(const char* argv)
                 amrex::Print{} << "centerB " << time+dt << " " << cent_massbx << " " << cent_massby << " " << cent_massbz  << std::endl;
                 amrex::Print{} << "centerC " << time+dt << " " << cent_masscx << " " << cent_masscy << " " << cent_masscz  << std::endl;
                 amrex::Print{} << "massA " << time+dt << " " << result[0] << std::endl;
-                amrex::Print{} << "massB " << time+dt << " " << result[1] << std::endl;
+                amrex::Print{} << "massBalt " << time+dt << " " << result[1] << std::endl;
                 amrex::Print{} << "massC " << time+dt << " " << result[2] << std::endl;
             }
 #endif
