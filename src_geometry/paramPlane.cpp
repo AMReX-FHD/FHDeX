@@ -57,6 +57,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			for(int l=0; l<nspecies; l++)
 			{
 				bc_Xk_x_lo[l] /= n_lo[0];
+				cout << "n: " << bc_Xk_x_lo[l] << endl;
 			}
 		}
 		// Number densities defined
@@ -259,6 +260,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			for(int l=0; l<nspecies; l++)
 			{
 				bc_Xk_x_hi[l] /= n_hi[0];
+				cout << "n: " << bc_Xk_x_lo[l] << endl;				
 			}
 		}
 		// Number densities defined
@@ -517,7 +519,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
 		for (int l=0; l<nspecies; l++)
 		{    	
-        	paramPlaneList[0].densityRight[l] = bc_Xk_x_lo[l]*n_lo[0];
+        	//paramPlaneList[0].densityRight[l] = bc_Xk_x_lo[l]*n_lo[0];
+        	paramPlaneList[0].densityRight[l] = bc_Yk_x_lo[l];
            	paramPlaneList[0].temperatureRight = t_lo[0];
         }		 
 	}
@@ -652,8 +655,10 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
 		for (int l=0; l<nspecies; l++)
 		{    	
-        	paramPlaneList[1].densityLeft[l] = bc_Xk_x_hi[l]*n_hi[0];
-           	paramPlaneList[1].temperatureLeft = t_hi[0];
+        	//paramPlaneList[1].densityLeft[l] = bc_Xk_x_hi[l]*n_hi[0];
+        	//Print() << "NUM: " << bc_Yk_x_hi[l] << endl;
+        	paramPlaneList[1].densityLeft[l] = bc_Yk_x_hi[l];
+           	paramPlaneList[1].temperatureRight = t_hi[0];
         }  
   }
   else if(bc_vel_hi[0] == 4)
@@ -1966,6 +1971,7 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
             paramPlaneList[i].yPosRecRight = new double[WRITE_BUFFER];
             paramPlaneList[i].zPosRecRight = new double[WRITE_BUFFER];                        
             paramPlaneList[i].freqRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].timeRecRight = new double[WRITE_BUFFER];            
         }
         if(paramPlaneList[i].momentumConsLeft > 0)
         {
@@ -1976,9 +1982,15 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
             paramPlaneList[i].yPosRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].zPosRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].freqRecLeft = new double[WRITE_BUFFER];                                   
+            paramPlaneList[i].timeRecLeft = new double[WRITE_BUFFER];            
         }
 
 
     }
     planeFile.close();
+}
+
+void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, iMultiFab& bCell)
+{
+
 }

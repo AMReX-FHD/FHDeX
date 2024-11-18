@@ -198,6 +198,7 @@ void main_driver(const char* argv)
 
     MultiFab surfcovMeans;  // used in either MFsurfchem or surfchem_mui
     MultiFab surfcovVars;   // used in either MFsurfchem or surfchem_mui
+    MultiFab surfcovcoVars; // used in either MFsurfchem or surfchem_mui
 
     std::array< MultiFab, AMREX_SPACEDIM > velMeans;
     std::array< MultiFab, AMREX_SPACEDIM > velVars;
@@ -299,6 +300,13 @@ void main_driver(const char* argv)
     StructFact turbStructFactVelDecomp; // decomposed velocity
     StructFact turbStructFactScalar; // scalars 
 #endif
+
+    // surface coverage structure factor
+    StructFact surfcovStructFact;
+    MultiFab surfcovFlattenedRotMaster;
+    Geometry surfcov_geom_flat;
+    BoxArray surfcov_ba_flat;
+    DistributionMapping surfcov_dmap_flat;
     
     Geometry geom_flat;
     Geometry geom_flat_2D;
@@ -482,7 +490,7 @@ void main_driver(const char* argv)
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, turbforce, ba, dmap);
+                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, spatialCross3D, ncross, turbforce, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -626,8 +634,10 @@ void main_driver(const char* argv)
         if (nspec_surfcov>0) {
             surfcovMeans.define(ba,dmap,nspec_surfcov,0);
             surfcovVars.define(ba,dmap,nspec_surfcov,0);
+	    surfcovcoVars.define(ba,dmap,nspec_surfcov*6,0);
             surfcovMeans.setVal(0.0);
             surfcovVars.setVal(0.0);
+	    surfcovcoVars.setVal(0.0);
         }
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -717,7 +727,7 @@ void main_driver(const char* argv)
         
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
-                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa, zeta);
+                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
 #if defined(TURB)
             if (turbForcing > 0) {
                 EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
@@ -911,6 +921,108 @@ void main_driver(const char* argv)
     }
 #endif
 
+    if (n_ads_spec>0) {
+
+        MultiFab Flattened;  // flattened multifab defined below
+
+        // we are only calling ExtractSlice here to obtain
+        // a built version of Flattened so can obtain what we need to build the
+        // structure factor and geometry objects for flattened data
+        // assume surface covered is stored in the "k" direction in the k=0 coordinate.
+        int surfcov_dir = 2;
+        int surfcov_plane = 0;
+        int surfcov_structVars = n_ads_spec;
+        int surfcov_nPairs = surfcov_structVars*(surfcov_structVars+1)/2;
+
+        Vector< std::string > surfcov_var_names;
+        surfcov_var_names.resize(surfcov_structVars);
+        for (int d=0; d<surfcov_structVars; d++) {
+            x = "surfCov";
+            x += (48+d);
+            surfcov_var_names[d] = x;
+        }
+
+        Vector<Real> surfcov_var_scaling(surfcov_nPairs);
+        for (int d=0; d<surfcov_var_scaling.size(); ++d) {
+            surfcov_var_scaling[d] = 1.;
+        }
+      
+        ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+        // we rotate this flattened MultiFab to have normal in the z-direction since
+        // our structure factor class assumes this for flattened
+        MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+        BoxArray surfcov_surfcov_ba_flat = FlattenedRot.boxArray();
+        const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+        surfcovFlattenedRotMaster.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_structVars,0);
+        {
+            IntVect dom_lo(AMREX_D_DECL(0,0,0));
+            IntVect dom_hi;
+
+            // yes you could simplify this code but for now
+            // these are written out fully to better understand what is happening
+            // we wanted dom_hi[AMREX_SPACEDIM-1] to be equal to 0
+            // and need to transmute the other indices depending on surfcov_dir
+#if (AMREX_SPACEDIM == 2)
+            if (surfcov_dir == 0) {
+                dom_hi[0] = n_cells[1]-1;
+            }
+            else if (surfcov_dir == 1) {
+                dom_hi[0] = n_cells[0]-1;
+            }
+            dom_hi[1] = 0;
+#elif (AMREX_SPACEDIM == 3)
+            if (surfcov_dir == 0) {
+                dom_hi[0] = n_cells[1]-1;
+                dom_hi[1] = n_cells[2]-1;
+            } else if (surfcov_dir == 1) {
+                dom_hi[0] = n_cells[0]-1;
+                dom_hi[1] = n_cells[2]-1;
+            } else if (surfcov_dir == 2) {
+                dom_hi[0] = n_cells[0]-1;
+                dom_hi[1] = n_cells[1]-1;
+            }
+            dom_hi[2] = 0;
+#endif
+            Box domain(dom_lo, dom_hi);
+
+            // This defines the physical box
+            Vector<Real> projected_hi(AMREX_SPACEDIM);
+
+            // yes you could simplify this code but for now
+            // these are written out fully to better understand what is happening
+            // we wanted projected_hi[AMREX_SPACEDIM-1] to be equal to dx[projected_dir]
+            // and need to transmute the other indices depending on surfcov_dir
+#if (AMREX_SPACEDIM == 2)
+            if (surfcov_dir == 0) {
+                projected_hi[0] = prob_hi[1];
+            } else if (surfcov_dir == 1) {
+                projected_hi[0] = prob_hi[0];
+            }
+            projected_hi[1] = prob_hi[surfcov_dir] / n_cells[surfcov_dir];
+#elif (AMREX_SPACEDIM == 3)
+            if (surfcov_dir == 0) {
+                projected_hi[0] = prob_hi[1];
+                projected_hi[1] = prob_hi[2];
+            } else if (surfcov_dir == 1) {
+                projected_hi[0] = prob_hi[0];
+                projected_hi[1] = prob_hi[2];
+            } else if (surfcov_dir == 2) {
+                projected_hi[0] = prob_hi[0];
+                projected_hi[1] = prob_hi[1];
+            }
+            projected_hi[2] = prob_hi[surfcov_dir] / n_cells[surfcov_dir];
+#endif
+
+            RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                             {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+        
+            // This defines a Geometry object
+            surfcov_geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        }
+
+        surfcovStructFact.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_var_names,surfcov_var_scaling);
+    }
+
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
     /////////////////////////////////////////////////
@@ -990,11 +1102,35 @@ void main_driver(const char* argv)
 #elif defined(USE_AMREX_MPMD)
         amrex_push(cu, prim, *mpmd_copier);
 #endif
-        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
+        if (n_ads_spec>0) {
+	    if (splitting_MFsurfchem == 0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
+	    else if (splitting_MFsurfchem == 1) {
+	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
+		update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
+
+		for (int d=0; d<AMREX_SPACEDIM; d++) {
+		    cumom[d].FillBoundary(geom.periodicity());
+		}
+		cu.FillBoundary(geom.periodicity());
+
+		conservedToPrimitiveStag(prim, vel, cu, cumom);
+		            // Set BC: 1) fill boundary 2) physical
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    vel[d].FillBoundary(geom.periodicity());
+                }
+                prim.FillBoundary(geom.periodicity());
+                cu.FillBoundary(geom.periodicity());
+
+                setBCStag(prim, cu, cumom, vel, geom);
+	    }
+	    else Abort("splitting_MFsurfchem can be 0 or 1");
+	}
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+
+	if (n_ads_spec>0 && splitting_MFsurfchem == 1) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
@@ -1079,6 +1215,7 @@ void main_driver(const char* argv)
             if (nspec_surfcov>0) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
+		surfcovcoVars.setVal(0.0);
             }
 
             if (do_1D) {
@@ -1101,19 +1238,19 @@ void main_driver(const char* argv)
         if (do_1D) {
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                surfcov, surfcovMeans, surfcovVars,
+                                surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 spatialCross1D, ncross, statsCount, geom);
         }
         else if (do_2D) {
             evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                surfcov, surfcovMeans, surfcovVars,
+                                surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 spatialCross2D, ncross, statsCount, geom);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                surfcov, surfcovMeans, surfcovVars,
+                                surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 dataSliceMeans_xcross, spatialCross3D, ncross, domain,
                                 statsCount, geom);
         }
@@ -1145,7 +1282,7 @@ void main_driver(const char* argv)
             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa, zeta);
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
             
 #if defined(TURB)
             if (turbForcing > 0) {
@@ -1411,6 +1548,20 @@ void main_driver(const char* argv)
 
                 }
             }
+
+            if (n_ads_spec > 0) {
+                int surfcov_dir = 2;
+                int surfcov_plane = 0;
+                int surfcov_structVars = n_ads_spec;
+                MultiFab Flattened;  // flattened multifab defined below
+                ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+                // we rotate this flattened MultiFab to have normal in the z-direction since
+                // our structure factor class assumes this for flattened
+                MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+                surfcovFlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,surfcov_structVars);
+                surfcovStructFact.FortStructure(surfcovFlattenedRotMaster,surfcov_geom_flat);
+            }
+
         }
 
         // write out structure factor
@@ -1467,6 +1618,10 @@ void main_driver(const char* argv)
                                     structFactConsArray[0].get_names(),"plt_SF_cons_2D");
 
             }
+
+            if (n_ads_spec > 0) {
+                surfcovStructFact.WritePlotFile(step,time,surfcov_geom_flat,"plt_SF_surfcov");
+            }
         }
 
         // write checkpoint file
@@ -1485,7 +1640,7 @@ void main_driver(const char* argv)
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, turbforce);
+                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, spatialCross3D, ncross, turbforce);
             }
         }
 

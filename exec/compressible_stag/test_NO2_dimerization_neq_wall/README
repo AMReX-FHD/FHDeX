@@ -1,0 +1,19 @@
+* this file:            README
+
+* slurm execution       submit_job.sh
+                        job_script.sh (for Pinnacles:--partition pi.ckim103)
+    -> output               slurm-*.out
+
+* FHD inputs file       inputs_NO2_dimerization_neq_wall
+    -> output               plt*
+                                -> amrvis3d
+
+* var analysis along z  zavg.sh
+                        zavg.plt
+                            -> Inst values
+                        zavg2.sh
+                        zavg2.plt
+                            -> Mean and Var values
+
+* clean-up              clean.sh
+* comparison            diff.sh

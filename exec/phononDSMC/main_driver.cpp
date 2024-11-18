@@ -33,6 +33,8 @@ void main_driver(const char* argv)
 	Real time = 0.;
 	int statsCount = 1;
 	
+	iMultiFab bCell;
+	
 	MultiFab cuInst, cuMeans, cuVars;
 	
 	if (seed > 0)
@@ -99,6 +101,8 @@ void main_driver(const char* argv)
 		cuInst.define(ba, dmap, ncon, 0); cuInst.setVal(0.);
 		cuMeans.define(ba, dmap, ncon, 0); cuMeans.setVal(0.);
 		cuVars.define(ba,dmap, ncon, 0); cuVars.setVal(0.);
+		
+    	bCell.define(ba, dmap, 2, 1); bCell.setVal(0);
 
 
 	}

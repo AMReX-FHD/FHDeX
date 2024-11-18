@@ -12,9 +12,9 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& rhotot,
-		   const MultiFab& rho,
-		   const MultiFab& pres,
+		           const MultiFab& rhotot,
+		           const MultiFab& rho,
+		           const MultiFab& pres,
                    const MultiFab& charge,
                    const MultiFab& Epot)
 {
@@ -125,6 +125,15 @@ void WritePlotFile(int step,
     // write a plotfile
     // timer
     Real t1 = ParallelDescriptor::second();
+
+    const std::string asciifilename1 = Concatenate("rho1_ascii_",step,7);    
+    outputMFAsciiReduce(rho,0,asciifilename1,4);
+    
+    const std::string asciifilename2 = Concatenate("rho2_ascii_",step,7);    
+    outputMFAsciiReduce(rho,1,asciifilename2,4);
+    
+    const std::string asciifilename3 = Concatenate("rho3_ascii_",step,7);    
+    outputMFAsciiReduce(rho,2,asciifilename3,4);
     
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
     

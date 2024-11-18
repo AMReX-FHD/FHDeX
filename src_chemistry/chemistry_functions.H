@@ -16,32 +16,19 @@ using namespace common;
 
 void InitializeChemistryNamespace();
 
-void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
-                                  MultiFab& prim, MultiFab& source, MultiFab& ranchem);
+// used in compressible code only
+void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
+                                               MultiFab& prim, MultiFab& source, MultiFab& ranchem);
 
-AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<amrex::Real,MAX_SPECIES>& n_dens,
-                                                  GpuArray<amrex::Real,MAX_REACTION>& a_r);
+void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geometry& geom, const amrex::Real& dt, 
+                   const MultiFab& n_interm, Vector<Real>& lin_comb_coef_in, Real volume_factor_in=1.);
 
-void compute_chemistry_source_CLE_1(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in,
-                                    MultiFab& source, int startComp_out);
+AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_in,
+                                                  GpuArray<Real,MAX_REACTION>& reaction_rates,
+                                                  const amrex::Real& dv);
 
-void compute_chemistry_source_CLE_2(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in,
-                                    MultiFab& source, int startComp_out, MultiFab& ranchem);
-
-void EMstep_chem_only(MultiFab& rho_old, MultiFab& rho_new,
-                      const amrex::Geometry geom, const amrex::Real dt);
-
-void RK3step_chem_only(MultiFab& rho_old, MultiFab& rho_new,
-                       const amrex::Geometry geom, const amrex::Real dt);
-
-AMREX_GPU_HOST_DEVICE void advance_reaction_det_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,
-                                                     GpuArray<amrex::Real,MAX_SPECIES>& n_new,amrex::Real dt);
-
-AMREX_GPU_HOST_DEVICE void advance_reaction_CLE_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,
-                                                     GpuArray<amrex::Real,MAX_SPECIES>& n_new,
-                                                     amrex::Real dt,amrex::Real dV,RandomEngine const& engine);
-
-AMREX_GPU_HOST_DEVICE void advance_reaction_SSA_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,
-                                                     GpuArray<amrex::Real,MAX_SPECIES>& n_new,
-                                                     amrex::Real dt,amrex::Real dV,RandomEngine const& engine);
+AMREX_GPU_HOST_DEVICE void sample_num_reactions(GpuArray<Real,MAX_SPECIES>& n_in,
+                                                GpuArray<Real,MAX_REACTION>& num_reactions,
+                                                GpuArray<Real,MAX_REACTION>& avg_num_reactions,
+                                                const amrex::RandomEngine& engine);
 #endif

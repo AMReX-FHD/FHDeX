@@ -719,10 +719,10 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         } else if (prob_type == 3) {
 
             Real rad1 = 0.0119;
-            Real rad2 = 0.00294;
+            Real rad2 = 0.0022853;
             rad1 = 0.01;
-            Real shift1 = 1.2*rad1;
-            Real shift2 = 2.4*rad1 + rad2;
+            Real shift1 = 1.05*rad1;
+            Real shift2 = 2.1*rad1 + rad2;
             Real velbub = 100.;
 
 
@@ -730,15 +730,26 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Real bub2[3];
             Real back[3];
 
-            bub1[0]=0.98;
-            bub1[1]=0.01;
-            bub1[2]=0.01;
-            bub2[0]=0.01;
-            bub2[1]=0.98;
-            bub2[2]=0.01;
-            back[0]=0.01;
-            back[1]=0.01;
-            back[2]=0.98;
+//            bub1[0]=0.98;
+//            bub1[1]=0.01;
+//            bub1[2]=0.01;
+//            bub2[0]=0.01;
+//            bub2[1]=0.98;
+//            bub2[2]=0.01;
+//            back[0]=0.01;
+//            back[1]=0.01;
+//            back[2]=0.98;
+
+            bub1[0]=1.0;
+            bub1[1]=0.0;
+            bub1[2]=0.0;
+            bub2[0]=0.0;
+            bub2[1]=1.0;
+            bub2[2]=0.0;
+            back[0]=0.0;
+            back[1]=0.0;
+            back[2]=1.0;
+
 /*
             bub1[0]=.8;
             bub1[1]=.1;

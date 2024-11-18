@@ -13,8 +13,8 @@ s1 = data[0][2]
 x2 = data[0][3]
 s2 = data[0][4]
 
-meantheta1 = 2.053333e-01
-vartheta1 = 1.813017e-06
+meantheta1 = 7.466307e-01
+vartheta1 = 2.101926e-06
  
 print("E[theta]   = %e\tstd= %e" % (x1,s1/math.sqrt(Ncellx*Ncelly)))
 print("expected   = %e" % meantheta1)
