@@ -223,6 +223,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 					&intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
 
 				for (int d=0; d<(AMREX_SPACEDIM); ++d)
+				//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)				
 				{
 					part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*ADJ;
 				}
@@ -237,6 +238,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 					Real posAlt[3];
 
 					for (int d=0; d<(AMREX_SPACEDIM); ++d)
+    				//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)					
 					{
 						posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*ADJALT;
 					}
@@ -250,6 +252,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
                     }
 					if(push == 1)
 					{
+						//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)
 						for (int d=0; d<(AMREX_SPACEDIM); ++d)
 						{
 							part.pos(d) += part.pos(d) + posAlt[d];
@@ -417,8 +420,11 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 				//Print() << "Pre " << part.id() << ": " << part.rdata(FHD_realData::velx + 0) << ", " << part.rdata(FHD_realData::velx + 1) << ", " << part.rdata(FHD_realData::velx + 2) << endl;
 //                printf("DT: %e\n", dt);
 //                cout << "DT: " << dt << endl;
-				find_inter_gpu(part, runtime, paramPlaneListPtr, paramPlaneCount,
-					&intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                for(int ii = 0;ii<100;ii++)
+                { 
+				    find_inter_gpu(part, runtime, paramPlaneListPtr, paramPlaneCount,
+					    &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+			    }
 				
 				Real tauImpurityInv = pow(part.rdata(FHD_realData::omega),4)/tau_i_p;
 				Real tauTAInv = part.rdata(FHD_realData::omega)*pow(T_init[0],4)/tau_ta_p;
@@ -437,7 +443,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 		          }
 
                     runtime = runtime - inttime;
-
+                    part.rdata(FHD_realData::travelTime) += inttime;
 
                     if(intsurf > 0)
 				    {
@@ -452,7 +458,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 					    }
 					    
 					    app_bc_phonon_gpu(&surf, part, intside, pdomsize, &push, &runtime, step, countPtr, specCountPtr, engine);
-    //					app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
+    					//app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
    					    //Print() << "Post " << part.id() << ": " << part.rdata(FHD_realData::velx + 0) << ", " << part.rdata(FHD_realData::velx + 1) << ", " << part.rdata(FHD_realData::velx + 2) << endl;
                         if(part.id() == -1)
                         {
@@ -491,6 +497,10 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 
 			part.rdata(FHD_realData::timeFrac) = 1.0;
 			
+//			if(step%2==0)
+//			{
+//                part.rdata(FHD_realData::velz) = -part.rdata(FHD_realData::velz);    
+//		    }
 
 			if(part.idata(FHD_intData::newSpecies) != -1)
 			{
@@ -500,6 +510,10 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 
 
 		});
+		
+		
+	
+		
 		//Print() << "Pre buffer size: " << paramPlaneList[1].recCountRight << endl;		
 		for (int i = 0; i < np; i++)
 		{
@@ -521,6 +535,8 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
                 //Print() << "Buffering " << paramPlaneList[surfnum].yPosRecRight[surfcount] << " to surf " << surfnum << endl;
                 
                 paramPlaneList[surfnum].freqRecRight[surfcount] = part.rdata(FHD_realData::omega);
+                
+                paramPlaneList[surfnum].timeRecRight[surfcount] = part.rdata(FHD_realData::travelTime);
                    
                 paramPlaneList[surfnum].recCountRight++;
                 
@@ -534,7 +550,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
                     {                                        
                         ofs << paramPlaneList[surfnum].xPosRecRight[j] << " " << paramPlaneList[surfnum].yPosRecRight[j] << " " << paramPlaneList[surfnum].zPosRecRight[j] 
                             << " " << paramPlaneList[surfnum].xVelRecRight[j] << " " << paramPlaneList[surfnum].yVelRecRight[j] << " " << paramPlaneList[surfnum].zVelRecRight[j]
-                            << " " << paramPlaneList[surfnum].freqRecRight[j] << std::endl;
+                            << " " << paramPlaneList[surfnum].freqRecRight[j] << " " << paramPlaneList[surfnum].timeRecRight[j] << std::endl;
                      }
                      ofs.close();
                      paramPlaneList[surfnum].recCountRight = 0;  
@@ -556,6 +572,8 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
                 paramPlaneList[surfnum].zPosRecLeft[surfcount] = part.pos(2);
                 
                 paramPlaneList[surfnum].freqRecLeft[surfcount] = part.rdata(FHD_realData::omega);
+                
+                paramPlaneList[surfnum].timeRecLeft[surfcount] = part.rdata(FHD_realData::travelTime);                
                    
                 paramPlaneList[surfnum].recCountLeft++;
                 
@@ -568,7 +586,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
                                        
                         ofs << paramPlaneList[surfnum].xPosRecLeft[j] << " " << paramPlaneList[surfnum].yPosRecLeft[j] << " " << paramPlaneList[surfnum].zPosRecLeft[j] 
                             << " " << paramPlaneList[surfnum].xVelRecLeft[j] << " " << paramPlaneList[surfnum].yVelRecLeft[j] << " " << paramPlaneList[surfnum].zVelRecLeft[j]
-                            << " " << paramPlaneList[surfnum].freqRecLeft[j] << std::endl;
+                            << " " << paramPlaneList[surfnum].freqRecLeft[j] << " " << paramPlaneList[surfnum].timeRecLeft[j] << std::endl;
 
                      }
                      ofs.close();
@@ -1043,7 +1061,8 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 				{
 					for(int j=nspecies-1; j>=0; j--)
 					{
-						Real density = paramPlaneList[i].densityRight[j];						
+						Real density = paramPlaneList[i].densityRight[j]*rho_lo[0]/properties[j].mass;						
+						//Real density = paramPlaneList[i].densityRight[j];						
 						Real temp = paramPlaneList[i].temperatureRight;
 						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
@@ -1117,7 +1136,9 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					
 					for(int j=nspecies-1; j>=0; j--)
 					{
-						Real density = paramPlaneList[i].densityRight[j];
+						Real density = paramPlaneList[i].densityRight[j]*rho_lo[0]/properties[j].mass;
+										//cout << "n: " << density << endl;
+						//Real density = paramPlaneList[i].densityRight[j];
 						
 						Real xMom = paramPlaneList[i].xMomFluxRight[j];												
 						Real yMom = paramPlaneList[i].yMomFluxRight[j];
@@ -1299,7 +1320,8 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					//Print() << "Type 1\n";
 					for(int j=nspecies-1; j>=0; j--)
 					{
-						Real density = paramPlaneList[i].densityLeft[j];
+						Real density = paramPlaneList[i].densityLeft[j]*rho_lo[0]/properties[j].mass;
+						//Real density = paramPlaneList[i].densityLeft[j];
 						Real temp = paramPlaneList[i].temperatureLeft;
 						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
@@ -1374,7 +1396,8 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					
 					for(int j=nspecies-1; j>=0; j--)
 					{
-						Real density = paramPlaneList[i].densityLeft[j];						
+						Real density = paramPlaneList[i].densityLeft[j]*rho_lo[0]/properties[j].mass;						
+						//Real density = paramPlaneList[i].densityLeft[j];						
 
                         int totalAttemptsInt = amrex::RandomPoisson(density*vol);
 
@@ -1639,12 +1662,28 @@ void FhdParticleContainer::SourcePhonons(const Real dt, const paramPlane* paramP
 							
           					p.idata(FHD_intData::fluxRec) = 0;
 
-							p.rdata(FHD_realData::timeFrac) = amrex::Random(engine);
+                            if(toggleTimeFrac = 1)
+                            {
+							    p.rdata(FHD_realData::timeFrac) = amrex::Random(engine);			//boundary 'reservoir' source				
+							}else
+							{	
+							    p.rdata(FHD_realData::timeFrac) = 1;
+							}
+							p.rdata(FHD_realData::travelTime) = 0;							
 
 							const paramPlane surf = paramPlaneListPtr[i];
 							
-							cosineLawHemisphere(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft,
+							if(toggleTimeFrac = 1)
+                            {
+							    cosineLawHemisphere(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft,
                                                 &p.rdata(FHD_realData::velx),&p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz), pSpeed, engine);
+							}else
+							{	
+							    randomhemisphere(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft,
+                                                &p.rdata(FHD_realData::velx),&p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz), engine);
+							}
+							
+							
 
                             p.rdata(FHD_realData::omega) = plankDist(surf.temperatureLeft, engine);
                             //I hope this is right?
@@ -1721,16 +1760,29 @@ void FhdParticleContainer::SourcePhonons(const Real dt, const paramPlane* paramP
 							
           					p.idata(FHD_intData::fluxRec) = 0;
 
-							//p.rdata(FHD_realData::R) = properties[j].R;
-							p.rdata(FHD_realData::timeFrac) = amrex::Random(engine);
+                            if(toggleTimeFrac = 1)
+                            {
+							    p.rdata(FHD_realData::timeFrac) = amrex::Random(engine);			//boundary 'reservoir' source				
+							}else
+							{	
+							    p.rdata(FHD_realData::timeFrac) = 1;
+							}
+							p.rdata(FHD_realData::travelTime) = 0;					
 
 
 							const paramPlane surf = paramPlaneListPtr[i];
 
-							cosineLawHemisphere(surf.cosThetaRight, surf.sinThetaRight, surf.cosPhiRight, surf.sinPhiRight,
-								&p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz),pSpeed, engine);
+							if(toggleTimeFrac = 1)
+                            {
+							    cosineLawHemisphere(surf.cosThetaRight, surf.sinThetaRight, surf.cosPhiRight, surf.sinPhiRight,
+                                                &p.rdata(FHD_realData::velx),&p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz), pSpeed, engine);
+							}else
+							{	
+							    randomhemisphere(surf.cosThetaRight, surf.sinThetaRight, surf.cosPhiRight, surf.sinPhiRight,
+                                                &p.rdata(FHD_realData::velx),&p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz), engine);
+							}
 								
-                            p.rdata(FHD_realData::omega) = plankDist(surf.temperatureLeft, engine);
+                            p.rdata(FHD_realData::omega) = plankDist(surf.temperatureRight, engine);
                             //I hope this is right?
                             p.rdata(FHD_realData::lambda) = pSpeed*2.0*M_PI/p.rdata(FHD_realData::omega);
 

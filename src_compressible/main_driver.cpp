@@ -337,7 +337,7 @@ void main_driver(const char* argv)
     
         p0 = 884.147e3;
         dProb = (AMREX_SPACEDIM==2) ? 1./(n_cells[0]*n_cells[1]) : 1./(n_cells[0]*n_cells[1]*n_cells[2]);
-        rho0 = molmass[0] / (Runiv / k_B) * p0 / (k_B * T_init[0]);
+        rho0 = molmass[0] / avogadro * p0 / (k_B * T_init[0]);
         nu0 = 0.185;
     }
         

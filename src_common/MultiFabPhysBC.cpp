@@ -480,7 +480,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim, int is_i
             }
         }
 
-        if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+        if ((dim != 0) && (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
             if (bc_vel_hi[0] == 1) { // slip
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {

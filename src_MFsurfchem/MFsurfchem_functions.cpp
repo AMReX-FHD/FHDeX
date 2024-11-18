@@ -12,8 +12,10 @@ AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::des_rate;
 AMREX_GPU_MANAGED int MFsurfchem::stoch_surfcov0;
 AMREX_GPU_MANAGED int MFsurfchem::stoch_MFsurfchem;
 
-// temperature correction exponent
-#define BETA    0.5
+AMREX_GPU_MANAGED amrex::Real MFsurfchem::k_beta;
+AMREX_GPU_MANAGED amrex::Real MFsurfchem::e_beta;
+
+AMREX_GPU_MANAGED int MFsurfchem::splitting_MFsurfchem;
 
 void InitializeMFSurfchemNamespace()
 {
@@ -63,6 +65,16 @@ void InitializeMFSurfchemNamespace()
 
     stoch_MFsurfchem = 1; // default value
     pp.query("stoch_MFsurfchem",stoch_MFsurfchem);
+
+    k_beta = -0.5; // default value
+    pp.query("k_beta",k_beta);
+
+    e_beta = 0.5; // default value
+    pp.query("e_beta",e_beta);
+
+    // get splitting type: first order (0), strang (1)
+    splitting_MFsurfchem = 0; // default value
+    pp.query("splitting_MFsurfchem",splitting_MFsurfchem);
     return;
 }
 
@@ -141,12 +153,12 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 amrex:: Real tempratio = prim_arr(i,j,k,4)/T_init[0];
 
                 for (int m=0;m<n_ads_spec;m++) {
-                    amrex::Real dens = cu_arr(i,j,k,5+m);   // mass density
-                    dens *= AVONUM/molmass[m];              // number density
+                    amrex::Real pres = prim_arr(i,j,k,5);   // total pressure
+                    pres *= prim_arr(i,j,k,6+nspecies+m);   // partial pressure
 
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
-                    amrex::Real meanNads = ads_rate_const[m]*dens*(1-sumtheta)*Ntot*dt*pow(tempratio,BETA);
+  		    amrex::Real meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
                     amrex::Real meanNdes = des_rate[m]*theta*Ntot*dt;
 
                     amrex::Real Nads;
@@ -193,8 +205,7 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 for (int m=0;m<n_ads_spec;m++) {
                     amrex::Real dN = dNadsdes_arr(i,j,k,m);
                     amrex::Real factor1 = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
-                    amrex::Real factor2 = (BETA*k_B*T_inst+(e0[m]+hcv[m]*T_inst)*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
-
+		    amrex::Real factor2 = (e_beta*k_B*T_inst+(e0[m]+hcv[m]*T_inst)*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
                     surfcov_arr(i,j,k,m) += dN/Ntot;
                     cu_arr(i,j,k,0) -= factor1*dN;
                     cu_arr(i,j,k,5+m) -= factor1*dN;

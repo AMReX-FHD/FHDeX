@@ -31,9 +31,9 @@ void advance_phi (MultiFab& phi_old,
     variance *=dzinv;
 #endif
 
-    // fill random numbers (can skip density component 0)
-    for(int d=0;d<AMREX_SPACEDIM;d++) {
-            MultiFabFillRandom(stochFlux[d], 0, variance, geom);
+    // Fill stochFlux with random numbers (can skip density component 0)
+    for (int d=0;d<AMREX_SPACEDIM;d++) {
+        MultiFabFillRandom(stochFlux[d], 0, variance, geom);
     }
 
     const BCRec& bc = BoundaryCondition[0];

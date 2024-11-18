@@ -124,7 +124,7 @@ void FhdParticleContainer::CalcSelections(Real dt)
 					crossSection = csx[ij_spec];
 					//crossSection = 0;
 					if(i_spec==j_spec) {np_j = np_i-1;}
-					NSel = particle_neff_tmp*np_i*np_j*crossSection*vrmax*ocollisionCellVolTmp*dt;
+					NSel = particle_neff_tmp*np_i*np_j*crossSection*vrmax*ocollisionCellVolTmp*dt*2;
 					if(i_spec==j_spec) {NSel = NSel*0.5;}
 					arrselect(i,j,k,ij_spec) = std::floor(NSel + amrex::Random(engine));
 					
