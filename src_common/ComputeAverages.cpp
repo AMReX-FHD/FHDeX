@@ -384,7 +384,44 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
 
     // create a new DistributionMapping and define the MultiFab
     DistributionMapping dmap_slice(ba_slice);
-    mf_slice.define(ba_slice,dmap_slice,ncomp,0);
+    MultiFab mf_slice_tmp(ba_slice,dmap_slice,ncomp,0);
         
-    mf_slice.ParallelCopy(mf, incomp, 0, ncomp);
+    mf_slice_tmp.ParallelCopy(mf, incomp, 0, ncomp);
+
+    // now copy this into a multifab with index zero in the dir direction rather than slicepoint
+    // (structure factor code requires this)
+    dom_lo[dir] = 0;
+    dom_hi[dir] = 0;
+
+    Box domain_slice2(dom_lo,dom_hi);
+    BoxArray ba_slice2(domain_slice2);
+    ba_slice2.maxSize(IntVect(max_grid_slice));
+    mf_slice.define(ba_slice2,dmap_slice,ncomp,0);
+
+    for ( MFIter mfi(mf_slice_tmp,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real> & slice = mf_slice.array(mfi);
+        const Array4<Real> & slice_tmp = mf_slice_tmp.array(mfi);
+
+        if (dir == 0) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                slice(0,j,k) = slice_tmp(i,j,k);
+            });
+        }
+        if (dir == 1) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                slice(i,0,k) = slice_tmp(i,j,k);
+            });
+        }
+        if (dir == 2) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                slice(i,j,0) = slice_tmp(i,j,k);
+            });
+        }
+    }
 }
