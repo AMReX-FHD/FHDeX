@@ -408,19 +408,19 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
         if (dir == 0) {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                slice(0,j,k) = slice_tmp(i,j,k);
+                slice(0,j,k,n) = slice_tmp(i,j,k,n);
             });
         }
         if (dir == 1) {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                slice(i,0,k) = slice_tmp(i,j,k);
+                slice(i,0,k,n) = slice_tmp(i,j,k,n);
             });
         }
         if (dir == 2) {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                slice(i,j,0) = slice_tmp(i,j,k);
+                slice(i,j,0,n) = slice_tmp(i,j,k,n);
             });
         }
     }
