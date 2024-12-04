@@ -87,7 +87,11 @@ void WritePlotFileStag(int step,
 
 	if (nspec_surfcov>0) nplot += nspec_surfcov*6;
     }
-   
+
+    if (plot_deltaY == 1) {
+        nplot += nspecies;
+    }
+
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
@@ -255,6 +259,16 @@ void WritePlotFileStag(int step,
 	    amrex::MultiFab::Copy(plotfile,surfcovcoVars,0,cnt,numvars,0);
 	    cnt+=numvars;
 	}
+    }
+
+    if (plot_deltaY == 1) {
+        MultiFab Ybar(ba, dmap, nspecies, 0);
+        // Yk is component 6: in prim
+        WriteHorizontalAverageToMF(prim,Ybar,project_dir,6,nspecies,0);
+        Ybar.mult(-1.);
+        amrex::MultiFab::Add(Ybar,prim,6,0,nspecies,0);
+        amrex::MultiFab::Copy(plotfile,Ybar,0,cnt,nspecies,0);
+        cnt+= nspecies;
     }
 
     // Set variable names
@@ -443,6 +457,14 @@ void WritePlotFileStag(int step,
 	    }
 	}
 
+    }
+
+    if (plot_deltaY == 1) {
+        x = "deltaYk_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
     }
 
     AMREX_ASSERT(cnt==nplot);
