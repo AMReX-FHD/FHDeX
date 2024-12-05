@@ -88,7 +88,7 @@ void WritePlotFileStag(int step,
 	if (nspec_surfcov>0) nplot += nspec_surfcov*6;
     }
 
-    if (plot_deltaY == 1) {
+    if (plot_deltaY_dir != -1) {
         nplot += nspecies;
     }
 
@@ -261,10 +261,10 @@ void WritePlotFileStag(int step,
 	}
     }
 
-    if (plot_deltaY == 1) {
+    if (plot_deltaY_dir != -1) {
         MultiFab Ybar(ba, dmap, nspecies, 0);
         // Yk is component 6: in prim
-        WriteHorizontalAverageToMF(prim,Ybar,project_dir,6,nspecies,0);
+        WriteHorizontalAverageToMF(prim,Ybar,plot_deltaY_dir,6,nspecies,0);
         Ybar.mult(-1.);
         amrex::MultiFab::Add(Ybar,prim,6,0,nspecies,0);
         amrex::MultiFab::Copy(plotfile,Ybar,0,cnt,nspecies,0);
@@ -459,7 +459,7 @@ void WritePlotFileStag(int step,
 
     }
 
-    if (plot_deltaY == 1) {
+    if (plot_deltaY_dir != 1) {
         x = "deltaYk_";
         for (i=0; i<nspecies; i++) {
             varNames[cnt] = x;
