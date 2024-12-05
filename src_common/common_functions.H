@@ -148,7 +148,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
 
 void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,
-                                const int& ncomp);
+                                const int& ncomp, int outcomp=-1);
     
 void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_flat, const Geometry & geom,
                             const int& dir, const int& incomp, const int& ncomp,

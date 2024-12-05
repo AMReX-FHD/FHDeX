@@ -95,8 +95,12 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
 
 void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,
-                                const int& ncomp)
+                                const int& ncomp, int outcomp)
 {
+    if (outcomp == -1) {
+        outcomp = incomp; // default outcomp is incomp unless specified
+    }
+
     // number of points in the averaging direction
     int npts = n_cells[dir];
 
@@ -166,7 +170,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
         const Array4<Real> mf = mf_out.array(mfi);
 
         for (auto n=0; n<ncomp; ++n) {
-            comp = incomp+n;
+            comp = outcomp+n;
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
