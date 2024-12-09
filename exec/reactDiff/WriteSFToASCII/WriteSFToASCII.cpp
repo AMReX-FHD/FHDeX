@@ -13,9 +13,30 @@
 using namespace std;
 using namespace amrex;
 
+static void PrintUsage (const char* progName)
+{
+    Print() << std::endl
+            << "This utility is intended to be used to convert structure factor data, via a plotfile," << std::endl
+            << "into ASCII data representing a (x,y) scatter plot." << std::endl
+            << "  inputs:" << std::endl
+            << "    input_plt_file=inputFileName" << std::endl
+            << "    output_ASCII_file=outputFileName" << std::endl
+            << "    n_bins=numberOfBins (if n_bins = 0, the raw data is printed)" << std::endl; 
+
+    Print() << "Usage:" << '\n';
+    Print() << progName << " input_file=inputFileName output_ASCII_file=outputFileName n_bins=numberOfBins" << '\n' << '\n';
+
+    exit(1);
+}
+
 int main (int argc, char* argv[]) {
 
     amrex::Initialize(argc,argv);
+
+    // print usage
+    if (argc == 1) {
+        PrintUsage(argv[0]);
+    }
 
     ParmParse pp;
 
@@ -33,7 +54,8 @@ int main (int argc, char* argv[]) {
         output_file = input_plt_file;
     }
 
-    // component to print
+    // component to print 
+    // TODO: Should we only print 1 component if empty?
     std::string component_to_print;
     pp.query("component_to_print", component_to_print);
 
@@ -142,7 +164,7 @@ int main (int argc, char* argv[]) {
 
         // bin the data
         std::map<int, std::pair<double, int>> bins;
-        double bin_r = 0;
+        double bin_r = 1.e40;
                 
         if (n_bins > 0) {
             auto max_dk = std::max_element(comp_SF_data[n].begin(), comp_SF_data[n].end(),
@@ -161,23 +183,21 @@ int main (int argc, char* argv[]) {
             }
         }
          
-        // print the data
-        std::cout << "Printing data to \n";
-
+        // print the data with comp name appended to output_file
         std::string output_name = output_file;
         output_name += "_";
         output_name += comp_names[n];
         output_name += "_out.csv";
 
-        std::cout << "  " << output_name << "\n";
 
         std::ofstream out_file(output_name);
-
         if (!out_file.is_open()) {
             std::cerr << "Error: Could not open file " << output_name << " for writing." << std::endl;
             return 1; 
         }
 
+        std::cout << "..Printing data to\n    " << output_name << "\n";
+        
         out_file << "dk, sf\n";
 
         if (n_bins > 0) {
