@@ -11,55 +11,72 @@
 using namespace std;
 using namespace amrex;
 
-
-/*
- *   Inputs:
- *      -i  input file (this needs to be given)
- *      -b  number of bins (will default if not given)
- */  
 int main (int argc, char* argv[]) {
 
     amrex::Initialize(argc,argv);
 
+    // read inputs
+    ParmParse pp;
+
+    // input plt file
+    std::string input_plt_file;
+    pp.query("input_plt_file", input_plt_file);
+    if (input_plt_file.empty()) {
+        amrex::Abort("You must specify an input plotfile.");
+    }
+
+    // output file name
+    std::string output_file;
+    pp.query("output_ASCII_file", output_file);
+    if (output_file.empty()) {
+        output_file = input_plt_file;
+    }
+
+    // component to print
+    std::string component_to_print;
+    pp.query("component_to_print", component_to_print);
+
+    // number of bins to use
+    int n_bins = 1;
+    pp.query("n_bins", n_bins);
+
+    // read information from header
+    std::string Header = input_plt_file;
+    Header += "/Header";
+
+    std::cout << Header << std::endl;
+
+    // open header
+    ifstream x;
+    x.open(Header.c_str(), ios::in);
+
+    // read in first line of header
+    string str;
+    x >> str;
+
+    // read in number of components from header
+    int ncomp;
+    x >> ncomp;
+
+    // read in variable names from header
+    std::vector<std::string> comp_names;
+
+    for (int n=0; n<ncomp; ++n) {
+        x >> str;
+        comp_names.push_back(str);
+    }
+
+    // Read data from file
     MultiFab mf;
 
-    // Parse command-line arguments
-    std::string plt_file; 
-    std::string out_name;
-    int n_bins; 
-
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "-i" && i + 1 < argc) {
-            plt_file = argv[++i]; 
-        } 
-
-        if (arg == "-b" && i + 1 < argc) {
-            n_bins = std::stoi(argv[++i]);
-        }
-        
-        if (arg == "-o" && i + 1 < argc) {
-            out_name = argv[++i];
-        }
-    }
-
-    if (plt_file == "")
-    {
-        std::cerr << "No input file given!\n";
-        return 1;
-    }
-
-    // if no output file name is given, use the plt file name and append with _sf_raw.csv
-    if (out_name == "") {
-        out_name += plt_file + "_sf_raw.csv";
-    } 
-
     // Append Level_0/Cell for mf read
-    plt_file += "/Level_0/Cell";
-    std::cout << plt_file << std::endl;
-     
+    std::string mf_file = input_plt_file;
+
+    mf_file += "/Level_0/Cell";
+    std::cout << "Reading mf data from " << mf_file << std::endl;
+
     // read in plotfile to MultiFab
-    VisMF::Read(mf, plt_file);
+    VisMF::Read(mf, mf_file);
 
     // figure out the center cell
     auto domain_box = mf.boxArray().minimalBox();
@@ -70,7 +87,8 @@ int main (int argc, char* argv[]) {
     auto center_z = ceil(domain_box.length(2)/2.);
 #endif
 
-    std::vector<std::pair<double, double>> sf_flat;
+    // container for all component data
+    std::vector<std::vector<std::pair<double, double>>> comp_SF_data(ncomp);
 
     for ( MFIter mfi(mf,false); mfi.isValid(); ++mfi ) {
 
@@ -79,8 +97,7 @@ int main (int argc, char* argv[]) {
         const auto hi = amrex::ubound(bx);
         const Array4<Real>& mfdata = mf.array(mfi);
 
-        for (auto n=0; n<1; ++n) { 
-
+        for (auto n=0; n<ncomp; ++n) { 
 #if (AMREX_SPACEDIM == 3)
             for (auto k = lo.z; k <= hi.z; ++k) {
 #endif
@@ -90,83 +107,59 @@ int main (int argc, char* argv[]) {
                         auto dk_y = j - center_y;
 #if (AMREX_SPACEDIM == 2)
                         auto dk = sqrt(dk_x*dk_x + dk_y*dk_y);
-                        sf_flat.push_back(std::make_pair(dk, mfdata(i,j,0,n)));
+                        comp_SF_data[n].push_back(std::make_pair(dk, mfdata(i,j,0,n)));
 #elif (AMREX_SPACEDIM == 3)
                         auto dk_z = k - center_z;
                         auto dk = sqrt(dk_x*dk_x + dk_y*dk_y + dk_z*dk_z);
-                        sf_flat.push_back(std::make_pair(dk, mfdata(i,j,k,n)));
+                        comp_SF_data[n].push_back(std::make_pair(dk, mfdata(i,j,k,n)));
 #endif
                     } 
                 } 
-            } 
 #if (AMREX_SPACEDIM == 3)
-        }
+            } 
 #endif
+        } // end ncomp
     } // end MFIter
 
-    // sort 
-    std::sort(sf_flat.begin(), sf_flat.end(), [](const auto& a, const auto& b) {
-        return a.first < b.first;
-    });
-
-    // if no bins specified, print all the data out
-    if (n_bins == 0)
+    // for each component, print the data to file
+    for (int n = 0; n < ncomp; ++n)
     {
-        std::ofstream out_file(out_name);
+        // sort the data
+        std::sort(comp_SF_data[n].begin(), comp_SF_data[n].end(), [](const auto& a, const auto& b) {
+                return a.first < b.first;
+                });
 
-        if (!out_file.is_open()) {
-            std::cerr << "Error: Could not open file " << out_name << " for writing." << std::endl;
-            return 1; 
-        }
-
-        out_file << "dk, sf\n";
-
-        for (const auto& data : sf_flat)
-        {
-            out_file << data.first << ", " << data.second << "\n";
-        }
-    }
-    else 
-    {
-        // simple way to make sure there are no empty bins        
-#if (AMREX_SPACEDIM == 2)
-        if (n_bins > 2*center_x || n_bins > 2*center_y) {
-            n_bins = 2 * int(std::min(center_x, center_y));
-            
-            std::cout << "The number of bins exceeds the number of cells in one direction!\n";
-            std::cout << "Setting n_bins = " << n_bins << "\n";
-        }
-#elif (AMREX_SPACEDIM == 3)
-        if (n_bins > 2*center_x || n_bins > 2*center_y || 2*center_z) {
-            n_bins = 2 * int(std::min({center_x, center_y, center_z})); 
-            
-            std::cout << "The number of bins exceeds the number of cells in one direction!\n";
-            std::cout << "Setting n_bins = " << n_bins << "\n";
-        }
-#endif
-
-        // bin ranges
-        auto max_dk = std::max_element(sf_flat.begin(), sf_flat.end(),
+        // bin the data
+        auto max_dk = std::max_element(comp_SF_data[n].begin(), comp_SF_data[n].end(),
                 [](const auto& a, const auto& b) {
                 return a.first < b.first;
                 });
 
         auto bin_r = max_dk->first / double(n_bins);
 
-        // bins<bin_index<sum_values, n_values>>
         std::map<int, std::pair<double, int>> bins;
-        
-        for (const auto& data : sf_flat)
+
+        for (const auto& data : comp_SF_data[n])
         {
             size_t bin_i = static_cast<size_t>(std::floor(data.first / bin_r));
             bins[bin_i].first += data.second;
             bins[bin_i].second += 1; 
         }
 
-        std::ofstream out_file(out_name);
+        // print the data
+        std::cout << "Printing data to \n";
+
+        std::string output_name = output_file;
+        output_name += "_";
+        output_name += comp_names[n];
+        output_name += "_out.csv";
+
+        std::cout << "  " << output_name << "\n";
+
+        std::ofstream out_file(output_name);
 
         if (!out_file.is_open()) {
-            std::cerr << "Error: Could not open file " << out_name << " for writing." << std::endl;
+            std::cerr << "Error: Could not open file " << output_name << " for writing." << std::endl;
             return 1; 
         }
 
@@ -174,12 +167,18 @@ int main (int argc, char* argv[]) {
 
         for (const auto& [bin_i, bin_d] : bins)
         {
+            if (bin_d.second == 0) {
+                // TODO: We could just skip this bin instead of aborting.
+                amrex::Abort("The specified 'n_bins' creates empty bins.");
+            } 
+
             auto bin_center = bin_i * bin_r + 0.5*bin_r;
             auto bin_average = double(bin_d.first / bin_d.second);
-
+            
             out_file << bin_center << ", " << bin_average << "\n";
         }
 
+        out_file.close();
     }
 
 }
