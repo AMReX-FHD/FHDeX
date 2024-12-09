@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <map>
 
+#include <typeinfo>
+
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
@@ -15,7 +17,6 @@ int main (int argc, char* argv[]) {
 
     amrex::Initialize(argc,argv);
 
-    // read inputs
     ParmParse pp;
 
     // input plt file
@@ -64,6 +65,16 @@ int main (int argc, char* argv[]) {
     for (int n=0; n<ncomp; ++n) {
         x >> str;
         comp_names.push_back(str);
+    }
+
+    // read in dimensionality from header
+    int dim;
+    x >> dim;
+
+    if (dim != AMREX_SPACEDIM) {
+        Print() << "\nError: you are using a " << AMREX_SPACEDIM << "D build to open a "
+                << dim << "D plotfile\n\n";
+        Abort();
     }
 
     // Read data from file
@@ -130,22 +141,26 @@ int main (int argc, char* argv[]) {
                 });
 
         // bin the data
-        auto max_dk = std::max_element(comp_SF_data[n].begin(), comp_SF_data[n].end(),
-                [](const auto& a, const auto& b) {
-                return a.first < b.first;
-                });
-
-        auto bin_r = max_dk->first / double(n_bins);
-
         std::map<int, std::pair<double, int>> bins;
+        double bin_r = 0;
+                
+        if (n_bins > 0) {
+            auto max_dk = std::max_element(comp_SF_data[n].begin(), comp_SF_data[n].end(),
+                    [](const auto& a, const auto& b) {
+                    return a.first < b.first;
+                    });
 
-        for (const auto& data : comp_SF_data[n])
-        {
-            size_t bin_i = static_cast<size_t>(std::floor(data.first / bin_r));
-            bins[bin_i].first += data.second;
-            bins[bin_i].second += 1; 
+            bin_r = max_dk->first / double(n_bins);
+
+
+            for (const auto& data : comp_SF_data[n])
+            {
+                size_t bin_i = static_cast<size_t>(std::floor(data.first / bin_r));
+                bins[bin_i].first += data.second;
+                bins[bin_i].second += 1; 
+            }
         }
-
+         
         // print the data
         std::cout << "Printing data to \n";
 
@@ -165,22 +180,28 @@ int main (int argc, char* argv[]) {
 
         out_file << "dk, sf\n";
 
-        for (const auto& [bin_i, bin_d] : bins)
-        {
-            if (bin_d.second == 0) {
-                // TODO: We could just skip this bin instead of aborting.
-                amrex::Abort("The specified 'n_bins' creates empty bins.");
-            } 
+        if (n_bins > 0) {
+            for (const auto& [bin_i, bin_d] : bins)
+            {
+                if (bin_d.second == 0) {
+                    // TODO: We could just skip this bin instead of aborting.
+                    amrex::Abort("The specified 'n_bins' creates empty bins.");
+                } 
 
-            auto bin_center = bin_i * bin_r + 0.5*bin_r;
-            auto bin_average = double(bin_d.first / bin_d.second);
-            
-            out_file << bin_center << ", " << bin_average << "\n";
+                auto bin_center = bin_i * bin_r + 0.5*bin_r;
+                auto bin_average = double(bin_d.first / bin_d.second);
+
+                out_file << bin_center << ", " << bin_average << "\n";
+            }
+        } else {
+            for (size_t i = 0; i < comp_SF_data[n].size(); ++i)
+            {
+                out_file << comp_SF_data[n][i].first << ", " << comp_SF_data[n][i].second << "\n";
+            }
         }
 
         out_file.close();
     }
-
 }
 
 
