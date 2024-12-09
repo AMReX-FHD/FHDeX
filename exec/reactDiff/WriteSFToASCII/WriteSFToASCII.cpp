@@ -29,6 +29,14 @@ static void PrintUsage (const char* progName)
     exit(1);
 }
 
+
+/**
+ * \brief A basic utility to convert SF plotfiles to ASCII (x,y) scatter.
+ *
+ * \param[in] input_plt_file input plotfile.
+ * \param[in] output_ASCII_file output file name for the ASCII data.
+ * \param[in] n_bins number of bins for the data (if n_bins = 0, raw data is printed).
+ */
 int main (int argc, char* argv[]) {
 
     amrex::Initialize(argc,argv);
