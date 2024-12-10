@@ -643,7 +643,7 @@ void ReadCheckPoint3D(int& step,
     dmap.define(ba, ParallelDescriptor::NProcs());
     
 #if defined(TURB)
-    if (turbForcing > 1) {
+    if ((turbForcing > 1) and (turbRestartRun)) {
         turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
     }
 #endif
@@ -694,7 +694,7 @@ void ReadCheckPoint3D(int& step,
 
 #if defined(TURB)
         // Read in turbulent forcing
-        if (turbForcing > 1) {
+        if ((turbForcing > 1) and (turbRestartRun)) {
             Real fs_temp;
             Real fc_temp;
             for (int i=0; i<132; ++i) {
@@ -1391,28 +1391,29 @@ void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, const std
                              BoxArray& ba_old, DistributionMapping& dmap_old,
                              int NVARS, int ghost, int nodal_flag)
 {
-    // define temporary MF
-    MultiFab mf_temp;
-    if (nodal_flag < 0) {
-        if (ghost) {
-            mf_temp.define(ba_old,dmap_old,NVARS,ngc);
-        }
-        else {
-            mf_temp.define(ba_old,dmap_old,NVARS,0);
-        }
+    //// define temporary MF
+    //MultiFab mf_temp;
+    //if (nodal_flag < 0) {
+    //    if (ghost) {
+    //        mf_temp.define(ba_old,dmap_old,NVARS,ngc);
+    //    }
+    //    else {
+    //        mf_temp.define(ba_old,dmap_old,NVARS,0);
+    //    }
 
-    }
-    else {
-        if (ghost) {
-            mf_temp.define(convert(ba_old,nodal_flag_dir[nodal_flag]),dmap_old,NVARS,ngc);
-        }
-        else {
-            mf_temp.define(convert(ba_old,nodal_flag_dir[nodal_flag]),dmap_old,NVARS,0);
-        }
+    //}
+    //else {
+    //    if (ghost) {
+    //        mf_temp.define(convert(ba_old,nodal_flag_dir[nodal_flag]),dmap_old,NVARS,ngc);
+    //    }
+    //    else {
+    //        mf_temp.define(convert(ba_old,nodal_flag_dir[nodal_flag]),dmap_old,NVARS,0);
+    //    }
 
-    }
+    //}
     
     // Read into temporary MF from file
+    MultiFab mf_temp;
     VisMF::Read(mf_temp,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", mf_name));
 
     // Copy temporary MF into the new MF
