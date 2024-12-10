@@ -459,7 +459,7 @@ void WritePlotFileStag(int step,
 
     }
 
-    if (plot_deltaY_dir != 1) {
+    if (plot_deltaY_dir != -1) {
         x = "deltaYk_";
         for (i=0; i<nspecies; i++) {
             varNames[cnt] = x;
