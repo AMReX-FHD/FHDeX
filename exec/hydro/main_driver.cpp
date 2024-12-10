@@ -13,7 +13,6 @@
 #include "gmres_functions.H"
 
 
-
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
