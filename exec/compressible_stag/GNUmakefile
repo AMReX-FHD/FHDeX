@@ -76,6 +76,7 @@ else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
 endif
 
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/FFT/Make.package
 
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
