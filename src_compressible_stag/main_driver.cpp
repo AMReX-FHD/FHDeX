@@ -209,8 +209,13 @@ void main_driver(const char* argv)
     if ((plot_cross) and ((cross_cell < 0) or (cross_cell > n_cells[0]-1))) {
         Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
-    if ((do_slab_sf) and ((membrane_cell <= 0) or (membrane_cell >= n_cells[0]-1))) {
-        Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[0] - 1");
+    if (project_dir >= 0) {
+        if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
+            Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[project_dir] - 1");
+        }
+        if (do_slab_sf and slicepoint >= 0) {
+            Abort("Cannot use do_slab_sf and slicepoint");
+        }
     }
     if ((project_dir >= 0) and ((do_1D) or (do_2D))) {
         Abort("Projected structure factors (project_dir) works only for 3D case");
@@ -283,9 +288,9 @@ void main_driver(const char* argv)
     MultiFab structFactPrimMF;
     MultiFab structFactConsMF;
 
-    // Structure factor for 2D averaged data
-    StructFact structFactPrimVerticalAverage;
-    StructFact structFactConsVerticalAverage;
+    // Structure factor for vertically-averaged or sliced data
+    StructFact structFactPrimFlattened;
+    StructFact structFactConsFlattened;
 
     // Structure factor for 2D averaged data (across a membrane)
     StructFact structFactPrimVerticalAverage0;
@@ -764,7 +769,11 @@ void main_driver(const char* argv)
 
             {
                 MultiFab X, XRot;
-                ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
+                if (slicepoint < 0) {
+                    ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
+                } else {
+                    ExtractSlice(prim, X, geom, project_dir, slicepoint, 0, 1);
+                }
                 XRot = RotateFlattenedMF(X);
                 ba_flat = XRot.boxArray();
                 dmap_flat = XRot.DistributionMap();
@@ -828,8 +837,8 @@ void main_driver(const char* argv)
             }
 
             if (do_slab_sf == 0) {
-                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
-                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
+                structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
             else {
                 structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
@@ -1435,19 +1444,27 @@ void main_driver(const char* argv)
                     {
                         MultiFab X, XRot;
 
-                        ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim);
+                        if (slicepoint < 0) {
+                            ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim);
+                        } else {
+                            ExtractSlice(structFactPrimMF, X, geom, project_dir, slicepoint, 0, structVarsPrim);
+                        }
                         XRot = RotateFlattenedMF(X);
                         master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
-                        structFactPrimVerticalAverage.FortStructure(master_project_rot_prim,geom_flat);
+                        structFactPrimFlattened.FortStructure(master_project_rot_prim,geom_flat);
                     }
 
                     {
                         MultiFab X, XRot;
 
-                        ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons);
+                        if (slicepoint < 0) {
+                            ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons);
+                        } else {
+                            ExtractSlice(structFactConsMF, X, geom, project_dir, slicepoint, 0, structVarsCons);
+                        }
                         XRot = RotateFlattenedMF(X);
                         master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons);
-                        structFactConsVerticalAverage.FortStructure(master_project_rot_cons,geom_flat);
+                        structFactConsFlattened.FortStructure(master_project_rot_cons,geom_flat);
                     }
 
                 }
@@ -1543,8 +1560,8 @@ void main_driver(const char* argv)
 
             if (project_dir >= 0) {
                 if (do_slab_sf == 0) {
-                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
-                    structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage");
+                    structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
+                    structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
                 }
                 else {
                     structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0");
