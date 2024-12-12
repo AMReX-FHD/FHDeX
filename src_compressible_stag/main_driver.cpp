@@ -1304,9 +1304,7 @@ void main_driver(const char* argv)
                 Vector< std::string > var_names_turbScalar{"rho","temp","press"};
                 Vector<Real> scaling_turb_scalar(3, dVolinv);
                 TurbSpectrumScalar(MFTurbScalar, geom, step, scaling_turb_scalar, var_names_turbScalar);
-            }
-            
-            if (turbForcing > 0) {
+
                 EvaluateWritePlotFileVelGrad(step, time, geom, vel, vel_decomp);
                 EvaluateWritePlotFileVelGradTiny(step, time, geom, vel, vel_decomp);
             }

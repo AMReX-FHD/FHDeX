@@ -12,6 +12,7 @@ DIM           = 3
 TINY_PROFILE  = FALSE
 MAX_SPEC      = 8
 MAX_REAC      = 5
+USE_FFT       = TRUE
 
 USE_PARTICLES = FALSE
 DO_TURB       = FALSE
@@ -76,7 +77,6 @@ else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
 endif
 
 include $(AMREX_HOME)/Src/Base/Make.package
-include $(AMREX_HOME)/Src/FFT/Make.package
 
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/

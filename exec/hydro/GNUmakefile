@@ -8,6 +8,7 @@ USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
+MAX_SPEC  = 2
 USE_FFT   = TRUE
 
 TINY_PROFILE = FALSE

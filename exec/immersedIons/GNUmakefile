@@ -12,6 +12,7 @@ COMP      = gnu
 DIM       = 3
 DSMC      = FALSE
 MAX_SPEC      = 8
+USE_FFT   = TRUE
 
 TINY_PROFILE  = FALSE
 USE_PARTICLES = TRUE
