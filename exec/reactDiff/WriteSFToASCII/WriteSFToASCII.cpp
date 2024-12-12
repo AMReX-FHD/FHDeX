@@ -24,7 +24,7 @@ static void PrintUsage (const char* progName)
             << "    n_bins=numberOfBins (if n_bins = 0, the raw data is printed)" << std::endl; 
 
     Print() << "Usage:" << '\n';
-    Print() << progName << " input_file=inputFileName output_ASCII_file=outputFileName n_bins=numberOfBins" << '\n' << '\n';
+    Print() << progName << " input_plt_file=inputFileName output_ASCII_file=outputFileName n_bins=numberOfBins" << '\n' << '\n';
 
     exit(1);
 }

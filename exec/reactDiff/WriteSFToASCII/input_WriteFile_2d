@@ -1,0 +1,15 @@
+# This inputs file is used for converting a SF plt file
+# to a ASCII file.
+#
+
+# input file name
+input_plt_file = "plt_SF_mag000900000"
+
+# output file name
+output_ASCII_file = ""
+
+# component name
+component_to_print = ""
+
+# number of bins
+n_bins = 0
