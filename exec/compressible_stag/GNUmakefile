@@ -12,9 +12,23 @@ DIM           = 3
 TINY_PROFILE  = FALSE
 MAX_SPEC      = 8
 MAX_REAC      = 5
+USE_FFT       = TRUE
 
 USE_PARTICLES = FALSE
-DO_TURB 	  = FALSE
+DO_TURB       = FALSE
+
+USE_HEFFTE_FFTW   = FALSE
+USE_HEFFTE_CUFFT  = FALSE
+USE_HEFFTE_ROCFFT = FALSE
+USE_DISTRIBUTED_FFT = TRUE
+
+ifeq ($(USE_HEFFTE_FFTW),TRUE)
+  HEFFTE_HOME ?= ../../../heffte/
+else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
+  HEFFTE_HOME ?= ../../../heffte-org/build_aware/
+else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
+  HEFFTE_HOME ?= ../../../heffte-org/build_noaware/
+endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -41,22 +55,34 @@ include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
 INCLUDE_LOCATIONS += ../../src_rng/
 
-
 include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
+
+#ifeq ($(USE_HEFFTE_FFTW),TRUE)
+#  include $(HEFFTE_HOME)/src/Make.package
+#else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
+#  include $(HEFFTE_HOME)/src/Make.package
+#else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
+#  include $(HEFFTE_HOME)/src/Make.package
+#endif
+
+ifeq ($(USE_HEFFTE_FFTW),TRUE)
+  DEFINES += -DHEFFTE_FFTW
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3 -lfftw3f
+else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
+  DEFINES += -DHEFFTE_CUFFT
+else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
+  DEFINES += -DHEFFTE_ROCFFT
+endif
 
 include $(AMREX_HOME)/Src/Base/Make.package
 
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
-
+ 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
-
-ifeq ($(findstring cgpu, $(HOST)), cgpu)
-  CXXFLAGS += $(FFTW)
-endif
 
 ifeq ($(USE_CUDA),TRUE)
   LIBRARIES += -lcufft
@@ -66,7 +92,7 @@ else ifeq ($(USE_HIP),TRUE)
   LIBRARY_LOCATIONS += $(ROC_PATH)/rocfft/lib
   LIBRARIES += -L$(ROC_PATH)/rocfft/lib -lrocfft
 else
-  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3 -lfftw3f
 endif
 
 ifeq ($(DO_TURB), TRUE)

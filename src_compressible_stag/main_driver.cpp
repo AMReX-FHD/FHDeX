@@ -1,3 +1,4 @@
+#include "TurbSpectra.H"
 #include "common_functions.H"
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
@@ -265,10 +266,16 @@ void main_driver(const char* argv)
 
 #if defined(TURB)
     // data structure for turbulence diagnostics
+    MultiFab MFTurbScalar;
+    MultiFab MFTurbVel;
+    MultiFab vel_decomp;
     std::string turbfilename = "turbstats";
     std::ofstream turboutfile;
     std::string turbfilenamedecomp = "turbstatsdecomp";
     std::ofstream turboutfiledecomp;
+    // need to use dVol for scaling
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+    Real dVolinv = 1.0/dVol;
 #endif
 
     /////////////////////////////////////////////
@@ -439,40 +446,6 @@ void main_driver(const char* argv)
         var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
-#if defined(TURB)
-    //////////////////////////////////////////////////////////////
-    // structure factor variables names and scaling for turbulence
-    // variables are velocities, density, pressure and temperature
-    //////////////////////////////////////////////////////////////
-    // need to use dVol for scaling
-    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
-    Real dVolinv = 1.0/dVol;
-    
-    MultiFab structFactMFTurbVel;
-    MultiFab structFactMFTurbScalar;
-    MultiFab vel_decomp;
-
-    Vector< std::string > var_names_turbVelTotal{"ux","uy","uz"};
-    Vector<Real> var_scaling_turbVelTotal(3, dVolinv);
-    amrex::Vector< int > s_pairA_turbVelTotal(3);
-    amrex::Vector< int > s_pairB_turbVelTotal(3);
-    for (int d=0; d<3; ++d) {
-        s_pairA_turbVelTotal[d] = d;
-        s_pairB_turbVelTotal[d] = d;
-    }
-    
-    Vector<Real> var_scaling_turbVelDecomp(6, dVolinv);
-    
-    Vector< std::string > var_names_turbScalar{"rho","tenp","press"};
-    Vector<Real> var_scaling_turbScalar(3, dVolinv);
-    amrex::Vector< int > s_pairA_turbScalar(3);
-    amrex::Vector< int > s_pairB_turbScalar(3);
-    for (int d=0; d<3; ++d) {
-        s_pairA_turbScalar[d] = d;
-        s_pairB_turbScalar[d] = d;
-    }
-#endif
-    
     // object for turbulence forcing
     TurbForcingComp turbforce;
 
@@ -736,6 +709,7 @@ void main_driver(const char* argv)
 #if defined(TURB)
             if (turbForcing > 0) {
                 EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
+                EvaluateWritePlotFileVelGradTiny(0, 0.0, geom, vel, vel_decomp);
             }
 #endif
 
@@ -769,6 +743,15 @@ void main_driver(const char* argv)
 
 
     } // end t=0 setup
+    
+#if defined(TURB)
+    if (turbForcing >= 1) {
+        MFTurbVel.define(ba, dmap, 3, 0);
+        MFTurbScalar.define(ba, dmap, 3, 0);
+        vel_decomp.define(ba, dmap, 6, 0);
+        vel_decomp.setVal(0.0);
+    }
+#endif
 
     ///////////////////////////////////////////
     // Setup Structure factor
@@ -909,26 +892,6 @@ void main_driver(const char* argv)
 
         }
     }
-    
-#if defined(TURB)
-    if (turbForcing >= 1) {
-        
-        structFactMFTurbVel.define(ba, dmap, 3, 0);
-        structFactMFTurbScalar.define(ba, dmap, 6, 0);
-        vel_decomp.define(ba, dmap, 6, 0);
-        vel_decomp.setVal(0.0);
-
-        turbStructFactVelTotal.define(ba,dmap,
-                var_names_turbVelTotal,var_scaling_turbVelTotal,
-                s_pairA_turbVelTotal,s_pairB_turbVelTotal);
-        turbStructFactScalar.define(ba,dmap,
-                var_names_turbScalar,var_scaling_turbScalar,
-                s_pairA_turbScalar,s_pairB_turbScalar);
-        turbStructFactVelDecomp.defineDecomp(ba,dmap,
-                var_names_turbVelTotal,var_scaling_turbVelDecomp,
-                s_pairA_turbVelTotal,s_pairB_turbVelTotal);
-    }
-#endif
 
     if (n_ads_spec>0) {
 
@@ -1089,7 +1052,7 @@ void main_driver(const char* argv)
 
 #if defined(TURB)
     // Initialize Turbulence Forcing Object
-    if (turbForcing > 1) {
+    if ((turbForcing > 1) and (turbRestartRun)) {
         turbforce.Initialize(geom);
     }
 #endif
@@ -1136,8 +1099,13 @@ void main_driver(const char* argv)
 	}
 
         // FHD
-        RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+        if (turbRestartRun) {
+          RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
+              faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+        }
+	  else {
+	      calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+	  }
 
 	if (n_ads_spec>0 && splitting_MFsurfchem == 1) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
 
@@ -1286,6 +1254,9 @@ void main_driver(const char* argv)
                 writePlt = ((step+1)%plot_int == 0);
             }
         }
+#if defined(TURB)
+        if ((turbRestartRun == 0) and (turbForcing >= 1)) writePlt = true;
+#endif
         
         if (writePlt) {
             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
@@ -1293,12 +1264,6 @@ void main_driver(const char* argv)
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
             
-#if defined(TURB)
-            if (turbForcing > 0) {
-                EvaluateWritePlotFileVelGrad(step, time, geom, vel, vel_decomp);
-            }
-#endif
-
             if (plot_cross) {
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
@@ -1324,27 +1289,24 @@ void main_driver(const char* argv)
 
                 // copy velocities into structFactMFTurb
                 for(int d=0; d<AMREX_SPACEDIM; d++) {
-                    ShiftFaceToCC(vel[d], 0, structFactMFTurbVel, d, 1);
+                    ShiftFaceToCC(vel[d], 0, MFTurbVel, d, 1);
                 }
-                MultiFab::Copy(structFactMFTurbScalar, prim, 0, 0, 1, 0);
-                MultiFab::Copy(structFactMFTurbScalar, prim, 4, 1, 1, 0);
-                MultiFab::Copy(structFactMFTurbScalar, prim, 5, 2, 1, 0);
+                MultiFab::Copy(MFTurbScalar, prim, 0, 0, 1, 0);
+                MultiFab::Copy(MFTurbScalar, prim, 4, 1, 1, 0);
+                MultiFab::Copy(MFTurbScalar, prim, 5, 2, 1, 0);
                 
-                 // decomposed velocities
-                    turbStructFactVelDecomp.FortStructureDecomp(structFactMFTurbVel,geom,1);
-                    turbStructFactVelDecomp.GetDecompVel(vel_decomp,geom);
-                    turbStructFactVelDecomp.CallFinalize(geom);
-                    turbStructFactVelDecomp.IntegratekShellsDecomp(step,geom,"vel_solenoid","vel_dilation");
+                // decomposed velocities
+                Vector< std::string > var_names_turbVel{"vel_total","vel_solenoidal","vel_dilation"};
+                Real scaling_turb_veldecomp = dVolinv;
+                TurbSpectrumVelDecomp(MFTurbVel, vel_decomp, geom, step, scaling_turb_veldecomp, var_names_turbVel);
                 
-                 // total velocity
-                    turbStructFactVelTotal.FortStructure(structFactMFTurbVel,geom,1);
-                    turbStructFactVelTotal.CallFinalize(geom);
-                    turbStructFactVelTotal.IntegratekShells(step,geom,"vel_total");
-                
-                 // scalars
-                    turbStructFactScalar.FortStructure(structFactMFTurbScalar,geom,1);
-                    turbStructFactScalar.CallFinalize(geom);
-                    turbStructFactScalar.IntegratekShellsScalar(step,geom,var_names_turbScalar);
+                // scalars
+                Vector< std::string > var_names_turbScalar{"rho","temp","press"};
+                Vector<Real> scaling_turb_scalar(3, dVolinv);
+                TurbSpectrumScalar(MFTurbScalar, geom, step, scaling_turb_scalar, var_names_turbScalar);
+
+                EvaluateWritePlotFileVelGrad(step, time, geom, vel, vel_decomp);
+                EvaluateWritePlotFileVelGradTiny(step, time, geom, vel, vel_decomp);
             }
 #endif
         }
@@ -1352,7 +1314,8 @@ void main_driver(const char* argv)
 
 #if defined(TURB)
         // turbulence outputs
-        if ((turbForcing >= 1) and (step%1000 == 0)) {
+        if (((turbForcing >= 1) and (step%1000 == 0)) or
+            ((turbForcing >= 1) and (turbRestartRun == 0))) {
 
             Real turbKE, c_speed, u_rms, taylor_len, taylor_Re, taylor_Ma,
             skew, kurt, eps_s, eps_d, eps_ratio, kolm_s, kolm_d, kolm_t;
@@ -1360,7 +1323,7 @@ void main_driver(const char* argv)
                 vel[i].FillBoundary(geom.periodicity());
                 cumom[i].FillBoundary(geom.periodicity());
             }
-            GetTurbQty(vel, cumom, prim, eta, geom,
+            GetTurbQty(vel, cumom, prim, eta, zeta, geom,
                        turbKE, c_speed, u_rms,
                        taylor_len, taylor_Re, taylor_Ma,
                        skew, kurt,
@@ -1386,7 +1349,9 @@ void main_driver(const char* argv)
             turboutfile << std::endl;
         }
         
-        if ((turbForcing >= 1) and (writePlt)) {
+        if (((turbForcing >= 1) and (writePlt)) or
+            ((turbForcing >= 1) and (turbRestartRun == 0))) {
+            
             Real turbKE_s, turbKE_d, delta_turbKE;
             Real u_rms_s, u_rms_d, delta_u_rms;
             Real taylor_Ma_d;
