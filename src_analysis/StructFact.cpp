@@ -478,27 +478,26 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
     bool is_flattened = false;
 
-    // compute number of points in the domain and the square root
-#if (AMREX_SPACEDIM == 2)
-    long npts = (domain.length(0)*domain.length(1));
-#elif (AMREX_SPACEDIM == 3)
-    long npts = (domain.length(0)*domain.length(1)*domain.length(2));
-#endif
-    Real sqrtnpts = std::sqrt(npts);
-
     Box domain = geom.Domain();
     if (domain.bigEnd(AMREX_SPACEDIM-1) == 0) {
         is_flattened = true; // flattened case
     }
 
+    // compute number of points in the domain and the square root
+    long npts = (AMREX_SPACEDIM == 2) ? (domain.length(0)*domain.length(1)) : (domain.length(0)*domain.length(1)*domain.length(2));
+    Real sqrtnpts = std::sqrt(npts);
+
     // extract BoxArray and DistributionMapping from variables
     BoxArray ba = variables.boxArray();
     DistributionMapping dm = variables.DistributionMap();
 
+    // create storage for one component of variables
+    MultiFab phi(ba,dm,1,0);
+
     // Initialize the boxarray "ba_onegrid" from the single box "domain"
     // Initilize a DistributionMapping for one grid
     BoxArray ba_onegrid(domain);
-    DistributionMapping dmap_onegrid(ba_onegrid);
+    DistributionMapping dm_onegrid(ba_onegrid);
 
     // create amrex::FFT object
     amrex::FFT::R2C my_fft(domain);
@@ -507,8 +506,12 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     auto const& [ba_fft, dm_fft] = my_fft.getSpectralDataLayout();
     FabArray<BaseFab<GpuComplex<amrex::Real> > > phi_fft(ba_fft, dm_fft, 1, 0);
 
-    // create storage for one component of variables
-    MultiFab phi(ba,dm,1,0);
+    Box domain_fft = ba_fft.minimalBox();
+    BoxArray ba_fft_onegrid(domain_fft);
+    FabArray<BaseFab<GpuComplex<amrex::Real> > > phi_fft_onegrid(ba_fft_onegrid, dm_onegrid, 1, 0);
+
+    MultiFab variables_dft_real_onegrid(ba_onegrid,dm_onegrid,1,0);
+    MultiFab variables_dft_imag_onegrid(ba_onegrid,dm_onegrid,1,0);
     
     // we will take one FFT at a time and copy the answer into the
     // corresponding component of variables_dft_real/imag
@@ -531,19 +534,19 @@ void StructFact::ComputeFFT(const MultiFab& variables,
         my_fft.forward(phi,phi_fft);
 
         // copy my_fft into a single-grid MultiFab
-        
+        phi_fft_onegrid.ParallelCopy(phi_fft,0,0,1);
 
         // copy data to a full-sized MultiFab
         // this involves copying the complex conjugate from the half-sized field
         // into the appropriate place in the full MultiFab
         for (MFIter mfi(variables_dft_real_onegrid); mfi.isValid(); ++mfi) {
 
-            Array4< GpuComplex<Real> > spectral = (*spectral_field[0]).array();
+            Box bx = mfi.fabbox();
+
+            Array4<GpuComplex<Real>> spectral = phi_fft_onegrid.array(mfi);
 
             Array4<Real> const& realpart = variables_dft_real_onegrid.array(mfi);
             Array4<Real> const& imagpart = variables_dft_imag_onegrid.array(mfi);
-
-            Box bx = mfi.fabbox();
 
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -599,16 +602,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
                 realpart(i,j,k) /= sqrtnpts;
                 imagpart(i,j,k) /= sqrtnpts;
             });
-
-            /*
-            amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                std::cout << "HACKFFT " << i << " " << j << " " << k << " "
-                          << realpart(i,j,k) << " + " << imagpart(i,j,k) << "i"
-                          << std::endl;
-            });
-            */
         }
 
         variables_dft_real.ParallelCopy(variables_dft_real_onegrid,0,comp,1);
@@ -622,7 +615,7 @@ void StructFact::InverseFFT(MultiFab& variables,
 			    const MultiFab& variables_dft_imag,
 			    const Geometry& geom)
 {
-
+#if 0
     BL_PROFILE_VAR("StructFact::InverseFFT()", InverseFFT);
 
     bool is_flattened = false;
@@ -882,7 +875,7 @@ void StructFact::InverseFFT(MultiFab& variables,
         variables_onegrid.mult(1.0/sqrtnpts);
         variables.ParallelCopy(variables_onegrid,0,comp,1);
     }
-
+#endif
 }
 
 
