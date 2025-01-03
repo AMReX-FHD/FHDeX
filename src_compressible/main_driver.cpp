@@ -732,10 +732,10 @@ void main_driver(const char* argv)
                 
                // reset and compute structure factor
                turbStructFact.FortStructure(structFactMF,geom,1);
-               turbStructFact.CallFinalize(geom);
+               turbStructFact.CallFinalize();
 
                // integrate cov_mag over shells in k and write to file
-               turbStructFact.IntegratekShells(step,geom);
+               turbStructFact.IntegratekShells(step);
 
                // timer
                t2 = ParallelDescriptor::second() - t1;

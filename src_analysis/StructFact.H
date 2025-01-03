@@ -86,34 +86,31 @@ public:
                 const Vector< int >& s_pairB_in,
                 const int& verbosity_in=0);
 
-    void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
+    void FortStructure(const amrex::MultiFab&, const Geometry&,
                        const int& reset=0);
 
     void Reset();
     
     void ComputeFFT(const amrex::MultiFab&, amrex::MultiFab&,
-                    amrex::MultiFab&, const amrex::Geometry&,
+                    amrex::MultiFab&,
                     bool unpack=true);
-    
-    void InverseFFT(amrex::MultiFab&, const amrex::MultiFab&,
-                    const amrex::MultiFab&, const amrex::Geometry&);
 
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
                        std::string, const int& zero_avg=1);
     
-    void Finalize(amrex::MultiFab&, amrex::MultiFab&, const Geometry& geom,
+    void Finalize(amrex::MultiFab&, amrex::MultiFab&,
                   const int& zero_avg=1);
 
-    void CallFinalize(const Geometry& geom, const int& zero_avg=1);
+    void CallFinalize(const int& zero_avg=1);
     
-    void ShiftFFT(amrex::MultiFab&,  const Geometry& geom,
+    void ShiftFFT(amrex::MultiFab&,
                   const int& zero_avg=1);
 
-    void IntegratekShells(const int& step, const amrex::Geometry& geom, const std::string& name="");
+    void IntegratekShells(const int& step, const std::string& name="");
 
-    void IntegratekShellsScalar(const int& step, const amrex::Geometry& geom, const amrex::Vector< std::string >& names);
+    void IntegratekShellsScalar(const int& step, const amrex::Vector< std::string >& names);
 
-    void AddToExternal(amrex::MultiFab& x_mag, amrex::MultiFab& x_realimag, const amrex::Geometry&, const int& zero_avg=1);
+    void AddToExternal(amrex::MultiFab& x_mag, amrex::MultiFab& x_realimag, const int& zero_avg=1);
 
     int get_ncov() const { return NCOV; }
 

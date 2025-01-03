@@ -205,9 +205,10 @@ void StructFact::define(const BoxArray& ba_in,
   }
 }
 
-void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
-                               const int& reset) {
-
+void StructFact::FortStructure(const MultiFab& variables,
+                               const Geometry& geom,
+                               const int& reset)
+{
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
   const BoxArray& ba = variables.boxArray();
@@ -216,7 +217,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
   MultiFab variables_dft_real(ba, dm, NVAR, 0);
   MultiFab variables_dft_imag(ba, dm, NVAR, 0);
 
-  ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
+  ComputeFFT(variables, variables_dft_real, variables_dft_imag);
 
   // temporary storage built on BoxArray and DistributionMapping of "variables"
   // One case where "variables" and "cov_real/imag/mag" may have different DistributionMappings
@@ -302,7 +303,6 @@ void StructFact::Reset() {
 void StructFact::ComputeFFT(const MultiFab& variables,
 			    MultiFab& variables_dft_real, 
 			    MultiFab& variables_dft_imag,
-			    const Geometry& geom,
                             bool unpack)
 {
 
@@ -310,7 +310,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
     bool is_flattened = false;
 
-    Box domain = geom.Domain();
+    Box domain = variables.boxArray().minimalBox();
     if (domain.bigEnd(AMREX_SPACEDIM-1) == 0) {
         is_flattened = true; // flattened case
     }
@@ -462,7 +462,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
 
   // Finalize covariances - scale & compute magnitude
-  Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+  Finalize(cov_real_temp, cov_imag_temp, zero_avg);
 
   //////////////////////////////////////////////////////////////////////////////////
   // Write out structure factor magnitude to plot file
@@ -482,24 +482,8 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   
   MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
 
-  Real dx = geom.CellSize(0);
-  Real pi = 3.1415926535897932;
-  Box domain = geom.Domain();
-
-  RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
-                   {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
-  
-  // check bc_vel_lo/hi to determine the periodicity
-  Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-  for (int i=0; i<AMREX_SPACEDIM; ++i) {
-      is_periodic[i] = geom.isPeriodic(i);
-  }
-
-  Geometry geom2;
-  geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    
   // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
+  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom,time,step);
   
   //////////////////////////////////////////////////////////////////////////////////
   // Write out real and imaginary components of structure factor to plot file
@@ -532,18 +516,18 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
 
   // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
+  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom,time,step);
 }
 
 void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
-                          const Geometry& geom, const int& zero_avg) {
+                          const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::Finalize()",StructFactFinalize);
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
-  ShiftFFT(cov_real_in,geom,zero_avg);
-  ShiftFFT(cov_imag_in,geom,zero_avg);
+  ShiftFFT(cov_real_in,zero_avg);
+  ShiftFFT(cov_imag_in,zero_avg);
 
   cov_real_in.mult(nsamples_inv);
   for (int d=0; d<NCOV; d++) {
@@ -564,8 +548,8 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
 }
 
 // Finalize covariances - scale & compute magnitude
-void StructFact::CallFinalize( const Geometry& geom,
-                               const int& zero_avg) {
+void StructFact::CallFinalize(const int& zero_avg)
+{
   
   BL_PROFILE_VAR("CallFinalize()",CallFinalize);
 
@@ -579,12 +563,12 @@ void StructFact::CallFinalize( const Geometry& geom,
   MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
 
   // Finalize covariances - scale & compute magnitude
-  Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+  Finalize(cov_real_temp, cov_imag_temp, zero_avg);
 }
 
 
 
-void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& zero_avg) {
+void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::ShiftFFT()",ShiftFFT);
 
@@ -600,7 +584,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
   */
   BoxArray ba_onegrid;
   {
-      Box domain = geom.Domain();
+      Box domain = dft_out.boxArray().minimalBox();
       
       // Initialize the boxarray "ba" from the single box "bx"
       ba_onegrid.define(domain);
@@ -664,7 +648,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 }
 
 // integrate cov_mag over k shells
-void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/, const std::string& name) {
+void StructFact::IntegratekShells(const int& step, const std::string& name) {
 
     BL_PROFILE_VAR("StructFact::IntegratekShells",IntegratekShells);
 
@@ -812,7 +796,7 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/, con
 }
 
 // integrate cov_mag over k shells for scalar qtys
-void StructFact::IntegratekShellsScalar(const int& step, const Geometry& /*geom*/, const amrex::Vector< std::string >& names) {
+void StructFact::IntegratekShellsScalar(const int& step, const amrex::Vector< std::string >& names) {
 
     BL_PROFILE_VAR("StructFact::IntegratekShellsMisc",IntegratekShellsMisc);
 
@@ -923,7 +907,7 @@ void StructFact::IntegratekShellsScalar(const int& step, const Geometry& /*geom*
     }
 }
 
-void StructFact::AddToExternal(MultiFab& x_mag, MultiFab& x_realimag, const Geometry& geom, const int& zero_avg) {
+void StructFact::AddToExternal(MultiFab& x_mag, MultiFab& x_realimag, const int& zero_avg) {
 
     BL_PROFILE_VAR("StructFact::AddToExternal",AddToExternal);
 
@@ -940,7 +924,7 @@ void StructFact::AddToExternal(MultiFab& x_mag, MultiFab& x_realimag, const Geom
     MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
 
     // Finalize covariances - scale & compute magnitude
-    Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+    Finalize(cov_real_temp, cov_imag_temp, zero_avg);
 
     nPlot = NCOV;
     plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);

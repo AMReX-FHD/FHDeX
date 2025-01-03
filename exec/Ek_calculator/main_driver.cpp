@@ -100,7 +100,7 @@ void main_driver(const char* argv)
 
     // reset and compute structure factor
     turbStructFact.FortStructure(vel,geom,1);
-    turbStructFact.CallFinalize(geom);
+    turbStructFact.CallFinalize();
 
     // integrate cov_mag over shells in k and write to file
     turbStructFact.IntegratekShells(0,geom);

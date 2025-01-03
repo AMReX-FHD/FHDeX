@@ -1584,8 +1584,8 @@ void main_driver(const char* argv)
                 cons_realimag.setVal(0.0);
 
                 for (int i=0; i<n_cells[2]; ++i) {
-                    structFactPrimArray[i].AddToExternal(prim_mag,prim_realimag,geom_flat_2D);
-                    structFactConsArray[i].AddToExternal(cons_mag,cons_realimag,geom_flat_2D);
+                    structFactPrimArray[i].AddToExternal(prim_mag,prim_realimag);
+                    structFactConsArray[i].AddToExternal(cons_mag,cons_realimag);
                 }
                     
                 Real ncellsinv = 1.0/n_cells[2];
