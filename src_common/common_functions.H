@@ -244,11 +244,6 @@ void CCL2Norm(const MultiFab & m1,
 	      Real & norm_l2);
 
 ///////////////////////////
-// in RotateFlattenedMF.cpp
-
-MultiFab RotateFlattenedMF(MultiFab const& mf);
-
-///////////////////////////
 // in InterpCoarsen.cpp
 void FaceFillCoarse(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, int map);
 void FaceFillCoarse(std::array<MultiFab, AMREX_SPACEDIM>* & mf, int map);

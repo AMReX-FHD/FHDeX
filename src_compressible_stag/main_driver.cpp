@@ -297,14 +297,14 @@ void main_driver(const char* argv)
     StructFact structFactPrimVerticalAverage1;
     StructFact structFactConsVerticalAverage0;
     StructFact structFactConsVerticalAverage1;
-    MultiFab master_project_rot_prim;
-    MultiFab master_project_rot_cons;
+    MultiFab primFlattenedMaster;
+    MultiFab consFlattenedMaster;
 
     // Vector of structure factors for 2D simulation
     Vector < StructFact > structFactPrimArray;
     Vector < StructFact > structFactConsArray;
-    MultiFab master_2D_rot_prim;
-    MultiFab master_2D_rot_cons;
+    MultiFab prim2DFlattenedMaster;
+    MultiFab cons2DFlattenedMaster;
 
 #if defined(TURB)
     // Structure factor for compressible turbulence
@@ -315,7 +315,7 @@ void main_driver(const char* argv)
 
     // surface coverage structure factor
     StructFact surfcovStructFact;
-    MultiFab surfcovFlattenedRotMaster;
+    MultiFab surfcovFlattenedMaster;
     Geometry surfcov_geom_flat;
     BoxArray surfcov_ba_flat;
     DistributionMapping surfcov_dmap_flat;
@@ -766,75 +766,43 @@ void main_driver(const char* argv)
         
         // structure factor class for vertically-averaged dataset
         if (project_dir >= 0) {
+            MultiFab Flattened; // flattened multifab define below
 
+            // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
+            // a built version of Flattened so can obtain what we need to build the
+            // structure factor and geometry objects for flattened data
+            if (slicepoint < 0) {
+                ComputeVerticalAverage(prim, Flattened, geom, project_dir, 0, nprimvars);
+            } else {
+                ExtractSlice(prim, Flattened, geom, project_dir, slicepoint, 0, 1);
+            }
+            ba_flat = Flattened.boxArray();
+            dmap_flat = Flattened.DistributionMap();
+            primFlattenedMaster.define(ba_flat,dmap_flat,structVarsPrim,0);
+            consFlattenedMaster.define(ba_flat,dmap_flat,structVarsCons,0);
             {
-                MultiFab X, XRot;
-                if (slicepoint < 0) {
-                    ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
-                } else {
-                    ExtractSlice(prim, X, geom, project_dir, slicepoint, 0, 1);
-                }
-                XRot = RotateFlattenedMF(X);
-                ba_flat = XRot.boxArray();
-                dmap_flat = XRot.DistributionMap();
-                master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
-                master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
-
-                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-                IntVect dom_hi_flat;
-#if (AMREX_SPACEDIM == 2)
-                if (project_dir == 0) {
-                    dom_hi_flat[0] = n_cells[1]-1;
-                    dom_hi_flat[1] = 0;
-                }
-                else if (project_dir == 1) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = 0;
-                }
-#elif (AMREX_SPACEDIM == 3)
-                if (project_dir == 0) {
-                    dom_hi_flat[0] = n_cells[1]-1;
-                    dom_hi_flat[1] = n_cells[2]-1;
-                    dom_hi_flat[2] = 0;
-                } else if (project_dir == 1) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = n_cells[2]-1;
-                    dom_hi_flat[2] = 0;
-                } else if (project_dir == 2) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = n_cells[1]-1;
-                    dom_hi_flat[2] = 0;
-                }
-#endif
-                Box domain_flat(dom_lo_flat, dom_hi_flat);
+                Box domain_flat = primFlattenedMaster.boxArray().minimalBox();
 
                 // This defines the physical box
+                // we retain prob_lo and prob_hi in all directions except project_dir,
+                // where the physical size is 0 to dx[project_dir]
+                Vector<Real> projected_lo(AMREX_SPACEDIM);
                 Vector<Real> projected_hi(AMREX_SPACEDIM);
-                for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    projected_lo[d] = prob_lo[d];
                     projected_hi[d] = prob_hi[d];
                 }
-#if (AMREX_SPACEDIM == 2)
-                if (project_dir == 0) {
-                    projected_hi[0] = prob_hi[1];
-                }
-#elif (AMREX_SPACEDIM == 3)
-                if (project_dir == 0) {
-                    projected_hi[0] = prob_hi[1];
-                    projected_hi[1] = prob_hi[2];
-                } else if (project_dir == 1) {
-                    projected_hi[1] = prob_hi[2];
-                }
-#endif
-        
-                projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
+                projected_lo[project_dir] = 0.;
+                projected_hi[project_dir] = (prob_hi[project_dir] - prob_lo[project_dir]) / n_cells[project_dir];
 
-                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                                    {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+                RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
+                                      {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
           
                 // This defines a Geometry object
                 geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-
             }
+           
 
             if (do_slab_sf == 0) {
                 structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
@@ -852,13 +820,12 @@ void main_driver(const char* argv)
         if (do_2D) { // 2D is coded only for XY plane
 
             {
-                MultiFab X, XRot;
+                MultiFab X;
                 ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
-                XRot = RotateFlattenedMF(X);
-                ba_flat_2D = XRot.boxArray();
-                dmap_flat_2D = XRot.DistributionMap();
-                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
-                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
+                ba_flat_2D = X.boxArray();
+                dmap_flat_2D = X.DistributionMap();
+                prim2DFlattenedMaster.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
+                cons2DFlattenedMaster.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
 
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
@@ -920,76 +887,33 @@ void main_driver(const char* argv)
         }
       
         ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
-        // we rotate this flattened MultiFab to have normal in the z-direction since
-        // our structure factor class assumes this for flattened
-        MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-        BoxArray surfcov_surfcov_ba_flat = FlattenedRot.boxArray();
-        const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
-        surfcovFlattenedRotMaster.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_structVars,0);
+        BoxArray surfcov_surfcov_ba_flat = Flattened.boxArray();
+        const DistributionMapping& dmap_flat = Flattened.DistributionMap();
+        surfcovFlattenedMaster.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_structVars,0);
         {
-            IntVect dom_lo(AMREX_D_DECL(0,0,0));
-            IntVect dom_hi;
-
-            // yes you could simplify this code but for now
-            // these are written out fully to better understand what is happening
-            // we wanted dom_hi[AMREX_SPACEDIM-1] to be equal to 0
-            // and need to transmute the other indices depending on surfcov_dir
-#if (AMREX_SPACEDIM == 2)
-            if (surfcov_dir == 0) {
-                dom_hi[0] = n_cells[1]-1;
-            }
-            else if (surfcov_dir == 1) {
-                dom_hi[0] = n_cells[0]-1;
-            }
-            dom_hi[1] = 0;
-#elif (AMREX_SPACEDIM == 3)
-            if (surfcov_dir == 0) {
-                dom_hi[0] = n_cells[1]-1;
-                dom_hi[1] = n_cells[2]-1;
-            } else if (surfcov_dir == 1) {
-                dom_hi[0] = n_cells[0]-1;
-                dom_hi[1] = n_cells[2]-1;
-            } else if (surfcov_dir == 2) {
-                dom_hi[0] = n_cells[0]-1;
-                dom_hi[1] = n_cells[1]-1;
-            }
-            dom_hi[2] = 0;
-#endif
-            Box domain(dom_lo, dom_hi);
-
+            Box domain_flat = surfcovFlattenedMaster.boxArray().minimalBox();
+        
             // This defines the physical box
+            // we retain prob_lo and prob_hi in all directions except project_dir,
+            // where the physical size is 0 to dx[project_dir]
+            Vector<Real> projected_lo(AMREX_SPACEDIM);
             Vector<Real> projected_hi(AMREX_SPACEDIM);
 
-            // yes you could simplify this code but for now
-            // these are written out fully to better understand what is happening
-            // we wanted projected_hi[AMREX_SPACEDIM-1] to be equal to dx[projected_dir]
-            // and need to transmute the other indices depending on surfcov_dir
-#if (AMREX_SPACEDIM == 2)
-            if (surfcov_dir == 0) {
-                projected_hi[0] = prob_hi[1];
-            } else if (surfcov_dir == 1) {
-                projected_hi[0] = prob_hi[0];
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                projected_lo[d] = prob_lo[d];
+                projected_hi[d] = prob_hi[d];
             }
-            projected_hi[1] = prob_hi[surfcov_dir] / n_cells[surfcov_dir];
-#elif (AMREX_SPACEDIM == 3)
-            if (surfcov_dir == 0) {
-                projected_hi[0] = prob_hi[1];
-                projected_hi[1] = prob_hi[2];
-            } else if (surfcov_dir == 1) {
-                projected_hi[0] = prob_hi[0];
-                projected_hi[1] = prob_hi[2];
-            } else if (surfcov_dir == 2) {
-                projected_hi[0] = prob_hi[0];
-                projected_hi[1] = prob_hi[1];
-            }
-            projected_hi[2] = prob_hi[surfcov_dir] / n_cells[surfcov_dir];
-#endif
+            projected_lo[project_dir] = 0.;
+            projected_hi[project_dir] = (prob_hi[project_dir] - prob_lo[project_dir]) / n_cells[project_dir];
 
-            RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                             {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+            RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
+                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
         
             // This defines a Geometry object
-            surfcov_geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+            geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+        
+            // This defines a Geometry object
+            surfcov_geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
         }
 
         surfcovStructFact.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_var_names,surfcov_var_scaling);
@@ -1440,68 +1364,62 @@ void main_driver(const char* argv)
                 if (do_slab_sf == 0) {
                     
                     {
-                        MultiFab X, XRot;
+                        MultiFab X;
 
                         if (slicepoint < 0) {
                             ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim);
                         } else {
                             ExtractSlice(structFactPrimMF, X, geom, project_dir, slicepoint, 0, structVarsPrim);
                         }
-                        XRot = RotateFlattenedMF(X);
-                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
-                        structFactPrimFlattened.FortStructure(master_project_rot_prim);
+                        primFlattenedMaster.ParallelCopy(X, 0, 0, structVarsPrim); 
+                        structFactPrimFlattened.FortStructure(primFlattenedMaster);
                     }
 
                     {
-                        MultiFab X, XRot;
+                        MultiFab X;
 
                         if (slicepoint < 0) {
                             ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons);
                         } else {
                             ExtractSlice(structFactConsMF, X, geom, project_dir, slicepoint, 0, structVarsCons);
                         }
-                        XRot = RotateFlattenedMF(X);
-                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons);
-                        structFactConsFlattened.FortStructure(master_project_rot_cons);
+                        consFlattenedMaster.ParallelCopy(X, 0, 0, structVarsCons);
+                        structFactConsFlattened.FortStructure(consFlattenedMaster);
                     }
 
                 }
                 else {
                     
                     {
-                        MultiFab X, XRot;
+                        MultiFab X;
 
                         ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
-                        XRot = RotateFlattenedMF(X);
-                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim);
-                        structFactPrimVerticalAverage0.FortStructure(master_project_rot_prim);
+                        primFlattenedMaster.ParallelCopy(X, 0, 0, structVarsPrim);
+                        structFactPrimVerticalAverage0.FortStructure(primFlattenedMaster);
                     }
 
                     {
-                        MultiFab X, XRot;
+                        MultiFab X;
 
                         ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
-                        XRot = RotateFlattenedMF(X);
-                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
-                        structFactPrimVerticalAverage1.FortStructure(master_project_rot_prim);
+                        primFlattenedMaster.ParallelCopy(X, 0, 0, structVarsPrim); 
+                        structFactPrimVerticalAverage1.FortStructure(primFlattenedMaster);
                     }
 
                     {
-                        MultiFab X, XRot;
+                        MultiFab X;
 
                         ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
-                        XRot = RotateFlattenedMF(X);
-                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
-                        structFactConsVerticalAverage0.FortStructure(master_project_rot_cons);
+                        consFlattenedMaster.ParallelCopy(X, 0, 0, structVarsCons); 
+                        structFactConsVerticalAverage0.FortStructure(consFlattenedMaster);
                     }
 
                     {
-                        MultiFab X, XRot;
+                        MultiFab X;
 
                         ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
-                        XRot = RotateFlattenedMF(X);
-                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
-                        structFactConsVerticalAverage1.FortStructure(master_project_rot_cons);
+                        consFlattenedMaster.ParallelCopy(X, 0, 0, structVarsCons); 
+                        structFactConsVerticalAverage1.FortStructure(consFlattenedMaster);
                     }
                 }
             }
@@ -1511,21 +1429,19 @@ void main_driver(const char* argv)
                 for (int i=0; i<n_cells[2]; ++i) {
 
                     {
-                        MultiFab X, XRot;
+                        MultiFab X;
 
                         ExtractSlice(structFactPrimMF, X, geom, 2, i, 0, structVarsPrim);
-                        XRot = RotateFlattenedMF(X);
-                        master_2D_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
-                        structFactPrimArray[i].FortStructure(master_2D_rot_prim);
+                        prim2DFlattenedMaster.ParallelCopy(X, 0, 0, structVarsPrim); 
+                        structFactPrimArray[i].FortStructure(prim2DFlattenedMaster);
                     }
 
                     {
-                        MultiFab X, XRot;
+                        MultiFab X;
 
                         ExtractSlice(structFactConsMF, X, geom, 2, i, 0, structVarsCons);
-                        XRot = RotateFlattenedMF(X);
-                        master_2D_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
-                        structFactConsArray[i].FortStructure(master_2D_rot_cons);
+                        cons2DFlattenedMaster.ParallelCopy(X, 0, 0, structVarsCons); 
+                        structFactConsArray[i].FortStructure(cons2DFlattenedMaster);
                     }
 
                 }
@@ -1537,11 +1453,8 @@ void main_driver(const char* argv)
                 int surfcov_structVars = n_ads_spec;
                 MultiFab Flattened;  // flattened multifab defined below
                 ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
-                // we rotate this flattened MultiFab to have normal in the z-direction since
-                // our structure factor class assumes this for flattened
-                MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                surfcovFlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,surfcov_structVars);
-                surfcovStructFact.FortStructure(surfcovFlattenedRotMaster);
+                surfcovFlattenedMaster.ParallelCopy(Flattened,0,0,surfcov_structVars);
+                surfcovStructFact.FortStructure(surfcovFlattenedMaster);
             }
 
         }

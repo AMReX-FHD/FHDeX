@@ -350,7 +350,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     StructFact structFactFlattened;
-    MultiFab FlattenedRotMaster;
+    MultiFab FlattenedMaster;
 
     Geometry geom_flat;
 
@@ -365,76 +365,30 @@ void main_driver(const char* argv)
       } else {
           ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, 1);
       }
-      // we rotate this flattened MultiFab to have normal in the z-direction since
-      // our structure factor class assumes this for flattened
-      MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-      BoxArray ba_flat = FlattenedRot.boxArray();
-      const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
-      FlattenedRotMaster.define(ba_flat,dmap_flat,structVars,0);
+      BoxArray ba_flat = Flattened.boxArray();
+      const DistributionMapping& dmap_flat = Flattened.DistributionMap();
+      FlattenedMaster.define(ba_flat,dmap_flat,structVars,0);
       {
-        IntVect dom_lo(AMREX_D_DECL(0,0,0));
-        IntVect dom_hi;
-
-        // yes you could simplify this code but for now
-        // these are written out fully to better understand what is happening
-        // we wanted dom_hi[AMREX_SPACEDIM-1] to be equal to 0
-        // and need to transmute the other indices depending on project_dir
-#if (AMREX_SPACEDIM == 2)
-        if (project_dir == 0) {
-            dom_hi[0] = n_cells[1]-1;
-        }
-        else if (project_dir == 1) {
-            dom_hi[0] = n_cells[0]-1;
-        }
-        dom_hi[1] = 0;
-#elif (AMREX_SPACEDIM == 3)
-        if (project_dir == 0) {
-            dom_hi[0] = n_cells[1]-1;
-            dom_hi[1] = n_cells[2]-1;
-        } else if (project_dir == 1) {
-            dom_hi[0] = n_cells[0]-1;
-            dom_hi[1] = n_cells[2]-1;
-        } else if (project_dir == 2) {
-            dom_hi[0] = n_cells[0]-1;
-            dom_hi[1] = n_cells[1]-1;
-        }
-        dom_hi[2] = 0;
-#endif
-        Box domain(dom_lo, dom_hi);
-
+        Box domain_flat = FlattenedMaster.boxArray().minimalBox();
+        
         // This defines the physical box
+        // we retain prob_lo and prob_hi in all directions except project_dir,
+        // where the physical size is 0 to dx[project_dir]
+        Vector<Real> projected_lo(AMREX_SPACEDIM);
         Vector<Real> projected_hi(AMREX_SPACEDIM);
 
-        // yes you could simplify this code but for now
-        // these are written out fully to better understand what is happening
-        // we wanted projected_hi[AMREX_SPACEDIM-1] to be equal to dx[projected_dir]
-        // and need to transmute the other indices depending on project_dir
-#if (AMREX_SPACEDIM == 2)
-        if (project_dir == 0) {
-            projected_hi[0] = prob_hi[1];
-        } else if (project_dir == 1) {
-            projected_hi[0] = prob_hi[0];
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            projected_lo[d] = prob_lo[d];
+            projected_hi[d] = prob_hi[d];
         }
-        projected_hi[1] = prob_hi[project_dir] / n_cells[project_dir];
-#elif (AMREX_SPACEDIM == 3)
-        if (project_dir == 0) {
-            projected_hi[0] = prob_hi[1];
-            projected_hi[1] = prob_hi[2];
-        } else if (project_dir == 1) {
-            projected_hi[0] = prob_hi[0];
-            projected_hi[1] = prob_hi[2];
-        } else if (project_dir == 2) {
-            projected_hi[0] = prob_hi[0];
-            projected_hi[1] = prob_hi[1];
-        }
-        projected_hi[2] = prob_hi[project_dir] / n_cells[project_dir];
-#endif
+        projected_lo[project_dir] = 0.;
+        projected_hi[project_dir] = (prob_hi[project_dir] - prob_lo[project_dir]) / n_cells[project_dir];
 
-        RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+        RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
+                              {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
         
         // This defines a Geometry object
-        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
       }
 
       structFactFlattened.define(ba_flat,dmap_flat,var_names,var_scaling);
@@ -484,11 +438,8 @@ void main_driver(const char* argv)
                 } else {
                     ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
-                // we rotate this flattened MultiFab to have normal in the z-direction since
-                // our structure factor class assumes this for flattened
-                MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                FlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,structVars);
-                structFactFlattened.FortStructure(FlattenedRotMaster);
+                FlattenedMaster.ParallelCopy(Flattened,0,0,structVars);
+                structFactFlattened.FortStructure(FlattenedMaster);
             }
         }
 
@@ -582,10 +533,8 @@ void main_driver(const char* argv)
                 } else {
                     ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
-                // we rotate this flattened MultiFab to have normal in the z-direction since
-                // our structure factor class assumes this for flattened
-                MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                structFactFlattened.FortStructure(FlattenedRot);
+                FlattenedMaster.ParallelCopy(Flattened,0,0,structVars);
+                structFactFlattened.FortStructure(FlattenedMaster);
             }
         }
                 
