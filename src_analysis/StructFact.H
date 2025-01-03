@@ -24,9 +24,6 @@ class StructFact {
     // Total number of states to average over, updated by FortStructure()
     int nsamples = 0;
 
-    // decompose velocity field
-    bool decompose = false;
-
     // Vector containing covariance scaling
     Vector< Real > scaling;
 
@@ -49,12 +46,6 @@ public:
 
     // Vector of MultiFabs containing final magnitude of covariances
     MultiFab cov_mag;
-
-    // MultiFabs of real/imag for solenoidal/dilatational
-    MultiFab vel_sol_real;
-    MultiFab vel_sol_imag;
-    MultiFab vel_dil_real;
-    MultiFab vel_dil_imag;
 
     StructFact();
 
