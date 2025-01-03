@@ -21,21 +21,12 @@ void IntegrateKScalar(const MultiFab& cov_mag,
                       	    const std::string& name,
                             const int& step,
                             const int& comp);
-//void IntegrateKScalarHeffte(const BaseFab<GpuComplex<Real> >& spectral_field,
-//                      	    const std::string& name, const Real& scaling,
-//                      	    const Box& c_local_box,
-//                      	    const Real& sqrtnpts,
-//                      	    const int& step);
+
 void IntegrateKVelocity(const MultiFab& cov_mag,
                               const std::string& name,
                               const int& step,
                               const int& comp);
-//void IntegrateKVelocityHeffte(const BaseFab<GpuComplex<Real> >& spectral_fieldx,
-//			      const BaseFab<GpuComplex<Real> >& spectral_fieldy,
-//			      const BaseFab<GpuComplex<Real> >& spectral_fieldz,
-//                              const std::string& name, const Real& scaling,
-//                              const Box& c_local_box,
-//                              const int& step);
+
 void TurbSpectrumScalar(const MultiFab& variables, 
                               const amrex::Geometry& geom, 
                               const int& step, 
