@@ -476,7 +476,7 @@ void main_driver(const char* argv)
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
             }
-            structFact.FortStructure(structFactMF,geom);
+            structFact.FortStructure(structFactMF);
             if(project_dir >= 0) {
                 MultiFab Flattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
@@ -488,7 +488,7 @@ void main_driver(const char* argv)
                 // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
                 FlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,structVars);
-                structFactFlattened.FortStructure(FlattenedRotMaster,geom_flat);
+                structFactFlattened.FortStructure(FlattenedRotMaster);
             }
         }
 
@@ -574,7 +574,7 @@ void main_driver(const char* argv)
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
             }
-            structFact.FortStructure(structFactMF,geom);
+            structFact.FortStructure(structFactMF);
             if(project_dir >= 0) {
                 MultiFab Flattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
@@ -585,7 +585,7 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+                structFactFlattened.FortStructure(FlattenedRot);
             }
         }
                 
@@ -616,7 +616,7 @@ void main_driver(const char* argv)
                     ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
                 }
                 // reset and compute structure factor
-                turbStructFact.FortStructure(structFactMF,geom,1);
+                turbStructFact.FortStructure(structFactMF,1);
                 turbStructFact.CallFinalize();
 
                 // integrate cov_mag over shells in k and write to file

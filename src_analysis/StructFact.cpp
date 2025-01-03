@@ -206,7 +206,6 @@ void StructFact::define(const BoxArray& ba_in,
 }
 
 void StructFact::FortStructure(const MultiFab& variables,
-                               const Geometry& geom,
                                const int& reset)
 {
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);

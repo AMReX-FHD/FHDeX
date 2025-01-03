@@ -1431,8 +1431,8 @@ void main_driver(const char* argv)
             ////////////////////////////////////////////////////
 
             if ((do_1D==0) and (do_2D==0)) {
-                structFactPrim.FortStructure(structFactPrimMF,geom);
-                structFactCons.FortStructure(structFactConsMF,geom);
+                structFactPrim.FortStructure(structFactPrimMF);
+                structFactCons.FortStructure(structFactConsMF);
             }
 
             if (project_dir >= 0) {
@@ -1449,7 +1449,7 @@ void main_driver(const char* argv)
                         }
                         XRot = RotateFlattenedMF(X);
                         master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
-                        structFactPrimFlattened.FortStructure(master_project_rot_prim,geom_flat);
+                        structFactPrimFlattened.FortStructure(master_project_rot_prim);
                     }
 
                     {
@@ -1462,7 +1462,7 @@ void main_driver(const char* argv)
                         }
                         XRot = RotateFlattenedMF(X);
                         master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons);
-                        structFactConsFlattened.FortStructure(master_project_rot_cons,geom_flat);
+                        structFactConsFlattened.FortStructure(master_project_rot_cons);
                     }
 
                 }
@@ -1474,7 +1474,7 @@ void main_driver(const char* argv)
                         ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
                         XRot = RotateFlattenedMF(X);
                         master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim);
-                        structFactPrimVerticalAverage0.FortStructure(master_project_rot_prim,geom_flat);
+                        structFactPrimVerticalAverage0.FortStructure(master_project_rot_prim);
                     }
 
                     {
@@ -1483,7 +1483,7 @@ void main_driver(const char* argv)
                         ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
                         XRot = RotateFlattenedMF(X);
                         master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
-                        structFactPrimVerticalAverage1.FortStructure(master_project_rot_prim,geom_flat);
+                        structFactPrimVerticalAverage1.FortStructure(master_project_rot_prim);
                     }
 
                     {
@@ -1492,7 +1492,7 @@ void main_driver(const char* argv)
                         ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
                         XRot = RotateFlattenedMF(X);
                         master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
-                        structFactConsVerticalAverage0.FortStructure(master_project_rot_cons,geom_flat);
+                        structFactConsVerticalAverage0.FortStructure(master_project_rot_cons);
                     }
 
                     {
@@ -1501,7 +1501,7 @@ void main_driver(const char* argv)
                         ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
                         XRot = RotateFlattenedMF(X);
                         master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
-                        structFactConsVerticalAverage1.FortStructure(master_project_rot_cons,geom_flat);
+                        structFactConsVerticalAverage1.FortStructure(master_project_rot_cons);
                     }
                 }
             }
@@ -1516,7 +1516,7 @@ void main_driver(const char* argv)
                         ExtractSlice(structFactPrimMF, X, geom, 2, i, 0, structVarsPrim);
                         XRot = RotateFlattenedMF(X);
                         master_2D_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
-                        structFactPrimArray[i].FortStructure(master_2D_rot_prim,geom_flat_2D);
+                        structFactPrimArray[i].FortStructure(master_2D_rot_prim);
                     }
 
                     {
@@ -1525,7 +1525,7 @@ void main_driver(const char* argv)
                         ExtractSlice(structFactConsMF, X, geom, 2, i, 0, structVarsCons);
                         XRot = RotateFlattenedMF(X);
                         master_2D_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
-                        structFactConsArray[i].FortStructure(master_2D_rot_cons,geom_flat_2D);
+                        structFactConsArray[i].FortStructure(master_2D_rot_cons);
                     }
 
                 }
@@ -1541,7 +1541,7 @@ void main_driver(const char* argv)
                 // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
                 surfcovFlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,surfcov_structVars);
-                surfcovStructFact.FortStructure(surfcovFlattenedRotMaster,surfcov_geom_flat);
+                surfcovStructFact.FortStructure(surfcovFlattenedRotMaster);
             }
 
         }

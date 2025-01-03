@@ -356,7 +356,7 @@ void main_driver(const char* argv)
 	            //PrintMF(structFactPrimMF,0,-1);
       	        //PrintMF(primInst,1,1);
 	            
-                //structFactPrim.FortStructure(structFactPrimMF,geom);
+                //structFactPrim.FortStructure(structFactPrimMF);
 		
 		    }
         }
@@ -389,7 +389,7 @@ void main_driver(const char* argv)
 	            //PrintMF(structFactPrimMF,0,-1);
       	        //PrintMF(primInst,1,1);
 	            
-                //structFactPrim.FortStructure(structFactPrimMF,geom);
+                //structFactPrim.FortStructure(structFactPrimMF);
 		
 		    }
         }

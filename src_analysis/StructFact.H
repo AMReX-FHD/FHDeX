@@ -86,7 +86,7 @@ public:
                 const Vector< int >& s_pairB_in,
                 const int& verbosity_in=0);
 
-    void FortStructure(const amrex::MultiFab&, const Geometry&,
+    void FortStructure(const amrex::MultiFab&,
                        const int& reset=0);
 
     void Reset();
