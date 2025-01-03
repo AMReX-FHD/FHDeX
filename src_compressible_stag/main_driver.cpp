@@ -887,15 +887,15 @@ void main_driver(const char* argv)
         }
       
         ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
-        BoxArray surfcov_surfcov_ba_flat = Flattened.boxArray();
+        BoxArray surfcov_ba_flat = Flattened.boxArray();
         const DistributionMapping& dmap_flat = Flattened.DistributionMap();
-        surfcovFlattenedMaster.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_structVars,0);
+        surfcovFlattenedMaster.define(surfcov_ba_flat,dmap_flat,surfcov_structVars,0);
         {
             Box domain_flat = surfcovFlattenedMaster.boxArray().minimalBox();
         
             // This defines the physical box
-            // we retain prob_lo and prob_hi in all directions except project_dir,
-            // where the physical size is 0 to dx[project_dir]
+            // we retain prob_lo and prob_hi in all directions except surfcov_dir,
+            // where the physical size is 0 to dx[surfcov_dir]
             Vector<Real> projected_lo(AMREX_SPACEDIM);
             Vector<Real> projected_hi(AMREX_SPACEDIM);
 
@@ -903,8 +903,8 @@ void main_driver(const char* argv)
                 projected_lo[d] = prob_lo[d];
                 projected_hi[d] = prob_hi[d];
             }
-            projected_lo[project_dir] = 0.;
-            projected_hi[project_dir] = (prob_hi[project_dir] - prob_lo[project_dir]) / n_cells[project_dir];
+            projected_lo[surfcov_dir] = 0.;
+            projected_hi[surfcov_dir] = (prob_hi[surfcov_dir] - prob_lo[surfcov_dir]) / n_cells[surfcov_dir];
 
             RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
                                   {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
@@ -916,7 +916,7 @@ void main_driver(const char* argv)
             surfcov_geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
         }
 
-        surfcovStructFact.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_var_names,surfcov_var_scaling);
+        surfcovStructFact.define(surfcov_ba_flat,dmap_flat,surfcov_var_names,surfcov_var_scaling);
     }
 
     /////////////////////////////////////////////////
