@@ -58,43 +58,36 @@ public:
 
     StructFact();
 
-    StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
-               const amrex::Vector< std::string >&,
-               const amrex::Vector< amrex::Real >&,
-               const int& verbosity=0);
+    StructFact(const BoxArray& ba_in,
+               const DistributionMapping& dmap_in,
+               const Vector< std::string >& var_names,
+               const Vector< Real >& var_scaling_in,
+               const int& verbosity_in=0);
 
-    StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
-               const amrex::Vector< std::string >&,
-               const amrex::Vector< amrex::Real >&,
-               const amrex::Vector< int >&, const amrex::Vector< int >&,
-               const int& verbosity=0);
+    StructFact(const BoxArray& ba_in,
+               const DistributionMapping& dmap_in,
+               const Vector< std::string >& var_names,
+               const Vector< Real >& var_scaling_in,
+               const Vector< int >& s_pairA_in,
+               const Vector< int >& s_pairB_in,
+               const int& verbosity_in=0);
 
-    void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
-                const amrex::Vector< std::string >&,
-                const amrex::Vector< amrex::Real >&,
-                const int& verbosity=0);
+    void define(const BoxArray& ba_in,
+                const DistributionMapping& dmap_in,
+                const Vector< std::string >& var_names,
+                const Vector< Real >& var_scaling_in,
+                const int& verbosity_in=0);
 
-    void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
-                const amrex::Vector< std::string >&,
-                const amrex::Vector< amrex::Real >&,
-                const amrex::Vector< int >&, const amrex::Vector< int >&,
-                const int& verbosity=0);
-
-    void defineDecomp(const amrex::BoxArray&, const amrex::DistributionMapping&, 
-                      const amrex::Vector< std::string >&,
-                      const amrex::Vector< amrex::Real >&,
-                      const amrex::Vector< int >&,
-                      const amrex::Vector< int >&);
+    void define(const BoxArray& ba_in,
+                const DistributionMapping& dmap_in,
+                const Vector< std::string >& var_names,
+                const Vector< Real >& var_scaling_in,
+                const Vector< int >& s_pairA_in,
+                const Vector< int >& s_pairB_in,
+                const int& verbosity_in=0);
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
                        const int& reset=0);
-
-    void FortStructureDecomp(const amrex::MultiFab& vel, const amrex::Geometry& geom,
-                             const int& reset=0);
-
-    void DecomposeVelFourier(const amrex::MultiFab& vel_dft_real, 
-                             const amrex::MultiFab& vel_dft_imag, 
-                             const amrex::Geometry& geom);
 
     void Reset();
     
@@ -105,8 +98,6 @@ public:
     void InverseFFT(amrex::MultiFab&, const amrex::MultiFab&,
                     const amrex::MultiFab&, const amrex::Geometry&);
 
-    void GetDecompVel(amrex::MultiFab&, const amrex::Geometry&); 
-    
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
                        std::string, const int& zero_avg=1);
     
@@ -121,9 +112,6 @@ public:
     void IntegratekShells(const int& step, const amrex::Geometry& geom, const std::string& name="");
 
     void IntegratekShellsScalar(const int& step, const amrex::Geometry& geom, const amrex::Vector< std::string >& names);
-
-    void IntegratekShellsDecomp(const int& step, const amrex::Geometry& geom, 
-                                const std::string& name_sol="vel_sol", const std::string& name_dil="vel_dil");
 
     void AddToExternal(amrex::MultiFab& x_mag, amrex::MultiFab& x_realimag, const amrex::Geometry&, const int& zero_avg=1);
 
