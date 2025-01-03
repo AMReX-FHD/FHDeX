@@ -51,19 +51,8 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
- 
-include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-ifeq ($(USE_CUDA),TRUE)
-  LIBRARIES += -lcufft
-else ifeq ($(USE_HIP),TRUE)
-  # Use rocFFT.  ROC_PATH is defined in amrex
-  INCLUDE_LOCATIONS += $(ROC_PATH)/rocfft/include
-  LIBRARY_LOCATIONS += $(ROC_PATH)/rocfft/lib
-  LIBRARIES += -L$(ROC_PATH)/rocfft/lib -lrocfft
-else
-  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3 -lfftw3f
-endif
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(DO_TURB), TRUE)
   DEFINES += -DTURB
