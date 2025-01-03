@@ -211,7 +211,7 @@ void main_driver(const char* argv)
     }
     if (project_dir >= 0) {
         if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
-            Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[project_dir] - 1");
+            Abort("Slab structure factor needs a membrane cell within the domain: 0 < membrane_cell < n_cells[project_dir] - 1");
         }
         if (do_slab_sf and slicepoint >= 0) {
             Abort("Cannot use do_slab_sf and slicepoint");
@@ -293,10 +293,10 @@ void main_driver(const char* argv)
     StructFact structFactConsFlattened;
 
     // Structure factor for 2D averaged data (across a membrane)
-    StructFact structFactPrimVerticalAverage0;
-    StructFact structFactPrimVerticalAverage1;
-    StructFact structFactConsVerticalAverage0;
-    StructFact structFactConsVerticalAverage1;
+    StructFact structFactPrimVerticalAverageMembraneLo;
+    StructFact structFactPrimVerticalAverageMembraneHi;
+    StructFact structFactConsVerticalAverageMembraneLo;
+    StructFact structFactConsVerticalAverageMembraneHi;
     MultiFab primFlattenedMaster;
     MultiFab consFlattenedMaster;
 
@@ -809,10 +809,10 @@ void main_driver(const char* argv)
                 structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
             else {
-                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactPrimVerticalAverageMembraneLo.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactPrimVerticalAverageMembraneHi.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverageMembraneLo.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
     
         }
@@ -1395,7 +1395,7 @@ void main_driver(const char* argv)
 
                         ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
                         primFlattenedMaster.ParallelCopy(X, 0, 0, structVarsPrim);
-                        structFactPrimVerticalAverage0.FortStructure(primFlattenedMaster);
+                        structFactPrimVerticalAverageMembraneLo.FortStructure(primFlattenedMaster);
                     }
 
                     {
@@ -1403,7 +1403,7 @@ void main_driver(const char* argv)
 
                         ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
                         primFlattenedMaster.ParallelCopy(X, 0, 0, structVarsPrim); 
-                        structFactPrimVerticalAverage1.FortStructure(primFlattenedMaster);
+                        structFactPrimVerticalAverageMembraneHi.FortStructure(primFlattenedMaster);
                     }
 
                     {
@@ -1411,7 +1411,7 @@ void main_driver(const char* argv)
 
                         ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
                         consFlattenedMaster.ParallelCopy(X, 0, 0, structVarsCons); 
-                        structFactConsVerticalAverage0.FortStructure(consFlattenedMaster);
+                        structFactConsVerticalAverageMembraneLo.FortStructure(consFlattenedMaster);
                     }
 
                     {
@@ -1419,7 +1419,7 @@ void main_driver(const char* argv)
 
                         ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
                         consFlattenedMaster.ParallelCopy(X, 0, 0, structVarsCons); 
-                        structFactConsVerticalAverage1.FortStructure(consFlattenedMaster);
+                        structFactConsVerticalAverageMembraneHi.FortStructure(consFlattenedMaster);
                     }
                 }
             }
@@ -1475,10 +1475,10 @@ void main_driver(const char* argv)
                     structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
                 }
                 else {
-                    structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0");
-                    structFactPrimVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab1");
-                    structFactConsVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab0");
-                    structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1");
+                    structFactPrimVerticalAverageMembraneLo.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageMembraneLo");
+                    structFactPrimVerticalAverageMembraneHi.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageMembraneHi");
+                    structFactConsVerticalAverageMembraneLo.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageMembraneLo");
+                    structFactConsVerticalAverageMembraneHi.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageMembraneHi");
                 }
             }
 
