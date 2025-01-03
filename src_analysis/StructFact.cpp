@@ -5,56 +5,7 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_BoxArray.H"
 
-#ifdef AMREX_USE_CUDA
-std::string cufftErrorToString (const cufftResult& err)
-{
-    switch (err) {
-    case CUFFT_SUCCESS:  return "CUFFT_SUCCESS";
-    case CUFFT_INVALID_PLAN: return "CUFFT_INVALID_PLAN";
-    case CUFFT_ALLOC_FAILED: return "CUFFT_ALLOC_FAILED";
-    case CUFFT_INVALID_TYPE: return "CUFFT_INVALID_TYPE";
-    case CUFFT_INVALID_VALUE: return "CUFFT_INVALID_VALUE";
-    case CUFFT_INTERNAL_ERROR: return "CUFFT_INTERNAL_ERROR";
-    case CUFFT_EXEC_FAILED: return "CUFFT_EXEC_FAILED";
-    case CUFFT_SETUP_FAILED: return "CUFFT_SETUP_FAILED";
-    case CUFFT_INVALID_SIZE: return "CUFFT_INVALID_SIZE";
-    case CUFFT_UNALIGNED_DATA: return "CUFFT_UNALIGNED_DATA";
-    default: return std::to_string(err) + " (unknown error code)";
-    }
-}
-#endif
-
-#ifdef AMREX_USE_HIP
-std::string rocfftErrorToString (const rocfft_status err)
-{
-    if              (err == rocfft_status_success) {
-        return std::string("rocfft_status_success");
-    } else if       (err == rocfft_status_failure) {
-        return std::string("rocfft_status_failure");
-    } else if       (err == rocfft_status_invalid_arg_value) {
-        return std::string("rocfft_status_invalid_arg_value");
-    } else if       (err == rocfft_status_invalid_dimensions) {
-        return std::string("rocfft_status_invalid_dimensions");
-    } else if       (err == rocfft_status_invalid_array_type) {
-        return std::string("rocfft_status_invalid_array_type");
-    } else if       (err == rocfft_status_invalid_strides) {
-        return std::string("rocfft_status_invalid_strides");
-    } else if       (err == rocfft_status_invalid_distance) {
-        return std::string("rocfft_status_invalid_distance");
-    } else if       (err == rocfft_status_invalid_offset) {
-        return std::string("rocfft_status_invalid_offset");
-    } else {
-        return std::to_string(err) + " (unknown error code)";
-    }
-}
-
-void assert_rocfft_status (std::string const& name, rocfft_status status)
-{
-    if (status != rocfft_status_success) {
-        amrex::AllPrint() <<  name + " failed! Error: " + rocfftErrorToString(status) << "\n";;
-    }
-}
-#endif
+#include <AMReX_FFT.H>
 
 StructFact::StructFact()
 {}
@@ -185,12 +136,6 @@ void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_i
       amrex::Error("StructFact::StructFact() - Bubble sort failed to converge");
     }
   }
-
-  /*
-  for (int n=0; n<NVARU; n++) {
-    Print() << "HACK 1: vector (" << n << ") = " << varu_temp[n] << std::endl;
-  }
-  */
 
   // Identify number of repeats
   int N_dup = 0;
@@ -325,9 +270,8 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
   
-  MultiFab variables_dft_real, variables_dft_imag;
-  variables_dft_real.define(ba, dm, NVAR, 0);
-  variables_dft_imag.define(ba, dm, NVAR, 0);
+  MultiFab variables_dft_real(ba, dm, NVAR, 0);
+  MultiFab variables_dft_imag(ba, dm, NVAR, 0);
 
   ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
 
@@ -527,75 +471,47 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 			    MultiFab& variables_dft_real, 
 			    MultiFab& variables_dft_imag,
 			    const Geometry& geom,
-                bool unpack)
+                            bool unpack)
 {
 
     BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
-#ifdef AMREX_USE_CUDA
-    // Print() << "Using cuFFT\n";
-#elif AMREX_USE_HIP
-    // Print() << "Using rocFFT\n";
-#else
-    // Print() << "Using FFTW\n";
-#endif
-
     bool is_flattened = false;
 
-    long npts;
-
-    // Initialize the boxarray "ba_onegrid" from the single box "domain"
-    BoxArray ba_onegrid;
-    {
-      Box domain = geom.Domain();
-      ba_onegrid.define(domain);
-
-      if (domain.bigEnd(AMREX_SPACEDIM-1) == 0) {
-          is_flattened = true;
-      }
-
+    // compute number of points in the domain and the square root
 #if (AMREX_SPACEDIM == 2)
-      npts = (domain.length(0)*domain.length(1));
+    long npts = (domain.length(0)*domain.length(1));
 #elif (AMREX_SPACEDIM == 3)
-      npts = (domain.length(0)*domain.length(1)*domain.length(2));
+    long npts = (domain.length(0)*domain.length(1)*domain.length(2));
 #endif
-
-    }
-
     Real sqrtnpts = std::sqrt(npts);
 
+    Box domain = geom.Domain();
+    if (domain.bigEnd(AMREX_SPACEDIM-1) == 0) {
+        is_flattened = true; // flattened case
+    }
+
+    // extract BoxArray and DistributionMapping from variables
+    BoxArray ba = variables.boxArray();
+    DistributionMapping dm = variables.DistributionMap();
+
+    // Initialize the boxarray "ba_onegrid" from the single box "domain"
+    // Initilize a DistributionMapping for one grid
+    BoxArray ba_onegrid(domain);
     DistributionMapping dmap_onegrid(ba_onegrid);
 
-    // we will take one FFT at a time and copy the answer into the
-    // corresponding component
-    MultiFab variables_onegrid;
-    MultiFab variables_dft_real_onegrid;
-    MultiFab variables_dft_imag_onegrid;
-    variables_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
-    variables_dft_real_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
-    variables_dft_imag_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+    // create amrex::FFT object
+    amrex::FFT::R2C my_fft(domain);
 
-//    fftw_mpi_init();
+    // create storage for the FFT (distributed and single-grid)
+    auto const& [ba_fft, dm_fft] = my_fft.getSpectralDataLayout();
+    FabArray<BaseFab<GpuComplex<amrex::Real> > > phi_fft(ba_fft, dm_fft, 1, 0);
 
-#ifdef AMREX_USE_CUDA
-    using FFTplan = cufftHandle;
-    using FFTcomplex = cuDoubleComplex;
-#elif AMREX_USE_HIP
-    using FFTplan = rocfft_plan;
-    using FFTcomplex = double2;
-#else
-    using FFTplan = fftw_plan;
-    using FFTcomplex = fftw_complex;
-#endif
-
-    // contain to store FFT - note it is shrunk by "half" in x
-    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
-
-    Vector<FFTplan> forward_plan;
-
-    // for CUDA builds we only need to build the plan once; track whether we did
-    bool built_plan = false;
+    // create storage for one component of variables
+    MultiFab phi(ba,dm,1,0);
     
+    // we will take one FFT at a time and copy the answer into the
+    // corresponding component of variables_dft_real/imag
     for (int comp=0; comp<NVAR; comp++) {
 
         bool comp_fft = false;
@@ -606,179 +522,16 @@ void StructFact::ComputeFFT(const MultiFab& variables,
             }
         }
 
-	    if (comp_fft == false) continue;
+        if (comp_fft == false) continue;
 
-        variables_onegrid.ParallelCopy(variables,comp,0,1);
-
-        if (!built_plan) {
-
-            for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
-
-                // grab a single box including ghost cell range
-                Box realspace_bx = mfi.fabbox();
-
-                // size of box including ghost cell range
-                IntVect fft_size = realspace_bx.length(); // This will be different for hybrid FFT
-
-                // this is the size of the box, except the 0th component is 'halved plus 1'
-                IntVect spectral_bx_size = fft_size;
-                spectral_bx_size[0] = fft_size[0]/2 + 1;
-
-                // spectral box
-                Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
-
-                spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
-                                                                       The_Device_Arena()));
-                spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
-
-                FFTplan fplan;
-
-#ifdef AMREX_USE_CUDA // CUDA
-                if (is_flattened) {
-#if (AMREX_SPACEDIM == 2)
-                    cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z, 1);
-                    if (result != CUFFT_SUCCESS) {
-                        amrex::AllPrint() << " cufftplan1d forward failed! Error: "
-                                          << cufftErrorToString(result) << "\n";
-                    }
-#elif (AMREX_SPACEDIM == 3)
-                    cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
-                    if (result != CUFFT_SUCCESS) {
-                        amrex::AllPrint() << " cufftplan2d forward failed! Error: "
-                                          << cufftErrorToString(result) << "\n";
-                    }
-#endif
-                } else {
-#if (AMREX_SPACEDIM == 2)
-                    cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
-                    if (result != CUFFT_SUCCESS) {
-                        amrex::AllPrint() << " cufftplan2d forward failed! Error: "
-                                          << cufftErrorToString(result) << "\n";
-                    }
-#elif (AMREX_SPACEDIM == 3)
-                    cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
-                    if (result != CUFFT_SUCCESS) {
-                        amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-                                          << cufftErrorToString(result) << "\n";
-                    }
-#endif
-                }
-#elif AMREX_USE_HIP // HIP
-                if (is_flattened) {
-#if (AMREX_SPACEDIM == 2)
-                    const std::size_t lengths[] = {std::size_t(fft_size[0])};
-                    rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
-                                                              rocfft_transform_type_real_forward, rocfft_precision_double,
-                                                              1, lengths, 1, nullptr);
-                    assert_rocfft_status("rocfft_plan_create", result);
-#elif (AMREX_SPACEDIM == 3)
-                    const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1])};
-                    rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
-                                                              rocfft_transform_type_real_forward, rocfft_precision_double,
-                                                              2, lengths, 1, nullptr);
-                    assert_rocfft_status("rocfft_plan_create", result);
-#endif
-                } else {
-#if (AMREX_SPACEDIM == 2)
-                    const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1])};
-                    rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
-                                                              rocfft_transform_type_real_forward, rocfft_precision_double,
-                                                              2, lengths, 1, nullptr);
-                    assert_rocfft_status("rocfft_plan_create", result);
-#elif (AMREX_SPACEDIM == 3)
-                    const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
-                    rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
-                                                              rocfft_transform_type_real_forward, rocfft_precision_double,
-                                                              3, lengths, 1, nullptr);
-                    assert_rocfft_status("rocfft_plan_create", result);
-#endif
-                }
-#else // host
-
-                if (is_flattened) {
-#if (AMREX_SPACEDIM == 2)
-                    fplan = fftw_plan_dft_r2c_1d(fft_size[0],
-                                                 variables_onegrid[mfi].dataPtr(),
-                                                 reinterpret_cast<FFTcomplex*>
-                                                 (spectral_field.back()->dataPtr()),
-                                                 FFTW_ESTIMATE);
-#elif (AMREX_SPACEDIM == 3)
-                    fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
-                                                 variables_onegrid[mfi].dataPtr(),
-                                                 reinterpret_cast<FFTcomplex*>
-                                                 (spectral_field.back()->dataPtr()),
-                                                 FFTW_ESTIMATE);
-#endif
-                } else {
-#if (AMREX_SPACEDIM == 2)
-                    fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
-                                                 variables_onegrid[mfi].dataPtr(),
-                                                 reinterpret_cast<FFTcomplex*>
-                                                 (spectral_field.back()->dataPtr()),
-                                                 FFTW_ESTIMATE);
-#elif (AMREX_SPACEDIM == 3)
-                    fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
-                                                 variables_onegrid[mfi].dataPtr(),
-                                                 reinterpret_cast<FFTcomplex*>
-                                                 (spectral_field.back()->dataPtr()),
-                                                 FFTW_ESTIMATE);
-#endif
-                }
-#endif
-
-                forward_plan.push_back(fplan);
-            }
-
-	    built_plan = true;
-        
-        }
-
-        ParallelDescriptor::Barrier();
+        // copy component "comp" into a MultiFab with one component
+        MultiFab::Copy(phi,variables,comp,0,1,0);
 
         // ForwardTransform
-        for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
-            int i = mfi.LocalIndex();
-#ifdef AMREX_USE_CUDA
-            cufftSetStream(forward_plan[i], amrex::Gpu::gpuStream());
-            cufftResult result = cufftExecD2Z(forward_plan[i],
-                                              variables_onegrid[mfi].dataPtr(),
-                                              reinterpret_cast<FFTcomplex*>
-                                                  (spectral_field[i]->dataPtr()));
-            if (result != CUFFT_SUCCESS) {
-                amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
-                                  << cufftErrorToString(result) << "\n";
-	    }
-#elif AMREX_USE_HIP
-            rocfft_execution_info execinfo = nullptr;
-            rocfft_status result = rocfft_execution_info_create(&execinfo);
-            assert_rocfft_status("rocfft_execution_info_create", result);
+        my_fft.forward(phi,phi_fft);
 
-            std::size_t buffersize = 0;
-            result = rocfft_plan_get_work_buffer_size(forward_plan[i], &buffersize);
-            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
-
-            void* buffer = amrex::The_Arena()->alloc(buffersize);
-            result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
-            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
-
-            result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
-            assert_rocfft_status("rocfft_execution_info_set_stream", result);
-
-	        amrex::Real* variables_onegrid_ptr = variables_onegrid[mfi].dataPtr();
-	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr());
-            result = rocfft_execute(forward_plan[i],
-                                    (void**) &variables_onegrid_ptr, // in
-                                    (void**) &spectral_field_ptr, // out
-                                    execinfo);
-            assert_rocfft_status("rocfft_execute", result);
-            amrex::Gpu::streamSynchronize();
-            amrex::The_Arena()->free(buffer);
-            result = rocfft_execution_info_destroy(execinfo);
-            assert_rocfft_status("rocfft_execution_info_destroy", result);
-#else
-            fftw_execute(forward_plan[i]);
-#endif
-        }
+        // copy my_fft into a single-grid MultiFab
+        
 
         // copy data to a full-sized MultiFab
         // this involves copying the complex conjugate from the half-sized field
@@ -862,18 +615,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
         variables_dft_imag.ParallelCopy(variables_dft_imag_onegrid,0,comp,1);
 
     }
-
-    // destroy fft plan
-    for (int i = 0; i < forward_plan.size(); ++i) {
-#ifdef AMREX_USE_CUDA
-        cufftDestroy(forward_plan[i]);
-#elif AMREX_USE_HIP
-        rocfft_plan_destroy(forward_plan[i]);
-#else
-        fftw_destroy_plan(forward_plan[i]);
-#endif
-    }
-//    fftw_mpi_cleanup();
 }
 
 void StructFact::InverseFFT(MultiFab& variables,
@@ -883,14 +624,6 @@ void StructFact::InverseFFT(MultiFab& variables,
 {
 
     BL_PROFILE_VAR("StructFact::InverseFFT()", InverseFFT);
-
-#ifdef AMREX_USE_CUDA
-    // Print() << "Using cuFFT\n";
-#elif AMREX_USE_HIP
-    // Print() << "Using rocFFT\n";
-#else
-    // Print() << "Using FFTW\n";
-#endif
 
     bool is_flattened = false;
 
@@ -927,8 +660,6 @@ void StructFact::InverseFFT(MultiFab& variables,
     MultiFab variables_dft_imag_onegrid;
     variables_dft_real_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
     variables_dft_imag_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
-
-//    fftw_mpi_init();
 
 #ifdef AMREX_USE_CUDA
     using FFTplan = cufftHandle;
@@ -1151,19 +882,6 @@ void StructFact::InverseFFT(MultiFab& variables,
         variables_onegrid.mult(1.0/sqrtnpts);
         variables.ParallelCopy(variables_onegrid,0,comp,1);
     }
-
-    // destroy fft plan
-    for (int i = 0; i < backward_plan.size(); ++i) {
-#ifdef AMREX_USE_CUDA
-        cufftDestroy(backward_plan[i]);
-#elif AMREX_USE_HIP
-        rocfft_plan_destroy(backward_plan[i]);
-#else
-        fftw_destroy_plan(backward_plan[i]);
-#endif
-    }
-
-//    fftw_mpi_cleanup();
 
 }
 

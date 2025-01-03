@@ -5,31 +5,11 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
-
-// These are for FFTW / cuFFT / rocFFT
-
-#ifdef AMREX_USE_CUDA
-#include <cufft.h>
-#elif AMREX_USE_HIP
-#  if __has_include(<rocfft/rocfft.h>)  // ROCm 5.3+
-#    include <rocfft/rocfft.h>
-#  else
-#    include <rocfft.h>
-#  endif
-#else
-#include <fftw3.h>
-#if AMREX_USE_MPI
-#include <fftw3-mpi.h>
-#endif
-#endif
-
 #include <AMReX_GpuComplex.H>
 
 #include <string>
 
 #include "common_functions.H"
-
-#define ALIGN 16
 
 using namespace amrex;
 
