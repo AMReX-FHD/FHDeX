@@ -565,8 +565,6 @@ void StructFact::CallFinalize(const int& zero_avg)
   Finalize(cov_real_temp, cov_imag_temp, zero_avg);
 }
 
-
-
 void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::ShiftFFT()",ShiftFFT);
@@ -604,11 +602,11 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
 	      const Box& bx = mfi.tilebox();
 	      const Array4<Real>& dft_temp = dft_onegrid_temp.array(mfi);
 	      amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept                                                                                                
-              {                                                                                                                                                                         
+              {
   		  if (i == 0 && j == 0 && k == 0) {
 		      dft_temp(i,j,k) = 0.;
 		  }
-	      });                                                                                                                                                                       
+              });
 	  }
       }
     
