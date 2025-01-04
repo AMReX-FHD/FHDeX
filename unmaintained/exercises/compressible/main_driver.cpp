@@ -536,10 +536,10 @@ void main_driver(const char* argv)
 //	// collect a snapshot for structure factor
 //	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 //            MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-//            structFact.FortStructure(struct_in_cc,geom);
+//            structFact.FortStructure(struct_in_cc);
 //            if(project_dir >= 0) {
 //                ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-//                structFactVA.FortStructure(cuVertAvg,geom_flat);
+//                structFactVA.FortStructure(cuVertAvg);
 //            }
 //        }
 

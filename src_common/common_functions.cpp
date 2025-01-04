@@ -340,7 +340,7 @@ void InitializeCommonNamespace() {
     // primvars - number of primative variables (no default)
 
     cross_cell = 0;     // cell to compute spatial correlation
-    do_slab_sf = 0;     // whether to compute SF in two slabs separated by cross_cell
+    do_slab_sf = 0;     // whether to compute SF in two slabs separated by membrane_cell
 
     for (int i=0; i<MAX_SPECIES; ++i) {
         qval[i] = 0.;                // charge on an ion

@@ -270,7 +270,7 @@ void main_driver(const char* argv)
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
-            structFact.FortStructure(n_new,geom);
+            structFact.FortStructure(n_new);
 
         }
         
