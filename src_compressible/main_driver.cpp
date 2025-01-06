@@ -406,7 +406,6 @@ void main_driver(const char* argv)
 
     // structure factor class for flattened dataset
     StructFact structFactPrimFlattened;
-    MultiFab primFlattenedMaster;
 
     //////////////////////////////////////////////
 
@@ -465,7 +464,6 @@ void main_driver(const char* argv)
 
     // structure factor class for flattened dataset
     StructFact structFactConsFlattened;
-    MultiFab consFlattenedMaster;
 
     //////////////////////////////////////////////
     
@@ -484,10 +482,8 @@ void main_driver(const char* argv)
       }
       BoxArray ba_flat = Flattened.boxArray();
       const DistributionMapping& dmap_flat = Flattened.DistributionMap();
-      primFlattenedMaster.define(ba_flat,dmap_flat,structVarsPrim,0);
-      consFlattenedMaster.define(ba_flat,dmap_flat,structVarsCons,0);
       {
-          Box domain_flat = primFlattenedMaster.boxArray().minimalBox();
+          Box domain_flat = ba_flat.minimalBox();
 
           // This defines the physical box
           // we retain prob_lo and prob_hi in all directions except project_dir,
@@ -733,11 +729,8 @@ void main_driver(const char* argv)
                     ExtractSlice(structFactPrimMF, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
                     ExtractSlice(structFactConsMF, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
                 }
-                primFlattenedMaster.ParallelCopy(primFlattened,0,0,structVarsPrim);
-                structFactPrimFlattened.FortStructure(primFlattenedMaster);
-
-                consFlattenedMaster.ParallelCopy(consFlattened,0,0,structVarsCons);
-                structFactConsFlattened.FortStructure(consFlattenedMaster);
+                structFactPrimFlattened.FortStructure(primFlattened);
+                structFactConsFlattened.FortStructure(consFlattened);
             }
 
             // timer

@@ -350,7 +350,6 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     StructFact structFactFlattened;
-    MultiFab FlattenedMaster;
 
     Geometry geom_flat;
 
@@ -367,9 +366,8 @@ void main_driver(const char* argv)
       }
       BoxArray ba_flat = Flattened.boxArray();
       const DistributionMapping& dmap_flat = Flattened.DistributionMap();
-      FlattenedMaster.define(ba_flat,dmap_flat,structVars,0);
       {
-        Box domain_flat = FlattenedMaster.boxArray().minimalBox();
+        Box domain_flat = ba_flat.minimalBox();
         
         // This defines the physical box
         // we retain prob_lo and prob_hi in all directions except project_dir,
@@ -438,8 +436,7 @@ void main_driver(const char* argv)
                 } else {
                     ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
-                FlattenedMaster.ParallelCopy(Flattened,0,0,structVars);
-                structFactFlattened.FortStructure(FlattenedMaster);
+                structFactFlattened.FortStructure(Flattened);
             }
         }
 
@@ -533,8 +530,7 @@ void main_driver(const char* argv)
                 } else {
                     ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
-                FlattenedMaster.ParallelCopy(Flattened,0,0,structVars);
-                structFactFlattened.FortStructure(FlattenedMaster);
+                structFactFlattened.FortStructure(Flattened);
             }
         }
                 

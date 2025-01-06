@@ -309,9 +309,6 @@ void main_driver(const char* argv)
     // these are enabled if do_2D (this mode assumes z slices; project_dir must equal 2)
     Vector < StructFact > structFactPrimArray;
     Vector < StructFact > structFactConsArray;
-    // MultiFabs to copy data into for snapshots for flattened
-    MultiFab structFactPrimFlattenedMF;
-    MultiFab structFactConsFlattenedMF;
     
     Geometry geom_flat;
     BoxArray ba_flat;
@@ -320,12 +317,8 @@ void main_driver(const char* argv)
     // Structure factor for surface coverage slice
     // these are enabled if n_ads_spec > 0 and assumes the k=0 plane is the slice of interest
     StructFact structFactSurfCov;
-    // MultiFab to copy data into for snapshop
-    MultiFab structFactSurfCovMF;
     
     Geometry geom_surfcov;
-    BoxArray ba_surfcov;
-    DistributionMapping dmap_surfcov;
 
 #if defined(TURB)
     // Structure factor for compressible turbulence
@@ -786,10 +779,7 @@ void main_driver(const char* argv)
             ba_flat = Flattened.boxArray();
             dmap_flat = Flattened.DistributionMap();
 
-            structFactPrimFlattenedMF.define(ba_flat,dmap_flat,structVarsPrim,0);
-            structFactConsFlattenedMF.define(ba_flat,dmap_flat,structVarsCons,0);
-
-            Box domain_flat = structFactPrimFlattenedMF.boxArray().minimalBox();
+            Box domain_flat = ba_flat.minimalBox();
 
             // This defines the physical box
             // we retain prob_lo and prob_hi in all directions except project_dir,
@@ -864,9 +854,8 @@ void main_driver(const char* argv)
             ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
             BoxArray ba_surfcov = Flattened.boxArray();
             const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
-            structFactSurfCovMF.define(ba_surfcov,dmap_surfcov,surfcov_structVars,0);
             {
-                Box domain_surfcov = structFactSurfCovMF.boxArray().minimalBox();
+                Box domain_surfcov = ba_surfcov.minimalBox();
         
                 // This defines the physical box
                 // we retain prob_lo and prob_hi in all directions except surfcov_dir,
@@ -1342,16 +1331,14 @@ void main_driver(const char* argv)
                             MultiFab Flattened;
 
                             ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, i, 0, structVarsPrim);
-                            structFactPrimFlattenedMF.ParallelCopy(Flattened, 0, 0, structVarsPrim); 
-                            structFactPrimArray[i].FortStructure(structFactPrimFlattenedMF);
+                            structFactPrimArray[i].FortStructure(Flattened);
                         }
 
                         {
                             MultiFab Flattened;
 
                             ExtractSlice(structFactConsMF, Flattened, geom, project_dir, i, 0, structVarsCons);
-                            structFactConsFlattenedMF.ParallelCopy(Flattened, 0, 0, structVarsCons); 
-                            structFactConsArray[i].FortStructure(structFactConsFlattenedMF);
+                            structFactConsArray[i].FortStructure(Flattened);
                         }
 
                     }
@@ -1367,8 +1354,7 @@ void main_driver(const char* argv)
                             } else {
                                 ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, slicepoint, 0, structVarsPrim);
                             }
-                            structFactPrimFlattenedMF.ParallelCopy(Flattened, 0, 0, structVarsPrim); 
-                            structFactPrimFlattened.FortStructure(structFactPrimFlattenedMF);
+                            structFactPrimFlattened.FortStructure(Flattened);
                         }
 
                         {
@@ -1379,8 +1365,7 @@ void main_driver(const char* argv)
                             } else {
                                 ExtractSlice(structFactConsMF, Flattened, geom, project_dir, slicepoint, 0, structVarsCons);
                             }
-                            structFactConsFlattenedMF.ParallelCopy(Flattened, 0, 0, structVarsCons);
-                            structFactConsFlattened.FortStructure(structFactConsFlattenedMF);
+                            structFactConsFlattened.FortStructure(Flattened);
                         }
                     } else {
                     
@@ -1388,32 +1373,28 @@ void main_driver(const char* argv)
                             MultiFab Flattened;
 
                             ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
-                            structFactPrimFlattenedMF.ParallelCopy(Flattened, 0, 0, structVarsPrim);
-                            structFactPrimVerticalAverageMembraneLo.FortStructure(structFactPrimFlattenedMF);
+                            structFactPrimVerticalAverageMembraneLo.FortStructure(Flattened);
                         }
 
                         {
                             MultiFab Flattened;
 
                             ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
-                            structFactPrimFlattenedMF.ParallelCopy(Flattened, 0, 0, structVarsPrim); 
-                            structFactPrimVerticalAverageMembraneHi.FortStructure(structFactPrimFlattenedMF);
+                            structFactPrimVerticalAverageMembraneHi.FortStructure(Flattened);
                         }
 
                         {
                             MultiFab Flattened;
 
                             ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
-                            structFactConsFlattenedMF.ParallelCopy(Flattened, 0, 0, structVarsCons); 
-                            structFactConsVerticalAverageMembraneLo.FortStructure(structFactConsFlattenedMF);
+                            structFactConsVerticalAverageMembraneLo.FortStructure(Flattened);
                         }
 
                         {
                             MultiFab Flattened;
 
                             ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
-                            structFactConsFlattenedMF.ParallelCopy(Flattened, 0, 0, structVarsCons); 
-                            structFactConsVerticalAverageMembraneHi.FortStructure(structFactConsFlattenedMF);
+                            structFactConsVerticalAverageMembraneHi.FortStructure(Flattened);
                         }
                     }
                 }
@@ -1425,8 +1406,7 @@ void main_driver(const char* argv)
                 int surfcov_structVars = n_ads_spec;
                 MultiFab Flattened;  // flattened multifab defined below
                 ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
-                structFactSurfCovMF.ParallelCopy(Flattened,0,0,surfcov_structVars);
-                structFactSurfCov.FortStructure(structFactSurfCovMF);
+                structFactSurfCov.FortStructure(Flattened);
             }
 
         }
