@@ -294,7 +294,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
 
         if (dir == 0) {
         
-            for (auto n = incomp; n<incomp+ncomp; ++n) {
+            for (auto n = 0; n<ncomp; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
@@ -308,7 +308,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
             
         } else if (dir == 1) {
         
-            for (auto n = incomp; n<incomp+ncomp; ++n) {
+            for (auto n = 0; n<ncomp; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
@@ -322,7 +322,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
 
         } else if (dir == 2) {
         
-            for (auto n = incomp; n<incomp+ncomp; ++n) {
+            for (auto n = 0; n<ncomp; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
