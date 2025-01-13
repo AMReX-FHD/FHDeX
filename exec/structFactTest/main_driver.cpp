@@ -148,7 +148,7 @@ void main_driver(const char* argv)
     /////////////////////////////////
 
     
-    structFact.FortStructure(struct_cc,geom);
+    structFact.FortStructure(struct_cc);
       
     structFact.WritePlotFile(0,0.,geom,"plt_SF");
 

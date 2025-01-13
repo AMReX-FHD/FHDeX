@@ -402,7 +402,7 @@ void main_driver(const char* argv)
 			MultiFab::Copy(structFactPrimMF,primInst,8,cnt_sf,numvars_sf,0);
 			cnt_sf += numvars_sf;
 
-			structFactPrim.FortStructure(structFactPrimMF,geom);
+			structFactPrim.FortStructure(structFactPrimMF);
 		}
 
 		if(istep > amrex::Math::abs(n_steps_skip) &&
