@@ -193,7 +193,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
 
 
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
-			    const Geometry& geom, const int& dir,
+			    const int& dir,
 			    const int& incomp, const int& ncomp,
                             const int& slablo, const int& slabhi)
 {
@@ -215,7 +215,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
     MultiFab mf_pencil;
 
     // get a single Box that spans the full domain
-    Box domain(geom.Domain());
+    Box domain(mf.boxArray().minimalBox());
 
     // these are the transverse directions (i.e., NOT the dir direction)
     int dir1=0, dir2=0;
@@ -346,7 +346,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
 }
 
 void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
-                  const Geometry& geom, const int dir, const int slice,
+                  const int dir, const int slice,
                   const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ExtractSlice()",ExtractSlice);
@@ -354,7 +354,7 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
     // create BoxArray
 
     // get lo and hi coordinates of problem domain
-    Box domain(geom.Domain());
+    Box domain(mf.boxArray().minimalBox());
     IntVect dom_lo(domain.loVect());
     IntVect dom_hi(domain.hiVect());
 
