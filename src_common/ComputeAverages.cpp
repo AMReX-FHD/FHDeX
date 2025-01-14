@@ -207,28 +207,6 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
     // get a single Box that spans the full domain
     Box domain(mf.boxArray().minimalBox());
 
-    auto const& ma = mf.const_arrays();
-    auto fab = ReduceToPlane<ReduceOpSum,Real>(dir, domain, mf,
-      [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
-      {
-          return ma[box_no](i,j,k); // data at (i,j,k) of Box box_no
-      });
-
-
-    Box dom2d = fab.box();
-    Vector<Box> bv(ParallelDescriptor::NProcs(),dom2d);
-    BoxArray ba(bv.data(), bv.size());
-
-    Vector<int> pmap(ParallelDescriptor::NProcs());
-    std::iota(pmap.begin(), pmap.end(), 0);
-    DistributionMapping dm(std::move(pmap));
-
-    MultiFab mftmp(ba, dm, fab.nComp(), 0, MFInfo().SetAlloc(false));
-    mftmp.setFab(ParallelDescriptor::MyProc(),
-                 FArrayBox(fab.box(), fab.nComp(), fab.dataPtr()));
-
-    BoxArray ba2(dom2d);
-
     // these are the transverse directions (i.e., NOT the dir direction)
     int dir1=0, dir2=0;
 #if (AMREX_SPACEDIM == 2)
@@ -255,12 +233,59 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
     max_grid_size_pencil[dir2] = max_grid_projection[1];
 #endif
 
-    ba2.maxSize(IntVect(max_grid_size_pencil));
+    // this is the inverse of the number of cells in the dir direction we are averaging over
+    // by default we average over the entire domain, but one can pass in slab_lo/hi to set bounds
+    Real ninv;
+    if (slablo != -1 && slabhi != 99999) {
+        ninv = 1./(slabhi-slablo+1);
+    } else {
+        ninv = 1./(domain.length(dir));
+    }
 
-    mf_flat.define(ba2, DistributionMapping{ba2}, fab.nComp(), 0);
-    mf_flat.setVal(0.);
-    mf_flat.ParallelAdd(mftmp);
+    MultiFab mf_onecomp(mf.boxArray(), mf.DistributionMap(), 1, 0);
 
+    for (int n=0; n<ncomp; ++n) {
+
+        // copy a component of mf into mf_onecomp
+        MultiFab::Copy(mf_onecomp,mf,incomp+n,0,1,0);
+
+        // sum up
+        auto const& ma = mf_onecomp.const_arrays();
+        auto fab = ReduceToPlane<ReduceOpSum,Real>(dir, domain, mf_onecomp,
+          [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
+          {
+              return ma[box_no](i,j,k); // data at (i,j,k) of Box box_no
+          });
+
+        Box dom2d = fab.box();
+        Vector<Box> bv(ParallelDescriptor::NProcs(),dom2d);
+        BoxArray ba(bv.data(), bv.size());
+
+        Vector<int> pmap(ParallelDescriptor::NProcs());
+        std::iota(pmap.begin(), pmap.end(), 0);
+        DistributionMapping dm(std::move(pmap));
+
+        MultiFab mftmp(ba, dm, 1, 0, MFInfo().SetAlloc(false));
+        mftmp.setFab(ParallelDescriptor::MyProc(),
+                     FArrayBox(fab.box(), 1, fab.dataPtr()));
+
+        // divide by number of cells in column to create average
+        mftmp.mult(ninv);
+
+        BoxArray ba2(dom2d);
+
+        ba2.maxSize(IntVect(max_grid_size_pencil));
+
+        if (n==0) {
+            mf_flat.define(ba2, DistributionMapping{ba2}, ncomp, 0);
+        }
+
+        MultiFab mf_flat_onecomp(ba2, DistributionMapping{ba2}, fab.nComp(), 0);
+        mf_flat_onecomp.setVal(0.);
+        mf_flat_onecomp.ParallelAdd(mftmp);
+
+        mf_flat.ParallelCopy(mf_flat_onecomp, 0, n, 1);
+    }
 }
 
 void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
