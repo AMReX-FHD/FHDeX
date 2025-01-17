@@ -209,21 +209,23 @@ void main_driver(const char* argv)
     if ((plot_cross) and ((cross_cell < 0) or (cross_cell > n_cells[0]-1))) {
         Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
-    if (struct_fact_int >0 and project_dir >= 0) {
-        if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
-            Abort("Slab structure factor needs a membrane cell within the domain: 0 < membrane_cell < n_cells[project_dir] - 1");
-        }
+    if (struct_fact_int > 0) {
         if (do_1D) {
             Abort("Projected structure factors (project_dir) does not work for do_1D case");
         }
-        if (do_slab_sf and slicepoint >= 0) {
-            Abort("Cannot use do_slab_sf and slicepoint");
+        if (do_2D and project_dir != 2) {
+            Abort("Structure factors with do_2D requires project_dir == 2");
         }
         if (do_2D and slicepoint >= 0) {
             Abort("Cannot use do_2D and slicepoint");
         }
-        if (do_2D and project_dir != 2) {
-            Abort("Structure factors with do_2D requires project_dir == 2");
+        if (project_dir >= 0) {
+            if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
+                Abort("Slab structure factor needs a membrane cell within the domain: 0 < membrane_cell < n_cells[project_dir] - 1");
+            }
+            if (do_slab_sf and slicepoint >= 0) {
+                Abort("Cannot use do_slab_sf and slicepoint");
+            }
         }
     }
     if ((all_correl > 1) or (all_correl < 0)) {
@@ -810,19 +812,18 @@ void main_driver(const char* argv)
                     structFactConsArray[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
                 }
 
-            } else {
-                if (do_slab_sf == 0) {
-                    structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                    structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-                }
-                else {
-                    structFactPrimVerticalAverageMembraneLo.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                    structFactPrimVerticalAverageMembraneHi.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                    structFactConsVerticalAverageMembraneLo.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-                    structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-                }
             }
-    
+
+            if (do_slab_sf == 0) {
+                structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            }
+            else {
+                structFactPrimVerticalAverageMembraneLo.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactPrimVerticalAverageMembraneHi.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverageMembraneLo.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            }
         }
 
         if (n_ads_spec>0) {
@@ -1342,62 +1343,63 @@ void main_driver(const char* argv)
                         }
 
                     }
+                }
+
+                if (do_slab_sf == 0) {
+                    
+                    {
+                        MultiFab Flattened;
+
+                        if (slicepoint < 0) {
+                            ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim);
+                        } else {
+                            ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+                        }
+                        structFactPrimFlattened.FortStructure(Flattened);
+                    }
+
+                    {
+                        MultiFab Flattened;
+
+                        if (slicepoint < 0) {
+                            ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons);
+                        } else {
+                            ExtractSlice(structFactConsMF, Flattened, geom, project_dir, slicepoint, 0, structVarsCons);
+                        }
+                        structFactConsFlattened.FortStructure(Flattened);
+                    }
+
                 } else {
-
-                    if (do_slab_sf == 0) {
                     
-                        {
-                            MultiFab Flattened;
+                    {
+                        MultiFab Flattened;
 
-                            if (slicepoint < 0) {
-                                ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim);
-                            } else {
-                                ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, slicepoint, 0, structVarsPrim);
-                            }
-                            structFactPrimFlattened.FortStructure(Flattened);
-                        }
+                        ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
+                        structFactPrimVerticalAverageMembraneLo.FortStructure(Flattened);
+                    }
 
-                        {
-                            MultiFab Flattened;
+                    {
+                        MultiFab Flattened;
 
-                            if (slicepoint < 0) {
-                                ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons);
-                            } else {
-                                ExtractSlice(structFactConsMF, Flattened, geom, project_dir, slicepoint, 0, structVarsCons);
-                            }
-                            structFactConsFlattened.FortStructure(Flattened);
-                        }
-                    } else {
-                    
-                        {
-                            MultiFab Flattened;
+                        ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
+                        structFactPrimVerticalAverageMembraneHi.FortStructure(Flattened);
+                    }
 
-                            ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
-                            structFactPrimVerticalAverageMembraneLo.FortStructure(Flattened);
-                        }
+                    {
+                        MultiFab Flattened;
 
-                        {
-                            MultiFab Flattened;
+                        ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
+                        structFactConsVerticalAverageMembraneLo.FortStructure(Flattened);
+                    }
 
-                            ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
-                            structFactPrimVerticalAverageMembraneHi.FortStructure(Flattened);
-                        }
+                    {
+                        MultiFab Flattened;
 
-                        {
-                            MultiFab Flattened;
-
-                            ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
-                            structFactConsVerticalAverageMembraneLo.FortStructure(Flattened);
-                        }
-
-                        {
-                            MultiFab Flattened;
-
-                            ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
-                            structFactConsVerticalAverageMembraneHi.FortStructure(Flattened);
-                        }
+                        ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
+                        structFactConsVerticalAverageMembraneHi.FortStructure(Flattened);
                     }
                 }
+                
             }
 
             if (n_ads_spec > 0) {
