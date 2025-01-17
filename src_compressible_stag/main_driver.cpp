@@ -311,8 +311,8 @@ void main_driver(const char* argv)
     // these are enabled if do_2D (this mode assumes z slices; project_dir must equal 2)
     Vector < StructFact > structFactPrimArray;
     Vector < StructFact > structFactConsArray;
-    
-    Geometry geom_sf_flat;
+
+    Geometry geom_sf_flat; // for SF plotfiles for use_2D case - needs to be cleaned up
     BoxArray ba_flat;
     DistributionMapping dmap_flat;
 
@@ -320,8 +320,6 @@ void main_driver(const char* argv)
     // these are enabled if n_ads_spec > 0 and assumes the k=0 plane is the slice of interest
     StructFact structFactSurfCov;
     
-    Geometry geom_sf_surfcov;
-
 #if defined(TURB)
     // Structure factor for compressible turbulence
     StructFact turbStructFactVelTotal; // total velocity
@@ -781,6 +779,8 @@ void main_driver(const char* argv)
             ba_flat = Flattened.boxArray();
             dmap_flat = Flattened.DistributionMap();
 
+            ///////////////////////////////////////////////////
+            // for SF plotfiles for use_2D case - needs to be cleaned up
             // create a Geometry object for SF plotfile so wavenumber appears in physical coordinates
             Box domain_flat = ba_flat.minimalBox();
 
@@ -798,6 +798,7 @@ void main_driver(const char* argv)
                                   {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
           
             geom_sf_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+            ///////////////////////////////////////////////////
 
             if (do_2D) {
 
@@ -852,28 +853,6 @@ void main_driver(const char* argv)
             ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
             BoxArray ba_surfcov = Flattened.boxArray();
             const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
-            {
-                Box domain_surfcov = ba_surfcov.minimalBox();
-        
-                // This defines the physical box
-                // we retain prob_lo and prob_hi in all directions except surfcov_dir,
-                // where the physical size is 0 to dx[surfcov_dir]
-                Vector<Real> projected_lo(AMREX_SPACEDIM);
-                Vector<Real> projected_hi(AMREX_SPACEDIM);
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    projected_lo[d] = -domain_surfcov.length(d)/2 - 0.5;
-                    projected_hi[d] = domain_surfcov.length(d)/2 - 1 + 0.5;
-                }
-                projected_lo[surfcov_dir] = -0.5;
-                projected_hi[surfcov_dir] = 0.5;
-
-                RealBox real_box_surfcov({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
-                                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-        
-                // This defines a Geometry object
-                geom_sf_surfcov.define(domain_surfcov,&real_box_surfcov,CoordSys::cartesian,is_periodic.data());
-            }
 
             structFactSurfCov.define(ba_surfcov,dmap_surfcov,surfcov_var_names,surfcov_var_scaling);
         }
@@ -1416,20 +1395,20 @@ void main_driver(const char* argv)
             step%plot_int == 0) {
 
             if ((do_1D==0) and (do_2D==0)) {
-                structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
-                structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
+                structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
+                structFactCons.WritePlotFile(step,time,"plt_SF_cons");
             }
 
             if (project_dir >= 0) {
                 if (do_slab_sf == 0) {
-                    structFactPrimFlattened.WritePlotFile(step,time,geom_sf_flat,"plt_SF_prim_Flattened");
-                    structFactConsFlattened.WritePlotFile(step,time,geom_sf_flat,"plt_SF_cons_Flattened");
+                    structFactPrimFlattened.WritePlotFile(step,time,"plt_SF_prim_Flattened");
+                    structFactConsFlattened.WritePlotFile(step,time,"plt_SF_cons_Flattened");
                 }
                 else {
-                    structFactPrimVerticalAverageMembraneLo.WritePlotFile(step,time,geom_sf_flat,"plt_SF_prim_VerticalAverageMembraneLo");
-                    structFactPrimVerticalAverageMembraneHi.WritePlotFile(step,time,geom_sf_flat,"plt_SF_prim_VerticalAverageMembraneHi");
-                    structFactConsVerticalAverageMembraneLo.WritePlotFile(step,time,geom_sf_flat,"plt_SF_cons_VerticalAverageMembraneLo");
-                    structFactConsVerticalAverageMembraneHi.WritePlotFile(step,time,geom_sf_flat,"plt_SF_cons_VerticalAverageMembraneHi");
+                    structFactPrimVerticalAverageMembraneLo.WritePlotFile(step,time,"plt_SF_prim_VerticalAverageMembraneLo");
+                    structFactPrimVerticalAverageMembraneHi.WritePlotFile(step,time,"plt_SF_prim_VerticalAverageMembraneHi");
+                    structFactConsVerticalAverageMembraneLo.WritePlotFile(step,time,"plt_SF_cons_VerticalAverageMembraneLo");
+                    structFactConsVerticalAverageMembraneHi.WritePlotFile(step,time,"plt_SF_cons_VerticalAverageMembraneHi");
                 }
             }
 
@@ -1466,7 +1445,7 @@ void main_driver(const char* argv)
             }
 
             if (n_ads_spec > 0) {
-                structFactSurfCov.WritePlotFile(step,time,geom_sf_surfcov,"plt_SF_surfcov");
+                structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
             }
         }
 

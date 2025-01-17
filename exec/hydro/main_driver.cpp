@@ -351,8 +351,6 @@ void main_driver(const char* argv)
 
     StructFact structFactFlattened;
 
-    Geometry geom_sf_flat;
-
     if(project_dir >= 0){
       MultiFab Flattened;  // flattened multifab defined below
 
@@ -367,25 +365,6 @@ void main_driver(const char* argv)
 
       BoxArray ba_flat = Flattened.boxArray();
       const DistributionMapping& dmap_flat = Flattened.DistributionMap();
-
-      // create a Geometry object for SF plotfile so wavenumber appears in physical coordinates
-      Box domain_flat = ba_flat.minimalBox();
-
-      Vector<Real> projected_lo(AMREX_SPACEDIM);
-      Vector<Real> projected_hi(AMREX_SPACEDIM);
-
-      for (int d=0; d<AMREX_SPACEDIM; ++d) {
-          projected_lo[d] = -domain_flat.length(d)/2 - 0.5;
-          projected_hi[d] = domain_flat.length(d)/2 - 1 + 0.5;
-      }
-      projected_lo[project_dir] = -0.5;
-      projected_hi[project_dir] =  0.5;
-
-      RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
-                            {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-
-      // This defines a Geometry object
-      geom_sf_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
 
       structFactFlattened.define(ba_flat,dmap_flat,var_names,var_scaling);
     }
@@ -443,9 +422,9 @@ void main_driver(const char* argv)
         if (plot_int > 0) {
             WritePlotFile(0,time,geom,umac,pres);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
-                structFact.WritePlotFile(0,0.,geom,"plt_SF");
+                structFact.WritePlotFile(0,0.,"plt_SF");
                 if(project_dir >= 0) {
-                    structFactFlattened.WritePlotFile(0,time,geom_sf_flat,"plt_SF_Flattened");
+                    structFactFlattened.WritePlotFile(0,time,"plt_SF_Flattened");
                 }
             }
         }
@@ -545,9 +524,9 @@ void main_driver(const char* argv)
 
             // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
-                structFact.WritePlotFile(step,time,geom,"plt_SF");
+                structFact.WritePlotFile(step,time,"plt_SF");
                 if(project_dir >= 0) {
-                    structFactFlattened.WritePlotFile(step,time,geom_sf_flat,"plt_SF_Flattened");
+                    structFactFlattened.WritePlotFile(step,time,"plt_SF_Flattened");
                 }
             }
 

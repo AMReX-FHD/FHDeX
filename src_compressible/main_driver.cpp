@@ -467,8 +467,6 @@ void main_driver(const char* argv)
 
     //////////////////////////////////////////////
     
-    Geometry geom_flat;
-    
     if(project_dir >= 0){
       MultiFab Flattened;  // flattened multifab defined below
       
@@ -482,28 +480,6 @@ void main_driver(const char* argv)
       }
       BoxArray ba_flat = Flattened.boxArray();
       const DistributionMapping& dmap_flat = Flattened.DistributionMap();
-      {
-          Box domain_flat = ba_flat.minimalBox();
-
-          // This defines the physical box
-          // we retain prob_lo and prob_hi in all directions except project_dir,
-          // where the physical size is 0 to dx[project_dir]
-          Vector<Real> projected_lo(AMREX_SPACEDIM);
-          Vector<Real> projected_hi(AMREX_SPACEDIM);
-
-          for (int d=0; d<AMREX_SPACEDIM; ++d) {
-              projected_lo[d] = prob_lo[d];
-              projected_hi[d] = prob_hi[d];
-          }
-          projected_lo[project_dir] = 0.;
-          projected_hi[project_dir] = (prob_hi[project_dir] - prob_lo[project_dir]) / n_cells[project_dir];
-
-          RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
-                                {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-          
-          // This defines a Geometry object
-          geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-      }
 
       structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
       structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
@@ -747,13 +723,13 @@ void main_driver(const char* argv)
 
 	    Print() << "HERE1\n";
 	    
-            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+            structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
 
 	    Print() << "HERE2\n";
-            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
+            structFactCons.WritePlotFile(step,time,"plt_SF_cons");
             if(project_dir >= 0) {
-                structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
-                structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
+                structFactPrimFlattened.WritePlotFile(step,time,"plt_SF_prim_Flattened");
+                structFactConsFlattened.WritePlotFile(step,time,"plt_SF_cons_Flattened");
             }
 
             // timer
