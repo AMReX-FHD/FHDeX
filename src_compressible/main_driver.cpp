@@ -474,9 +474,9 @@ void main_driver(const char* argv)
       // a built version of primFlattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, 1);
+          ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, 1);
       } else {
-          ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, slicepoint, 0, 1);
+          ExtractSlice(structFactPrimMF, Flattened, project_dir, slicepoint, 0, 1);
       }
       BoxArray ba_flat = Flattened.boxArray();
       const DistributionMapping& dmap_flat = Flattened.DistributionMap();
@@ -699,11 +699,11 @@ void main_driver(const char* argv)
                 MultiFab primFlattened;  // flattened multifab defined below
                 MultiFab consFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(structFactPrimMF, primFlattened, geom, project_dir, 0, structVarsPrim);
-                    ComputeVerticalAverage(structFactConsMF, consFlattened, geom, project_dir, 0, structVarsCons);
+                    ComputeVerticalAverage(structFactPrimMF, primFlattened, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(structFactConsMF, consFlattened, project_dir, 0, structVarsCons);
                 } else {
-                    ExtractSlice(structFactPrimMF, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
-                    ExtractSlice(structFactConsMF, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
+                    ExtractSlice(structFactPrimMF, primFlattened, project_dir, slicepoint, 0, structVarsPrim);
+                    ExtractSlice(structFactConsMF, consFlattened, project_dir, slicepoint, 0, structVarsCons);
                 }
                 structFactPrimFlattened.FortStructure(primFlattened);
                 structFactConsFlattened.FortStructure(consFlattened);

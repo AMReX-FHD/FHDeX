@@ -514,9 +514,9 @@ void main_driver(const char* argv)
       // a built version of primFlattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ComputeVerticalAverage(prim, primFlattened, project_dir, 0, structVarsPrim);
       } else {
-          ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+          ExtractSlice(prim, primFlattened, project_dir, slicepoint, 0, structVarsPrim);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // SWFFT only presently supports flattened MultiFabs with z-normal.
@@ -857,9 +857,9 @@ void main_driver(const char* argv)
             if(project_dir >= 0) {
                 MultiFab primFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(prim, primFlattened, project_dir, 0, structVarsPrim);
                 } else {
-                    ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+                    ExtractSlice(prim, primFlattened, project_dir, slicepoint, 0, structVarsPrim);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // SWFFT only presently supports flattened MultiFabs with z-normal.

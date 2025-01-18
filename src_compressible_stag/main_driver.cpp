@@ -774,7 +774,7 @@ void main_driver(const char* argv)
             // we are only calling ExtractSlice here to obtain
             // a built version of Flattened so can obtain what we need to build the
             // structure factor and geometry objects for flattened data
-            ExtractSlice(prim, Flattened, geom, project_dir, 0, 0, 1);
+            ExtractSlice(prim, Flattened, project_dir, 0, 0, 1);
 
             ba_flat = Flattened.boxArray();
             dmap_flat = Flattened.DistributionMap();
@@ -852,7 +852,7 @@ void main_driver(const char* argv)
                 surfcov_var_scaling[d] = 1.;
             }
       
-            ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+            ExtractSlice(surfcov, Flattened, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
             BoxArray ba_surfcov = Flattened.boxArray();
             const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
 
@@ -1298,7 +1298,7 @@ void main_driver(const char* argv)
             if ((do_1D==0) and (do_2D==0)) {
                 structFactPrim.FortStructure(structFactPrimMF);
                 structFactCons.FortStructure(structFactConsMF);
-            }
+            }           
 
             if (project_dir >= 0) {
 
@@ -1309,14 +1309,14 @@ void main_driver(const char* argv)
                         {
                             MultiFab Flattened;
 
-                            ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, i, 0, structVarsPrim);
+                            ExtractSlice(structFactPrimMF, Flattened, project_dir, i, 0, structVarsPrim);
                             structFactPrimArray[i].FortStructure(Flattened);
                         }
 
                         {
                             MultiFab Flattened;
 
-                            ExtractSlice(structFactConsMF, Flattened, geom, project_dir, i, 0, structVarsCons);
+                            ExtractSlice(structFactConsMF, Flattened, project_dir, i, 0, structVarsCons);
                             structFactConsArray[i].FortStructure(Flattened);
                         }
 
@@ -1329,9 +1329,9 @@ void main_driver(const char* argv)
                         MultiFab Flattened;
 
                         if (slicepoint < 0) {
-                            ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim);
+                            ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim);
                         } else {
-                            ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+                            ExtractSlice(structFactPrimMF, Flattened, project_dir, slicepoint, 0, structVarsPrim);
                         }
                         structFactPrimFlattened.FortStructure(Flattened);
                     }
@@ -1340,9 +1340,9 @@ void main_driver(const char* argv)
                         MultiFab Flattened;
 
                         if (slicepoint < 0) {
-                            ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons);
+                            ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons);
                         } else {
-                            ExtractSlice(structFactConsMF, Flattened, geom, project_dir, slicepoint, 0, structVarsCons);
+                            ExtractSlice(structFactConsMF, Flattened, project_dir, slicepoint, 0, structVarsCons);
                         }
                         structFactConsFlattened.FortStructure(Flattened);
                     }
@@ -1352,40 +1352,40 @@ void main_driver(const char* argv)
                     {
                         MultiFab Flattened;
 
-                        ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
+                        ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
                         structFactPrimVerticalAverageMembraneLo.FortStructure(Flattened);
                     }
 
                     {
                         MultiFab Flattened;
 
-                        ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
+                        ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
                         structFactPrimVerticalAverageMembraneHi.FortStructure(Flattened);
                     }
 
                     {
                         MultiFab Flattened;
 
-                        ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
+                        ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons, 0, membrane_cell-1);
                         structFactConsVerticalAverageMembraneLo.FortStructure(Flattened);
                     }
 
                     {
                         MultiFab Flattened;
 
-                        ComputeVerticalAverage(structFactConsMF, Flattened, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
+                        ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
                         structFactConsVerticalAverageMembraneHi.FortStructure(Flattened);
                     }
                 }
                 
             }
-            
+
             if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
                 int surfcov_dir = 2;
                 int surfcov_plane = 0;
                 int surfcov_structVars = n_ads_spec;
                 MultiFab Flattened;  // flattened multifab defined below
-                ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+                ExtractSlice(surfcov, Flattened, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
                 structFactSurfCov.FortStructure(Flattened);
             }
 

@@ -534,7 +534,7 @@ void main_driver(const char* argv)
 
     if(project_dir >= 0){
       prim.setVal(0.0);
-      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+      ComputeVerticalAverage(prim, primVertAvg, project_dir, 0, structVarsPrim);
       BoxArray ba_flat = primVertAvg.boxArray();
       const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
       {
@@ -703,7 +703,7 @@ void main_driver(const char* argv)
            structFactPrim.FortStructure(structFactPrimMF);
            structFactCons.FortStructure(structFactConsMF);
            if(project_dir >= 0) {
-                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                ComputeVerticalAverage(prim, primVertAvg, project_dir, 0, structVarsPrim);
                 structFactPrimVerticalAverage.FortStructure(primVertAvg);
            }
         }
