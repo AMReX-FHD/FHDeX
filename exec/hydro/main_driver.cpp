@@ -360,9 +360,9 @@ void main_driver(const char* argv)
       // a built version of Flattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, 1);
+          ComputeVerticalAverage(structFactMF, Flattened, project_dir, 0, 1);
       } else {
-          ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, 1);
+          ExtractSlice(structFactMF, Flattened, project_dir, slicepoint, 0, 1);
       }
       BoxArray ba_flat = Flattened.boxArray();
       const DistributionMapping& dmap_flat = Flattened.DistributionMap();
@@ -432,9 +432,9 @@ void main_driver(const char* argv)
             if(project_dir >= 0) {
                 MultiFab Flattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                    ComputeVerticalAverage(structFactMF, Flattened, project_dir, 0, structVars);
                 } else {
-                    ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
+                    ExtractSlice(structFactMF, Flattened, project_dir, slicepoint, 0, structVars);
                 }
                 structFactFlattened.FortStructure(Flattened);
             }
@@ -526,9 +526,9 @@ void main_driver(const char* argv)
             if(project_dir >= 0) {
                 MultiFab Flattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                    ComputeVerticalAverage(structFactMF, Flattened, project_dir, 0, structVars);
                 } else {
-                    ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
+                    ExtractSlice(structFactMF, Flattened, project_dir, slicepoint, 0, structVars);
                 }
                 structFactFlattened.FortStructure(Flattened);
             }
