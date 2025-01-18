@@ -779,26 +779,28 @@ void main_driver(const char* argv)
             ba_flat = Flattened.boxArray();
             dmap_flat = Flattened.DistributionMap();
 
-            ///////////////////////////////////////////////////
-            // for SF plotfiles for use_2D case - needs to be cleaned up
-            // create a Geometry object for SF plotfile so wavenumber appears in physical coordinates
-            Box domain_flat = ba_flat.minimalBox();
+            if (do_2D) {
+                ///////////////////////////////////////////////////
+                // for SF plotfiles for use_2D case - needs to be cleaned up
+                // create a Geometry object for SF plotfile so wavenumber appears in physical coordinates
+                Box domain_flat = ba_flat.minimalBox();
 
-            Vector<Real> projected_lo(AMREX_SPACEDIM);
-            Vector<Real> projected_hi(AMREX_SPACEDIM);
+                Vector<Real> projected_lo(AMREX_SPACEDIM);
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
 
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            projected_lo[d] = -domain_flat.length(d)/2 - 0.5;
-            projected_hi[d] = domain_flat.length(d)/2 - 1 + 0.5;
-            }
-            projected_lo[project_dir] = -0.5;
-            projected_hi[project_dir] =  0.5;
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    projected_lo[d] = -domain_flat.length(d)/2 - 0.5;
+                    projected_hi[d] = domain_flat.length(d)/2 - 1 + 0.5;
+                }
+                projected_lo[project_dir] = -0.5;
+                projected_hi[project_dir] =  0.5;
 
-            RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
-                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+                RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
+                                      {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
           
-            geom_sf_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-            ///////////////////////////////////////////////////
+                geom_sf_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+                ///////////////////////////////////////////////////
+            }
 
             if (do_2D) {
 
