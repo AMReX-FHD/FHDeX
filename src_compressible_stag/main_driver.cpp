@@ -826,7 +826,7 @@ void main_driver(const char* argv)
             }
         }
 
-        if (n_ads_spec>0) {
+        if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
 
             MultiFab Flattened;  // flattened multifab defined below
 
@@ -1379,8 +1379,8 @@ void main_driver(const char* argv)
                 }
                 
             }
-
-            if (n_ads_spec > 0) {
+            
+            if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
                 int surfcov_dir = 2;
                 int surfcov_plane = 0;
                 int surfcov_structVars = n_ads_spec;
@@ -1446,7 +1446,7 @@ void main_driver(const char* argv)
 
             }
 
-            if (n_ads_spec > 0) {
+            if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
                 structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
             }
         }
