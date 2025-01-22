@@ -101,10 +101,28 @@ void main_driver(const char* argv)
         }
     }
 
-    if (((do_1D) or (do_2D)) and (amrex::Math::abs(visc_type) == 3)) Abort("1D and 2D version only work for zero bulk viscosity currently. Use visc_type 1 or 2");
+    if (((do_1D) or (do_2D)) and (amrex::Math::abs(visc_type) == 3)) {
+        Abort("1D and 2D version only work for zero bulk viscosity currently. Use visc_type 1 or 2");
+    }
+    if ((do_1D) and (do_2D)) {
+        Abort("Can not have both 1D and 2D mode on at the same time");
+    }
 
-    if ((do_1D) and (do_2D)) Abort("Can not have both 1D and 2D mode on at the same time");
+    if (n_cells[0] == 1 && n_cells[1] == 1 && n_cells[2] == 1) {
+        Abort("Simulation must have more than 1 total cell");
+    }
 
+    if (n_cells[0] == 1 && n_cells[1] > 1 && n_cells[2] > 1) {
+        Abort("Cannot run a 2D simulation with only 1 cell in x - use n_cells[2]=1");
+    }
+    if (n_cells[0] > 1 && n_cells[1] == 1 && n_cells[2] > 1) {
+        Abort("Cannot run a 2D simulation with only 1 cell in y - use n_cells[2]=1");
+    }
+
+    if (n_cells[0] > 1 && n_cells[1] > 1 && n_cells[2] == 1 && do_2D == 0) {
+        Abort("2D simulations with only 1 cell in z requires do_2D=1");
+    }
+    
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
     SetupBCStag();
@@ -487,6 +505,9 @@ void main_driver(const char* argv)
         D.setVal(1.0,0,nspecies*nspecies,ngc);
         
         if (n_ads_spec>0) {
+            if (project_dir == -1) {
+                Abort("n_ads_spec>0 requires projecct_dir=0,1,2");
+            }
             dNadsdes.define(ba,dmap,n_ads_spec,0);
             nspec_surfcov = n_ads_spec;
         }
@@ -1380,8 +1401,8 @@ void main_driver(const char* argv)
                 
             }
 
-            if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
-                int surfcov_dir = 2;
+            if (n_ads_spec > 0 && (n_cells[(project_dir+1)%3] != 1 || n_cells[(project_dir+2)%3] != 1) ) {
+                int surfcov_dir = project_dir;
                 int surfcov_plane = 0;
                 int surfcov_structVars = n_ads_spec;
                 MultiFab Flattened;  // flattened multifab defined below

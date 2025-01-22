@@ -96,7 +96,7 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
-            if (k==0) {
+            if ( (project_dir == 0 && i == 0) || (project_dir == 1 && j == 0) || (project_dir == 2 && k == 0) ) {
                 if (stoch_surfcov0==1) {
                     amrex::Real Ntot = rint(surf_site_num_dens*dx[0]*dx[1]);  // total number of reactive sites
                     GpuArray<int,MAX_SPECIES> Nocc;
@@ -144,7 +144,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
-            if (k==0) {
+            if ( (project_dir == 0 && i == 0) || (project_dir == 1 && j == 0) || (project_dir == 2 && k == 0) ) {
                 amrex::Real sumtheta = 0.;
                 for (int m=0;m<n_ads_spec;m++) {
                     sumtheta += surfcov_arr(i,j,k,m);
@@ -198,7 +198,7 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (k==0) {
+            if ( (project_dir == 0 && i == 0) || (project_dir == 1 && j == 0) || (project_dir == 2 && k == 0) ) {
 
                 amrex::Real T_inst = prim_arr(i,j,k,4);
 
