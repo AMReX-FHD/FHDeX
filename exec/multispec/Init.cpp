@@ -44,8 +44,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               c=c_init_1(:) inside, c=c_init_2(:) outside
               can be discontinous or smooth depending on smoothing_width
             */
-            Real rad = L[0] / 4.;
-	    rad = radius_cyl;
+            Real rad = radius_cyl;
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -61,11 +60,11 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     // discontinuous interface
                     if (r < rad) {
                         for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) = c_init_1[n];
+                            c(i,j,k,n) = c_init_2[n];
                         }
                     } else {
                         for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) = c_init_2[n];
+                            c(i,j,k,n) = c_init_1[n];
                         }
                     }
                     
