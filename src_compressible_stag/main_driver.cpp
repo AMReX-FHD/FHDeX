@@ -961,8 +961,9 @@ void main_driver(const char* argv)
         amrex_push(cu, prim, *mpmd_copier);
 #endif
         if (n_ads_spec>0) {
-	    if (splitting_MFsurfchem == 0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
-	    else if (splitting_MFsurfchem == 1) {
+	    if (splitting_MFsurfchem == 0) {
+                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
+            } else if (splitting_MFsurfchem == 1) {
 	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
 		update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
 
@@ -980,8 +981,9 @@ void main_driver(const char* argv)
                 cu.FillBoundary(geom.periodicity());
 
                 setBCStag(prim, cu, cumom, vel, geom);
-	    }
-	    else Abort("splitting_MFsurfchem can be 0 or 1");
+	    } else {
+                Abort("splitting_MFsurfchem can be 0 or 1");
+            }
 	}
 
         // FHD
