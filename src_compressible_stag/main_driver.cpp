@@ -802,7 +802,7 @@ void main_driver(const char* argv)
 
             if (do_2D) {
                 ///////////////////////////////////////////////////
-                // for SF plotfiles for use_2D case - needs to be cleaned up
+                // for SF plotfiles for do_2D case - needs to be cleaned up
                 // create a Geometry object for SF plotfile so wavenumber appears in physical coordinates
                 Box domain_flat = ba_flat.minimalBox();
 
@@ -1451,6 +1451,7 @@ void main_driver(const char* argv)
                 prim_realimag.setVal(0.0);
                 cons_realimag.setVal(0.0);
 
+                // note: above we force project_dir==2 for do_2D
                 for (int i=0; i<n_cells[2]; ++i) {
                     structFactPrimArray[i].AddToExternal(prim_mag,prim_realimag);
                     structFactConsArray[i].AddToExternal(cons_mag,cons_realimag);
