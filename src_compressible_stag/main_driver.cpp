@@ -783,6 +783,9 @@ void main_driver(const char* argv)
         if ((do_1D==0) and (do_2D==0)) {
             structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
             structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
+        }
+
+        if (do_1D==0) {
             structFactConsMF.define(ba,dmap,structVarsCons,0);
             structFactPrimMF.define(ba,dmap,structVarsPrim,0);
         }
@@ -1438,7 +1441,7 @@ void main_driver(const char* argv)
             }
 
             if (do_2D) {
-                    
+
                 MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
 
                 prim_mag.define(ba_flat,dmap_flat,structFactPrimArray[0].get_ncov(),0);
