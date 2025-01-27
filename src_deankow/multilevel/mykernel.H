@@ -100,7 +100,7 @@ void init_phi (int i, int j, int k,
     r3 = (x*x + y*y+z*z);
     r2 = (x-.1)*(x-.1)+(y-.2)*(y-.2)+z*z;
 #endif
-
+/*
     if ( r3 > rad*rad) {
         //phi(i,j,k,0) = 50./cellvol;
         phi(i,j,k,0) = 30./cellvol;
@@ -110,6 +110,26 @@ void init_phi (int i, int j, int k,
     } else {
         phi(i,j,k,0) = 0./cellvol;
     }
+
+    //if(std::abs(x) <= .1 && y > 0.){
+    if(x >= .3 && y > .3){
+       phi(i,j,k,0) = 0.;
+    } else {
+       phi(i,j,k,0) = 30./cellvol;
+    }
+*/
+    int ioff = 16;
+    int joff = 16;
+    ioff = 0;
+    joff = 0;
+
+    if( i-ioff >= 0 && i - ioff < 32 && j-joff >= 0 && j - joff < 32 ) {
+       phi(i,j,k,0) = 0./cellvol;
+    } else {
+       phi(i,j,k,0) = 30./cellvol;
+    }
+
+
 #endif
 
     if (Ncomp == 2){
@@ -159,6 +179,10 @@ void compute_flux_x (int i, int j, int k,
         amrex::Real phim = std::max(phi(i-1,j,k,coeff_index),0.);
 	//amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
 	amrex::Real phiavg = 0.5*(phip+phim);
+
+	// HACK TO COMMENT OUT STOCHASTIC TERMS
+	// phiavg = 0.;
+
         fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
     	                    + stochfluxx(i,j,k) * std::sqrt(phiavg);
         if(Ncomp == 2){
@@ -208,6 +232,10 @@ void compute_flux_y (int i, int j, int k,
         amrex::Real phim = std::max(phi(i,j-1,k,coeff_index),0.);
 	//amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
 	amrex::Real phiavg = 0.5*(phip+phim);
+
+	// HACK TO COMMENT OUT STOCHASTIC TERMS
+	// phiavg = 0.;
+
         fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
 	+ stochfluxy(i,j,k)* std::sqrt(phiavg);
         if(Ncomp == 2){

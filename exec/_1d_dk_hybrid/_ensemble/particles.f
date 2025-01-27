@@ -170,10 +170,10 @@ c     write(6,*)" number total, ghost ", num_part, num_part-k
 
           inc = normal*sqrt(dt)
 
-          if(inc .gt.dx)then
+          if(abs(inc) .gt.dx)then
               ibad = ibad + 1
-c            write(6,*)"bad point ",ibad,inc,dx,inc/dx
-              inc = dx
+c             write(6,*)"bad point ",ibad,n,inc,dx,inc/dx
+              inc = sign(dx,inc)
           endif
           part_new(n) = part(n) + inc
 

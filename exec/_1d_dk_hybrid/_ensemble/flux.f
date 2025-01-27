@@ -20,14 +20,12 @@
       integer is_edge
       integer usereg
 
-      double precision  uleft, uright, pi
+      double precision  uleft, uright, pi, uinit
 
-      common /params/ uleft, uright, pi
+      common /params/ uleft, uright, pi, uinit
        
       delreg = 4.d0*dx**2
-      delnreg = 1000.d0 * delreg
-      delnreg = 500.d0 * delreg
-      delnreg = 1.d0 * delreg
+      delnreg = uinit * delreg
 c      delnreg = 10.d0 
       usereg = 0
       
@@ -94,6 +92,10 @@ c      delnreg = 10.d0
            else
               sqrtcoef(j) = sgnphi* sqrt(phiabs)
            endif
+
+c          if(u(j,ncoef) .lt.0.d0)then
+c             sqrtcoef(j) = 0.d0
+c          endif
 
         enddo
 

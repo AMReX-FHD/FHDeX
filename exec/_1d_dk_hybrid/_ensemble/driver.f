@@ -58,7 +58,7 @@ c
 
       double precision  uleft, uright, pi, uinit
 
-      common /params/  uleft, uright, pi
+      common /params/  uleft, uright, pi, uinit
 
       namelist /input_param/ npts,xlen,iper,dorand,seed,ntherm,nstep,
      1   dt,nout,ires,nstat,icor,ires,uleft,uright, uinit, cfl,
@@ -494,7 +494,7 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
 
 1000    format(1p37e17.7)
 
-        if(iprint.eq.0)then
+        if(iprint.eq.0 .and. mod(ens,ensout).eq.0)then
 
            time=nstep*dt
            call output(x,xl,u,npts,n,time,ens,ndim)
@@ -530,12 +530,12 @@ c     open(20,file=ufile,form='formatted')
       write(6,100)n,time,ens
   100 format(//" step,time = ",i10,1e15.7/)
 
-c     do j=1,jmax
+      do j=1,jmax
 
-c     write(6,101)x(j),u(j)
+      write(6,101)x(j),u(j)
 c     write(20,102)x(j),u(j)
 
-c     enddo
+      enddo
 
 c     close(20)
      

@@ -71,7 +71,8 @@ public:
     void AdvectWithRandomWalk (int lev, amrex::Real dt);
     void RemoveParticlesNotInBA (const amrex::BoxArray& ba_to_keep);
     void RefluxCrseToFine (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_for_reflux);
-    void RefluxFineToCrse (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_for_reflux);
+    void RefluxFineToCrse (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_fine_for_reflux,
+                                 amrex::MultiFab& phi_crse_for_reflux);
 
 protected:
     amrex::ParticleLocator<amrex::DenseBins<amrex::Box> > m_reflux_particle_locator;

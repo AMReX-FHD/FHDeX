@@ -149,6 +149,8 @@ struct ParticleData {
             // **********************************************************************
             // Fill a temporary phi_grown with phi from "coarse" level
             // **********************************************************************
+            // amrex::Print() << "PARTICLE BOXARRAY " << stochastic_particles->ParticleBoxArray(0) << std::endl;
+            // amrex::Print() << "PARTICLE BOXARRAY " << stochastic_particles->ParticleBoxArray(1) << std::endl;
             amrex::MultiFab phi_grown(stochastic_particles->ParticleBoxArray(1),
                                       stochastic_particles->ParticleDistributionMap(1),1,0);
             phi_crse_old.FillBoundary(geom_fine.periodicity());
@@ -171,18 +173,27 @@ struct ParticleData {
             stochastic_particles->Redistribute();
 
             // **********************************************************************
+            // Account for particles that went from fine --> crse
+            // **********************************************************************
+
+            phi_grown.setVal(0.);
+
+            amrex::MultiFab phi_tmp_crse(phi_crse_new.boxArray(),phi_crse_new.DistributionMap(),1,1);
+            phi_tmp_crse.setVal(0.);
+
+            stochastic_particles->RefluxFineToCrse(phi_fine.boxArray(), phi_grown, phi_tmp_crse);
+
+            phi_grown.mult(1./cell_vol);
+            phi_tmp_crse.mult(1./cell_vol);
+
+            phi_crse_new.ParallelAdd(phi_grown,0,0,1);
+            phi_crse_new.ParallelAdd(phi_tmp_crse,0,0,1);
+
+            // **********************************************************************
             // Remove particles on the coarsest level
             // **********************************************************************
             int crse_lev = 0;
             stochastic_particles->RemoveParticlesAtLevel(crse_lev);
-
-            // **********************************************************************
-            // Account for particles that went from fine --> crse
-            // **********************************************************************
-            phi_grown.setVal(0.);
-            stochastic_particles->RefluxFineToCrse(phi_fine.boxArray(), phi_grown);
-            phi_grown.mult(1./cell_vol);
-            phi_crse_new.ParallelAdd(phi_grown,0,0,1);
 
             // Remove particles that are not in the valid boxArray used by phi_fine
             stochastic_particles->RemoveParticlesNotInBA(phi_fine.boxArray());
@@ -192,10 +203,13 @@ struct ParticleData {
             // **********************************************************************
             amrex::MultiFab phi_grown2(phi_grown.boxArray(),phi_grown.DistributionMap(),1,1);
             phi_grown2.setVal(0.);
+
             stochastic_particles->RefluxCrseToFine(phi_fine.boxArray(), phi_grown2);
-            phi_grown2.SumBoundary(geom_fine.periodicity());
-            phi_grown2.mult(1./cell_vol);
-            phi_crse_new.ParallelAdd(phi_grown2,0,0,1);
+
+            phi_grown2.mult(1./cell_vol,0,1,1);
+
+            phi_crse_new.ParallelAdd(phi_grown2,0,0,1,amrex::IntVect(1,1),amrex::IntVect(1,1),
+                                     geom_fine.periodicity());
 
             // **********************************************************************
             // Define phi at level 1 from the particle count
