@@ -514,9 +514,9 @@ void main_driver(const char* argv)
       // a built version of primFlattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ComputeVerticalAverage(prim, primFlattened, project_dir, 0, structVarsPrim);
       } else {
-          ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+          ExtractSlice(prim, primFlattened, project_dir, slicepoint, 0, structVarsPrim);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // SWFFT only presently supports flattened MultiFabs with z-normal.
@@ -852,19 +852,19 @@ void main_driver(const char* argv)
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
-            structFactPrim.FortStructure(structFactPrimMF,geom);
-            structFactCons.FortStructure(structFactConsMF,geom);
+            structFactPrim.FortStructure(structFactPrimMF);
+            structFactCons.FortStructure(structFactConsMF);
             if(project_dir >= 0) {
                 MultiFab primFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(prim, primFlattened, project_dir, 0, structVarsPrim);
                 } else {
-                    ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+                    ExtractSlice(prim, primFlattened, project_dir, slicepoint, 0, structVarsPrim);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // SWFFT only presently supports flattened MultiFabs with z-normal.
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
+                structFactPrimFlattened.FortStructure(primFlattenedRot);
             }
         }
 

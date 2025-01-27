@@ -527,7 +527,7 @@ void main_driver(const char* argv)
 
     if(project_dir >= 0){
       prim.setVal(0.0);
-      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+      ComputeVerticalAverage(prim, primVertAvg, project_dir, 0, structVarsPrim);
       BoxArray ba_flat = primVertAvg.boxArray();
       const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
       {
@@ -685,11 +685,11 @@ void main_driver(const char* argv)
            MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
            MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
-           structFactPrim.FortStructure(structFactPrimMF,geom);
-           structFactCons.FortStructure(structFactConsMF,geom);
+           structFactPrim.FortStructure(structFactPrimMF);
+           structFactCons.FortStructure(structFactConsMF);
            if(project_dir >= 0) {
-                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-                structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
+                ComputeVerticalAverage(prim, primVertAvg, project_dir, 0, structVarsPrim);
+                structFactPrimVerticalAverage.FortStructure(primVertAvg);
            }
         }
 

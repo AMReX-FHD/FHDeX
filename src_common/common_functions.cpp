@@ -97,10 +97,6 @@ AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_l
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_hi;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_spec_lo;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_spec_hi;
-
-
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
@@ -244,6 +240,7 @@ int                        common::plot_means;
 int                        common::plot_vars;
 int                        common::plot_covars;
 int                        common::plot_cross;
+int                        common::plot_deltaY_dir;
 int                        common::particle_motion;
 
 AMREX_GPU_MANAGED amrex::Real common::turb_a;
@@ -343,7 +340,7 @@ void InitializeCommonNamespace() {
     // primvars - number of primative variables (no default)
 
     cross_cell = 0;     // cell to compute spatial correlation
-    do_slab_sf = 0;     // whether to compute SF in two slabs separated by cross_cell
+    do_slab_sf = 0;     // whether to compute SF in two slabs separated by membrane_cell
 
     for (int i=0; i<MAX_SPECIES; ++i) {
         qval[i] = 0.;                // charge on an ion
@@ -483,8 +480,6 @@ void InitializeCommonNamespace() {
         bc_mass_hi[i] = 0;
         bc_therm_lo[i] = 0;
         bc_therm_hi[i] = 0;
-        bc_spec_lo[i] = -1;
-        bc_spec_hi[i] = -1;
 
         // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
         p_lo[i] = 0.;
@@ -614,6 +609,7 @@ void InitializeCommonNamespace() {
     plot_vars = 0;
     plot_covars = 0;
     plot_cross = 0;
+    plot_deltaY_dir = -1;
     particle_motion = 0;
 
     // turblent forcing parameters
@@ -825,16 +821,6 @@ void InitializeCommonNamespace() {
     if (pp.queryarr("bc_mass_hi",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_mass_hi[i] = temp_int[i];
-        }
-    }
-    if (pp.queryarr("bc_spec_lo",temp_int,0,AMREX_SPACEDIM)) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            bc_spec_lo[i] = temp_int[i];
-        }
-    }
-    if (pp.queryarr("bc_spec_hi",temp_int,0,AMREX_SPACEDIM)) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            bc_spec_hi[i] = temp_int[i];
         }
     }
     if (pp.queryarr("bc_therm_lo",temp_int,0,AMREX_SPACEDIM)) {
@@ -1151,6 +1137,7 @@ void InitializeCommonNamespace() {
     pp.query("plot_vars",plot_vars);
     pp.query("plot_covars",plot_covars);
     pp.query("plot_cross",plot_cross);
+    pp.query("plot_deltaY_dir",plot_deltaY_dir);
     pp.query("particle_motion",particle_motion);
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);

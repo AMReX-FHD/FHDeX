@@ -148,13 +148,13 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
 
 void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,
-                                const int& ncomp);
+                                const int& ncomp, int outcomp=-1);
     
-void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_flat, const Geometry & geom,
+void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_flat,
                             const int& dir, const int& incomp, const int& ncomp,
                             const int& slablo=-1, const int& slabhi=99999);
 
-void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice, const Geometry & geom,
+void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice,
                   const int dir, const int slice, const int incomp, const int ncomp);
 
 ///////////////////////////
@@ -242,11 +242,6 @@ void CCL2Norm(const MultiFab & m1,
 	      const int & comp,
               amrex::MultiFab& mscr,
 	      Real & norm_l2);
-
-///////////////////////////
-// in RotateFlattenedMF.cpp
-
-MultiFab RotateFlattenedMF(MultiFab const& mf);
 
 ///////////////////////////
 // in InterpCoarsen.cpp

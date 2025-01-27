@@ -223,6 +223,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 					&intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
 
 				for (int d=0; d<(AMREX_SPACEDIM); ++d)
+				//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)				
 				{
 					part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*ADJ;
 				}
@@ -237,6 +238,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 					Real posAlt[3];
 
 					for (int d=0; d<(AMREX_SPACEDIM); ++d)
+    				//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)					
 					{
 						posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*ADJALT;
 					}
@@ -250,6 +252,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
                     }
 					if(push == 1)
 					{
+						//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)
 						for (int d=0; d<(AMREX_SPACEDIM); ++d)
 						{
 							part.pos(d) += part.pos(d) + posAlt[d];
@@ -417,8 +420,11 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 				//Print() << "Pre " << part.id() << ": " << part.rdata(FHD_realData::velx + 0) << ", " << part.rdata(FHD_realData::velx + 1) << ", " << part.rdata(FHD_realData::velx + 2) << endl;
 //                printf("DT: %e\n", dt);
 //                cout << "DT: " << dt << endl;
-				find_inter_gpu(part, runtime, paramPlaneListPtr, paramPlaneCount,
-					&intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                for(int ii = 0;ii<100;ii++)
+                { 
+				    find_inter_gpu(part, runtime, paramPlaneListPtr, paramPlaneCount,
+					    &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+			    }
 				
 				Real tauImpurityInv = pow(part.rdata(FHD_realData::omega),4)/tau_i_p;
 				Real tauTAInv = part.rdata(FHD_realData::omega)*pow(T_init[0],4)/tau_ta_p;
@@ -452,7 +458,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 					    }
 					    
 					    app_bc_phonon_gpu(&surf, part, intside, pdomsize, &push, &runtime, step, countPtr, specCountPtr, engine);
-    //					app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
+    					//app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
    					    //Print() << "Post " << part.id() << ": " << part.rdata(FHD_realData::velx + 0) << ", " << part.rdata(FHD_realData::velx + 1) << ", " << part.rdata(FHD_realData::velx + 2) << endl;
                         if(part.id() == -1)
                         {
@@ -491,6 +497,10 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 
 			part.rdata(FHD_realData::timeFrac) = 1.0;
 			
+//			if(step%2==0)
+//			{
+//                part.rdata(FHD_realData::velz) = -part.rdata(FHD_realData::velz);    
+//		    }
 
 			if(part.idata(FHD_intData::newSpecies) != -1)
 			{
@@ -500,6 +510,10 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 
 
 		});
+		
+		
+	
+		
 		//Print() << "Pre buffer size: " << paramPlaneList[1].recCountRight << endl;		
 		for (int i = 0; i < np; i++)
 		{
@@ -1123,6 +1137,7 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					for(int j=nspecies-1; j>=0; j--)
 					{
 						Real density = paramPlaneList[i].densityRight[j]*rho_lo[0]/properties[j].mass;
+										//cout << "n: " << density << endl;
 						//Real density = paramPlaneList[i].densityRight[j];
 						
 						Real xMom = paramPlaneList[i].xMomFluxRight[j];												
