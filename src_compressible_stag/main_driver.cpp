@@ -780,14 +780,12 @@ void main_driver(const char* argv)
 
     if (struct_fact_int > 0) {
 
+        structFactConsMF.define(ba,dmap,structVarsCons,0);
+        structFactPrimMF.define(ba,dmap,structVarsPrim,0);
+
         if ((do_1D==0) and (do_2D==0)) {
             structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
             structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
-        }
-
-        if (do_1D==0) {
-            structFactConsMF.define(ba,dmap,structVarsCons,0);
-            structFactPrimMF.define(ba,dmap,structVarsPrim,0);
         }
 
         // structure factor class for vertically-averaged dataset
@@ -836,17 +834,18 @@ void main_driver(const char* argv)
                     structFactConsArray[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
                 }
 
-            }
+            } else {
 
-            if (do_slab_sf == 0) {
-                structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-            }
-            else {
-                structFactPrimVerticalAverageMembraneLo.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactPrimVerticalAverageMembraneHi.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactConsVerticalAverageMembraneLo.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-                structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                if (do_slab_sf == 0) {
+                    structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                    structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                }
+                else {
+                    structFactPrimVerticalAverageMembraneLo.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                    structFactPrimVerticalAverageMembraneHi.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                    structFactConsVerticalAverageMembraneLo.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                    structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                }
             }
         }
 
@@ -1347,64 +1346,64 @@ void main_driver(const char* argv)
                         }
 
                     }
-                }
-
-                if (do_slab_sf == 0) {
-                    
-                    {
-                        MultiFab Flattened;
-
-                        if (slicepoint < 0) {
-                            ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim);
-                        } else {
-                            ExtractSlice(structFactPrimMF, Flattened, project_dir, slicepoint, 0, structVarsPrim);
-                        }
-                        structFactPrimFlattened.FortStructure(Flattened);
-                    }
-
-                    {
-                        MultiFab Flattened;
-
-                        if (slicepoint < 0) {
-                            ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons);
-                        } else {
-                            ExtractSlice(structFactConsMF, Flattened, project_dir, slicepoint, 0, structVarsCons);
-                        }
-                        structFactConsFlattened.FortStructure(Flattened);
-                    }
-
                 } else {
+
+                    if (do_slab_sf == 0) {
                     
-                    {
-                        MultiFab Flattened;
+                        {
+                            MultiFab Flattened;
 
-                        ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
-                        structFactPrimVerticalAverageMembraneLo.FortStructure(Flattened);
-                    }
+                            if (slicepoint < 0) {
+                                ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim);
+                            } else {
+                                ExtractSlice(structFactPrimMF, Flattened, project_dir, slicepoint, 0, structVarsPrim);
+                            }
+                            structFactPrimFlattened.FortStructure(Flattened);
+                        }
 
-                    {
-                        MultiFab Flattened;
+                        {
+                            MultiFab Flattened;
 
-                        ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
-                        structFactPrimVerticalAverageMembraneHi.FortStructure(Flattened);
-                    }
+                            if (slicepoint < 0) {
+                                ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons);
+                            } else {
+                                ExtractSlice(structFactConsMF, Flattened, project_dir, slicepoint, 0, structVarsCons);
+                            }
+                            structFactConsFlattened.FortStructure(Flattened);
+                        }
 
-                    {
-                        MultiFab Flattened;
+                    } else {
+                    
+                        {
+                            MultiFab Flattened;
 
-                        ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons, 0, membrane_cell-1);
-                        structFactConsVerticalAverageMembraneLo.FortStructure(Flattened);
-                    }
+                            ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
+                            structFactPrimVerticalAverageMembraneLo.FortStructure(Flattened);
+                        }
 
-                    {
-                        MultiFab Flattened;
+                        {
+                            MultiFab Flattened;
 
-                        ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
-                        structFactConsVerticalAverageMembraneHi.FortStructure(Flattened);
-                    }
-                }
-                
-            }
+                            ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
+                            structFactPrimVerticalAverageMembraneHi.FortStructure(Flattened);
+                        }
+
+                        {
+                            MultiFab Flattened;
+
+                            ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons, 0, membrane_cell-1);
+                            structFactConsVerticalAverageMembraneLo.FortStructure(Flattened);
+                        }
+
+                        {
+                            MultiFab Flattened;
+
+                            ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
+                            structFactConsVerticalAverageMembraneHi.FortStructure(Flattened);
+                        }
+                    } // if (do_slab_sf...
+                } // if (do_2D...
+            } // if (project_dir >= 0)
 
             if (n_ads_spec > 0 && (n_cells[(project_dir+1)%3] != 1 || n_cells[(project_dir+2)%3] != 1) ) {
                 int surfcov_dir = project_dir;
@@ -1418,25 +1417,23 @@ void main_driver(const char* argv)
         }
 
         // write out structure factor
-        if (step > amrex::Math::abs(n_steps_skip) && 
-            struct_fact_int > 0 && plot_int > 0 && 
-            step%plot_int == 0) {
+        if (step > amrex::Math::abs(n_steps_skip) && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
 
             if ((do_1D==0) and (do_2D==0)) {
                 structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
                 structFactCons.WritePlotFile(step,time,"plt_SF_cons");
-            }
 
-            if (project_dir >= 0) {
-                if (do_slab_sf == 0) {
-                    structFactPrimFlattened.WritePlotFile(step,time,"plt_SF_prim_Flattened");
-                    structFactConsFlattened.WritePlotFile(step,time,"plt_SF_cons_Flattened");
-                }
-                else {
-                    structFactPrimVerticalAverageMembraneLo.WritePlotFile(step,time,"plt_SF_prim_VerticalAverageMembraneLo");
-                    structFactPrimVerticalAverageMembraneHi.WritePlotFile(step,time,"plt_SF_prim_VerticalAverageMembraneHi");
-                    structFactConsVerticalAverageMembraneLo.WritePlotFile(step,time,"plt_SF_cons_VerticalAverageMembraneLo");
-                    structFactConsVerticalAverageMembraneHi.WritePlotFile(step,time,"plt_SF_cons_VerticalAverageMembraneHi");
+                if (project_dir >= 0) {
+                    if (do_slab_sf == 0) {
+                        structFactPrimFlattened.WritePlotFile(step,time,"plt_SF_prim_Flattened");
+                        structFactConsFlattened.WritePlotFile(step,time,"plt_SF_cons_Flattened");
+                    }
+                    else {
+                        structFactPrimVerticalAverageMembraneLo.WritePlotFile(step,time,"plt_SF_prim_VerticalAverageMembraneLo");
+                        structFactPrimVerticalAverageMembraneHi.WritePlotFile(step,time,"plt_SF_prim_VerticalAverageMembraneHi");
+                        structFactConsVerticalAverageMembraneLo.WritePlotFile(step,time,"plt_SF_cons_VerticalAverageMembraneLo");
+                        structFactConsVerticalAverageMembraneHi.WritePlotFile(step,time,"plt_SF_cons_VerticalAverageMembraneHi");
+                    }
                 }
             }
 
