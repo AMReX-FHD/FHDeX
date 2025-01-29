@@ -1589,8 +1589,8 @@ void main_driver(const char* argv)
             
             // plot structure factor on plot_int
             if (istep%plot_int == 0) {
-                structFact_charge.WritePlotFile(istep,time,geomP,"plt_SF_charge");
-                structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
+                structFact_charge.WritePlotFile(istep,time,"plt_SF_charge");
+                structFact_vel   .WritePlotFile(istep,time,"plt_SF_vel");
             }
         }
 

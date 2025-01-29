@@ -37,6 +37,8 @@ class StructFact {
     // Define vector of unique selected variables
     amrex::Vector< int > var_u;
 
+    Geometry geom_sf;
+
 public:
 
     // Vector containing running sums of real and imaginary components
@@ -86,8 +88,7 @@ public:
                     amrex::MultiFab&,
                     bool unpack=true);
 
-    void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
-                       std::string, const int& zero_avg=1);
+    void WritePlotFile(const int, const amrex::Real, std::string, const int& zero_avg=1);
     
     void Finalize(amrex::MultiFab&, amrex::MultiFab&,
                   const int& zero_avg=1);
