@@ -245,6 +245,9 @@ void main_driver(const char* argv)
         Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
     if (struct_fact_int > 0) {
+        if (do_1D and project_dir != -1) {
+            Abort("project_dir not needed for do_1D structure factors; set project_dir=-1 (default)");
+        }
         if (do_2D and project_dir != 2) {
             Abort("Structure factors with do_2D requires project_dir == 2");
         }
