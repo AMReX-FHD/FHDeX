@@ -251,9 +251,6 @@ void main_driver(const char* argv)
         if (do_2D and slicepoint >= 0) {
             Abort("Cannot use do_2D and slicepoint");
         }
-        if (do_1D) {
-            Abort("Projected structure factors (project_dir) does not work for do_1D case");
-        }
         if (project_dir >= 0) {
             if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
                 Abort("Slab structure factor needs a membrane cell within the domain: 0 < membrane_cell < n_cells[project_dir] - 1");
@@ -346,15 +343,24 @@ void main_driver(const char* argv)
     // these are enabled if do_2D (this mode assumes z slices; project_dir must equal 2)
     Vector < StructFact > structFactPrimArray;
     Vector < StructFact > structFactConsArray;
+    // Structure factor for surface coverage slice
+    // these are enabled if n_ads_spec > 0 and assumes the k=0 plane is the slice of interest
+    StructFact structFactSurfCov;
 
     // for structure factor analysis of flattened MultiFabs
     // (slices, vertical averages, arrays of flattened MFs, surface coverage)
     BoxArray ba_flat;
     DistributionMapping dmap_flat;
 
-    // Structure factor for surface coverage slice
-    // these are enabled if n_ads_spec > 0 and assumes the k=0 plane is the slice of interest
-    StructFact structFactSurfCov;
+    // Structure factor for pencils
+    // enabled if do_1D=1
+    Vector < StructFact > structFactPrimPencil;
+    Vector < StructFact > structFactConsPencil;
+
+    // for structure factor analysis of pencil MultiFabs
+    BoxArray ba_pencil;
+    DistributionMapping dmap_pencil;
+    
     
 #if defined(TURB)
     // Structure factor for compressible turbulence
@@ -813,7 +819,7 @@ void main_driver(const char* argv)
 
             // we are only calling ExtractSlice here to obtain
             // a built version of Flattened so can obtain what we need to build the
-            // structure factor and geometry objects for flattened data
+            // structure factor objects for flattened data
             ExtractSlice(prim, Flattened, project_dir, 0, 0, 1);
 
             ba_flat = Flattened.boxArray();
@@ -843,7 +849,7 @@ void main_driver(const char* argv)
                 }
             }
         }
-
+        
         if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
 
             MultiFab Flattened;  // flattened multifab defined below
@@ -875,6 +881,28 @@ void main_driver(const char* argv)
             const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
 
             structFactSurfCov.define(ba_surfcov,dmap_surfcov,surfcov_var_names,surfcov_var_scaling);
+        }
+
+        if (do_1D) {
+
+            MultiFab pencil;
+
+            // we are only calling ExtractXPencil here to obtain
+            // a built version of pencil so can obtain what we need to build the
+            // structure factor objects for pencil data
+            ExtractXPencil(prim, pencil, 0, 0, 0, 1);
+
+            ba_pencil = pencil.boxArray();
+            dmap_pencil = pencil.DistributionMap();
+
+            structFactPrimPencil.resize(n_cells[1]*n_cells[2]);
+            structFactConsPencil.resize(n_cells[1]*n_cells[2]);
+
+            for (int i = 0; i < n_cells[1]*n_cells[2];  ++i) { 
+                structFactPrimPencil[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsPencil[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            }
+            
         }
     }
 
@@ -1409,6 +1437,27 @@ void main_driver(const char* argv)
                 structFactSurfCov.FortStructure(Flattened);
             }
 
+            if (do_1D) {
+
+                for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
+
+                    {
+                        MultiFab pencil;
+
+                        ExtractSlice(structFactPrimMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsPrim);
+                        structFactPrimPencil[i].FortStructure(pencil);
+                    }
+
+                    {
+                        MultiFab pencil;
+
+                        ExtractSlice(structFactConsMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsCons);
+                        structFactConsPencil[i].FortStructure(pencil);
+                    }
+
+                }
+            }
+            
         }
 
         // write out structure factor
@@ -1468,6 +1517,40 @@ void main_driver(const char* argv)
             if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
                 structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
             }
+
+            if (do_1D) {
+
+                MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
+
+                prim_mag     .define(ba_pencil,dmap_pencil,  structFactPrimPencil[0].get_ncov(),0);
+                prim_realimag.define(ba_pencil,dmap_pencil,2*structFactPrimPencil[0].get_ncov(),0);
+                cons_mag     .define(ba_pencil,dmap_pencil,  structFactConsPencil[0].get_ncov(),0);
+                cons_realimag.define(ba_pencil,dmap_pencil,2*structFactConsPencil[0].get_ncov(),0);
+
+                prim_mag.setVal(0.0);
+                cons_mag.setVal(0.0);
+                prim_realimag.setVal(0.0);
+                cons_realimag.setVal(0.0);
+
+                // note: above we force project_dir==2 for do_2D
+                for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
+                    structFactPrimPencil[i].AddToExternal(prim_mag,prim_realimag);
+                    structFactConsPencil[i].AddToExternal(cons_mag,cons_realimag);
+                }
+                    
+                Real ncellsinv = 1.0/(n_cells[1]*n_cells[2]);
+                prim_mag.mult(ncellsinv);
+                cons_mag.mult(ncellsinv);
+                prim_realimag.mult(ncellsinv);
+                cons_realimag.mult(ncellsinv);
+
+                WritePlotFilesSF_1D(prim_mag,prim_realimag,step,time,
+                                    structFactPrimPencil[0].get_names(),"plt_SF_prim_1D");
+                WritePlotFilesSF_1D(cons_mag,cons_realimag,step,time,
+                                    structFactConsPencil[0].get_names(),"plt_SF_cons_1D");
+
+            }
+            
         }
 
         // write checkpoint file
