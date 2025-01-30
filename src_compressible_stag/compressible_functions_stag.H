@@ -43,6 +43,9 @@ void WriteSpatialCross1D(const MultiFab& spatialCross    , int step, const Geome
 void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag,
                          const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base);
 
+void WritePlotFilesSF_1D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag,
+                         const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base);
+
 void EvaluateWritePlotFileVelGrad(int step,
                                   const amrex::Real time,
                                   const amrex::Geometry& geom,

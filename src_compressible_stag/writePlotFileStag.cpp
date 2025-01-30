@@ -579,4 +579,63 @@ void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& real
       WriteSingleLevelPlotfile(plotfilename2,realimag,varNames,geom,time,step);
 }
 
+void WritePlotFilesSF_1D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag, 
+                         const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base) {
 
+      // Magnitude of the Structure Factor
+      std::string name = plotfile_base;
+      name += "_mag";
+      const std::string plotfilename1 = amrex::Concatenate(name,step,9);
+
+      Vector<int> is_periodic(AMREX_SPACEDIM,1);  // only needed to make a plotfile
+
+      Geometry geom;
+
+      Box domain_pencil = mag.boxArray().minimalBox();
+
+      Vector<Real> projected_lo(AMREX_SPACEDIM);
+      Vector<Real> projected_hi(AMREX_SPACEDIM);
+
+      projected_lo[0] = -domain_pencil.length(0)/2 - 0.5;
+      projected_hi[0] = domain_pencil.length(0)/2 - 1 + 0.5;
+
+      projected_lo[1] = projected_lo[2] = -0.5;
+      projected_hi[1] = projected_hi[2] =  0.5;
+
+      RealBox real_box_pencil({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
+                            {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+          
+      geom.define(domain_pencil,&real_box_pencil,CoordSys::cartesian,is_periodic.data());
+      
+
+      Vector<std::string> varNames;
+      varNames.resize(names.size());
+      for (int n=0; n<names.size(); n++) {
+          varNames[n] = names[n];
+      }
+
+      WriteSingleLevelPlotfile(plotfilename1,mag,varNames,geom,time,step);
+
+      // Components of the Structure Factor
+      name = plotfile_base;
+      name += "_real_imag";
+      const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+
+      varNames.resize(2*names.size());
+      int cnt = 0; // keep a counter for plotfile variables
+      for (int n=0; n<names.size(); n++) {
+          varNames[cnt] = names[cnt];
+          varNames[cnt] += "_real";
+          cnt++;
+      }
+
+      int index = 0;
+      for (int n=0; n<names.size(); n++) {
+          varNames[cnt] = names[index];
+          varNames[cnt] += "_imag";
+          index++;
+          cnt++;
+      }
+
+      WriteSingleLevelPlotfile(plotfilename2,realimag,varNames,geom,time,step);
+}

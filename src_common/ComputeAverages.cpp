@@ -372,3 +372,55 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
         }
     }
 }
+
+
+void ExtractXPencil(const MultiFab& mf, MultiFab& mf_pencil,
+                    const int pencily, const int pencilz,
+                    const int incomp, const int ncomp)
+{
+    BL_PROFILE_VAR("ExtractXPencil()",ExtractXPencil);
+    
+    // create BoxArray
+
+    // get lo and hi coordinates of problem domain
+    Box domain(mf.boxArray().minimalBox());
+    IntVect dom_lo(domain.loVect());
+    IntVect dom_hi(domain.hiVect());
+
+    dom_lo[1] = dom_hi[1] = pencily;
+    dom_lo[2] = dom_hi[2] = pencilz;
+
+    // create a BoxArray with a single box containing the pencil
+    Box domain_pencil(dom_lo, dom_hi);
+    BoxArray ba_pencil(domain_pencil);
+
+    // create a new DistributionMapping and define the MultiFab
+    DistributionMapping dmap_pencil(ba_pencil);
+    MultiFab mf_pencil_tmp(ba_pencil,dmap_pencil,ncomp,0);
+
+    // copy data from full MF into pencil
+    mf_pencil_tmp.ParallelCopy(mf, incomp, 0, ncomp);
+
+    // now copy this into a multifab with index zero in x and y
+    // (structure factor code requires this)
+    dom_lo[1] = dom_hi[1] = 0;
+    dom_lo[2] = dom_hi[2] = 0;
+
+    Box domain_pencil2(dom_lo,dom_hi);
+    BoxArray ba_pencil2(domain_pencil2);
+    mf_pencil.define(ba_pencil2,dmap_pencil,ncomp,0);
+
+    for ( MFIter mfi(mf_pencil_tmp,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real> & pencil = mf_pencil.array(mfi);
+        const Array4<Real> & pencil_tmp = mf_pencil_tmp.array(mfi);
+
+        amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            pencil(i,0,0,n) = pencil_tmp(i,j,k,n);
+        });
+
+    }
+}
