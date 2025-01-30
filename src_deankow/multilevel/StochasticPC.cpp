@@ -32,12 +32,18 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
     // Gpu::DeviceVector<Real> my_sum(1, 0.);
     // Real* sum = my_sum.dataPtr();
 
+    // We need to allow particles to be created outside the domain in cells next
+    // to the particle region
+    Box gdomain(Geom(lev).Domain()); 
+    if (Geom(lev).isPeriodic(0)) gdomain.grow(0,1);
+    if (Geom(lev).isPeriodic(1)) gdomain.grow(1,1);
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(phi_fine); mfi.isValid(); ++mfi)
     {
-        Box tile_box  = mfi.tilebox() & Geom(lev).Domain();
+        Box tile_box  = mfi.tilebox() & gdomain;
 
         if (ba_to_exclude.contains(tile_box)) {continue;}
 
@@ -171,9 +177,49 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
 }
 
 void
-StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_for_reflux)
+StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_fine_for_reflux, MultiFab& phi_crse_for_reflux)
 {
     BL_PROFILE("StochasticPC::RefluxFineToCrse");
+    // *********************************************************************************
+    {
+    const int lev = 0;
+    const auto geom_lev   = Geom(lev);
+    const auto dxi_lev    = Geom(lev).InvCellSizeArray();
+    const auto plo_lev    = Geom(lev).ProbLoArray();
+    const auto domain_lev = Geom(lev).Domain();
+
+    if (!m_reflux_particle_locator.isValid(ba_to_keep)) {
+        m_reflux_particle_locator.build(ba_to_keep, Geom(lev));
+    }
+    m_reflux_particle_locator.setGeometry(Geom(lev));
+
+    auto assign_grid = m_reflux_particle_locator.getGridAssignor();
+
+    for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& ptile = ParticlesAt(lev, pti);
+        auto& aos  = ptile.GetArrayOfStructs();
+        const int np = aos.numParticles();
+        auto *pstruct = aos().data();
+
+        if (!ba_to_keep.contains(pti.tilebox())) {
+
+            Array4<Real> phi_arr = phi_crse_for_reflux.array(pti.index());
+
+            amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
+            {
+                ParticleType& p = pstruct[i];
+                auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
+                auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
+                if ( (assign_grid(old_pos) >= 0) && (assign_grid(new_pos) < 0)) {
+                   Gpu::Atomic::AddNoRet(&phi_arr(new_pos,0), 1.0);
+                }
+            });
+        }
+    } // pti
+    } // lev == 0
+    // *********************************************************************************
+
     const int lev = 1;
     const auto geom_lev   = Geom(lev);
     const auto dxi_lev    = Geom(lev).InvCellSizeArray();
@@ -195,7 +241,7 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_for_re
 
         if (!ba_to_keep.contains(pti.tilebox())) {
 
-            Array4<Real> phi_arr = phi_for_reflux.array(pti.index());
+            Array4<Real> phi_arr = phi_fine_for_reflux.array(pti.index());
 
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
             {
@@ -332,6 +378,11 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
             AMREX_D_TERM( Real incx = amrex::RandomNormal(0.,stddev,engine);,
                           Real incy = amrex::RandomNormal(0.,stddev,engine);,
                           Real incz = amrex::RandomNormal(0.,stddev,engine););
+
+            // HACK TO DO DETERMINISTIC MOVEMENT
+            // AMREX_D_TERM( incx = -dx[0];,
+            //               incy = -dx[1];,
+            //               incz = 0.;);
 
             AMREX_D_TERM( incx = std::max(-dx[0], std::min( dx[0], incx));,
                           incy = std::max(-dx[1], std::min( dx[1], incy));,

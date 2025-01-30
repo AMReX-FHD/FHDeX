@@ -101,17 +101,20 @@ void main_driver(const char* argv)
         }
     }
 
-    if (((do_1D) or (do_2D)) and (amrex::Math::abs(visc_type) == 3)) {
+    if ((do_1D || do_2D) && amrex::Math::abs(visc_type) == 3) {
         Abort("1D and 2D version only work for zero bulk viscosity currently. Use visc_type 1 or 2");
     }
-    if ((do_1D) and (do_2D)) {
-        Abort("Can not have both 1D and 2D mode on at the same time");
-    }
 
+    // cannot run a 1x1x1 simulation
     if (n_cells[0] == 1 && n_cells[1] == 1 && n_cells[2] == 1) {
         Abort("Simulation must have more than 1 total cell");
     }
 
+    //**********************************************************************
+    // Error checking to make sure a 2D planar simulation is configured correctly
+    if (do_1D && do_2D) {
+        Abort("Can not have both 1D and 2D mode on at the same time");
+    }
     if (n_cells[0] == 1 && n_cells[1] > 1 && n_cells[2] > 1) {
         Abort("Cannot run a 2D simulation with only 1 cell in x - use n_cells[2]=1");
     }
@@ -122,6 +125,20 @@ void main_driver(const char* argv)
     if (n_cells[0] > 1 && n_cells[1] > 1 && n_cells[2] == 1 && do_2D == 0) {
         Abort("2D simulations with only 1 cell in z requires do_2D=1");
     }
+    //**********************************************************************
+
+    //**********************************************************************
+    // Error checking to make sure a 1D pencil simulation is configured correctly
+    if (n_cells[0] == 1 && n_cells[1] == 1 && n_cells[2] > 1) {
+        Abort("Cannot run a 1D simulation in the z-direcion; use n_cells[0]>1");
+    }
+    if (n_cells[0] == 1 && n_cells[1] > 1 && n_cells[2] == 1) {
+        Abort("Cannot run a 1D simulation in the y-direcion; use n_cells[0]>1");
+    }
+    if (n_cells[0] > 1 && n_cells[1] == 1 && n_cells[2] == 1) {
+        Abort("1D simulations in the x-direction requires do_1D=1");
+    }
+    //**********************************************************************
     
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
@@ -228,14 +245,14 @@ void main_driver(const char* argv)
         Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
     if (struct_fact_int > 0) {
-        if (do_1D) {
-            Abort("Projected structure factors (project_dir) does not work for do_1D case");
-        }
         if (do_2D and project_dir != 2) {
             Abort("Structure factors with do_2D requires project_dir == 2");
         }
         if (do_2D and slicepoint >= 0) {
             Abort("Cannot use do_2D and slicepoint");
+        }
+        if (do_1D) {
+            Abort("Projected structure factors (project_dir) does not work for do_1D case");
         }
         if (project_dir >= 0) {
             if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
@@ -330,7 +347,8 @@ void main_driver(const char* argv)
     Vector < StructFact > structFactPrimArray;
     Vector < StructFact > structFactConsArray;
 
-    Geometry geom_sf_flat; // for SF plotfiles for use_2D case - needs to be cleaned up
+    // for structure factor analysis of flattened MultiFabs
+    // (slices, vertical averages, arrays of flattened MFs, surface coverage)
     BoxArray ba_flat;
     DistributionMapping dmap_flat;
 
@@ -800,29 +818,6 @@ void main_driver(const char* argv)
 
             ba_flat = Flattened.boxArray();
             dmap_flat = Flattened.DistributionMap();
-
-            if (do_2D) {
-                ///////////////////////////////////////////////////
-                // for SF plotfiles for do_2D case - needs to be cleaned up
-                // create a Geometry object for SF plotfile so wavenumber appears in physical coordinates
-                Box domain_flat = ba_flat.minimalBox();
-
-                Vector<Real> projected_lo(AMREX_SPACEDIM);
-                Vector<Real> projected_hi(AMREX_SPACEDIM);
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    projected_lo[d] = -domain_flat.length(d)/2 - 0.5;
-                    projected_hi[d] = domain_flat.length(d)/2 - 1 + 0.5;
-                }
-                projected_lo[project_dir] = -0.5;
-                projected_hi[project_dir] =  0.5;
-
-                RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
-                                      {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-          
-                geom_sf_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-                ///////////////////////////////////////////////////
-            }
 
             if (do_2D) {
 
@@ -1441,9 +1436,9 @@ void main_driver(const char* argv)
 
                 MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
 
-                prim_mag.define(ba_flat,dmap_flat,structFactPrimArray[0].get_ncov(),0);
+                prim_mag     .define(ba_flat,dmap_flat,  structFactPrimArray[0].get_ncov(),0);
                 prim_realimag.define(ba_flat,dmap_flat,2*structFactPrimArray[0].get_ncov(),0);
-                cons_mag.define(ba_flat,dmap_flat,structFactConsArray[0].get_ncov(),0);
+                cons_mag     .define(ba_flat,dmap_flat,  structFactConsArray[0].get_ncov(),0);
                 cons_realimag.define(ba_flat,dmap_flat,2*structFactConsArray[0].get_ncov(),0);
 
                 prim_mag.setVal(0.0);
@@ -1463,9 +1458,9 @@ void main_driver(const char* argv)
                 prim_realimag.mult(ncellsinv);
                 cons_realimag.mult(ncellsinv);
 
-                WritePlotFilesSF_2D(prim_mag,prim_realimag,geom_sf_flat,step,time,
+                WritePlotFilesSF_2D(prim_mag,prim_realimag,step,time,
                                     structFactPrimArray[0].get_names(),"plt_SF_prim_2D");
-                WritePlotFilesSF_2D(cons_mag,cons_realimag,geom_sf_flat,step,time,
+                WritePlotFilesSF_2D(cons_mag,cons_realimag,step,time,
                                     structFactConsArray[0].get_names(),"plt_SF_cons_2D");
 
             }
