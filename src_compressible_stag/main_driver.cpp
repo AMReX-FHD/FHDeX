@@ -849,7 +849,7 @@ void main_driver(const char* argv)
                 }
             }
         }
-        
+
         if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
 
             MultiFab Flattened;  // flattened multifab defined below
@@ -899,8 +899,8 @@ void main_driver(const char* argv)
             structFactConsPencil.resize(n_cells[1]*n_cells[2]);
 
             for (int i = 0; i < n_cells[1]*n_cells[2];  ++i) { 
-                structFactPrimPencil[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactConsPencil[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactPrimPencil[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
+                structFactConsPencil[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
             }
             
         }
@@ -1444,14 +1444,14 @@ void main_driver(const char* argv)
                     {
                         MultiFab pencil;
 
-                        ExtractSlice(structFactPrimMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsPrim);
+                        ExtractXPencil(structFactPrimMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsPrim);
                         structFactPrimPencil[i].FortStructure(pencil);
                     }
 
                     {
                         MultiFab pencil;
 
-                        ExtractSlice(structFactConsMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsCons);
+                        ExtractXPencil(structFactConsMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsCons);
                         structFactConsPencil[i].FortStructure(pencil);
                     }
 
