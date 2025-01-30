@@ -157,6 +157,10 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_flat,
 void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice,
                   const int dir, const int slice, const int incomp, const int ncomp);
 
+void ExtractXPencil(const MultiFab& mf, MultiFab& mf_pencil,
+                    const int pencily, const int pencilz,
+                    const int incomp, const int ncomp);
+
 ///////////////////////////
 // in MultiFabPhysBC.cpp
 // see comments in C++ files for descriptions
