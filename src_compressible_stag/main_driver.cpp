@@ -254,6 +254,9 @@ void main_driver(const char* argv)
         if (do_2D and slicepoint >= 0) {
             Abort("Cannot use do_2D and slicepoint");
         }
+        if (do_2D and n_ads_spec>0 and ads_wall_dir == 2) {
+            Abort("do_2D with n_ads_spec>0 requires ads_wall_dir != 2");
+        }
         if (project_dir >= 0) {
             if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
                 Abort("Slab structure factor needs a membrane cell within the domain: 0 < membrane_cell < n_cells[project_dir] - 1");
