@@ -23,8 +23,8 @@ fixed_dt = 1.0e-12
 
 # Controls for number of steps between actions
 
-max_step = 5
-plot_int = 1
+max_step = 10000000
+plot_int = 100000
 
 # Multispecies toggle
 # if algorithm_type = 1, single component
@@ -57,8 +57,7 @@ rho0 = 5.733118e-04
 #T_init = 800
 #rho0 = 5.016479e-04
 
-struct_fact_int = 1
-n_steps_skip = 2
+struct_fact_int = 0
 
 # Boundary conditions:
 # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
