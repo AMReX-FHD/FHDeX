@@ -532,9 +532,6 @@ void main_driver(const char* argv)
         D.setVal(1.0,0,nspecies*nspecies,ngc);
         
         if (n_ads_spec>0) {
-            if (project_dir == -1) {
-                Abort("n_ads_spec>0 requires projecct_dir=0,1,2");
-            }
             dNadsdes.define(ba,dmap,n_ads_spec,0);
             nspec_surfcov = n_ads_spec;
         }
@@ -725,7 +722,15 @@ void main_driver(const char* argv)
         //}
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-        if (n_ads_spec>0) init_surfcov(surfcov, geom);
+        int surfCov_has_multiple_cells = 1;
+        if (n_ads_spec>0) {
+            init_surfcov(surfcov, geom);
+
+            // don't do structure factors of surface if there is only 1 cell
+            if (n_cells[(ads_wall_dir+1)%3] == 1 && n_cells[(ads_wall_dir+2)%3] == 1) {
+                surfCov_has_multiple_cells = 0;
+            }
+        }
 
 #if defined(MUI)
         mui_fetch_Ntot(Ntot, dx, uniface, 0);
@@ -853,7 +858,7 @@ void main_driver(const char* argv)
             }
         }
 
-        if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
+        if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
 
             MultiFab Flattened;  // flattened multifab defined below
 
@@ -861,7 +866,6 @@ void main_driver(const char* argv)
             // a built version of Flattened so can obtain what we need to build the
             // structure factor and geometry objects for flattened data
             // assume surface covered is stored in the "k" direction in the k=0 coordinate.
-            int surfcov_dir = 2;
             int surfcov_plane = 0;
             int surfcov_structVars = n_ads_spec;
             int surfcov_nPairs = surfcov_structVars*(surfcov_structVars+1)/2;
@@ -879,7 +883,7 @@ void main_driver(const char* argv)
                 surfcov_var_scaling[d] = 1.;
             }
       
-            ExtractSlice(surfcov, Flattened, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+            ExtractSlice(surfcov, Flattened, ads_wall_dir, surfcov_plane, 0, surfcov_structVars);
             BoxArray ba_surfcov = Flattened.boxArray();
             const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
 
@@ -1023,7 +1027,9 @@ void main_driver(const char* argv)
 	      calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 	  }
 
-	if (n_ads_spec>0 && splitting_MFsurfchem == 1) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
+	if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
+            sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
+        }
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
@@ -1431,12 +1437,11 @@ void main_driver(const char* argv)
                 } // if (do_2D...
             } // if (project_dir >= 0)
 
-            if (n_ads_spec > 0 && (n_cells[(project_dir+1)%3] != 1 || n_cells[(project_dir+2)%3] != 1) ) {
-                int surfcov_dir = project_dir;
+            if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
                 int surfcov_plane = 0;
                 int surfcov_structVars = n_ads_spec;
                 MultiFab Flattened;  // flattened multifab defined below
-                ExtractSlice(surfcov, Flattened, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+                ExtractSlice(surfcov, Flattened, ads_wall_dir, surfcov_plane, 0, surfcov_structVars);
                 structFactSurfCov.FortStructure(Flattened);
             }
 
@@ -1517,7 +1522,7 @@ void main_driver(const char* argv)
 
             }
 
-            if (n_ads_spec > 0 && (n_cells[0] != 1 || n_cells[1] != 1) ) {
+            if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
                 structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
             }
 
