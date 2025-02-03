@@ -548,9 +548,7 @@ void main_driver(const char* argv)
             }
         }
 #endif
-    }
-
-    else {
+    } else {
 
         ///////////////////////////////////////////
         // Define geometry, box arrays and MFs
@@ -722,14 +720,8 @@ void main_driver(const char* argv)
         //}
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-        int surfCov_has_multiple_cells = 1;
         if (n_ads_spec>0) {
             init_surfcov(surfcov, geom);
-
-            // don't do structure factors of surface if there is only 1 cell
-            if (n_cells[(ads_wall_dir+1)%3] == 1 && n_cells[(ads_wall_dir+2)%3] == 1) {
-                surfCov_has_multiple_cells = 0;
-            }
         }
 
 #if defined(MUI)
@@ -795,7 +787,7 @@ void main_driver(const char* argv)
 #endif
 
 
-    } // end t=0 setup
+    } // else restart/non-restart
     
 #if defined(TURB)
     if (turbForcing >= 1) {
@@ -809,6 +801,14 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Setup Structure factor
     ///////////////////////////////////////////
+
+    // don't do structure factors of surface if there is only 1 cell
+    int surfCov_has_multiple_cells = 1;
+    if (n_ads_spec > 0) {
+        if (n_cells[(ads_wall_dir+1)%3] == 1 && n_cells[(ads_wall_dir+2)%3] == 1) {
+            surfCov_has_multiple_cells = 0;
+        }
+    }
 
     if (struct_fact_int > 0) {
 
