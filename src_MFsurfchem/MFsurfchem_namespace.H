@@ -1,6 +1,7 @@
 namespace MFsurfchem {
 
     extern AMREX_GPU_MANAGED int n_ads_spec;
+    extern AMREX_GPU_MANAGED int ads_wall_dir;
 
     extern AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> surfcov0;
     extern AMREX_GPU_MANAGED amrex::Real surf_site_num_dens;
