@@ -214,6 +214,8 @@ void main_driver(const char* argv)
     // MFsurfchem
     MultiFab surfcov;       // also used in surfchem_mui for stats and plotfiles
     MultiFab dNadsdes;
+    MultiFab dNads;
+    MultiFab dNdes;
 
 #if defined(MUI) || defined(USE_AMREX_MPMD)
     MultiFab Ntot;          // saves total number of sites
@@ -536,6 +538,8 @@ void main_driver(const char* argv)
         
         if (n_ads_spec>0) {
             dNadsdes.define(ba,dmap,n_ads_spec,0);
+            dNads.define(ba,dmap,n_ads_spec,0);
+            dNdes.define(ba,dmap,n_ads_spec,0);
             nspec_surfcov = n_ads_spec;
         }
 
@@ -606,6 +610,8 @@ void main_driver(const char* argv)
         if (n_ads_spec>0) {
             surfcov.define(ba,dmap,n_ads_spec,0);
             dNadsdes.define(ba,dmap,n_ads_spec,0);
+            dNads.define(ba,dmap,n_ads_spec,0);
+            dNdes.define(ba,dmap,n_ads_spec,0);
             nspec_surfcov = n_ads_spec;
         }
 
@@ -997,10 +1003,10 @@ void main_driver(const char* argv)
 #endif
         if (n_ads_spec>0) {
 	    if (splitting_MFsurfchem == 0) {
-                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
+                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt);
             } else if (splitting_MFsurfchem == 1) {
-	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
-		update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
+	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+		update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
 		for (int d=0; d<AMREX_SPACEDIM; d++) {
 		    cumom[d].FillBoundary(geom.periodicity());
@@ -1031,7 +1037,7 @@ void main_driver(const char* argv)
 	  }
 
 	if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
-            sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
+            sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
         }
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
@@ -1066,7 +1072,7 @@ void main_driver(const char* argv)
 
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
                 cumom[d].FillBoundary(geom.periodicity());
