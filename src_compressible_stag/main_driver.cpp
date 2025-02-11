@@ -1036,10 +1036,9 @@ void main_driver(const char* argv)
         if (turbRestartRun) {
           RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+        } else {
+            calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
         }
-	  else {
-	      calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-	  }
 
 	if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
             sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
