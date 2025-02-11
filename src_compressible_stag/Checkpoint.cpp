@@ -1087,6 +1087,10 @@ void ReadCheckPoint2D(int& step,
     Read_Copy_MF_Checkpoint(cumom[1],"cumomy",checkpointname,ba_old,dmap_old,1,1,1);
     Read_Copy_MF_Checkpoint(cumom[2],"cumomz",checkpointname,ba_old,dmap_old,1,1,2);
 
+    if (n_ads_spec>0) {
+        Read_Copy_MF_Checkpoint(surfcov,"surfcov",checkpointname,ba_old,dmap_old,n_ads_spec,0);
+    }
+
     // Set all stats to zero if reset stats, else read
     if (reset_stats == 1) {
         cuMeans.setVal(0.0);
@@ -1100,6 +1104,13 @@ void ReadCheckPoint2D(int& step,
             cumomVars[d].setVal(0.);
         }
         coVars.setVal(0.0);
+        if (n_ads_spec>0) {
+            for (int m=0;m<n_ads_spec;m++) {
+                surfcovMeans.setVal(0.0);
+                surfcovVars.setVal(0.0);
+		surfcovcoVars.setVal(0.0);
+            }
+        }
         spatialCross.setVal(0.0);
     }
     else {
@@ -1126,6 +1137,12 @@ void ReadCheckPoint2D(int& step,
         Read_Copy_MF_Checkpoint(cumomVars[0],"cumomvarx",checkpointname,ba_old,dmap_old,1,0,0);
         Read_Copy_MF_Checkpoint(cumomVars[1],"cumomvary",checkpointname,ba_old,dmap_old,1,0,1);
         Read_Copy_MF_Checkpoint(cumomVars[2],"cumomvarz",checkpointname,ba_old,dmap_old,1,0,2);
+
+        if (n_ads_spec>0) {
+            Read_Copy_MF_Checkpoint(surfcovMeans,"surfcovMeans",checkpointname,ba_old,dmap_old,n_ads_spec,0);
+            Read_Copy_MF_Checkpoint(surfcovVars,"surfcovVars",checkpointname,ba_old,dmap_old,n_ads_spec,0);
+	    Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
+        }
     }
 
     // FillBoundaries
