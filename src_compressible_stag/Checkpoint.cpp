@@ -253,6 +253,10 @@ void WriteCheckPoint2D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& surfcov,
+                       const amrex::MultiFab& surfcovMeans,
+                       const amrex::MultiFab& surfcovVars,
+		       const amrex::MultiFab& surfcovcoVars,
                        const amrex::MultiFab& spatialCross, int /*ncross*/)
 {
     // timer for profiling
@@ -409,6 +413,18 @@ void WriteCheckPoint2D(int step,
     // coVars
     VisMF::Write(coVars,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+
+    if (n_ads_spec>0) {
+        // surfcov
+        VisMF::Write(surfcov,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcov"));
+        VisMF::Write(surfcovMeans,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovMeans"));
+        VisMF::Write(surfcovVars,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovVars"));
+	VisMF::Write(surfcovcoVars,
+		     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovcoVars"));
+    }
 
     // spatialCross
     VisMF::Write(spatialCross,
@@ -751,7 +767,7 @@ void ReadCheckPoint3D(int& step,
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
     
     // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
-    if (seed < 0) {
+    if (seed == -1) {
 
 #ifdef AMREX_USE_CUDA
         Abort("Restart with negative seed not supported on GPU");
@@ -902,6 +918,10 @@ void ReadCheckPoint2D(int& step,
                      std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      amrex::MultiFab& coVars,
+                     amrex::MultiFab& surfcov,
+                     amrex::MultiFab& surfcovMeans,
+                     amrex::MultiFab& surfcovVars,
+		     amrex::MultiFab& surfcovcoVars,
                      amrex::MultiFab& spatialCross,
                      int ncross,
                      BoxArray& ba, DistributionMapping& dmap)
@@ -981,6 +1001,14 @@ void ReadCheckPoint2D(int& step,
 
         // coVars
         coVars.define(ba,dmap,26,0);
+        
+        if (n_ads_spec>0) {
+            // surfcov
+            surfcov.define(ba,dmap,n_ads_spec,0);
+            surfcovMeans.define(ba,dmap,n_ads_spec,0);
+            surfcovVars.define(ba,dmap,n_ads_spec,0);
+	    surfcovcoVars.define(ba,dmap,n_ads_spec*6,0);
+        }
 
         // spatialCross
         spatialCross.define(ba,dmap,ncross,0); // (do later)
@@ -995,10 +1023,16 @@ void ReadCheckPoint2D(int& step,
     int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-    // don't read in all the rng states at once (overload filesystem)
-    // one at a time write out the rng states to different files, one for each MPI rank
     // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
     if (seed == -1) {
+
+#ifdef AMREX_USE_CUDA
+        Abort("Restart with negative seed not supported on GPU");
+#endif
+
+        // don't read in all the rng states at once (overload filesystem)
+        // one at a time write out the rng states to different files, one for each MPI rank
+        // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
@@ -1209,8 +1243,11 @@ void ReadCheckPoint1D(int& step,
         coVars.define(ba,dmap,26,0);
 
         // spatialCross
-        if (all_correl) spatialCross.define(ba,dmap,ncross*5,0); // for five x*: [0, fl(n_cells[0]/4), fl(n_cells[0]/2), fl(n_cells[0]*3/4), n_cells[0]-1]
-        else spatialCross.define(ba,dmap,ncross,0);
+        if (all_correl) {
+            spatialCross.define(ba,dmap,ncross*5,0); // for five x*: [0, fl(n_cells[0]/4), fl(n_cells[0]/2), fl(n_cells[0]*3/4), n_cells[0]-1]
+        } else {
+            spatialCross.define(ba,dmap,ncross,0);
+        }
 
     }
 

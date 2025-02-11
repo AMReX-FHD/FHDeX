@@ -508,17 +508,22 @@ void main_driver(const char* argv)
         if (do_1D) {
             ReadCheckPoint1D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, spatialCross1D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars,
+                             spatialCross1D, ncross, ba, dmap);
         }
         else if (do_2D) {
             ReadCheckPoint2D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, spatialCross2D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars,
+                             surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                             spatialCross2D, ncross, ba, dmap);
         }
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, spatialCross3D, ncross, turbforce, ba, dmap);
+                             vel, velMeans, velVars, coVars,
+                             surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                             spatialCross3D, ncross, turbforce, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -1576,17 +1581,22 @@ void main_driver(const char* argv)
             if (do_1D) {
                 WriteCheckPoint1D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, spatialCross1D, ncross);
+                                  vel, velMeans, velVars, coVars,
+                                  spatialCross1D, ncross);
             }
             else if (do_2D) {
                 WriteCheckPoint2D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, spatialCross2D, ncross);
+                                  vel, velMeans, velVars, coVars,
+                                  surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                                  spatialCross2D, ncross);
             }
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, spatialCross3D, ncross, turbforce);
+                                  vel, velMeans, velVars, coVars,
+                                  surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                                  spatialCross3D, ncross, turbforce);
             }
         }
 

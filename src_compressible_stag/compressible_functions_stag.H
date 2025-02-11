@@ -250,6 +250,10 @@ void WriteCheckPoint2D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& surfcov,
+                       const amrex::MultiFab& surfcovMeans,
+                       const amrex::MultiFab& surfcovVars,
+		       const amrex::MultiFab& surfcovcoVars,
                        const amrex::MultiFab& spatialCross, int ncross);
 
 void ReadCheckPoint2D(int& step,
@@ -270,6 +274,10 @@ void ReadCheckPoint2D(int& step,
                        std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        amrex::MultiFab& coVars,
+                       amrex::MultiFab& surfcov,
+                       amrex::MultiFab& surfcovMeans,
+                       amrex::MultiFab& surfcovVars,
+		       amrex::MultiFab& surfcovcoVars,
                        amrex::MultiFab& spatialCross, int ncross,
                        BoxArray& ba, DistributionMapping& dmap);
 
