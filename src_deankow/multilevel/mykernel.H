@@ -110,26 +110,26 @@ void init_phi (int i, int j, int k,
     } else {
         phi(i,j,k,0) = 0./cellvol;
     }
-/*
-
     //if(std::abs(x) <= .1 && y > 0.){
     if(x >= .3 && y > .3){
        phi(i,j,k,0) = 0.;
     } else {
        phi(i,j,k,0) = 30./cellvol;
     }
+
+//
     int ioff = 16;
     int joff = 16;
     ioff = 0;
     joff = 0;
 
-    if( i-ioff >= 0 && i - ioff < 32 && j-joff >= 0 && j - joff < 32 ) {
+    if( i-ioff >= 0 && i - ioff < 16 && j-joff >= 0 && j - joff < 16 ) {
        phi(i,j,k,0) = 0./cellvol;
     } else {
        phi(i,j,k,0) = 30./cellvol;
     }
 
-*/
+//
 
 #endif
 
@@ -184,8 +184,8 @@ void compute_flux_x (int i, int j, int k,
 	// HACK TO COMMENT OUT STOCHASTIC TERMS
 	// phiavg = 0.;
 
-//        fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
-//    	                    + stochfluxx(i,j,k) * std::sqrt(phiavg);
+        //fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
+    	//                    + stochfluxx(i,j,k) * std::sqrt(phiavg);
 
 	  amrex::Real sqphiavg = 0.5*(std::sqrt(phip)+std::sqrt(phim));
           fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv

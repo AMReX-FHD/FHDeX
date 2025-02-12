@@ -45,7 +45,8 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
     {
         Box tile_box  = mfi.tilebox() & gdomain;
 
-        if (ba_to_exclude.contains(tile_box)) {continue;}
+        BoxArray tba(tile_box);
+        if (ba_to_exclude.contains(tba)) {continue;}
 
         if (!m_reflux_particle_locator.isValid(ba_to_exclude)) {
             m_reflux_particle_locator.build(ba_to_exclude, Geom(lev));
@@ -102,7 +103,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + num_to_add;
         particle_tile.resize(new_size);
-        amrex::Print() << "INIT: NEW SIZE OF PARTICLES " << new_size << std::endl;
+        amrex::Print() << "INIT: NEW SIZE OF PARTICLES IN TILE BOX " << tile_box << " " << new_size << std::endl;
 
         // now fill in the data
         ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data() + old_size;
@@ -177,49 +178,9 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
 }
 
 void
-StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_fine_for_reflux, MultiFab& phi_crse_for_reflux)
+StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_fine_for_reflux)
 {
     BL_PROFILE("StochasticPC::RefluxFineToCrse");
-    // *********************************************************************************
-    {
-    const int lev = 0;
-    const auto geom_lev   = Geom(lev);
-    const auto dxi_lev    = Geom(lev).InvCellSizeArray();
-    const auto plo_lev    = Geom(lev).ProbLoArray();
-    const auto domain_lev = Geom(lev).Domain();
-
-    if (!m_reflux_particle_locator.isValid(ba_to_keep)) {
-        m_reflux_particle_locator.build(ba_to_keep, Geom(lev));
-    }
-    m_reflux_particle_locator.setGeometry(Geom(lev));
-
-    auto assign_grid = m_reflux_particle_locator.getGridAssignor();
-
-    for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
-    {
-        auto& ptile = ParticlesAt(lev, pti);
-        auto& aos  = ptile.GetArrayOfStructs();
-        const int np = aos.numParticles();
-        auto *pstruct = aos().data();
-
-        if (!ba_to_keep.contains(pti.tilebox())) {
-
-            Array4<Real> phi_arr = phi_crse_for_reflux.array(pti.index());
-
-            amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
-            {
-                ParticleType& p = pstruct[i];
-                auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
-                auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
-                if ( (assign_grid(old_pos) >= 0) && (assign_grid(new_pos) < 0)) {
-                   Gpu::Atomic::AddNoRet(&phi_arr(new_pos,0), 1.0);
-                }
-            });
-        }
-    } // pti
-    } // lev == 0
-    // *********************************************************************************
-
     const int lev = 1;
     const auto geom_lev   = Geom(lev);
     const auto dxi_lev    = Geom(lev).InvCellSizeArray();
@@ -248,6 +209,14 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_fine_f
                 ParticleType& p = pstruct[i];
                 auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
                 auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
+
+                // amrex::Print() << "REFLUX:OLD " << static_cast<int>(p.rdata(RealIdx::xold)*dxi_lev[0]) << " " << old_pos[0] << std::endl;
+                // amrex::Print() << "REFLUX:NEW " << static_cast<int>(p.pos(0)*dxi_lev[0])               << " " << new_pos[0] << std::endl;
+
+                // int iold = old_pos[0];
+                // int inew = new_pos[0];
+                // if (inew == 31) amrex::Print() <<" PARTICLE NOW AT 31 : OLD POS " << iold << std::endl;
+
                 if ( (assign_grid(old_pos) >= 0) && (assign_grid(new_pos) < 0)) {
                    Gpu::Atomic::AddNoRet(&phi_arr(new_pos,0), 1.0);
                 }
@@ -309,47 +278,36 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
     const auto dxi_lev    = Geom(lev).InvCellSizeArray();
     const auto plo_lev    = Geom(lev).ProbLoArray();
     const auto domain_lev = Geom(lev).Domain();
-    const auto is_per     = Geom(lev).isPeriodicArray();
 
     if (!m_reflux_particle_locator.isValid(ba_to_keep)) {
         m_reflux_particle_locator.build(ba_to_keep, Geom(lev));
     }
     m_reflux_particle_locator.setGeometry(Geom(lev));
+
     auto assign_grid = m_reflux_particle_locator.getGridAssignor();
 
-    for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
+    for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
-        auto const& gid   = pti.index();
         auto& ptile = ParticlesAt(lev, pti);
         auto& aos  = ptile.GetArrayOfStructs();
         const int np = aos.numParticles();
         auto *pstruct = aos().data();
 
-        if (ba_to_keep.contains(pti.tilebox())) {
-            Array4<Real> phi_arr = phi_for_reflux.array(gid);
+        if (!ba_to_keep.contains(pti.tilebox())) {
+
+            Array4<Real> phi_arr = phi_for_reflux.array(pti.index());
 
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p = pstruct[i];
-
                 auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
                 auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
 
-                // Make a box of the cell holding the particle in its previous position
-                Box bx(old_pos,old_pos);
-
-                if ( (assign_grid(old_pos) < 0) && (assign_grid(new_pos) >= 0))
-                {
-                    if (Box(phi_arr).contains(old_pos)) {
-                        Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
-                    } else {
-                        auto shifted_pos = periodicCorrectOldCell(old_pos, new_pos,
-                                                                  is_per, domain_lev);
-                        Gpu::Atomic::AddNoRet(&phi_arr(shifted_pos,0), -1.0);
-                    } // else
-                } // if crossed the coarse-fine boundary
-            }); // i
-        } // if in ba_to_keep
+                if ( (assign_grid(old_pos) < 0) && (assign_grid(new_pos) >= 0)) {
+                   Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
+                }
+            });
+        } // if not in ba_to_keep
     } // pti
 }
 
@@ -358,6 +316,13 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 {
     BL_PROFILE("StochasticPC::AdvectWithRandomWalk");
     const auto dx = Geom(lev).CellSizeArray();
+
+    const auto p_lo = Geom(lev).ProbLoArray();
+    const auto p_hi = Geom(lev).ProbHiArray();
+
+    AMREX_D_TERM( bool is_periodic_in_x = Geom(lev).isPeriodic(0);,
+                  bool is_periodic_in_y = Geom(lev).isPeriodic(1);,
+                  bool is_periodic_in_z = Geom(lev).isPeriodic(2););
 
     Real stddev = std::sqrt(dt);
 
@@ -379,18 +344,34 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                           Real incy = amrex::RandomNormal(0.,stddev,engine);,
                           Real incz = amrex::RandomNormal(0.,stddev,engine););
 
-            // HACK TO DO DETERMINISTIC MOVEMENT
-            // AMREX_D_TERM( incx = -dx[0];,
-            //               incy = -dx[1];,
-            //               incz = 0.;);
-
             AMREX_D_TERM( incx = std::max(-dx[0], std::min( dx[0], incx));,
                           incy = std::max(-dx[1], std::min( dx[1], incy));,
                           incz = std::max(-dx[2], std::min( dx[2], incz)););
 
+            // HACK TO DO DETERMINISTIC MOVEMENT
+            // AMREX_D_TERM( incx = -dx[0];,
+            //               incy = +dx[1];,
+            //               incz = 0.;);
+
             AMREX_D_TERM( p.pos(0) += static_cast<ParticleReal> (incx);,
                           p.pos(1) += static_cast<ParticleReal> (incy);,
                           p.pos(2) += static_cast<ParticleReal> (incz););
+
+            if (is_periodic_in_x) {
+                if (p.pos(0) < p_lo[0]) p.pos(0) += (p_hi[0] - p_lo[0]);
+                if (p.pos(0) > p_hi[0]) p.pos(0) -= (p_hi[0] - p_lo[0]);
+            }
+            if (is_periodic_in_y) {
+                if (p.pos(1) < p_lo[1]) p.pos(1) += (p_hi[1] - p_lo[1]);
+                if (p.pos(1) > p_hi[1]) p.pos(1) -= (p_hi[1] - p_lo[1]);
+            }
+            
+#if (AMREX_SPACEDIM == 3)
+            if (is_periodic_in_z) {
+                if (p.pos(2) < p_lo[2]) p.pos(2) += (p_hi[2] - p_lo[2]);
+                if (p.pos(2) > p_hi[2]) p.pos(2) -= (p_hi[2] - p_lo[2]);
+            }
+#endif
         }); // np
     } // pti
 }

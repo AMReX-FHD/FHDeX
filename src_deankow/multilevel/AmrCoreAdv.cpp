@@ -221,7 +221,8 @@ AmrCoreAdv::InitData ()
 
 void AmrCoreAdv::MakeFBA(const BoxArray& ba)
 {
-    Box domain(Geom(1).Domain());
+    int lev = 1;
+    Box domain(Geom(lev).Domain());
     BoxList valid_bl(ba);
     BoxList com_bl = GetBndryCells(ba,1);
 #if (AMREX_SPACEDIM == 2)
@@ -229,11 +230,59 @@ void AmrCoreAdv::MakeFBA(const BoxArray& ba)
 #else
     Vector<IntVect> pshifts(27);
 #endif
+
     BoxList com_bl_fixed;
+
+    //
+    // Loop over boxes created by GetBndryCells call -- note that if periodic
+    // some of these boxes may intersect the valid_bl so we remove those intersections
+    // by intersecting with the copmlement of the valid ba
+    //
     for (auto& b : com_bl) {
         Box bx(b);
-        com_bl_fixed.push_back(b);
+
+        //
+        // First intersect the existing box with the domain and keep that 
+        // Note that GetBndryCells would not include any cells inside the domain
+        // that are part of the original ba
+        //
+        Box b1 = bx & domain;
+        if (!b1.isEmpty()) {
+            com_bl_fixed.push_back(b1);
+        }
+
+        //
+        // Next add the pieces that were outside the domain in a periodic direction
+        // Note that GetBndryCells DOES include cells outside the domain
+        // that are part of the original ba if shifted periodically
+        //
+        geom[lev].periodicShift(domain, bx, pshifts);
+        for (int n = 0; n < pshifts.size(); n++) {
+            Box bx_shift(b);
+            bx_shift.shift(pshifts[n]);
+            Box b2 = bx_shift & domain;
+            if (!b2.isEmpty()) {
+                // Now we have to make sure we don't include any intersection of this b2 
+                // with the valid boxArray
+                BoxList bl_comp = complementIn(b2,valid_bl);
+                for (auto& b_comp : bl_comp) {
+                    Box bx_comp(b_comp);
+                    if (!bx_comp.isEmpty()) {
+                        com_bl_fixed.push_back(bx_comp);
+                    }
+                }
+            }
+        }
     }
+
+    //
+    // Remove any duplicated regions in the boundary cells
+    //
+    com_bl_fixed.simplify();
+
+    //
+    // Add the valid boxes
+    //
     com_bl_fixed.catenate(valid_bl);
     grown_fba.define(com_bl_fixed);
 }
