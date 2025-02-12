@@ -428,7 +428,7 @@ void WriteCheckPoint2D(int step,
 
     // spatialCross
     VisMF::Write(spatialCross,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross")); // (do later)
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross"));
 }
 
 void WriteCheckPoint1D(int step,
@@ -765,17 +765,17 @@ void ReadCheckPoint3D(int& step,
 
     int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
-    
-    // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
+
     if (seed == -1) {
 
 #ifdef AMREX_USE_CUDA
         Abort("Restart with negative seed not supported on GPU");
 #endif
-        
+
         // read in rng state from checkpoint
         // don't read in all the rng states at once (overload filesystem)
-        // one at a time write out the rng states to different files, one for each MPI rank        
+        // one at a time write out the rng states to different files, one for each MPI rank
+        // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
@@ -1011,7 +1011,7 @@ void ReadCheckPoint2D(int& step,
         }
 
         // spatialCross
-        spatialCross.define(ba,dmap,ncross,0); // (do later)
+        spatialCross.define(ba,dmap,ncross,0);
 
     }
 
@@ -1023,13 +1023,13 @@ void ReadCheckPoint2D(int& step,
     int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-    // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
     if (seed == -1) {
 
 #ifdef AMREX_USE_CUDA
         Abort("Restart with negative seed not supported on GPU");
 #endif
 
+        // read in rng state from checkpoint
         // don't read in all the rng states at once (overload filesystem)
         // one at a time write out the rng states to different files, one for each MPI rank
         // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
@@ -1276,10 +1276,12 @@ void ReadCheckPoint1D(int& step,
     int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-    // don't read in all the rng states at once (overload filesystem)
-    // one at a time write out the rng states to different files, one for each MPI rank
-    // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
     if (seed == -1) {
+
+        // read in rng state from checkpoint
+        // don't read in all the rng states at once (overload filesystem)
+        // one at a time write out the rng states to different files, one for each MPI rank
+        // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
