@@ -40,7 +40,10 @@ void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geome
 
 void WriteSpatialCross1D(const MultiFab& spatialCross    , int step, const Geometry& geom, const int ncross); 
 
-void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag, const amrex::Geometry& geom,
+void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag,
+                         const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base);
+
+void WritePlotFilesSF_1D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag,
                          const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base);
 
 void EvaluateWritePlotFileVelGrad(int step,
@@ -247,6 +250,10 @@ void WriteCheckPoint2D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& surfcov,
+                       const amrex::MultiFab& surfcovMeans,
+                       const amrex::MultiFab& surfcovVars,
+		       const amrex::MultiFab& surfcovcoVars,
                        const amrex::MultiFab& spatialCross, int ncross);
 
 void ReadCheckPoint2D(int& step,
@@ -267,6 +274,10 @@ void ReadCheckPoint2D(int& step,
                        std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        amrex::MultiFab& coVars,
+                       amrex::MultiFab& surfcov,
+                       amrex::MultiFab& surfcovMeans,
+                       amrex::MultiFab& surfcovVars,
+		       amrex::MultiFab& surfcovcoVars,
                        amrex::MultiFab& spatialCross, int ncross,
                        BoxArray& ba, DistributionMapping& dmap);
 

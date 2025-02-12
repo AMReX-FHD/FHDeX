@@ -101,10 +101,45 @@ void main_driver(const char* argv)
         }
     }
 
-    if (((do_1D) or (do_2D)) and (amrex::Math::abs(visc_type) == 3)) Abort("1D and 2D version only work for zero bulk viscosity currently. Use visc_type 1 or 2");
+    if ((do_1D || do_2D) && amrex::Math::abs(visc_type) == 3) {
+        Abort("1D and 2D version only work for zero bulk viscosity currently. Use visc_type 1 or 2");
+    }
 
-    if ((do_1D) and (do_2D)) Abort("Can not have both 1D and 2D mode on at the same time");
+    // cannot run a 1x1x1 simulation
+    if (n_cells[0] == 1 && n_cells[1] == 1 && n_cells[2] == 1) {
+        Abort("Simulation must have more than 1 total cell");
+    }
 
+    //**********************************************************************
+    // Error checking to make sure a 2D planar simulation is configured correctly
+    if (do_1D && do_2D) {
+        Abort("Can not have both 1D and 2D mode on at the same time");
+    }
+    if (n_cells[0] == 1 && n_cells[1] > 1 && n_cells[2] > 1) {
+        Abort("Cannot run a 2D simulation with only 1 cell in x - use n_cells[2]=1");
+    }
+    if (n_cells[0] > 1 && n_cells[1] == 1 && n_cells[2] > 1) {
+        Abort("Cannot run a 2D simulation with only 1 cell in y - use n_cells[2]=1");
+    }
+
+    if (n_cells[0] > 1 && n_cells[1] > 1 && n_cells[2] == 1 && do_2D == 0) {
+        Abort("2D simulations with only 1 cell in z requires do_2D=1");
+    }
+    //**********************************************************************
+
+    //**********************************************************************
+    // Error checking to make sure a 1D pencil simulation is configured correctly
+    if (n_cells[0] == 1 && n_cells[1] == 1 && n_cells[2] > 1) {
+        Abort("Cannot run a 1D simulation in the z-direcion; use n_cells[0]>1");
+    }
+    if (n_cells[0] == 1 && n_cells[1] > 1 && n_cells[2] == 1) {
+        Abort("Cannot run a 1D simulation in the y-direcion; use n_cells[0]>1");
+    }
+    if (n_cells[0] > 1 && n_cells[1] == 1 && n_cells[2] == 1) {
+        Abort("1D simulations in the x-direction requires do_1D=1");
+    }
+    //**********************************************************************
+    
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
     SetupBCStag();
@@ -179,6 +214,8 @@ void main_driver(const char* argv)
     // MFsurfchem
     MultiFab surfcov;       // also used in surfchem_mui for stats and plotfiles
     MultiFab dNadsdes;
+    MultiFab dNads;
+    MultiFab dNdes;
 
 #if defined(MUI) || defined(USE_AMREX_MPMD)
     MultiFab Ntot;          // saves total number of sites
@@ -209,21 +246,26 @@ void main_driver(const char* argv)
     if ((plot_cross) and ((cross_cell < 0) or (cross_cell > n_cells[0]-1))) {
         Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
-    if (struct_fact_int >0 and project_dir >= 0) {
-        if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
-            Abort("Slab structure factor needs a membrane cell within the domain: 0 < membrane_cell < n_cells[project_dir] - 1");
+    if (struct_fact_int > 0) {
+        if (do_1D and project_dir != -1) {
+            Abort("project_dir not needed for do_1D structure factors; set project_dir=-1 (default)");
         }
-        if (do_1D) {
-            Abort("Projected structure factors (project_dir) does not work for do_1D case");
-        }
-        if (do_slab_sf and slicepoint >= 0) {
-            Abort("Cannot use do_slab_sf and slicepoint");
+        if (do_2D and project_dir != 2) {
+            Abort("Structure factors with do_2D requires project_dir == 2");
         }
         if (do_2D and slicepoint >= 0) {
             Abort("Cannot use do_2D and slicepoint");
         }
-        if (do_2D and project_dir != 2) {
-            Abort("Structure factors with do_2D requires project_dir == 2");
+        if (do_2D and n_ads_spec>0 and ads_wall_dir == 2) {
+            Abort("do_2D with n_ads_spec>0 requires ads_wall_dir != 2");
+        }
+        if (project_dir >= 0) {
+            if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
+                Abort("Slab structure factor needs a membrane cell within the domain: 0 < membrane_cell < n_cells[project_dir] - 1");
+            }
+            if (do_slab_sf and slicepoint >= 0) {
+                Abort("Cannot use do_slab_sf and slicepoint");
+            }
         }
     }
     if ((all_correl > 1) or (all_correl < 0)) {
@@ -309,17 +351,25 @@ void main_driver(const char* argv)
     // these are enabled if do_2D (this mode assumes z slices; project_dir must equal 2)
     Vector < StructFact > structFactPrimArray;
     Vector < StructFact > structFactConsArray;
-    
-    Geometry geom_flat;
-    BoxArray ba_flat;
-    DistributionMapping dmap_flat;
-
     // Structure factor for surface coverage slice
     // these are enabled if n_ads_spec > 0 and assumes the k=0 plane is the slice of interest
     StructFact structFactSurfCov;
-    
-    Geometry geom_surfcov;
 
+    // for structure factor analysis of flattened MultiFabs
+    // (slices, vertical averages, arrays of flattened MFs, surface coverage)
+    BoxArray ba_flat;
+    DistributionMapping dmap_flat;
+
+    // Structure factor for pencils
+    // enabled if do_1D=1
+    Vector < StructFact > structFactPrimPencil;
+    Vector < StructFact > structFactConsPencil;
+
+    // for structure factor analysis of pencil MultiFabs
+    BoxArray ba_pencil;
+    DistributionMapping dmap_pencil;
+    
+    
 #if defined(TURB)
     // Structure factor for compressible turbulence
     StructFact turbStructFactVelTotal; // total velocity
@@ -458,17 +508,22 @@ void main_driver(const char* argv)
         if (do_1D) {
             ReadCheckPoint1D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, spatialCross1D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars,
+                             spatialCross1D, ncross, ba, dmap);
         }
         else if (do_2D) {
             ReadCheckPoint2D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, spatialCross2D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars,
+                             surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                             spatialCross2D, ncross, ba, dmap);
         }
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, spatialCross3D, ncross, turbforce, ba, dmap);
+                             vel, velMeans, velVars, coVars,
+                             surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                             spatialCross3D, ncross, turbforce, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -488,6 +543,8 @@ void main_driver(const char* argv)
         
         if (n_ads_spec>0) {
             dNadsdes.define(ba,dmap,n_ads_spec,0);
+            dNads.define(ba,dmap,n_ads_spec,0);
+            dNdes.define(ba,dmap,n_ads_spec,0);
             nspec_surfcov = n_ads_spec;
         }
 
@@ -503,9 +560,7 @@ void main_driver(const char* argv)
             }
         }
 #endif
-    }
-
-    else {
+    } else {
 
         ///////////////////////////////////////////
         // Define geometry, box arrays and MFs
@@ -560,6 +615,8 @@ void main_driver(const char* argv)
         if (n_ads_spec>0) {
             surfcov.define(ba,dmap,n_ads_spec,0);
             dNadsdes.define(ba,dmap,n_ads_spec,0);
+            dNads.define(ba,dmap,n_ads_spec,0);
+            dNdes.define(ba,dmap,n_ads_spec,0);
             nspec_surfcov = n_ads_spec;
         }
 
@@ -677,7 +734,9 @@ void main_driver(const char* argv)
         //}
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-        if (n_ads_spec>0) init_surfcov(surfcov, geom);
+        if (n_ads_spec>0) {
+            init_surfcov(surfcov, geom);
+        }
 
 #if defined(MUI)
         mui_fetch_Ntot(Ntot, dx, uniface, 0);
@@ -742,7 +801,7 @@ void main_driver(const char* argv)
 #endif
 
 
-    } // end t=0 setup
+    } // else restart/non-restart
     
 #if defined(TURB)
     if (turbForcing >= 1) {
@@ -757,13 +816,22 @@ void main_driver(const char* argv)
     // Setup Structure factor
     ///////////////////////////////////////////
 
+    // don't do structure factors of surface if there is only 1 cell
+    int surfCov_has_multiple_cells = 1;
+    if (n_ads_spec > 0) {
+        if (n_cells[(ads_wall_dir+1)%3] == 1 && n_cells[(ads_wall_dir+2)%3] == 1) {
+            surfCov_has_multiple_cells = 0;
+        }
+    }
+
     if (struct_fact_int > 0) {
+
+        structFactConsMF.define(ba,dmap,structVarsCons,0);
+        structFactPrimMF.define(ba,dmap,structVarsPrim,0);
 
         if ((do_1D==0) and (do_2D==0)) {
             structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
             structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
-            structFactConsMF.define(ba,dmap,structVarsCons,0);
-            structFactPrimMF.define(ba,dmap,structVarsPrim,0);
         }
 
         // structure factor class for vertically-averaged dataset
@@ -773,32 +841,11 @@ void main_driver(const char* argv)
 
             // we are only calling ExtractSlice here to obtain
             // a built version of Flattened so can obtain what we need to build the
-            // structure factor and geometry objects for flattened data
+            // structure factor objects for flattened data
             ExtractSlice(prim, Flattened, project_dir, 0, 0, 1);
 
             ba_flat = Flattened.boxArray();
             dmap_flat = Flattened.DistributionMap();
-
-            Box domain_flat = ba_flat.minimalBox();
-
-            // This defines the physical box
-            // we retain prob_lo and prob_hi in all directions except project_dir,
-            // where the physical size is 0 to dx[project_dir]
-            Vector<Real> projected_lo(AMREX_SPACEDIM);
-            Vector<Real> projected_hi(AMREX_SPACEDIM);
-
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                projected_lo[d] = prob_lo[d];
-                projected_hi[d] = prob_hi[d];
-            }
-            projected_lo[project_dir] = 0.;
-            projected_hi[project_dir] = dx[project_dir];
-
-            RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
-                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-          
-            // This defines a Geometry object
-            geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
 
             if (do_2D) {
 
@@ -811,6 +858,7 @@ void main_driver(const char* argv)
                 }
 
             } else {
+
                 if (do_slab_sf == 0) {
                     structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
                     structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
@@ -822,10 +870,9 @@ void main_driver(const char* argv)
                     structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
                 }
             }
-    
         }
 
-        if (n_ads_spec>0) {
+        if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
 
             MultiFab Flattened;  // flattened multifab defined below
 
@@ -833,7 +880,6 @@ void main_driver(const char* argv)
             // a built version of Flattened so can obtain what we need to build the
             // structure factor and geometry objects for flattened data
             // assume surface covered is stored in the "k" direction in the k=0 coordinate.
-            int surfcov_dir = 2;
             int surfcov_plane = 0;
             int surfcov_structVars = n_ads_spec;
             int surfcov_nPairs = surfcov_structVars*(surfcov_structVars+1)/2;
@@ -851,33 +897,33 @@ void main_driver(const char* argv)
                 surfcov_var_scaling[d] = 1.;
             }
       
-            ExtractSlice(surfcov, Flattened, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+            ExtractSlice(surfcov, Flattened, ads_wall_dir, surfcov_plane, 0, surfcov_structVars);
             BoxArray ba_surfcov = Flattened.boxArray();
             const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
-            {
-                Box domain_surfcov = ba_surfcov.minimalBox();
-        
-                // This defines the physical box
-                // we retain prob_lo and prob_hi in all directions except surfcov_dir,
-                // where the physical size is 0 to dx[surfcov_dir]
-                Vector<Real> projected_lo(AMREX_SPACEDIM);
-                Vector<Real> projected_hi(AMREX_SPACEDIM);
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    projected_lo[d] = prob_lo[d];
-                    projected_hi[d] = prob_hi[d];
-                }
-                projected_lo[surfcov_dir] = 0.;
-                projected_hi[surfcov_dir] = dx[surfcov_dir];
-
-                RealBox real_box_surfcov({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
-                                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-        
-                // This defines a Geometry object
-                geom_surfcov.define(domain_surfcov,&real_box_surfcov,CoordSys::cartesian,is_periodic.data());
-            }
 
             structFactSurfCov.define(ba_surfcov,dmap_surfcov,surfcov_var_names,surfcov_var_scaling);
+        }
+
+        if (do_1D) {
+
+            MultiFab pencil;
+
+            // we are only calling ExtractXPencil here to obtain
+            // a built version of pencil so can obtain what we need to build the
+            // structure factor objects for pencil data
+            ExtractXPencil(prim, pencil, 0, 0, 0, 1);
+
+            ba_pencil = pencil.boxArray();
+            dmap_pencil = pencil.DistributionMap();
+
+            structFactPrimPencil.resize(n_cells[1]*n_cells[2]);
+            structFactConsPencil.resize(n_cells[1]*n_cells[2]);
+
+            for (int i = 0; i < n_cells[1]*n_cells[2];  ++i) { 
+                structFactPrimPencil[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
+                structFactConsPencil[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
+            }
+            
         }
     }
 
@@ -961,10 +1007,11 @@ void main_driver(const char* argv)
         amrex_push(cu, prim, *mpmd_copier);
 #endif
         if (n_ads_spec>0) {
-	    if (splitting_MFsurfchem == 0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
-	    else if (splitting_MFsurfchem == 1) {
-	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
-		update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
+	    if (splitting_MFsurfchem == 0) {
+                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt);
+            } else if (splitting_MFsurfchem == 1) {
+	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+		update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
 		for (int d=0; d<AMREX_SPACEDIM; d++) {
 		    cumom[d].FillBoundary(geom.periodicity());
@@ -980,20 +1027,24 @@ void main_driver(const char* argv)
                 cu.FillBoundary(geom.periodicity());
 
                 setBCStag(prim, cu, cumom, vel, geom);
-	    }
-	    else Abort("splitting_MFsurfchem can be 0 or 1");
+	    } else {
+                Abort("splitting_MFsurfchem can be 0 or 1");
+            }
+
+            VisMF::Write(surfcov,"a_surfcov");
 	}
 
         // FHD
         if (turbRestartRun) {
           RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+        } else {
+            calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
         }
-	  else {
-	      calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-	  }
 
-	if (n_ads_spec>0 && splitting_MFsurfchem == 1) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
+	if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
+            sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+        }
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
@@ -1027,7 +1078,7 @@ void main_driver(const char* argv)
 
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
                 cumom[d].FillBoundary(geom.periodicity());
@@ -1319,7 +1370,7 @@ void main_driver(const char* argv)
             if ((do_1D==0) and (do_2D==0)) {
                 structFactPrim.FortStructure(structFactPrimMF);
                 structFactCons.FortStructure(structFactConsMF);
-            }
+            }           
 
             if (project_dir >= 0) {
 
@@ -1367,6 +1418,7 @@ void main_driver(const char* argv)
                             }
                             structFactConsFlattened.FortStructure(Flattened);
                         }
+
                     } else {
                     
                         {
@@ -1396,51 +1448,69 @@ void main_driver(const char* argv)
                             ComputeVerticalAverage(structFactConsMF, Flattened, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
                             structFactConsVerticalAverageMembraneHi.FortStructure(Flattened);
                         }
+                    } // if (do_slab_sf...
+                } // if (do_2D...
+            } // if (project_dir >= 0)
+
+            if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+                int surfcov_plane = 0;
+                int surfcov_structVars = n_ads_spec;
+                MultiFab Flattened;  // flattened multifab defined below
+                ExtractSlice(surfcov, Flattened, ads_wall_dir, surfcov_plane, 0, surfcov_structVars);
+                structFactSurfCov.FortStructure(Flattened);
+            }
+
+            if (do_1D) {
+
+                for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
+
+                    {
+                        MultiFab pencil;
+
+                        ExtractXPencil(structFactPrimMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsPrim);
+                        structFactPrimPencil[i].FortStructure(pencil);
+                    }
+
+                    {
+                        MultiFab pencil;
+
+                        ExtractXPencil(structFactConsMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsCons);
+                        structFactConsPencil[i].FortStructure(pencil);
+                    }
+
+                }
+            }
+            
+        }
+
+        // write out structure factor
+        if (step > amrex::Math::abs(n_steps_skip) && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
+
+            if ((do_1D==0) and (do_2D==0)) {
+                structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
+                structFactCons.WritePlotFile(step,time,"plt_SF_cons");
+
+                if (project_dir >= 0) {
+                    if (do_slab_sf == 0) {
+                        structFactPrimFlattened.WritePlotFile(step,time,"plt_SF_prim_Flattened");
+                        structFactConsFlattened.WritePlotFile(step,time,"plt_SF_cons_Flattened");
+                    }
+                    else {
+                        structFactPrimVerticalAverageMembraneLo.WritePlotFile(step,time,"plt_SF_prim_VerticalAverageMembraneLo");
+                        structFactPrimVerticalAverageMembraneHi.WritePlotFile(step,time,"plt_SF_prim_VerticalAverageMembraneHi");
+                        structFactConsVerticalAverageMembraneLo.WritePlotFile(step,time,"plt_SF_cons_VerticalAverageMembraneLo");
+                        structFactConsVerticalAverageMembraneHi.WritePlotFile(step,time,"plt_SF_cons_VerticalAverageMembraneHi");
                     }
                 }
             }
 
-            if (n_ads_spec > 0) {
-                int surfcov_dir = 2;
-                int surfcov_plane = 0;
-                int surfcov_structVars = n_ads_spec;
-                MultiFab Flattened;  // flattened multifab defined below
-                ExtractSlice(surfcov, Flattened, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
-                structFactSurfCov.FortStructure(Flattened);
-            }
-
-        }
-
-        // write out structure factor
-        if (step > amrex::Math::abs(n_steps_skip) && 
-            struct_fact_int > 0 && plot_int > 0 && 
-            step%plot_int == 0) {
-
-            if ((do_1D==0) and (do_2D==0)) {
-                structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
-                structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
-            }
-
-            if (project_dir >= 0) {
-                if (do_slab_sf == 0) {
-                    structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
-                    structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
-                }
-                else {
-                    structFactPrimVerticalAverageMembraneLo.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageMembraneLo");
-                    structFactPrimVerticalAverageMembraneHi.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageMembraneHi");
-                    structFactConsVerticalAverageMembraneLo.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageMembraneLo");
-                    structFactConsVerticalAverageMembraneHi.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageMembraneHi");
-                }
-            }
-
             if (do_2D) {
-                    
+
                 MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
 
-                prim_mag.define(ba_flat,dmap_flat,structFactPrimArray[0].get_ncov(),0);
+                prim_mag     .define(ba_flat,dmap_flat,  structFactPrimArray[0].get_ncov(),0);
                 prim_realimag.define(ba_flat,dmap_flat,2*structFactPrimArray[0].get_ncov(),0);
-                cons_mag.define(ba_flat,dmap_flat,structFactConsArray[0].get_ncov(),0);
+                cons_mag     .define(ba_flat,dmap_flat,  structFactConsArray[0].get_ncov(),0);
                 cons_realimag.define(ba_flat,dmap_flat,2*structFactConsArray[0].get_ncov(),0);
 
                 prim_mag.setVal(0.0);
@@ -1448,6 +1518,7 @@ void main_driver(const char* argv)
                 prim_realimag.setVal(0.0);
                 cons_realimag.setVal(0.0);
 
+                // note: above we force project_dir==2 for do_2D
                 for (int i=0; i<n_cells[2]; ++i) {
                     structFactPrimArray[i].AddToExternal(prim_mag,prim_realimag);
                     structFactConsArray[i].AddToExternal(cons_mag,cons_realimag);
@@ -1459,16 +1530,50 @@ void main_driver(const char* argv)
                 prim_realimag.mult(ncellsinv);
                 cons_realimag.mult(ncellsinv);
 
-                WritePlotFilesSF_2D(prim_mag,prim_realimag,geom_flat,step,time,
+                WritePlotFilesSF_2D(prim_mag,prim_realimag,step,time,
                                     structFactPrimArray[0].get_names(),"plt_SF_prim_2D");
-                WritePlotFilesSF_2D(cons_mag,cons_realimag,geom_flat,step,time,
+                WritePlotFilesSF_2D(cons_mag,cons_realimag,step,time,
                                     structFactConsArray[0].get_names(),"plt_SF_cons_2D");
 
             }
 
-            if (n_ads_spec > 0) {
-                structFactSurfCov.WritePlotFile(step,time,geom_surfcov,"plt_SF_surfcov");
+            if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+                structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
             }
+
+            if (do_1D) {
+
+                MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
+
+                prim_mag     .define(ba_pencil,dmap_pencil,  structFactPrimPencil[0].get_ncov(),0);
+                prim_realimag.define(ba_pencil,dmap_pencil,2*structFactPrimPencil[0].get_ncov(),0);
+                cons_mag     .define(ba_pencil,dmap_pencil,  structFactConsPencil[0].get_ncov(),0);
+                cons_realimag.define(ba_pencil,dmap_pencil,2*structFactConsPencil[0].get_ncov(),0);
+
+                prim_mag.setVal(0.0);
+                cons_mag.setVal(0.0);
+                prim_realimag.setVal(0.0);
+                cons_realimag.setVal(0.0);
+
+                // note: above we force project_dir==2 for do_2D
+                for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
+                    structFactPrimPencil[i].AddToExternal(prim_mag,prim_realimag);
+                    structFactConsPencil[i].AddToExternal(cons_mag,cons_realimag);
+                }
+                    
+                Real ncellsinv = 1.0/(n_cells[1]*n_cells[2]);
+                prim_mag.mult(ncellsinv);
+                cons_mag.mult(ncellsinv);
+                prim_realimag.mult(ncellsinv);
+                cons_realimag.mult(ncellsinv);
+
+                WritePlotFilesSF_1D(prim_mag,prim_realimag,step,time,
+                                    structFactPrimPencil[0].get_names(),"plt_SF_prim_1D");
+                WritePlotFilesSF_1D(cons_mag,cons_realimag,step,time,
+                                    structFactConsPencil[0].get_names(),"plt_SF_cons_1D");
+
+            }
+            
         }
 
         // write checkpoint file
@@ -1477,17 +1582,22 @@ void main_driver(const char* argv)
             if (do_1D) {
                 WriteCheckPoint1D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, spatialCross1D, ncross);
+                                  vel, velMeans, velVars, coVars,
+                                  spatialCross1D, ncross);
             }
             else if (do_2D) {
                 WriteCheckPoint2D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, spatialCross2D, ncross);
+                                  vel, velMeans, velVars, coVars,
+                                  surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                                  spatialCross2D, ncross);
             }
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, spatialCross3D, ncross, turbforce);
+                                  vel, velMeans, velVars, coVars,
+                                  surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                                  spatialCross3D, ncross, turbforce);
             }
         }
 

@@ -150,7 +150,7 @@ void main_driver(const char* argv)
     
     structFact.FortStructure(struct_cc);
       
-    structFact.WritePlotFile(0,0.,geom,"plt_SF");
+    structFact.WritePlotFile(0,0.,"plt_SF");
 
     // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors

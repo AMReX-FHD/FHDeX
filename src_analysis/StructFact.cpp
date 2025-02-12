@@ -203,6 +203,36 @@ void StructFact::define(const BoxArray& ba_in,
     cov_names[cnt] = x;
     cnt++;
   }
+
+
+  Box domain = ba_in.minimalBox();
+
+  Vector<Real> kspace_lo(AMREX_SPACEDIM);
+  Vector<Real> kspace_hi(AMREX_SPACEDIM);
+
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+      if (domain.length(d) % 2 == 0) {
+          // even number of cells
+          kspace_lo[d] = -domain.length(d) / 2. - 0.5;
+          kspace_hi[d] =  domain.length(d) / 2. - 0.5;
+      } else {
+          // odd number of cells
+          kspace_lo[d] = -domain.length(d) / 2.;
+          kspace_hi[d] =  domain.length(d) / 2.;
+      }
+  }
+
+  RealBox kspace({AMREX_D_DECL(kspace_lo[0],kspace_lo[1],kspace_lo[2])},
+                 {AMREX_D_DECL(kspace_hi[0],kspace_hi[1],kspace_hi[2])});
+
+  // required only to define geom object
+  Vector<int> is_periodic(AMREX_SPACEDIM,1);
+      
+  geom_sf.define(domain,&kspace,CoordSys::cartesian,is_periodic.data());
+
+  
+  
 }
 
 void StructFact::FortStructure(const MultiFab& variables,
@@ -505,7 +535,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     }
 }
 
-void StructFact::WritePlotFile(const int step, const Real time, const Geometry& geom,
+void StructFact::WritePlotFile(const int step, const Real time,
                                std::string plotfile_base,
                                const int& zero_avg) {
   
@@ -546,7 +576,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
 
   // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom,time,step);
+  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom_sf,time,step);
   
   //////////////////////////////////////////////////////////////////////////////////
   // Write out real and imaginary components of structure factor to plot file
@@ -579,7 +609,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
 
   // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom,time,step);
+  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom_sf,time,step);
 }
 
 void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,

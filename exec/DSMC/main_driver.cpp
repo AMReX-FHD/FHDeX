@@ -415,7 +415,7 @@ void main_driver(const char* argv)
 			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				coVars,spatialCross1D,particles,geom,time,ncross,istep);
 				
-			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
+			structFactPrim.WritePlotFile(istep,time,"plt_SF_prim");
 		}
 		
         if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {

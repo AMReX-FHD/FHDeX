@@ -409,7 +409,7 @@ void main_driver(const char* argv)
 			struct_fact_int > 0 && plot_int > 0 &&
 			istep%plot_int == 0)
 		{
-			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
+			structFactPrim.WritePlotFile(istep,time,"plt_SF_prim");
 		}
 
 		//////////////////////////////////////

@@ -280,7 +280,7 @@ void main_driver(const char* argv)
 
             // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
-                structFact.WritePlotFile(step,time,geom,"plt_SF");
+                structFact.WritePlotFile(step,time,"plt_SF");
             }
         }
 
