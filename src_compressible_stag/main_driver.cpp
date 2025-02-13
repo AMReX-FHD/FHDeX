@@ -281,9 +281,8 @@ void main_driver(const char* argv)
     // see statsStag for the list
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
     int ncross = 37+nspecies+3;
-    MultiFab spatialCross1D;
-    MultiFab spatialCross2D;
-    Vector<Real> spatialCross3D(n_cells[0]*ncross, 0.0);
+    MultiFab spatialCrossMF;
+    Vector<Real> spatialCrossVec(n_cells[0]*ncross, 0.0);
     
     // make BoxArray and Geometry
     BoxArray ba;
@@ -505,26 +504,11 @@ void main_driver(const char* argv)
 
     if (restart > 0) {
         
-        if (do_1D) {
-            ReadCheckPoint1D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
-                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars,
-                             spatialCross1D, ncross, ba, dmap);
-        }
-        else if (do_2D) {
-            ReadCheckPoint2D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
-                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars,
-                             surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                             spatialCross2D, ncross, ba, dmap);
-        }
-        else {
-            ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
-                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars,
-                             surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                             spatialCross3D, ncross, turbforce, ba, dmap);
-        }
+        ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
+                       primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                       vel, velMeans, velVars, coVars,
+                       surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                       spatialCrossMF, spatialCrossVec, ncross, turbforce, ba, dmap);
 
         if (reset_stats == 1) statsCount = 1;
 
@@ -687,13 +671,16 @@ void main_driver(const char* argv)
         }
 
         if (do_1D) {
-            if (all_correl) spatialCross1D.define(ba,dmap,ncross*5,0); // for five x*: [0, fl(n_cells[0]/4), fl(n_cells[0]/2), fl(n_cells[0]*3/4), n_cells[0]-1]
-            else spatialCross1D.define(ba,dmap,ncross,0);
-            spatialCross1D.setVal(0.0);
+            if (all_correl) {
+                spatialCrossMF.define(ba,dmap,ncross*5,0); // for five x*: [0, fl(n_cells[0]/4), fl(n_cells[0]/2), fl(n_cells[0]*3/4), n_cells[0]-1]
+            } else {
+                spatialCrossMF.define(ba,dmap,ncross,0);
+            }
+            spatialCrossMF.setVal(0.0);
         }
         else if (do_2D) {
-            spatialCross2D.define(ba,dmap,ncross,0);
-            spatialCross2D.setVal(0.0);
+            spatialCrossMF.define(ba,dmap,ncross,0);
+            spatialCrossMF.setVal(0.0);
         }
 
 #if defined(TURB)
@@ -774,13 +761,13 @@ void main_driver(const char* argv)
 
             if (plot_cross) {
                 if (do_1D) {
-                    WriteSpatialCross1D(spatialCross1D, 0, geom, ncross);
+                    WriteSpatialCross1D(spatialCrossMF, 0, geom, ncross);
                 }
                 else if (do_2D) {
-                //    WriteSpatialCross2D(spatialCross2D, 0, geom, ncross); // (do later)
+                //    WriteSpatialCross2D(spatialCrossMF, 0, geom, ncross); // (do later)
                 }
                 else {
-                    WriteSpatialCross3D(spatialCross3D, 0, geom, ncross);
+                    WriteSpatialCross3D(spatialCrossVec, 0, geom, ncross);
                 }
             }
         }
@@ -1133,13 +1120,13 @@ void main_driver(const char* argv)
             }
 
             if (do_1D) {
-                spatialCross1D.setVal(0.0);
+                spatialCrossMF.setVal(0.0);
             }
             else if (do_2D) {
-                spatialCross2D.setVal(0.0);
+                spatialCrossMF.setVal(0.0);
             }
             else {
-                spatialCross3D.assign(spatialCross3D.size(), 0.0);
+                spatialCrossVec.assign(spatialCrossVec.size(), 0.0);
             }
 
             std::printf("Resetting stat collection.\n");
@@ -1153,19 +1140,19 @@ void main_driver(const char* argv)
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                                spatialCross1D, ncross, statsCount, geom);
+                                spatialCrossMF, ncross, statsCount, geom);
         }
         else if (do_2D) {
             evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                                spatialCross2D, ncross, statsCount, geom);
+                                spatialCrossMF, ncross, statsCount, geom);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                                dataSliceMeans_xcross, spatialCross3D, ncross, domain,
+                                dataSliceMeans_xcross, spatialCrossVec, ncross, domain,
                                 statsCount, geom);
         }
         statsCount++;
@@ -1203,13 +1190,13 @@ void main_driver(const char* argv)
             
             if (plot_cross) {
                 if (do_1D) {
-                    WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
+                    WriteSpatialCross1D(spatialCrossMF, step, geom, ncross);
                 }
                 else if (do_2D) {
-                //    WriteSpatialCross2D(spatialCross2D, step, geom, ncross); // (do later)
+                //    WriteSpatialCross2D(spatialCrossMF, step, geom, ncross); // (do later)
                 }
                 else {
-                    WriteSpatialCross3D(spatialCross3D, step, geom, ncross);
+                    WriteSpatialCross3D(spatialCrossVec, step, geom, ncross);
                     if (ParallelDescriptor::IOProcessor()) {
                         outfile << step << " ";
                         for (auto l=0; l<2*nvars+8+2*nspecies; ++l) {
@@ -1579,26 +1566,11 @@ void main_driver(const char* argv)
         // write checkpoint file
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
-            if (do_1D) {
-                WriteCheckPoint1D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars,
-                                  spatialCross1D, ncross);
-            }
-            else if (do_2D) {
-                WriteCheckPoint2D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars,
-                                  surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                                  spatialCross2D, ncross);
-            }
-            else {
-                WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars,
-                                  surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                                  spatialCross3D, ncross, turbforce);
-            }
+            WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                            primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                            vel, velMeans, velVars, coVars,
+                            surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
+                            spatialCrossMF, spatialCrossVec, ncross, turbforce);
         }
 
         // timer
