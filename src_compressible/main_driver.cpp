@@ -192,9 +192,13 @@ void main_driver(const char* argv)
 
     MultiFab surfcov;
     MultiFab dNadsdes;
+    MultiFab dNads;
+    MultiFab dNdes;
     if (n_ads_spec>0) {
         surfcov.define(ba,dmap,n_ads_spec,ngc);
         dNadsdes.define(ba,dmap,n_ads_spec,ngc);
+        dNads.define(ba,dmap,n_ads_spec,ngc);
+        dNdes.define(ba,dmap,n_ads_spec,ngc);
     }
 
     //statistics    
@@ -564,7 +568,7 @@ void main_driver(const char* argv)
 #ifdef MUI
         mui_push(cu, prim, dx, uniface, step);
 #endif
-        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
+        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt);
 
         // FHD
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
@@ -583,7 +587,7 @@ void main_driver(const char* argv)
 #endif
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
             conservedToPrimitive(prim, cu);
 
