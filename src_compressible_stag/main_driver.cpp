@@ -1030,8 +1030,6 @@ void main_driver(const char* argv)
 	    } else {
                 Abort("splitting_MFsurfchem can be 0 or 1");
             }
-
-            VisMF::Write(surfcov,"a_surfcov");
 	}
 
         // FHD
