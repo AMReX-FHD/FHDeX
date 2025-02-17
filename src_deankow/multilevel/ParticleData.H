@@ -120,10 +120,19 @@ struct ParticleData {
         stochastic_particles->SetParticleDistributionMap(1, new_dm);
     }
 
-    void Checkpoint (const std::string& filename) const
+    void writePlotFile (const std::string& a_fname) const
     {
         if (use_particles) {
-            stochastic_particles->Checkpoint(filename, "stochastic_particles", true, particle_varnames);
+            bool is_checkpoint = false;
+            stochastic_particles->Checkpoint( a_fname, "stochastic_particles", is_checkpoint, particle_varnames );
+        }
+    }
+
+    void Checkpoint (const std::string& a_fname) const
+    {
+        if (use_particles) {
+            bool is_checkpoint = true;
+            stochastic_particles->Checkpoint(a_fname, "stochastic_particles", is_checkpoint, particle_varnames);
         }
     }
 
@@ -245,6 +254,6 @@ struct ParticleData {
 
     int use_particles;
     std::unique_ptr<StochasticPC> stochastic_particles;
-    amrex::Vector<std::string> particle_varnames = {AMREX_D_DECL("xold", "yold", "zold")};
+    amrex::Vector<std::string> particle_varnames = {"xold", "yold", "zold"};
 };
 #endif

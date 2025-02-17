@@ -859,7 +859,7 @@ AmrCoreAdv::WritePlotFile () const
         int fake_finest_level = 0;
         WriteMultiLevelPlotfile(plotfilename, fake_finest_level+1, mf, varnames,
                                 Geom(), t_new[0], istep, refRatio());
-    } else { 
+    } else {
 
         PhysBCFunctNoOp null_bc_for_fill;
 
@@ -918,7 +918,11 @@ AmrCoreAdv::WritePlotFile () const
                                    GetVecOfConstPtrs(mf2), varnames,
                                    g2, t_new[0], istep, rr);
 
-    }
+    }  
+
+#ifdef AMREX_PARTICLES
+   particleData.Checkpoint(plotfilename);
+#endif
 }
 
 void
