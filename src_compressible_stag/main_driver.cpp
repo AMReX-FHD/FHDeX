@@ -265,8 +265,8 @@ void main_driver(const char* argv)
             }
         }
     }
-    if (do_2D and n_ads_spec>0 and ads_wall_dir == 2) {
-        Abort("do_2D with n_ads_spec>0 requires ads_wall_dir != 2");
+    if (do_2D and n_ads_spec>0 and ads_wall_dir != 1) {
+        Abort("do_2D with n_ads_spec>0 requires ads_wall_dir = 1");
     }
     if (do_1D and n_ads_spec>0 and ads_wall_dir != 0) {
         Abort("do_1D with n_ads_spec>0 requires ads_wall_dir = 0");
@@ -353,6 +353,9 @@ void main_driver(const char* argv)
     // Structure factor for surface coverage slice
     // these are enabled if n_ads_spec > 0 and assumes the k=0 plane is the slice of interest
     StructFact structFactSurfCov;
+    // Vector of structure factors for pencils of surface coverage for 2D simulation
+    // these are enabled if do_2D (this mode assumes that ads_wall_dir=1)
+    Vector < StructFact > structFactSurfCovPencil;
 
     // for structure factor analysis of flattened MultiFabs
     // (slices, vertical averages, arrays of flattened MFs, surface coverage)
@@ -364,7 +367,7 @@ void main_driver(const char* argv)
     Vector < StructFact > structFactPrimPencil;
     Vector < StructFact > structFactConsPencil;
 
-    // for structure factor analysis of pencil MultiFabs
+    // for structure factor analysis of pencil MultiFabs (either do_1D mode or do_2D with n_ads_spec>0)
     BoxArray ba_pencil;
     DistributionMapping dmap_pencil;
     
@@ -806,8 +809,21 @@ void main_driver(const char* argv)
     // don't do structure factors of surface if there is only 1 cell
     int surfCov_has_multiple_cells = 1;
     if (n_ads_spec > 0) {
-        if (n_cells[(ads_wall_dir+1)%3] == 1 && n_cells[(ads_wall_dir+2)%3] == 1) {
+        if (do_1D) {
+            // for do_1D each pencil has a single cell for surface coverage
+            // so don't take structure factors
             surfCov_has_multiple_cells = 0;
+        } else if (do_2D) {
+            // for do_2D if there is is only 1 cell in x then each slab is
+            // actually a pencil with a single cell for surface coverage,
+            // so don't take structure factors
+            if (n_cells[0] == 1) {
+                surfCov_has_multiple_cells = 0;
+            }
+        } else {
+            if (n_cells[(ads_wall_dir+1)%3] == 1 && n_cells[(ads_wall_dir+2)%3] == 1) {
+                surfCov_has_multiple_cells = 0;
+            }
         }
     }
 
@@ -861,19 +877,11 @@ void main_driver(const char* argv)
 
         if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
 
-            MultiFab Flattened;  // flattened multifab defined below
-
-            // we are only calling ExtractSlice here to obtain
-            // a built version of Flattened so can obtain what we need to build the
-            // structure factor and geometry objects for flattened data
-            // assume surface covered is stored in the "k" direction in the k=0 coordinate.
-            int surfcov_plane = 0;
-            int surfcov_structVars = n_ads_spec;
-            int surfcov_nPairs = surfcov_structVars*(surfcov_structVars+1)/2;
+            int surfcov_nPairs = n_ads_spec*(n_ads_spec+1)/2;
 
             Vector< std::string > surfcov_var_names;
-            surfcov_var_names.resize(surfcov_structVars);
-            for (int d=0; d<surfcov_structVars; d++) {
+            surfcov_var_names.resize(n_ads_spec);
+            for (int d=0; d<n_ads_spec; d++) {
                 x = "surfCov";
                 x += (48+d);
                 surfcov_var_names[d] = x;
@@ -883,12 +891,40 @@ void main_driver(const char* argv)
             for (int d=0; d<surfcov_var_scaling.size(); ++d) {
                 surfcov_var_scaling[d] = 1.;
             }
-      
-            ExtractSlice(surfcov, Flattened, ads_wall_dir, surfcov_plane, 0, surfcov_structVars);
-            BoxArray ba_surfcov = Flattened.boxArray();
-            const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
 
-            structFactSurfCov.define(ba_surfcov,dmap_surfcov,surfcov_var_names,surfcov_var_scaling);
+            if (do_2D) {
+
+                MultiFab pencil;
+
+                // we are only calling ExtractXPencil here to obtain
+                // a built version of pencil so can obtain what we need to build the
+                // structure factor objects for pencil data
+                ExtractXPencil(prim, pencil, 0, 0, 0, 1);
+
+                ba_pencil = pencil.boxArray();
+                dmap_pencil = pencil.DistributionMap();
+
+                // each plane in z will have an x-pencil on the low-y face
+                structFactSurfCovPencil.resize(n_cells[2]);
+
+                for (int i = 0; i < n_cells[2];  ++i) { 
+                    structFactSurfCovPencil[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
+                }
+
+            } else {
+
+                MultiFab Flattened;  // flattened multifab defined below
+
+                // we are only calling ExtractSlice here to obtain
+                // a built version of Flattened so can obtain what we need to build the
+                // structure factor and geometry objects for flattened data
+                // assume surface covered is stored in the "k" direction in the k=0 coordinate.
+                ExtractSlice(surfcov, Flattened, ads_wall_dir, 0, 0, 1);
+                BoxArray ba_surfcov = Flattened.boxArray();
+                const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
+
+                structFactSurfCov.define(ba_surfcov,dmap_surfcov,surfcov_var_names,surfcov_var_scaling);
+            }
         }
 
         if (do_1D) {
@@ -1438,11 +1474,21 @@ void main_driver(const char* argv)
             } // if (project_dir >= 0)
 
             if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
-                int surfcov_plane = 0;
-                int surfcov_structVars = n_ads_spec;
-                MultiFab Flattened;  // flattened multifab defined below
-                ExtractSlice(surfcov, Flattened, ads_wall_dir, surfcov_plane, 0, surfcov_structVars);
-                structFactSurfCov.FortStructure(Flattened);
+
+                if (do_2D) {
+
+                    MultiFab pencil;
+
+                    for (int i=0; i<n_cells[2]; ++i) {
+                        ExtractXPencil(surfcov, pencil, 0, i, 0, n_ads_spec);
+                        structFactSurfCovPencil[i].FortStructure(pencil);
+                    }
+
+                } else {
+                    MultiFab Flattened;  // flattened multifab defined below
+                    ExtractSlice(surfcov, Flattened, ads_wall_dir, 0, 0, n_ads_spec);
+                    structFactSurfCov.FortStructure(Flattened);
+                }
             }
 
             if (do_1D) {
@@ -1523,7 +1569,24 @@ void main_driver(const char* argv)
             }
 
             if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
-                structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
+
+                if (do_2D) {
+
+                    MultiFab surfcov_mag, surfcov_realimag;
+                    surfcov_mag.define(ba_pencil,dmap_pencil,structFactSurfCovPencil[0].get_ncov(),0);
+                    for (int i=0; i<n_cells[2]; ++i) {
+                        structFactSurfCovPencil[i].AddToExternal(surfcov_mag,surfcov_realimag);
+                    }
+                    Real ncellsinv = 1.0/n_cells[2];
+                    surfcov_mag.mult(ncellsinv);
+                    surfcov_realimag.mult(ncellsinv);
+
+                    WritePlotFilesSF_1D(surfcov_mag,surfcov_realimag,step,time,
+                                        structFactSurfCovPencil[0].get_names(),"plt_SF_surfcov_1D");
+
+                } else {
+                    structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
+                }
             }
 
             if (do_1D) {
