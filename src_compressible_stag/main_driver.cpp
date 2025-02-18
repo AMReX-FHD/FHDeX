@@ -908,7 +908,7 @@ void main_driver(const char* argv)
                 structFactSurfCovPencil.resize(n_cells[2]);
 
                 for (int i = 0; i < n_cells[2];  ++i) { 
-                    structFactSurfCovPencil[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
+                    structFactSurfCovPencil[i].define(ba_pencil,dmap_pencil,surfcov_var_names,surfcov_var_scaling);
                 }
 
             } else {
