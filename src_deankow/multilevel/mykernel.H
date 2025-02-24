@@ -34,7 +34,7 @@ void init_phi (int i, int j, int k,
     Real r2 = (x*x + y*y) / (rad*rad);
 #endif
 
-    // Gaussian 
+    // Gaussian
     phi(i,j,k,0) = Real(1.) + std::exp(-r2);
 #endif
 
@@ -50,7 +50,7 @@ void init_phi (int i, int j, int k,
 #endif
 
 #if 0
-    // Delta function 
+    // Delta function
     if (i==4 && j ==4)
     {
        phi(i,j,k,0) = 1./(dx[0]*dx[1]);

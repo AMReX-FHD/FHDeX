@@ -45,7 +45,7 @@ public:
     // initializes multilevel data
     void InitData ();
 
-    // Create the special boxArray that handles the particle-mesh communication 
+    // Create the special boxArray that handles the particle-mesh communication
     void MakeFBA (const amrex::BoxArray& ba);
 
     // Make a new level using provided BoxArray and DistributionMapping and
@@ -123,15 +123,6 @@ private:
     // a wrapper for EstTimeStep
     void ComputeDt ();
 
-    // get plotfile name
-    [[nodiscard]] std::string PlotFileName (int lev) const;
-
-    // put together an array of multifabs for writing
-    [[nodiscard]] amrex::Vector<const amrex::MultiFab*> PlotFileMF () const;
-
-    // set plotfile variables names
-    [[nodiscard]] static amrex::Vector<std::string> PlotFileVarNames ();
-
     // write plotfile to disk
     void WritePlotFile () const;
 
@@ -181,7 +172,7 @@ private:
 
     int seed=0;
 
-    amrex::BoxArray grown_fba; 
+    amrex::BoxArray grown_fba;
 
     // maximum number of steps and stop time
     int max_step = std::numeric_limits<int>::max();

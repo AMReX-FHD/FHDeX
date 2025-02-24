@@ -22,7 +22,7 @@ state_error (int i, int j, int k,
 //    }
 #else
     // Specification of two boxes that only touch at the corner
-    if ( (i > 72 and i < 79 and j > 72 and j < 79) or 
+    if ( (i > 72 and i < 79 and j > 72 and j < 79) or
          (i > 80 and i < 87 and j > 80 and j < 87) ) {
         tag(i,j,k) = tagval;
     }
