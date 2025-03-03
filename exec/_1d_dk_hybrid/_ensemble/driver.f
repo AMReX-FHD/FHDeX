@@ -106,8 +106,12 @@ c
             tag = "pp_"
             write(6,*)" pure particle simulation"
           elseif(jpartl.le.npghost .or. jpartr.gt.npts-npghost)then
-            write(6,*)" patch to close to boundary"
-            stop
+            write(6,*)" patch close to boundary"
+            if(iper.eq.1)then
+                write(6,*)" can't be periodic with particles",
+     1               " patch touching boundary"
+                stop
+            endif
           endif
        endif
 
@@ -209,7 +213,7 @@ c   set up stuff to gather statistics
 
 
 
-c     call output(x,xl,u,npts,0,0.d0,ens,ndim)
+      call output(x,xl,u,npts,0,0.d0,ens,ndim)
 
       do 200 n=1,nstep
 
@@ -270,8 +274,12 @@ c        weight =(2.d0*sqrt(2.d0)+sqrt(3.d0))/5.d0
 
         num_part = num_part_new
 
+c       write(6,*)" before avg ",u(1,1)
+
         call  avg_down(u,part,xl,jpartl,jpartr,num_part,dx,
      1         ndim,pdim)
+
+c       write(6,*)" after avg ",u(1,1)
 
 c       totmass = 0.d0
 c       do j=jpartl,jpartr
@@ -281,6 +289,8 @@ c       write(6,*)" mass in particle region ",totmass*dx
 
         call reflux(u,fluxregl,fluxregr,crossl,crossr,
      1          jpartl,jpartr,npts,dx, ndim)
+
+c       write(6,*)" after rflux ",u(1,1)
 
       endif
 
@@ -373,7 +383,7 @@ c     gather statistics
         if(n.gt.ntherm .and. mod(n,nout).eq.0 .and.
      1     mod(ens,ensout).eq.0)then
 
-c          call output(x,xl,u,npts,n,time,ens,ndim)
+           call output(x,xl,u,npts,n,time,ens,ndim)
 
       do j=1,npts
 

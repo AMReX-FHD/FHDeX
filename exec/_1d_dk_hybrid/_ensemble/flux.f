@@ -64,6 +64,11 @@ c      delnreg = 10.d0
               flux(1,k) = 0.d0
               flux(npts+1,k) = 0.d0
 
+          else
+
+              flux(1,k) = 2.d0*flux(1,k)
+              flux(npts+1,k) = 2.d0*flux(npts+1,k)
+
           endif
 
       enddo

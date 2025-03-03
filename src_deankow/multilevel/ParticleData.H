@@ -102,7 +102,8 @@ struct ParticleData {
 
         stochastic_particles->Redistribute();
         stochastic_particles->RemoveParticlesAtLevel(0);
-        stochastic_particles->AddParticles(phi_fine, old_fine_ba);
+        amrex::Real factor = .9;
+        stochastic_particles->AddParticles(phi_fine, old_fine_ba, factor);
         phi_fine.setVal(0.0);
         const int lev = 1;
         const auto dx = stochastic_particles->Geom(lev).CellSizeArray();
@@ -163,7 +164,8 @@ struct ParticleData {
 
             amrex::Print() << "Adding particles in advance " << std::endl;
 
-            stochastic_particles->AddParticles(phi_grown, ba_to_exclude);
+            amrex::Real factor = .9;
+            stochastic_particles->AddParticles(phi_grown, ba_to_exclude,factor);
 
             // **********************************************************************
             // Advect the particles in the valid region and in the ghost region

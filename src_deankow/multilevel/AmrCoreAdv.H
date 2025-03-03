@@ -91,7 +91,7 @@ private:
     // private member functions
 
     // read in some parameters from inputs file
-    void ReadParameters();
+    void ReadParameters( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi);
 
     // set covered coarse cells to be the average of overlying fine cells
     void AverageDown ();
@@ -182,6 +182,9 @@ private:
     int seed=0;
 
     amrex::BoxArray grown_fba; 
+
+    //amrex::Vector<int> bc_lo(AMREX_SPACEDIM,0);
+    //amrex::Vector<int> bc_hi(AMREX_SPACEDIM,0);
 
     // maximum number of steps and stop time
     int max_step = std::numeric_limits<int>::max();

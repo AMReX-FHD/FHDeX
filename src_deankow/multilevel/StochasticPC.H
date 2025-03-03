@@ -67,7 +67,7 @@ public:
         {}
 
     void InitParticles (amrex::MultiFab& phi_fine);
-    void  AddParticles (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude);
+    void  AddParticles (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude, amrex::Real factor);
     void AdvectWithRandomWalk (int lev, amrex::Real dt);
     void RemoveParticlesNotInBA (const amrex::BoxArray& ba_to_keep);
     void RefluxCrseToFine (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_for_reflux);

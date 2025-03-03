@@ -21,10 +21,26 @@ using namespace std::chrono;
 
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
-//             - initializes BCRec boundary condition object
+//             - initializes BCRe boundary condition object
 AmrCoreAdv::AmrCoreAdv ()
 {
-    ReadParameters();
+
+    // periodic boundaries
+    //int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+    //int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+    amrex::Vector<int> bc_lo(AMREX_SPACEDIM,0);
+    amrex::Vector<int> bc_hi(AMREX_SPACEDIM,0);
+
+/*
+    // walls (Neumann)
+    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+*/
+    // walls Dirichlet
+    //int bc_lo[] = {amrex::BCType::ext_dir, amrex::BCType::ext_dir, amrex::BCType::ext_dir};
+    //int bc_hi[] = {amrex::BCType::ext_dir, amrex::BCType::ext_dir, amrex::BCType::ext_dir};
+
+    ReadParameters(bc_lo,bc_hi);
 
     /////////////////////////////////////////
     //Initialise rngs
@@ -73,16 +89,6 @@ AmrCoreAdv::AmrCoreAdv ()
 
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
-
-    // periodic boundaries
-    int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-    int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-
-/*
-    // walls (Neumann)
-    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
-    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
-*/
 
     bcs.resize(1);     // Setup 1-component
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -482,7 +488,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
 
 // read in some parameters from inputs file
 void
-AmrCoreAdv::ReadParameters ()
+AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi)
 {
     {
         ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
@@ -494,6 +500,11 @@ AmrCoreAdv::ReadParameters ()
 
         alg_type = 0;
         pp.queryAdd("alg_type", alg_type);
+
+
+        // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
+        pp.queryarr("bc_lo", bc_lo);
+        pp.queryarr("bc_hi", bc_hi);
 
         seed = 0;
         pp.queryAdd("seed", seed);
