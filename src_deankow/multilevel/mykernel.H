@@ -34,7 +34,7 @@ void init_phi (int i, int j, int k,
     Real r2 = (x*x + y*y) / (rad*rad);
 #endif
 
-    // Gaussian 
+    // Gaussian
     phi(i,j,k,0) = Real(1.) + std::exp(-r2);
 #endif
 
@@ -50,7 +50,7 @@ void init_phi (int i, int j, int k,
 #endif
 
 #if 0
-    // Delta function 
+    // Delta function
     if (i==4 && j ==4)
     {
        phi(i,j,k,0) = 1./(dx[0]*dx[1]);
@@ -158,7 +158,7 @@ void init_phi (int i, int j, int k,
        phi(i,j,k,0) = 0./cellvol;
     }
 
-        
+
 
 #endif
 
@@ -185,7 +185,7 @@ void compute_flux_x (int i, int j, int k,
     amrex::Real gamma = 5.e-4;
 
     amrex::Real phip,phim, phipn, phimn;
-    
+
 /*
     if (lo == dom_lo &&
         (bc_lo == amrex::BCType::foextrap ||
@@ -267,7 +267,7 @@ void compute_flux_x (int i, int j, int k,
           fluxx(i,j,k,0) = 0.5*(phip-phim) * dxinv;
 
           if(ext_pot == 1) {
- 
+
              amrex::Real xloc;
              xloc = i / dxinv;
 	     amrex::Real phiavg = 0.5*(phim+phip);
@@ -306,7 +306,7 @@ void compute_flux_y (int i, int j, int k,
     amrex::Real gamma = 5.e-4;
 
     amrex::Real phip,phim, phipn, phimn;
-    
+
     if (j == dom_lo && (bc_lo == amrex::BCType::foextrap || bc_lo == amrex::BCType::ext_dir))
     {
 
@@ -327,7 +327,7 @@ void compute_flux_y (int i, int j, int k,
         //phimn = std::abs(phi(i,j-1,k,coeff_index));
         phipn = phibdry;
         phimn = phibdry;
- 
+
      } else {
 
         phip = phi(i,j,k,0);
@@ -350,7 +350,7 @@ void compute_flux_y (int i, int j, int k,
         fluxy(i,j,k,0) = 0.5*(phip-phim) * dyinv;
 
           if(ext_pot == 1) {
- 
+
              amrex::Real yloc;
              yloc = j / dyinv;
 	     amrex::Real phiavg = 0.5*(phip+phim);

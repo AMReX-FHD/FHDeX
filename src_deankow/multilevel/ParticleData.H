@@ -26,11 +26,11 @@ struct ParticleData {
         pp.query("use_particles", use_particles);
 
         if (use_particles) {
-            if (max_level != 1) { 
+            if (max_level != 1) {
                 amrex::Abort("When using particles you must have max_level == 1");
             }
         }
-        
+
     }
 
     void init_particles(amrex::ParGDBBase* a_gdb, const amrex::BoxArray& grown_fba,
@@ -47,7 +47,7 @@ struct ParticleData {
 #endif
 
             // **********************************************************************
-            // Define the particle class with the default gdb, then change the particle 
+            // Define the particle class with the default gdb, then change the particle
             //        boxArray (and DM) to be the grown ba and associated dm
             // **********************************************************************
             stochastic_particles = std::make_unique<StochasticPC>(a_gdb);
@@ -56,7 +56,7 @@ struct ParticleData {
             stochastic_particles->SetParticleDistributionMap(1,grown_dm);
 
             // **********************************************************************
-            // Fill a temporary phi_grown with phi from "coarse" level 
+            // Fill a temporary phi_grown with phi from "coarse" level
             // **********************************************************************
             amrex::MultiFab phi_grown(grown_fba, grown_dm, 1, 0);
             phi_crse.FillBoundary(geom_fine.periodicity());
@@ -93,7 +93,7 @@ struct ParticleData {
         }
     }
 
-    void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& new_ungrown_ba, 
+    void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& new_ungrown_ba,
                           const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine)
     {
         amrex::DistributionMapping new_ungrown_dm { new_ungrown_ba, amrex::ParallelDescriptor::NProcs() };
@@ -121,10 +121,24 @@ struct ParticleData {
         stochastic_particles->SetParticleDistributionMap(1, new_dm);
     }
 
-    void Checkpoint (const std::string& filename) const
+    void writePlotFile (const std::string& a_fname, amrex::MultiFab const& phi_fine) const
     {
         if (use_particles) {
-            stochastic_particles->Checkpoint(filename, "stochastic_particles", true, particle_varnames);
+            bool is_checkpoint = false;
+            amrex::MultiFab phi_grown(stochastic_particles->ParticleBoxArray(1),
+                                      stochastic_particles->ParticleDistributionMap(1),1,0);
+            const amrex::Geometry& geom_fine = stochastic_particles->GetParGDB()->Geom(1);
+            phi_grown.ParallelCopy(phi_fine,0,0,1,1,0,geom_fine.periodicity());
+            stochastic_particles->ColorParticlesWithPhi(phi_grown);
+            stochastic_particles->Checkpoint( a_fname, "particles", is_checkpoint, particle_varnames );
+        }
+    }
+
+    void Checkpoint (const std::string& a_fname) const
+    {
+        if (use_particles) {
+            bool is_checkpoint = true;
+            stochastic_particles->Checkpoint(a_fname, "stochastic_particles", is_checkpoint, particle_varnames);
         }
     }
 
@@ -247,6 +261,6 @@ struct ParticleData {
 
     int use_particles;
     std::unique_ptr<StochasticPC> stochastic_particles;
-    amrex::Vector<std::string> particle_varnames = {AMREX_D_DECL("xold", "yold", "zold")};
+    amrex::Vector<std::string> particle_varnames = {"xold", "yold", "zold"};
 };
 #endif

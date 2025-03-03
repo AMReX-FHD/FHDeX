@@ -118,7 +118,7 @@ void main_main ()
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
-    
+
     /////////////////////////////////////////
     //Initialise rngs
     /////////////////////////////////////////
@@ -288,7 +288,7 @@ void main_main ()
 
         }
 
-                
+
     }
 
     // Call the timer again and compute the maximum difference between the start time and stop time
