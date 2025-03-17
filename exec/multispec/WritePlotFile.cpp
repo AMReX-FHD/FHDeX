@@ -126,6 +126,7 @@ void WritePlotFile(int step,
     // timer
     Real t1 = ParallelDescriptor::second();
 
+#if 0
     const std::string asciifilename1 = Concatenate("rho1_ascii_",step,7);    
     outputMFAsciiReduce(rho,0,asciifilename1,4);
     
@@ -134,6 +135,7 @@ void WritePlotFile(int step,
     
     const std::string asciifilename3 = Concatenate("rho3_ascii_",step,7);    
     outputMFAsciiReduce(rho,2,asciifilename3,4);
+#endif
     
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
     

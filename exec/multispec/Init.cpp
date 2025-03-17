@@ -57,6 +57,38 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	} // mfi
     } // prob_type = 10
 
+    // ASA
+    if (prob_type == 11) {
+
+        Box slab(geom.Domain()); slab.setRange(0,0); slab.setRange(2,0); // This creates a box on the x-face only
+	int scomps = 2*nspecies+6;
+        FArrayBox my_stuff(slab,scomps);                  // This creates a FAB on that box with 10 components 
+
+	std::string filename = "data.fab";
+	std::ifstream read_me(filename);
+	my_stuff.readFrom(read_me); 
+
+        int ioproc = ParallelDescriptor::IOProcessorNumber();  // I/O rank
+        int numpts = my_stuff.nComp() * slab.numPts();
+        ParallelDescriptor::Bcast(my_stuff.dataPtr(),numpts,ioproc);
+
+        const Array4<Real>& init_data = my_stuff.array();
+
+        for (MFIter mfi(rho_in); mfi.isValid(); ++mfi ) {
+            Box bx = mfi.tilebox();
+
+            const Array4<Real>& c = conc.array(mfi);
+	    int offset = nspecies+1;
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                    for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = init_data(0,j,0,n+offset);
+                    }
+            });
+	} // mfi
+    } // prob_type = 11
+
     // set velocity to zero; overwrite below if needed
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umac[d].setVal(0.);
@@ -421,6 +453,78 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                }
             });
 
+        } else if (std::abs(prob_type) == 14) {
+
+            /*
+	       thin film
+            */
+            //Real rad = L[0] / 8.;
+	    int nsub = 10;
+	    Real factor = nsub;
+	    Real dxsub = dx[0]/factor;
+	    Real dysub = dx[1]/factor;
+            Real x,y,z;
+	    amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << " " << surf_thickness << std::endl;
+            
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+               for (int n=0; n<nspecies; ++n) {
+                   c(i,j,k,n) = 0.;
+               }
+            Real x,y,z;
+
+            for(int i1=0; i1<nsub; ++i1) {
+            for(int j1=0; j1<nsub; ++j1) {
+
+                             x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub ;
+                             y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;
+
+
+                if (smoothing_width == 0.) {
+
+                    // discontinuous interface
+                    //if (y < film_thickness-x+0.5*(prob_hi[0]-prob_lo[0])) {
+                    if (y < film_thickness) {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) += c_init_1[n];
+                        }
+		    } else if (y < film_thickness+surf_thickness) {
+			if(x < radius_cyl){
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_3[n];
+                           }
+                        } else {
+	                   if(prob_type ==14) {
+                              for (int n=0; n<nspecies; ++n) {
+                                  c(i,j,k,n) += c_init_1[n];
+                              }
+			   } else {
+                              for (int n=0; n<nspecies; ++n) {
+                                  c(i,j,k,n) += c_init_2[n];
+                              }
+			   }
+			}
+
+                    } else {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) += c_init_2[n];
+                        }
+                    }
+                    
+                } else {
+                    // smooth interface
+                    for (int n=0; n<nspecies; ++n) {
+                        c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                            0.5*(1. + std::tanh((y-film_thickness)/(smoothing_width*dx[0])));
+                    }
+                }
+             }    
+             }    
+               for (int n=0; n<nspecies; ++n) {
+                   c(i,j,k,n) = c(i,j,k,n)/(factor*factor);
+               }
+            });
+
         } else if (prob_type == 16) {
 
             /*
@@ -481,7 +585,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Box bx_umac = mfi.tilebox(nodal_flag_x);
 
 	   //  Real veljet = 4082.e0;
-	    Real veljet = 100.e0;
+	    Real veljet = 00.e0;
 
             amrex::ParallelFor(bx_umac, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -955,7 +1059,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     c(i,j,k,1) = c(i,j,k,1) - charge_per_mass[2]/charge_per_mass[1]*c_loc;
                 }
             });
-        } else if (prob_type != 10 ) {
+        } else if (prob_type != 10 && prob_type != 11 ) {
             Abort("Init.cpp: Invalid prob_type");
         }
     }

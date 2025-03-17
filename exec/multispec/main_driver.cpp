@@ -530,8 +530,27 @@ void main_driver(const char* argv)
 
     }
 
+#if 1
 
     int tstat_int = 10;
+    int hstat_int = 100;
+    int icnt = 0;
+
+    BoxArray ba_onegrid;
+    Vector<int> pmap(1);
+    const int ioproc = ParallelDescriptor::IOProcessorNumber();
+    if(ioproc != 0){
+         amrex::Print() << "IO processor is " << ioproc << std::endl;
+    }
+    pmap[0] = ioproc;
+    ba_onegrid.define(domain);
+     //DistributionMapping dmap_onegrid(ba_onegrid,pmap);
+    DistributionMapping dmap_onegrid(pmap);
+    MultiFab data_onegrid;
+    data_onegrid.define(ba_onegrid,dmap_onegrid,nspecies,0);
+
+
+#endif
 
     // Time stepping loop
     for(int istep=init_step; istep<=max_step; ++istep) {
@@ -583,7 +602,68 @@ void main_driver(const char* argv)
             structFact.FortStructure(structFactMF,geom);
         }
 
-#if 1
+#if 0
+	Real h_val = 0.5;
+
+	if (istep > n_steps_skip && (istep-n_steps_skip)%hstat_int == 0) {
+	    icnt +=1;
+	 //   amrex::Print() << "icnt " << icnt << std::endl;
+         //   if (ParallelDescriptor::IOProcessor()) {
+		data_onegrid.ParallelCopy(rho_new,0,0,2);
+                   std::ofstream height_str;
+                      std::string heightBaseName = "height";
+                      std::string heightName = Concatenate(heightBaseName,istep,9);
+                      heightName += ".dat";
+                      height_str.open(heightName);
+		      height_str.precision(17);
+                      height_str << time+dt << std::endl;
+
+	           for (MFIter mfi(data_onegrid); mfi.isValid(); ++mfi ) {
+
+                   const Array4<Real>& height = data_onegrid.array(mfi);
+		   Real hloc,hloct;
+                   int jsw,jrev;
+		   Real hcor_loc;
+
+		   for (int i=0; i < n_cells[0]; i++){
+
+		       hloc = 0.;
+                       if (height(i,0,0,1) >=h_val) {
+			  for (int j=0; j<n_cells[1]; j++){
+		              jsw = j;
+			      if(height(i,j,0,1) < h_val)break;
+			  }
+		       Real hp = height(i,jsw,0,1);
+		       Real hm = height(i,jsw-1,0,1);
+		       Real xp = (jsw+0.5)*dx[1];
+		       Real xm = (jsw-0.5)*dx[1];
+		       Real slope = (hp-hm)/(xp-xm);
+		       hloc = xm + (h_val-hm)/slope;
+		       }
+
+		       hloct = 0.;
+                       if (height(i,0,0,0) <= 1. - h_val) {
+			  for (int j=0; j<n_cells[1]; j++){
+		              jsw = j;
+			      if(height(i,j,0,0) > 1.-h_val)break;
+			  }
+		       Real hp = height(i,jsw,0,0);
+		       Real hm = height(i,jsw-1,0,0);
+		       Real xp = (jsw+0.5)*dx[1];
+		       Real xm = (jsw-0.5)*dx[1];
+		       Real slope = (hp-hm)/(xp-xm);
+		       hloct = xm + (1.-h_val-hm)/slope;
+		       }
+                      height_str << std::setw(20) <<  (i+0.5)*dx[0]  << "     " << std::setw(20) << hloc <<  "    " << std::setw(20) << hloct << std::endl;
+		     // "   " << std::setw(20) << hloct << 
+		    //							"     " << std::setw(20) << 0.5*(hloct+hloc) << std::endl;
+                   }
+                   }
+
+           // }
+         }
+#endif
+#if 0
         if ((istep-n_steps_skip)%tstat_int == 0) {
 
             GpuArray<Real,AMREX_SPACEDIM> offset

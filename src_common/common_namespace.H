@@ -122,6 +122,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real radius_cyl;
     extern AMREX_GPU_MANAGED amrex::Real radius_outer;
     extern AMREX_GPU_MANAGED amrex::Real film_thickness;
+    extern AMREX_GPU_MANAGED amrex::Real surf_thickness;;
     extern amrex::Real                initial_variance_mom;
     extern amrex::Real                initial_variance_mass;
     extern amrex::Real                domega;
