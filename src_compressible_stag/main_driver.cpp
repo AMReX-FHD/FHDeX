@@ -135,7 +135,7 @@ void main_driver(const char* argv)
     if (n_cells[0] == 1 && n_cells[1] > 1 && n_cells[2] == 1) {
         Abort("Cannot run a 1D simulation in the y-direcion; use n_cells[0]>1");
     }
-    if (n_cells[0] > 1 && n_cells[1] == 1 && n_cells[2] == 1) {
+    if (n_cells[0] > 1 && n_cells[1] == 1 && n_cells[2] == 1 && do_1D == 0) {
         Abort("1D simulations in the x-direction requires do_1D=1");
     }
     //**********************************************************************
