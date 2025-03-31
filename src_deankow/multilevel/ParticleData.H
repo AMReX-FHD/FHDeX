@@ -26,11 +26,11 @@ struct ParticleData {
         pp.query("use_particles", use_particles);
 
         if (use_particles) {
-            if (max_level != 1) { 
+            if (max_level != 1) {
                 amrex::Abort("When using particles you must have max_level == 1");
             }
         }
-        
+
     }
 
     void init_particles(amrex::ParGDBBase* a_gdb, const amrex::BoxArray& grown_fba,
@@ -47,7 +47,7 @@ struct ParticleData {
 #endif
 
             // **********************************************************************
-            // Define the particle class with the default gdb, then change the particle 
+            // Define the particle class with the default gdb, then change the particle
             //        boxArray (and DM) to be the grown ba and associated dm
             // **********************************************************************
             stochastic_particles = std::make_unique<StochasticPC>(a_gdb);
@@ -56,7 +56,7 @@ struct ParticleData {
             stochastic_particles->SetParticleDistributionMap(1,grown_dm);
 
             // **********************************************************************
-            // Fill a temporary phi_grown with phi from "coarse" level 
+            // Fill a temporary phi_grown with phi from "coarse" level
             // **********************************************************************
             amrex::MultiFab phi_grown(grown_fba, grown_dm, 1, 0);
             phi_crse.FillBoundary(geom_fine.periodicity());
@@ -93,7 +93,7 @@ struct ParticleData {
         }
     }
 
-    void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& new_ungrown_ba, 
+    void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& new_ungrown_ba,
                           const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine)
     {
         amrex::DistributionMapping new_ungrown_dm { new_ungrown_ba, amrex::ParallelDescriptor::NProcs() };
@@ -102,7 +102,8 @@ struct ParticleData {
 
         stochastic_particles->Redistribute();
         stochastic_particles->RemoveParticlesAtLevel(0);
-        stochastic_particles->AddParticles(phi_fine, old_fine_ba);
+        amrex::Real factor = .9;
+        stochastic_particles->AddParticles(phi_fine, old_fine_ba, factor);
         phi_fine.setVal(0.0);
         const int lev = 1;
         const auto dx = stochastic_particles->Geom(lev).CellSizeArray();
@@ -120,10 +121,24 @@ struct ParticleData {
         stochastic_particles->SetParticleDistributionMap(1, new_dm);
     }
 
-    void Checkpoint (const std::string& filename) const
+    void writePlotFile (const std::string& a_fname, amrex::MultiFab const& phi_fine) const
     {
         if (use_particles) {
-            stochastic_particles->Checkpoint(filename, "stochastic_particles", true, particle_varnames);
+            bool is_checkpoint = false;
+            amrex::MultiFab phi_grown(stochastic_particles->ParticleBoxArray(1),
+                                      stochastic_particles->ParticleDistributionMap(1),1,0);
+            const amrex::Geometry& geom_fine = stochastic_particles->GetParGDB()->Geom(1);
+            phi_grown.ParallelCopy(phi_fine,0,0,1,1,0,geom_fine.periodicity());
+            stochastic_particles->ColorParticlesWithPhi(phi_grown);
+            stochastic_particles->Checkpoint( a_fname, "particles", is_checkpoint, particle_varnames );
+        }
+    }
+
+    void Checkpoint (const std::string& a_fname) const
+    {
+        if (use_particles) {
+            bool is_checkpoint = true;
+            stochastic_particles->Checkpoint(a_fname, "stochastic_particles", is_checkpoint, particle_varnames);
         }
     }
 
@@ -149,6 +164,8 @@ struct ParticleData {
             // **********************************************************************
             // Fill a temporary phi_grown with phi from "coarse" level
             // **********************************************************************
+            // amrex::Print() << "PARTICLE BOXARRAY " << stochastic_particles->ParticleBoxArray(0) << std::endl;
+            // amrex::Print() << "PARTICLE BOXARRAY " << stochastic_particles->ParticleBoxArray(1) << std::endl;
             amrex::MultiFab phi_grown(stochastic_particles->ParticleBoxArray(1),
                                       stochastic_particles->ParticleDistributionMap(1),1,0);
             phi_crse_old.FillBoundary(geom_fine.periodicity());
@@ -158,12 +175,28 @@ struct ParticleData {
             // Create new particles in first layer of ghost cells around the level 1 grids
             // **********************************************************************
             amrex::BoxArray ba_to_exclude(phi_fine.boxArray());
-            stochastic_particles->AddParticles(phi_grown, ba_to_exclude);
+
+            amrex::Print() << "Adding particles in advance " << std::endl;
+
+            amrex::Real factor = .9;
+            stochastic_particles->AddParticles(phi_grown, ba_to_exclude,factor);
 
             // **********************************************************************
             // Advect the particles in the valid region and in the ghost region
             // **********************************************************************
             stochastic_particles->AdvectWithRandomWalk(lev, dt_lev);
+
+            // **********************************************************************
+            // Account for particles that went from crse --> fine BEFORE Redistribute
+            // **********************************************************************
+            amrex::MultiFab phi_grown2(phi_grown.boxArray(),phi_grown.DistributionMap(),1,1);
+            phi_grown2.setVal(0.);
+
+            stochastic_particles->RefluxCrseToFine(phi_fine.boxArray(), phi_grown2);
+
+            phi_grown2.mult(1./cell_vol,0,1,1);
+
+            phi_crse_new.ParallelAdd(phi_grown2,0,0,1,amrex::IntVect(1,1),amrex::IntVect(1,1));
 
             // **********************************************************************
             // Put particles on the correct levels and in the right boxes
@@ -173,29 +206,33 @@ struct ParticleData {
             // **********************************************************************
             // Remove particles on the coarsest level
             // **********************************************************************
+
+            //amrex::Print() << "Before Removal we have  " << stochastic_particles->TotalNumberOfParticles() <<
+            //                  " stochastic particles." << std::endl;
+
             int crse_lev = 0;
             stochastic_particles->RemoveParticlesAtLevel(crse_lev);
+
+            //amrex::Print() << " After Removal we have  " << stochastic_particles->TotalNumberOfParticles() <<
+            //                  " stochastic particles." << std::endl;
 
             // **********************************************************************
             // Account for particles that went from fine --> crse
             // **********************************************************************
+
             phi_grown.setVal(0.);
+
             stochastic_particles->RefluxFineToCrse(phi_fine.boxArray(), phi_grown);
+
             phi_grown.mult(1./cell_vol);
+            print_state(phi_grown, amrex::IntVect(31,16));
+
             phi_crse_new.ParallelAdd(phi_grown,0,0,1);
 
+            // **********************************************************************
             // Remove particles that are not in the valid boxArray used by phi_fine
+            // **********************************************************************
             stochastic_particles->RemoveParticlesNotInBA(phi_fine.boxArray());
-
-            // **********************************************************************
-            // Account for particles that went from crse --> fine
-            // **********************************************************************
-            amrex::MultiFab phi_grown2(phi_grown.boxArray(),phi_grown.DistributionMap(),1,1);
-            phi_grown2.setVal(0.);
-            stochastic_particles->RefluxCrseToFine(phi_fine.boxArray(), phi_grown2);
-            phi_grown2.SumBoundary(geom_fine.periodicity());
-            phi_grown2.mult(1./cell_vol);
-            phi_crse_new.ParallelAdd(phi_grown2,0,0,1);
 
             // **********************************************************************
             // Define phi at level 1 from the particle count
@@ -224,6 +261,6 @@ struct ParticleData {
 
     int use_particles;
     std::unique_ptr<StochasticPC> stochastic_particles;
-    amrex::Vector<std::string> particle_varnames = {AMREX_D_DECL("xold", "yold", "zold")};
+    amrex::Vector<std::string> particle_varnames = {"xold", "yold", "zold"};
 };
 #endif

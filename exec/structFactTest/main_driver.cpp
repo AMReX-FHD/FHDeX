@@ -134,7 +134,7 @@ void main_driver(const char* argv)
     // take an FFT and write them out
     MultiFab dft_real(ba, dmap, 2, 0);
     MultiFab dft_imag(ba, dmap, 2, 0);
-    structFact.ComputeFFT(struct_cc,dft_real,dft_imag,geom);
+    structFact.ComputeFFT(struct_cc,dft_real,dft_imag);
 
     WriteSingleLevelPlotfile("plt_real", dft_real, {"var1", "var2"}, geom, 0., 0);
     WriteSingleLevelPlotfile("plt_imag", dft_imag, {"var1", "var2"}, geom, 0., 0);
@@ -148,9 +148,9 @@ void main_driver(const char* argv)
     /////////////////////////////////
 
     
-    structFact.FortStructure(struct_cc,geom);
+    structFact.FortStructure(struct_cc);
       
-    structFact.WritePlotFile(0,0.,geom,"plt_SF");
+    structFact.WritePlotFile(0,0.,"plt_SF");
 
     // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors

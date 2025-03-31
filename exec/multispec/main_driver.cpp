@@ -501,14 +501,14 @@ void main_driver(const char* argv)
             for(int d=0; d<nspecies; d++) {
                 MultiFab::Divide(structFactMF,rhotot_old,0,AMREX_SPACEDIM+d+1,1,0);
             }
-            structFact.FortStructure(structFactMF,geom);
+            structFact.FortStructure(structFactMF);
         }
         
         // write initial plotfile and structure factor
         if (plot_int > 0) {
             WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
-                structFact.WritePlotFile(0,0.,geom,"plt_SF");
+                structFact.WritePlotFile(0,0.,"plt_SF");
             }
         }
 
@@ -578,7 +578,7 @@ void main_driver(const char* argv)
             for(int d=0; d<nspecies; d++) {
                 MultiFab::Divide(structFactMF,rhotot_new,0,AMREX_SPACEDIM+d+1,1,0);
             }
-            structFact.FortStructure(structFactMF,geom);
+            structFact.FortStructure(structFactMF);
         }
 	
 
@@ -593,7 +593,7 @@ void main_driver(const char* argv)
         if (plot_int > 0 && istep%plot_int == 0) {
             WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot);
             if (istep > n_steps_skip && struct_fact_int > 0) {
-                structFact.WritePlotFile(istep,time,geom,"plt_SF");
+                structFact.WritePlotFile(istep,time,"plt_SF");
             }
         }
 

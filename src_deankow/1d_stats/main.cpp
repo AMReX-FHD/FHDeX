@@ -147,7 +147,7 @@ void main_main ()
          //DistributionMapping dmap_onegrid(ba_onegrid,pmap);
          DistributionMapping dmap_onegrid(pmap);
          stats_onegrid.define(ba_onegrid,dmap_onegrid,4,0);
-       
+
     }
 
     // Nghost = number of ghost cells for each array
@@ -164,7 +164,7 @@ void main_main ()
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
-    
+
     /////////////////////////////////////////
     //Initialise rngs
     /////////////////////////////////////////
@@ -297,7 +297,7 @@ void main_main ()
 
         // Write a plotfile of the current data (plot_int was defined in the inputs file)
         if (nstat > 0 && n > nskip && n%nstat == 0){
-            
+
             istat += 1;
 
 	    for ( MFIter mfi(stats); mfi.isValid(); ++mfi )
@@ -450,7 +450,7 @@ void main_main ()
             amrex::Print() << "phi integral = " << Ephi[0]*scale2 << std::endl;
             amrex::Print() << "phi min = " << Ephimin << std::endl;
 */
-                
+
     }
 
     // Call the timer again and compute the maximum difference between the start time and stop time
