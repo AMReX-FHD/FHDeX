@@ -250,6 +250,10 @@ AMREX_GPU_MANAGED amrex::Real common::turb_c;
 AMREX_GPU_MANAGED amrex::Real common::turb_d;
 AMREX_GPU_MANAGED amrex::Real common::turb_alpha;
 AMREX_GPU_MANAGED int         common::turbForcing;
+AMREX_GPU_MANAGED int         common::enhance_ice_visc;
+AMREX_GPU_MANAGED int         common::zero_ice_noise;
+AMREX_GPU_MANAGED amrex::Real common::ice_phi;
+AMREX_GPU_MANAGED amrex::Real common::visc_scale;
 
 
 void InitializeCommonNamespace() {
