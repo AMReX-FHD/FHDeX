@@ -247,7 +247,7 @@ if (use_ice_nucleation ==0) {
     }
  } else {
 
-    	  ComputeRhotot(phi_old,phitot_old);
+    	  ComputeRhotot(phi_old,phitot_old,1);
         // compute reversible stress tensor ---added term
         ComputeDivFHReversibleStress(div_reversible_stress,phitot_old,phi_old,geom);
 
@@ -470,7 +470,7 @@ if (use_ice_nucleation ==0){
 
 } else {
     // compute rhotot^{n+1/2} from rho^{n+1/2} in VALID REGION
-    ComputeRhotot(rho_new,rhotot_new);
+    ComputeRhotot(rho_new,rhotot_new,1);
 
     // fill rho and rhotot ghost cells at t^{n+1/2}
     FillRhoRhototGhost(rho_new,rhotot_new,geom);
@@ -494,6 +494,7 @@ if (use_ice_nucleation ==0){
     ComputeEta(rho_new, rhotot_new, eta);
 } else {
     ComputeEta(phi_old, phitot_old, eta);
+    eta.FillBoundary(geom.periodicity());
 }
     if (AMREX_SPACEDIM == 2) {
         AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
@@ -666,6 +667,10 @@ if (use_ice_nucleation ==0){
 	       int n=0;
 	       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 	       {
+        			Real noise_switch = 1.0;
+        			if(zero_ice_noise == 1 && phiOld(i,j,k,n) > ice_phi){
+        				noise_switch = 0.0;        		
+        			}
 	       	
 	           phiPrd(i,j,k) = phiOld(i,j,k,n)
 	           		+ dt/2 * M_phi * 2 * GradEnCoef *
@@ -677,9 +682,9 @@ if (use_ice_nucleation ==0){
 #if (AMREX_SPACEDIM == 3)
 	               + dt/2 * M_phi * 2 * GradEnCoef * (phiOld(i,j,k+1,n) - 2.*phiOld(i,j,k,n) + phiOld(i,j,k-1,n)) / (dx[2]*dx[2])
 	               - dt/2 * ((w(i,j,k+1)+w_old(i,j,k+1))/2*(phiOld(i,j,k+1,n)+phiOld(i,j,k,n))/2-(w(i,j,k)+w_old(i,j,k))/2*(phiOld(i,j,k,n)+phiOld(i,j,k-1,n))/2)/dx[2]
-               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)/sqrt(2)
+               	+ variance_coef_mass*noise_switch*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)/sqrt(2)
 #elif (AMREX_SPACEDIM == 2)
-               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)/sqrt(2)
+               	+ variance_coef_mass*noise_switch*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)/sqrt(2)
 #endif
 						- dt/2 * M_phi * EnScale*(2*phiOld(i,j,k,n)*(phiOld(i,j,k,n)-1)*(phiOld(i,j,k,n)-1)+2*phiOld(i,j,k,n)*phiOld(i,j,k,n)*(phiOld(i,j,k,n)-1) - PotWellDepr)
 	               ;
@@ -707,6 +712,10 @@ if (use_ice_nucleation ==0){
 	       int n=0;
 	       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 	       {
+        			Real noise_switch = 1.0;
+        			if(zero_ice_noise == 1 && phiOld(i,j,k,n) > ice_phi){
+        				noise_switch = 0.0;        		
+        			}
 	       	
 	           phiNew(i,j,k,n) = phiOld(i,j,k,n)
 	           		+ dt * M_phi * 2 * GradEnCoef *
@@ -718,22 +727,22 @@ if (use_ice_nucleation ==0){
 #if (AMREX_SPACEDIM == 3)
 	               + dt * M_phi * 2 * GradEnCoef * (phiPrd(i,j,k+1) - 2.*phiPrd(i,j,k) + phiPrd(i,j,k-1)) / (dx[2]*dx[2])
 	               - dt * ((w(i,j,k+1)+w_old(i,j,k+1))/2*(phiPrd(i,j,k+1)+phiPrd(i,j,k))/2-(w(i,j,k)+w_old(i,j,k))/2*(phiPrd(i,j,k)+phiPrd(i,j,k-1))/2)/dx[2]
-               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)
+               	+ variance_coef_mass*noise_switch*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)
 #elif (AMREX_SPACEDIM == 2)
-               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)
+               	+ variance_coef_mass*noise_switch*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)
 #endif
 						- dt * M_phi * EnScale*(2*phiPrd(i,j,k)*(phiPrd(i,j,k)-1)*(phiPrd(i,j,k)-1)+2*phiPrd(i,j,k)*phiPrd(i,j,k)*(phiPrd(i,j,k)-1) - PotWellDepr)
 	               ;
 	            
-			      phiNew(i,j,k,n+1) = 1-phiNew(i,j,k,n);
+			      phiNew(i,j,k,n+1) = 1.0-phiNew(i,j,k,n);
 	       });
 	   }
-    	ComputeRhotot(phi_new,phitot_new);
+    	ComputeRhotot(phi_new,phitot_new,1);
     	
       // compute reversible stress tensor ---added term
       ComputeDivFHReversibleStress(div_reversible_stress,phitot_new,phi_new,geom);
 	   
-		MultiFab::Copy(phi_old,phi_new,0,0,nspecies,0);
+		MultiFab::Copy(phi_old,phi_new,0,0,nspecies,1);
 		
 		amrex::Print() << "Advanced phi (phi1_avg = " << phi_new.sum(0)/(n_cells[0]*n_cells[1]
 #if (AMREX_SPACEDIM == 3)
@@ -756,6 +765,7 @@ if (use_ice_nucleation ==0){
     ComputeEta(rho_new, rhotot_new, eta);
 } else {
     ComputeEta(phi_new, phitot_new, eta);
+    eta.FillBoundary(geom.periodicity());
 }
     if (AMREX_SPACEDIM == 2) {
         AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);

@@ -81,7 +81,6 @@ void ComputeEta(const MultiFab& rho_in,
 
         // 100:1 viscosity ratio
         if (mixture_type == 3) {
-        
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Real c = rho(i,j,k,1) / rhotot(i,j,k);
@@ -91,8 +90,16 @@ void ComputeEta(const MultiFab& rho_in,
                 // eta(i,j,k) = -0.99*visc_coef*c + visc_coef;
                 eta(i,j,k) = std::max(0.1*visc_coef,eta(i,j,k));
                 eta(i,j,k) = std::min(visc_coef,eta(i,j,k));
-
-                
+            });
+        }
+        if (enhance_ice_visc == 1) {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real c = rho(i,j,k,0);
+                //Real cMid = 1.0;
+                // If changing from 0.5, change cMid in src_hydro/StochMomFlux().cpp. cMid ideally = 0.5*(c_init_1[0]+c_init_1[1]), but src_hydro cannot access c_init.
+                eta(i,j,k) = (1+(visc_scale-1.0)*0.5*(1+std::tanh((c-1.0)/0.1)))*visc_coef;
+                // If changing the above function form ((1+(visc_scale-1.0)*0.5*(1+std::tanh((c-cMid)/0.1)))*visc_coef), reflect this in src_hydro/StochMomFlux().cpp;
             });
         }
     }

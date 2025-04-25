@@ -329,5 +329,9 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real turb_d;
     extern AMREX_GPU_MANAGED amrex::Real turb_alpha;
     extern AMREX_GPU_MANAGED int         turbForcing;
+    extern AMREX_GPU_MANAGED int      		enhance_ice_visc;
+    extern AMREX_GPU_MANAGED int      		zero_ice_noise;
+    extern AMREX_GPU_MANAGED amrex::Real 	ice_phi;
+    extern AMREX_GPU_MANAGED amrex::Real 	visc_scale;
 
 }

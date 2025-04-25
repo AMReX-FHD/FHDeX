@@ -647,12 +647,20 @@ void StochMomFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 
         amrex::ParallelFor(bx, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            mflux_cc_fab(i,j,k,n) *= sqrt(eta_cc_fab(i,j,k)*temp_cc_fab(i,j,k));
+        		Real noise_switch = 1.0;
+        		if(zero_ice_noise == 1 && eta_cc_fab(i,j,k) > (1+(visc_scale-1.0)*0.5*(1+std::tanh((ice_phi-1.0)/0.1)))*visc_coef){
+        			noise_switch = 0.0;        		
+        		}
+            mflux_cc_fab(i,j,k,n) *= sqrt(noise_switch*eta_cc_fab(i,j,k)*temp_cc_fab(i,j,k));
         });
 
         amrex::ParallelFor(bx_xy, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            mflux_xy_fab(i,j,k,n) *= sqrt(eta_xy_fab(i,j,k)*temp_xy_fab(i,j,k));
+        		Real noise_switch = 1.0;
+        		if(zero_ice_noise == 1 && eta_xy_fab(i,j,k) > (1+(visc_scale-1.0)*0.5*(1+std::tanh((ice_phi-1.0)/0.1)))*visc_coef){
+        			noise_switch = 0.0;        		
+        		}
+            mflux_xy_fab(i,j,k,n) *= sqrt(noise_switch*eta_xy_fab(i,j,k)*temp_xy_fab(i,j,k));
 
         });
 
@@ -660,12 +668,20 @@ void StochMomFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 
         amrex::ParallelFor(bx_xz, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            mflux_xz_fab(i,j,k,n) *= sqrt(eta_xz_fab(i,j,k)*temp_xz_fab(i,j,k));
+        		Real noise_switch = 1.0;
+        		if(zero_ice_noise == 1 && eta_xz_fab(i,j,k) > (1+(visc_scale-1.0)*0.5*(1+std::tanh((ice_phi-1.0)/0.1)))*visc_coef){
+        			noise_switch = 0.0;        		
+        		}
+            mflux_xz_fab(i,j,k,n) *= sqrt(noise_switch*eta_xz_fab(i,j,k)*temp_xz_fab(i,j,k));
         });
 
         amrex::ParallelFor(bx_yz, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            mflux_yz_fab(i,j,k,n) *= sqrt(eta_yz_fab(i,j,k)*temp_yz_fab(i,j,k));
+        		Real noise_switch = 1.0;
+        		if(zero_ice_noise == 1 && eta_yz_fab(i,j,k) > (1+(visc_scale-1.0)*0.5*(1+std::tanh((ice_phi-1.0)/0.1)))*visc_coef){
+        			noise_switch = 0.0;        		
+        		}
+            mflux_yz_fab(i,j,k,n) *= sqrt(noise_switch*eta_yz_fab(i,j,k)*temp_yz_fab(i,j,k));
         });
 
 #endif
