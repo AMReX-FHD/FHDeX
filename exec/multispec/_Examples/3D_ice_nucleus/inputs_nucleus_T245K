@@ -75,7 +75,7 @@
   algorithm_type        = 6
   is_ideal_mixture      = 0
   enhance_ice_visc	= 1					# Scale ice viscosity if set to 1.
-  visc_scale		= 5					# Scale ice viscosity by this much. See src_multispec/ComputeMixtureProperties.cpp; enhance_ice_visc must be set to 1.
+  visc_scale		= 10					# Scale ice viscosity by this much. See src_multispec/ComputeMixtureProperties.cpp; enhance_ice_visc must be set to 1.
   zero_ice_noise	= 1					# Make fluctuations inside ice to zero if set to 1.
   ice_phi		= 0.5					# Set noise zero when local phi is larger than this value (ice); zero_ice_noise must be set to 1.
   

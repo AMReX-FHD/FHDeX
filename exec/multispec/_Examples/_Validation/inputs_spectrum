@@ -12,9 +12,9 @@
   plot_base_name        = plt
   
   # number of cells in domain. IMP: 0.5 nm for deterministic simulations
-  n_cells               = 512 128
+  n_cells               = 256 64
   # max number of cells in a box
-  max_grid_size         = 64 128
+  max_grid_size         = 64 64
 
   # Time-step control
   fixed_dt              = 1.e-13
@@ -22,10 +22,15 @@
   # Controls for number of steps between actions
   max_step              = 1000000
   plot_int              = 1000
-  chk_int               = 100000
+  chk_int               = 1000000
   restart               = -1
 
   use_ice_nucleation    = 1
+  
+  enhance_ice_visc	= 1
+  visc_scale		= 10
+  zero_ice_noise	= 1
+  ice_phi		= 0.5
 
   #-------------------------------------------------------------------------------------------
   #                            Thermodynamic and transport properties                        |
@@ -100,23 +105,22 @@
   # -1 = periodic
   #  1 = slip
   #  2 = no-slip
-  bc_vel_lo             = -1 -1 -1
-  bc_vel_hi             = -1 -1 -1
+  bc_vel_lo             = -1 2 -1
+  bc_vel_hi             = -1 2 -1
 
   # -1 = periodic
   #  1 = wall
   #  2 = reservoir (Dirichlet values must be suppled by other means)
-  bc_mass_lo            = -1 -1 -1
-  bc_mass_hi            = -1 -1 -1
+  bc_mass_lo            = -1 1 -1
+  bc_mass_hi            = -1 1 -1
+  bc_Yk_y_lo 		= 1.0341 0.0431     			# lo BC Dirichlet values
+  bc_Yk_y_hi 		= 0.0431 1.0341     			# hi BC Dirichlet values
 
   # -1 = periodic
   #  1 = Dirichlet
   #  2 = Neumann
   bc_es_lo              = -1 -1 -1
   bc_es_hi              = -1 -1 -1
-
-  potential_lo          = 0. 0. 0.
-  potential_hi          = 0. 0. 0.
 
   #----------------------
   # Staggered multigrid solver parameters

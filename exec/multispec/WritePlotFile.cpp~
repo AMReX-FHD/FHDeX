@@ -18,8 +18,7 @@ void WritePlotFile(int step,
                    const MultiFab& charge,
                    const MultiFab& Epot,
 		   const MultiFab& phitot,
-		   const MultiFab& phi,
-		   const MultiFab& visc)
+		   const MultiFab& phi)
 {
     
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -37,7 +36,7 @@ void WritePlotFile(int step,
     // averaged vel  AMREX_SPACEDIM
     // shifted  vel  AMREX_SPACEDIM
     // pres          1
-    int nPlot = 2*AMREX_SPACEDIM + 3*nspecies + 4;
+    int nPlot = 2*AMREX_SPACEDIM + 3*nspecies + 3;
 
     if (use_charged_fluid) {
         // charge
@@ -87,7 +86,6 @@ void WritePlotFile(int step,
     }
 
     varNames[cnt++] = "pres";
-    varNames[cnt++] = "visc";
 
     if (use_charged_fluid) {
         varNames[cnt++] = "charge";
@@ -136,10 +134,6 @@ void WritePlotFile(int step,
 
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
-    cnt++;
-    
-    // copy viscosity into plotfile
-    MultiFab::Copy(plotfile, visc, 0, cnt, 1, 0);
     cnt++;
 
     // copy charge and Epot into plotfile

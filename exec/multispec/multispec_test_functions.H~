@@ -122,8 +122,7 @@ void WritePlotFile(const int step,
                    const MultiFab& charge,
                    const MultiFab& Epot,
                    const MultiFab& phitot,
-		   			 const MultiFab& phi,
-		   			 const MultiFab& eta);
+		   			 const MultiFab& phi);
 
 ///////////////////////////
 

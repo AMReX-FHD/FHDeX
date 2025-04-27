@@ -92,7 +92,7 @@ void ComputeEta(const MultiFab& rho_in,
                 eta(i,j,k) = std::min(visc_coef,eta(i,j,k));
             });
         }
-        
+		amrex::Print() << "Local c = " << enhance_ice_visc <<"\n";
         if (enhance_ice_visc == 1) {
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -102,6 +102,7 @@ void ComputeEta(const MultiFab& rho_in,
                 eta(i,j,k) = std::max(1.0,eta(i,j,k));
                 eta(i,j,k) = std::min(visc_scale,eta(i,j,k));
                 eta(i,j,k) *= visc_coef;
+		amrex::Print() << "Local c = " << c <<"\n";
                 
                 //Real cMid = 1.0;
                 // If changing from 0.5, change cMid in src_hydro/StochMomFlux().cpp. cMid ideally = 0.5*(c_init_1[0]+c_init_1[1]), but src_hydro cannot access c_init.
