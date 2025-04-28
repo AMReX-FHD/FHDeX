@@ -253,9 +253,6 @@ void main_driver(const char* argv)
         if (do_2D and project_dir != 2) {
             Abort("Structure factors with do_2D requires project_dir == 2");
         }
-        if (do_2D and slicepoint >= 0) {
-            Abort("Cannot use do_2D and slicepoint");
-        }
         if (project_dir >= 0) {
             if (do_slab_sf and ((membrane_cell <= 0) or (membrane_cell >= n_cells[project_dir]-1))) {
                 Abort("Slab structure factor needs a membrane cell within the domain: 0 < membrane_cell < n_cells[project_dir] - 1");
@@ -852,7 +849,7 @@ void main_driver(const char* argv)
                 surfCov_has_multiple_cells = 0;
             }
         } else {
-            // for 3D mode make sure the number of cells in the\
+            // for 3D mode make sure the number of cells in the
             // non-ads_wall_dir directions are both not equatl to 1
             if (n_cells[(ads_wall_dir+1)%3] == 1 && n_cells[(ads_wall_dir+2)%3] == 1) {
                 surfCov_has_multiple_cells = 0;
@@ -931,23 +928,28 @@ void main_driver(const char* argv)
                 structFactConsVec[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
 
-            // FIXME structFactPrimFlattenedVec;
-            // FIXME structFactConsFlattenedVec;
-            //
-            //
-            //
+            MultiFab pencil;
+
+            // we are only calling ExtractXPencil here to obtain
+            // a built version of pencil so can obtain what we need to build the
+            // structure factor objects for pencil data
+            ExtractXPencil(prim, pencil, 0, 0, 0, 1);
+            ba_pencil = pencil.boxArray();
+            dmap_pencil = pencil.DistributionMap();
+
+            if (ads_wall_dir == 1 && slicepoint != -1) { // slicepoint = -1 for vertical average not supported
+
+                // each plane in z will have an x-pencil on the low-y face
+                structFactPrimFlattenedVec.resize(n_cells[2]);
+                structFactConsFlattenedVec.resize(n_cells[2]);
+
+                for (int i = 0; i < n_cells[2];  ++i) { 
+                    structFactPrimFlattenedVec[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
+                    structFactConsFlattenedVec[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
+                }
+            }
 
             if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
-
-                MultiFab pencil;
-
-                // we are only calling ExtractXPencil here to obtain
-                // a built version of pencil so can obtain what we need to build the
-                // structure factor objects for pencil data
-                ExtractXPencil(prim, pencil, 0, 0, 0, 1);
-
-                ba_pencil = pencil.boxArray();
-                dmap_pencil = pencil.DistributionMap();
 
                 // each plane in z will have an x-pencil on the low-y face
                 structFactSurfCovVec.resize(n_cells[2]);
@@ -1494,11 +1496,20 @@ void main_driver(const char* argv)
                     }
                 }
 
-                // FIXME structFactPrimFlattenedVec;
-                // FIXME structFactConsFlattenedVec;
-                //
-                //
-                // 
+                if (ads_wall_dir == 1 && slicepoint != -1) { // slicepoint = -1 for vertical average not supported
+                    {
+                        MultiFab pencil;
+                        for (int i=0; i<n_cells[2]; ++i) {
+                            ExtractXPencil(structFactPrimMF, pencil, slicepoint, i, 0, structVarsPrim);
+                            structFactPrimFlattenedVec[i].FortStructure(pencil);
+                        }
+                    }
+                    MultiFab pencil;
+                    for (int i=0; i<n_cells[2]; ++i) {
+                        ExtractXPencil(structFactConsMF, pencil, slicepoint, i, 0, structVarsCons);
+                        structFactConsFlattenedVec[i].FortStructure(pencil);
+                    }
+                }
 
                 // surface coverage
                 if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
@@ -1530,7 +1541,11 @@ void main_driver(const char* argv)
         } // logic for doing structure factor
 
         // write out structure factor
-        if (step > amrex::Math::abs(n_steps_skip) && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
+        if (struct_fact_int > 0 &&
+            step >= amrex::Math::abs(n_steps_skip) &&
+            step >= struct_fact_int &&
+            plot_int > 0 &&
+            step%plot_int == 0) {
 
             if ((do_1D==0) and (do_2D==0)) {
                 structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
@@ -1587,6 +1602,37 @@ void main_driver(const char* argv)
 
             }
 
+            if (ads_wall_dir == 1 && slicepoint != -1) {
+
+                MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
+
+                prim_mag.define     (ba_pencil,dmap_pencil,  structFactPrimFlattenedVec[0].get_ncov(),0);
+                prim_realimag.define(ba_pencil,dmap_pencil,2*structFactPrimFlattenedVec[0].get_ncov(),0);
+                cons_mag.define     (ba_pencil,dmap_pencil,  structFactConsFlattenedVec[0].get_ncov(),0);
+                cons_realimag.define(ba_pencil,dmap_pencil,2*structFactConsFlattenedVec[0].get_ncov(),0);
+
+                prim_mag.setVal(0.);
+                prim_realimag.setVal(0.);
+                cons_mag.setVal(0.);
+                cons_realimag.setVal(0.);
+
+                for (int i=0; i<n_cells[2]; ++i) {
+                    structFactPrimFlattenedVec[i].AddToExternal(prim_mag,prim_realimag);
+                    structFactConsFlattenedVec[i].AddToExternal(cons_mag,cons_realimag);
+                }
+                Real ncellsinv = 1.0/n_cells[2];
+                prim_mag.mult(ncellsinv);
+                prim_realimag.mult(ncellsinv);
+                cons_mag.mult(ncellsinv);
+                cons_realimag.mult(ncellsinv);
+
+                WritePlotFilesSF_1D(prim_mag,prim_realimag,step,time,
+                                    structFactPrimFlattenedVec[0].get_names(),"plt_SF_prim_Flattened_2D");
+                WritePlotFilesSF_1D(cons_mag,cons_realimag,step,time,
+                                    structFactConsFlattenedVec[0].get_names(),"plt_SF_cons_Flattened_2D");
+
+            }
+            
             // FIXME structFactPrimFlattenedVec;
             // FIXME structFactConsFlattenedVec;
             //
