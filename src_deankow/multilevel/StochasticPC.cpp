@@ -9,11 +9,45 @@ using namespace amrex;
 void
 StochasticPC::InitParticles (MultiFab& phi_fine)
 {
-    AddParticles(phi_fine, BoxArray{});
+    amrex::Print() << "calling InitParrticles" << std::endl;
+    amrex::Real factor = -1.;
+    AddParticles(phi_fine, BoxArray{},factor);
 }
 
 void
-StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
+StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
+{
+    BL_PROFILE("StochasticPC::ColorParticlesWithPhi");
+    const int lev = 1;
+    const auto dx = Geom(lev).CellSizeArray();
+
+    amrex::Print() << "PHIARR BOX " << phi.boxArray() << std::endl;
+
+    for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& ptile = ParticlesAt(lev, pti);
+        auto& aos  = ptile.GetArrayOfStructs();
+        const int np = aos.numParticles();
+        auto *pstruct = aos().data();
+
+        const Array4<Real const>& phi_arr = phi.const_array(pti.index());
+
+        // amrex::Print() << "PART BOX " << pti.tilebox() << std::endl;
+        // amrex::Print() << "PTI INDEX " << pti.index() << std::endl;
+
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int n)
+        {
+            ParticleType& p = pstruct[n];
+            int i = static_cast<int>(p.pos(0) / dx[0]);
+            int j = static_cast<int>(p.pos(1) / dx[1]);
+            int k = 0;
+            p.rdata(RealIdx::zold) = phi_arr(i,j,k);
+        });
+    }
+}
+
+void
+StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, amrex::Real factor)
 {
     BL_PROFILE("StochasticPC::AddParticles");
 
@@ -29,12 +63,12 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
 
     // We use sum to count how much phi is gained/lost when we use phi to compute an integer
     // number of particles
-    // Gpu::DeviceVector<Real> my_sum(1, 0.);
-    // Real* sum = my_sum.dataPtr();
+    //   Gpu::DeviceVector<Real> my_sum(1, 0.);
+    //   Real* sum = my_sum.dataPtr();
 
     // We need to allow particles to be created outside the domain in cells next
     // to the particle region
-    Box gdomain(Geom(lev).Domain()); 
+    Box gdomain(Geom(lev).Domain());
     if (Geom(lev).isPeriodic(0)) gdomain.grow(0,1);
     if (Geom(lev).isPeriodic(1)) gdomain.grow(1,1);
 
@@ -71,8 +105,8 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
             int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
             pcount[flat_index(i, j, k)] += npart_in_cell;
             // if (phi_arr(i,j,k) > 0.) {
-            //     amrex::Print() << " IJK/NPART/PHI/RAN " << IntVect(i,j) << " " << npart_in_cell << " given phi " << 
-            //         (phi_arr(i,j,k,0)*cell_vol) << " " << rannum << std::endl; 
+            //     amrex::Print() << " IJK/NPART/PHI/RAN " << IntVect(i,j) << " " << npart_in_cell << " given phi " <<
+            //         (phi_arr(i,j,k,0)*cell_vol) << " " << rannum << std::endl;
             // }
             // sum[0] += npart_in_cell - (phi_arr(i,j,k,0)*cell_vol);
         });
@@ -105,6 +139,13 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
         particle_tile.resize(new_size);
         amrex::Print() << "INIT: NEW SIZE OF PARTICLES IN TILE BOX " << tile_box << " " << new_size << std::endl;
 
+
+        int ext_pot = 1;
+        amrex::Real alpha = .3;
+        amrex::Real beta = .7;
+        amrex::Real gamma = 5.e-4;
+
+
         // now fill in the data
         ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data() + old_size;
         unsigned int* poffset = offsets.dataPtr();
@@ -124,6 +165,45 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
 #elif (AMREX_SPACEDIM == 3)
                 Real r[3] = {amrex::Random(engine), amrex::Random(engine), amrex::Random(engine)};
 #endif
+                if(factor > 0.)
+                {
+                    Real xm = plo[0] + i*dx[0];
+                    Real xp = xm + dx[0];
+                    Real ym = plo[1] + j*dx[1];
+                    Real yp = ym + dx[1];
+                    Real vpx = (xp - beta)*(xp-beta)*(xp-alpha)*(xp-alpha);
+                    Real vmx = (xm - beta)*(xm-beta)*(xm-alpha)*(xm-alpha);
+                    Real vpy = (yp - .5)*(yp - .5)*(yp - .5)*(yp - .5);
+                    Real vmy = (ym - .5)*(ym - .5)*(ym - .5)*(ym - .5);
+                    Real vsubx = (vpx - vmx)/dx[0];
+                    Real vsuby = (vpy - vmy)/dx[1];
+
+                    Real sampx,sampy;
+
+                    if(std::abs(vsubx) >= 1.e-12)
+                    {
+                       sampx = -gamma * std::log(1. - r[0]*(1. - std::exp(-2*vsubx*dx[0]/gamma)))/(2.*vsubx);
+                       if( sampx < 0. || sampx > dx[0])
+                       {
+                          amrex::Print() << " offx " << sampx << " " << r[0] << " " << vsubx << std::endl;
+                       }
+                     //  if(j == 50){
+                     //     amrex::Print() << "center " << i << " " << j << " " << sampx << " " << r[0] << " " << vsubx << std::endl;
+                     //  }
+                       r[0] = sampx / dx[0];
+                    }
+
+                    if(std::abs(vsuby) >= 1.e-12)
+                    {
+                       sampy = -gamma * std::log(1. - r[1]*(1. - std::exp(-2*vsuby*dx[1]/gamma)))/(2.*vsuby);
+                       if( sampy < 0. || sampy > dx[1])
+                       {
+                          amrex::Print() << "offy " <<sampy << " " << r[1] << " " << vsuby << std::endl;
+                       }
+                       r[1] = sampy / dx[1];
+                    }
+                }
+
                 AMREX_D_TERM( Real x = plo[0] + (i + r[0])*dx[0];,
                               Real y = plo[1] + (j + r[1])*dx[1];,
                               Real z = plo[2] + (k + r[2])*dx[2];);
@@ -141,7 +221,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
             }
         });
     }
-    // amrex::Print() << "SUM / DENS ADDED THROUGH REGRID " << sum[0] << " " << sum[0] / cell_vol << std::endl;
+   //  amrex::Print() << "SUM / DENS ADDED THROUGH REGRID " << sum[0] << " " << sum[0] / cell_vol << std::endl;
 }
 
 void
@@ -326,6 +406,11 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
     Real stddev = std::sqrt(dt);
 
+    int ext_pot = 1;
+    amrex::Real alpha = .3;
+    amrex::Real beta = .7;
+    amrex::Real gamma = 5.e-4;
+
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
         auto& ptile = ParticlesAt(lev, pti);
@@ -344,6 +429,20 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                           Real incy = amrex::RandomNormal(0.,stddev,engine);,
                           Real incz = amrex::RandomNormal(0.,stddev,engine););
 
+             if(ext_pot ==1){
+                amrex::Real xloc,yloc;
+                amrex::Real Vsubx, Vsuby;
+
+                xloc = p.pos(0);
+                yloc = p.pos(1);
+                Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
+                Vsuby = 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
+
+                p.pos(0) += -dt*Vsubx;
+                p.pos(1) += -dt*Vsuby;
+
+             }
+
             AMREX_D_TERM( incx = std::max(-dx[0], std::min( dx[0], incx));,
                           incy = std::max(-dx[1], std::min( dx[1], incy));,
                           incz = std::max(-dx[2], std::min( dx[2], incz)););
@@ -352,6 +451,7 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
             // AMREX_D_TERM( incx = -dx[0];,
             //               incy = +dx[1];,
             //               incz = 0.;);
+
 
             AMREX_D_TERM( p.pos(0) += static_cast<ParticleReal> (incx);,
                           p.pos(1) += static_cast<ParticleReal> (incy);,
@@ -365,7 +465,7 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                 if (p.pos(1) < p_lo[1]) p.pos(1) += (p_hi[1] - p_lo[1]);
                 if (p.pos(1) > p_hi[1]) p.pos(1) -= (p_hi[1] - p_lo[1]);
             }
-            
+
 #if (AMREX_SPACEDIM == 3)
             if (is_periodic_in_z) {
                 if (p.pos(2) < p_lo[2]) p.pos(2) += (p_hi[2] - p_lo[2]);

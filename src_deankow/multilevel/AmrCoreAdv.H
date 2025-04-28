@@ -45,7 +45,7 @@ public:
     // initializes multilevel data
     void InitData ();
 
-    // Create the special boxArray that handles the particle-mesh communication 
+    // Create the special boxArray that handles the particle-mesh communication
     void MakeFBA (const amrex::BoxArray& ba);
 
     // Make a new level using provided BoxArray and DistributionMapping and
@@ -91,7 +91,7 @@ private:
     // private member functions
 
     // read in some parameters from inputs file
-    void ReadParameters();
+    void ReadParameters( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi);
 
     // set covered coarse cells to be the average of overlying fine cells
     void AverageDown ();
@@ -122,15 +122,6 @@ private:
 
     // a wrapper for EstTimeStep
     void ComputeDt ();
-
-    // get plotfile name
-    [[nodiscard]] std::string PlotFileName (int lev) const;
-
-    // put together an array of multifabs for writing
-    [[nodiscard]] amrex::Vector<const amrex::MultiFab*> PlotFileMF () const;
-
-    // set plotfile variables names
-    [[nodiscard]] static amrex::Vector<std::string> PlotFileVarNames ();
 
     // write plotfile to disk
     void WritePlotFile () const;
@@ -181,7 +172,10 @@ private:
 
     int seed=0;
 
-    amrex::BoxArray grown_fba; 
+    amrex::BoxArray grown_fba;
+
+    //amrex::Vector<int> bc_lo(AMREX_SPACEDIM,0);
+    //amrex::Vector<int> bc_hi(AMREX_SPACEDIM,0);
 
     // maximum number of steps and stop time
     int max_step = std::numeric_limits<int>::max();

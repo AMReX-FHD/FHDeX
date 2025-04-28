@@ -147,7 +147,7 @@ typedef struct {
 void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi);
 void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi);
 
-void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, iMultiFab& bCell);
+void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, const Geometry & Geom, iMultiFab& bCell, int paramPlaneCount);
 
 double getTheta(double nx, double ny, double nz);
 double getPhi(double nx, double ny, double nz);

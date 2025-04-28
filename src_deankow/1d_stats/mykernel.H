@@ -31,7 +31,7 @@ void init_phi (int i, int j, int k,
     using amrex::Real;;
 
     amrex::Real slope = phiright-phileft;
-   
+
 
     Real x = prob_lo[0] + (i+Real(0.5)) * dx[0];
     Real y = prob_lo[1] + (j+Real(0.5)) * dx[1];
@@ -44,7 +44,7 @@ void init_phi (int i, int j, int k,
 #endif
 //    phi(i,j,k,0) = 50./cellvol;
 //    phi(i,j,k,0) = .1;
-    
+
     phi(i,j,k,0) = phileft+x*slope;
     if(Ncomp == 2){
         phi(i,j,k,1) = phi(i,j,k,0);
@@ -70,7 +70,7 @@ void compute_flux_x (int i, int j, int k,
 //    for (int n=0; n<201; n++){
 //       val=(n-100.)*deltaN/50.;
 //       flag = (val>0) ? 1.:-1.;
-//       amrex::Print() << "curve " << val << " " << reg_sqrt(val,deltaN) << " " << flag*std::sqrt(std::abs(val)) << std::endl; 
+//       amrex::Print() << "curve " << val << " " << reg_sqrt(val,deltaN) << " " << flag*std::sqrt(std::abs(val)) << std::endl;
 //    }
 
     int coeff_index = Ncomp-1;

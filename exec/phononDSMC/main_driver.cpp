@@ -102,7 +102,6 @@ void main_driver(const char* argv)
 		cuMeans.define(ba, dmap, ncon, 0); cuMeans.setVal(0.);
 		cuVars.define(ba,dmap, ncon, 0); cuVars.setVal(0.);
 		
-    	bCell.define(ba, dmap, 2, 1); bCell.setVal(0);
 
 
 	}
@@ -144,6 +143,11 @@ void main_driver(const char* argv)
 	paramPlane* paramPlaneList;
 	paramPlaneList = new paramPlane[paramPlaneCount];
 	BuildParamplanesPhonon(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
+
+
+    bCell.define(ba, dmap, paramPlaneCount, 1); bCell.setVal(-1);
+
+
 
 	// Particle tile size
 	Vector<int> ts(BL_SPACEDIM);
@@ -187,7 +191,7 @@ void main_driver(const char* argv)
 
 		particles.SourcePhonons(dt, paramPlaneList, paramPlaneCount);
 
-		particles.MovePhononsCPP(dt, paramPlaneList, paramPlaneCount, writeStep, istep);
+		particles.MovePhononsCPP(dt, paramPlaneList, paramPlaneCount, writeStep, istep, bCell);
 
 		particles.EvaluateStatsPhonon(cuInst,cuMeans,cuVars,statsCount++,time);
 
