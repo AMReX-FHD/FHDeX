@@ -1573,7 +1573,13 @@ void main_driver(const char* argv)
                 if (do_2D) {
 
                     MultiFab surfcov_mag, surfcov_realimag;
-                    surfcov_mag.define(ba_pencil,dmap_pencil,structFactSurfCovPencil[0].get_ncov(),0);
+
+                    surfcov_mag.define     (ba_pencil,dmap_pencil,  structFactSurfCovPencil[0].get_ncov(),0);
+                    surfcov_realimag.define(ba_pencil,dmap_pencil,2*structFactSurfCovPencil[0].get_ncov(),0);
+
+                    surfcov_mag.setVal(0.);
+                    surfcov_realimag.setVal(0.);
+
                     for (int i=0; i<n_cells[2]; ++i) {
                         structFactSurfCovPencil[i].AddToExternal(surfcov_mag,surfcov_realimag);
                     }
