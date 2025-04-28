@@ -325,17 +325,13 @@ void main_driver(const char* argv)
     Real dVolinv = 1.0/dVol;
 #endif
 
-    /////////////////////////////////////////////
-    // Setup Structure factor variables & scaling
-    /////////////////////////////////////////////
+    ///////////////////////////////////
+    // structure factors for full 3D mode
+    ///////////////////////////////////
 
     // Standard 3D structure factors
     StructFact structFactPrim;
     StructFact structFactCons;
-    // MultiFabs to copy data into for snapshots for full 3D data
-    MultiFab structFactPrimMF;
-    MultiFab structFactConsMF;
-
     // Structure factor for vertically-averaged or sliced data
     // these are enabled if project_dir >= 0 AND do_slab_sf == 0
     StructFact structFactPrimFlattened;
@@ -346,22 +342,40 @@ void main_driver(const char* argv)
     StructFact structFactPrimVerticalAverageMembraneHi;
     StructFact structFactConsVerticalAverageMembraneLo;
     StructFact structFactConsVerticalAverageMembraneHi;
-    // Vector of structure factors of slices for 2D simulation
-    // these are enabled if do_2D (this mode assumes z slices; project_dir must equal 2)
-    Vector < StructFact > structFactPrimArray;
-    Vector < StructFact > structFactConsArray;
     // Structure factor for surface coverage slice
     // these are enabled if n_ads_spec > 0 and assumes the k=0 plane is the slice of interest
     StructFact structFactSurfCov;
+
+    // MultiFabs to copy data into for snapshots for full 3D data
+    MultiFab structFactPrimMF;
+    MultiFab structFactConsMF;
+
+    ///////////////////////////////////
+    // structure factors for do_2D mode
+    ///////////////////////////////////
+
+    // Vector of structure factors of slices for 2D simulation
+    // these are enabled if do_2D (this mode assumes project_dir=2)
+    Vector < StructFact > structFactPrimArray;
+    Vector < StructFact > structFactConsArray;
+    // Vector of structure factors for pencils for 2D simulation
+    // these are enabled if do_2D and slicepoint != -1 and assumes ads_wall_dir=1 so we can use ExtractXPencil
+    // (need to implement the "vertical average" still)
+    Vector < StructFact > structFactPrimFlattenedArray;
+    Vector < StructFact > structFactConsFlattenedArray;
     // Vector of structure factors for pencils of surface coverage for 2D simulation
-    // these are enabled if do_2D (this mode assumes that ads_wall_dir=1)
-    Vector < StructFact > structFactSurfCovPencil;
+    // these are enabled if n_ads_spec > 0 and do_2D (this mode assumes that ads_wall_dir=1)
+    Vector < StructFact > structFactSurfCovArray;
 
     // for structure factor analysis of flattened MultiFabs
     // (slices, vertical averages, arrays of flattened MFs, surface coverage)
     BoxArray ba_flat;
     DistributionMapping dmap_flat;
 
+    ///////////////////////////////////
+    // structure factors for do_1D mode
+    ///////////////////////////////////
+    
     // Structure factor for pencils
     // enabled if do_1D=1
     Vector < StructFact > structFactPrimPencil;
@@ -905,10 +919,10 @@ void main_driver(const char* argv)
                 dmap_pencil = pencil.DistributionMap();
 
                 // each plane in z will have an x-pencil on the low-y face
-                structFactSurfCovPencil.resize(n_cells[2]);
+                structFactSurfCovArray.resize(n_cells[2]);
 
                 for (int i = 0; i < n_cells[2];  ++i) { 
-                    structFactSurfCovPencil[i].define(ba_pencil,dmap_pencil,surfcov_var_names,surfcov_var_scaling);
+                    structFactSurfCovArray[i].define(ba_pencil,dmap_pencil,surfcov_var_names,surfcov_var_scaling);
                 }
 
             } else {
@@ -1481,7 +1495,7 @@ void main_driver(const char* argv)
 
                     for (int i=0; i<n_cells[2]; ++i) {
                         ExtractXPencil(surfcov, pencil, 0, i, 0, n_ads_spec);
-                        structFactSurfCovPencil[i].FortStructure(pencil);
+                        structFactSurfCovArray[i].FortStructure(pencil);
                     }
 
                 } else {
@@ -1574,21 +1588,21 @@ void main_driver(const char* argv)
 
                     MultiFab surfcov_mag, surfcov_realimag;
 
-                    surfcov_mag.define     (ba_pencil,dmap_pencil,  structFactSurfCovPencil[0].get_ncov(),0);
-                    surfcov_realimag.define(ba_pencil,dmap_pencil,2*structFactSurfCovPencil[0].get_ncov(),0);
+                    surfcov_mag.define     (ba_pencil,dmap_pencil,  structFactSurfCovArray[0].get_ncov(),0);
+                    surfcov_realimag.define(ba_pencil,dmap_pencil,2*structFactSurfCovArray[0].get_ncov(),0);
 
                     surfcov_mag.setVal(0.);
                     surfcov_realimag.setVal(0.);
 
                     for (int i=0; i<n_cells[2]; ++i) {
-                        structFactSurfCovPencil[i].AddToExternal(surfcov_mag,surfcov_realimag);
+                        structFactSurfCovArray[i].AddToExternal(surfcov_mag,surfcov_realimag);
                     }
                     Real ncellsinv = 1.0/n_cells[2];
                     surfcov_mag.mult(ncellsinv);
                     surfcov_realimag.mult(ncellsinv);
 
                     WritePlotFilesSF_1D(surfcov_mag,surfcov_realimag,step,time,
-                                        structFactSurfCovPencil[0].get_names(),"plt_SF_surfcov_1D");
+                                        structFactSurfCovArray[0].get_names(),"plt_SF_surfcov_1D");
 
                 } else {
                     structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
