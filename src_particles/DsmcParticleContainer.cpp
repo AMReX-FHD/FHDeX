@@ -325,7 +325,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 	SortParticlesDB();
 }
 
-void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep)
+void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep, iMultiFab& bCell)
 {
 	BL_PROFILE_VAR("MoveParticlesCPP()", MoveParticlesCPP);
 
@@ -389,6 +389,8 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 		auto& aos = particle_tile.GetArrayOfStructs();
 		ParticleType* particles = aos().dataPtr();
 		const long np = particle_tile.numParticles();
+		
+        Array4<int> bCellArr  = bCell[pti].array();
 
 		Box bx  = pti.tilebox();
 		IntVect myLo = bx.smallEnd();
@@ -420,11 +422,20 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 				//Print() << "Pre " << part.id() << ": " << part.rdata(FHD_realData::velx + 0) << ", " << part.rdata(FHD_realData::velx + 1) << ", " << part.rdata(FHD_realData::velx + 2) << endl;
 //                printf("DT: %e\n", dt);
 //                cout << "DT: " << dt << endl;
-                for(int ii = 0;ii<100;ii++)
-                { 
+
+                int cell[AMREX_SPACEDIM];
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+    			{
+    			    cell[d] = (int)floor((part.pos(d)-prob_lo[d])/dx[d]);
+		        }
+		        
+                if(bCellArr(cell[0],cell[1],cell[2]) != 1)
+                {
+	
 				    find_inter_gpu(part, runtime, paramPlaneListPtr, paramPlaneCount,
 					    &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
-			    }
+		        }
+			    
 				
 				Real tauImpurityInv = pow(part.rdata(FHD_realData::omega),4)/tau_i_p;
 				Real tauTAInv = part.rdata(FHD_realData::omega)*pow(T_init[0],4)/tau_ta_p;

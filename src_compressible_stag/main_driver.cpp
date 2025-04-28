@@ -135,7 +135,7 @@ void main_driver(const char* argv)
     if (n_cells[0] == 1 && n_cells[1] > 1 && n_cells[2] == 1) {
         Abort("Cannot run a 1D simulation in the y-direcion; use n_cells[0]>1");
     }
-    if (n_cells[0] > 1 && n_cells[1] == 1 && n_cells[2] == 1) {
+    if (n_cells[0] > 1 && n_cells[1] == 1 && n_cells[2] == 1 && do_1D == 0) {
         Abort("1D simulations in the x-direction requires do_1D=1");
     }
     //**********************************************************************
@@ -821,6 +821,9 @@ void main_driver(const char* argv)
                 surfCov_has_multiple_cells = 0;
             }
         } else {
+            // for full 3D simulations if n_cells=1 in both of the non-ads_wall_dir directions
+            // the surface coverage is only a single cell
+            // so don't take structure factors
             if (n_cells[(ads_wall_dir+1)%3] == 1 && n_cells[(ads_wall_dir+2)%3] == 1) {
                 surfCov_has_multiple_cells = 0;
             }
