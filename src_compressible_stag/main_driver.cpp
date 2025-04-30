@@ -1372,11 +1372,15 @@ void main_driver(const char* argv)
             turboutfiledecomp << std::endl;
         }
 #endif
+
+        bool SF_snapshot_taken = false;
         
         // collect a snapshot for structure factor
         if (struct_fact_int > 0 &&
-            step > amrex::Math::abs(n_steps_skip) && 
-            (step-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0) {
+            step > amrex::Math::abs(n_steps_skip) &&
+            step%struct_fact_int == 0) {
+
+            SF_snapshot_taken = true;
             
             /////////// First structFactPrimMF ////////////////
             cnt = 0;
@@ -1543,8 +1547,7 @@ void main_driver(const char* argv)
 
         // write out structure factor
         if (struct_fact_int > 0 &&
-            step >= amrex::Math::abs(n_steps_skip) &&
-            step >= struct_fact_int &&
+            SF_snapshot_taken &&
             plot_int > 0 &&
             step%plot_int == 0) {
 
