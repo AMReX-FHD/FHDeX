@@ -19,10 +19,15 @@ AMREX_GPU_MANAGED amrex::Real MFsurfchem::e_beta;
 AMREX_GPU_MANAGED int MFsurfchem::splitting_MFsurfchem;
 AMREX_GPU_MANAGED int MFsurfchem::conversion_MFsurfchem;
 
+AMREX_GPU_MANAGED int MFsurfchem::sample_output_flag;
+
 void InitializeMFSurfchemNamespace()
 {
     // extract inputs parameters
     ParmParse pp;
+
+    sample_output_flag = 1;  //default: don't output
+    pp.query("sample_output_flag", sample_output_flag);
 
     n_ads_spec = 0;
     // get the number of species that undergoes adsoprtion/desorption
@@ -193,6 +198,18 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 		    }
 		    else {
 		        dNadsdes_arr(i,j,k,m) = Nads-Ndes;
+			if (sample_output_flag == 0 && j == 0 && k == 0 ){
+			  amrex::Print() << "DATA "
+			  	       << prim_arr(i,j,k,4) << " "
+			    	       << prim_arr(i,j,k,5) << " "
+			    	       << prim_arr(i,j,k,6+nspecies) << " "
+			    	       << theta << " "
+				       << Nads << " "
+				       << Ndes <<" "
+				       << Nads-Ndes<<"\n";
+
+			}
+			
 		    }
                 }
             }
