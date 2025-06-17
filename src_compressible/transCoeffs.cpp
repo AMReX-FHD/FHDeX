@@ -14,12 +14,17 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
     // thread shared and thread private arrays on GPUs
     // if the size is not known at compile time, alternate approaches are required
     // here we know the size at compile time
-    
+
+    amrex::IntVect ng_temp;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        ng_temp[d] = (do_1D == 1) ? 1 : ngc[d];
+    }
+
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         // grow the box by ngc
-        const Box& bx = amrex::grow(mfi.tilebox(), ngc);
+        const Box& bx = amrex::grow(mfi.tilebox(), ng_temp);
 
         const Array4<const Real>& prim = prim_in.array(mfi);
 
