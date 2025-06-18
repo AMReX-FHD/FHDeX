@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -rf scrout plt* res.* *.png Backtrace* data*
+rm -rf scrout plt* res.* *.png Backtrace* data* chk* traj* *~

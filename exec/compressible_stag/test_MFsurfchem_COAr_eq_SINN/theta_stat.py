@@ -3,81 +3,39 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 all_theta = []
-all_Nads = []
-all_Ndes = []
-all_delta = []
 
 for i in range(1, 401):
     filename = f"data{i}.txt"
     theta = np.loadtxt(filename,usecols = (-4))
-    Nads = np.loadtxt(filename,usecols = (-3))
-    Ndes = np.loadtxt(filename,usecols = (-2))
-    delta = np.loadtxt(filename,usecols = (-1))
-    all_theta.append(theta)
-    all_Nads.append(Nads)
-    all_Ndes.append(Ndes)
-    all_delta.append(delta)
-    
+    all_theta.append(theta)  
 
 all_theta = np.array(all_theta)
-all_Nads = np.array(all_Nads)
-all_Ndes = np.array(all_Ndes)
-all_delta = np.array(all_delta)
 
-
-
-plt.figure()
+### plot mean of sample trajectories of theta
+plt.figure(figsize=(10, 5))
 plt.plot(all_theta.mean(axis=0))
 plt.title(r"Mean of sample trajectories of $\theta$")
 plt.savefig("Sample trajectories of theta (mean)")
 plt.close()
 
-plt.figure()
+### plot variance of sample trajectories of theta
+plt.figure(figsize=(10, 5))
 plt.plot(all_theta.var(axis=0))
 plt.title(r"Variance of sample trajectories of $\theta$")
 plt.savefig("Sample trajectories of theta (var)")
 plt.close()
 
+### plot 20 sample trajectories of theta
 plt.figure(figsize=(10, 5))
 for i in range(20):
     plt.plot(all_theta[i, :])
 plt.xlabel('time step')
 plt.ylabel(r'$\theta$')
-plt.savefig(r"Sample trajectories of $\theta$")
+plt.savefig("Sample trajectories of theta")
 plt.close()
 
-print(all_theta.shape)
-print(all_theta.mean())
-print(all_theta.std())
-
-all_theta_flat = all_theta.reshape(-1, 1)
-plt.figure(figsize=(10, 5))
-# subplot 1: KDE
-plt.subplot(1, 2, 1)
-sns.kdeplot(all_theta_flat, bw_adjust = 3.0)
-plt.xlabel('Value')
-plt.ylabel('Probability Density')
-plt.title(r'Estimated PDF of $\theta$')
-
-# subplot 2: Histogram
-plt.subplot(1, 2, 2)
-sns.kdeplot(all_theta_flat, bw_adjust = 3.0)
-plt.hist(all_theta_flat, bins=13, density=True, alpha=0.6)
-plt.xlabel('Value')
-plt.ylabel('Probability Density')
-plt.title(r'Histogram of $\theta$')
-plt.savefig("theta_dist.png", dpi = 300, bbox_inches = 'tight')
-plt.close()
-
-plt.figure(figsize=(10, 5))
-plt.plot(all_Nads[0,:], label= 'Adsorption')
-plt.plot(all_Ndes[0,:], label = 'Desorption')
-plt.plot(all_delta[0,:], label = 'Net adsorption-desorption')
-plt.legend()
-plt.savefig('Adsorption-desorption')
-plt.close()
-
- def acf_numpy(x, lags=None):
+######### define ACF based on bruteforce method #########
+def acf_numpy(x, lags=None):
     """
     Compute the unnormalized autocovariance function for an array of shape (n_trajectories, n_timepoints)
 
@@ -109,7 +67,11 @@ plt.close()
 
     return corr
 
-acf_vals = acf_numpy(all_theta, lags = 10000)
+
+
+### plot acf of theta
+print("generating ACF of theta")
+acf_vals = acf_numpy(all_theta[:,::100])
 plt.figure(figsize=(10, 5))
 plt.plot(acf_vals)
 plt.xlabel('lags')
@@ -119,3 +81,4 @@ plt.grid(True)
 plt.tight_layout()
 plt.savefig('acf_theta', dpi = 300, bbox_inches = 'tight')
 plt.close()
+

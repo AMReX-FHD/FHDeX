@@ -5,7 +5,9 @@ ads_wall_dir = 0
 # random number seed
 # 0 = unpredictable seed based on clock
 # positive = fixed seed
-seed = 1
+seed = -1
+chk_int = 100000
+restart = -1
 
 # default : don't output
 sample_output_flag = 1
@@ -13,6 +15,7 @@ sample_output_flag = 1
 # Problem specification
 prob_lo = 0.0 0.0 0.0 # physical lo coordinate
 prob_hi = 1.4976e-04 1.872e-5 1.872e-5 # physical hi coordinate
+prob_hi = 1.4976e-04 0.936e-5 0.936e-5 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
@@ -21,9 +24,9 @@ nvars = 7
 nprimvars = 10
 
 # number of cells in domain
-n_cells = 16 2 2
+n_cells = 16 1 1
 # max number of cells in a box
-max_grid_size = 16 2 2
+max_grid_size = 16 1 1
 
 # Time-step control
 fixed_dt = 1.0e-12
