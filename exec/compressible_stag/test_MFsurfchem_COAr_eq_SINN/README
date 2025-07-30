@@ -1,0 +1,64 @@
+* this file:            README
+This directory contains scripts and analysis tools for testing the MFsurfchem model with the SINN framework. The files are organized for both simulation and analysis tasks, including generating data, cleaning up, comparing results, and visualizing outputs.
+
+## Execution Scripts
+
+* run FHD trajectories  run_fhd_trajectories.sh
+    Executes FHD trajectories for each seed, running in chunks and saving trajectory data.
+* mpirun execution      run.sh
+    -> output               scrout
+* slurm execution       submit_job.sh
+                        job_script.sh (for Pinnacles:--partition pi.ckim103 or dept.appliedmath) 
+    -> output               slurm-*.out
+
+
+* FHD inputs file       inputs_fhd_stag
+    - sample output flag:
+      - sample_output_flag = 1: default, do not output data.
+      - sample_output_flag = 0: enable output of data.
+      - This flag can be modified to control data collection during simulation.
+    - restart behavior:
+      - restart = -1: Do not restart; start the simulation from the beginning.
+      - chk_int = INT: Set the checkpoint interval to every INT steps.
+      - The restart and chk_int values are used to control checkpointing and restart behavior.
+* parameter analysis    params_COAr_eq.py
+
+* clean-up              clean.sh
+* comparison            diff.sh
+
+---analysis codes--- 
+* theta analysis            theta_stat.py
+    -> output               Sample trajectories of theta (mean).png
+                            Sample trajectories of theta (var).png
+                            Sample trajectories of theta.png
+                            acf_theta.png
+* var: rho1,rhoE,temp,j zavg.sh
+                        zavg.plt (5%, check val1, val2, val3, val4, ncellx, ncelly, ncellz, dz)
+    -> output               zavg.png
+                            res.zavg
+* covar: theta-rho,v,T  surfcoVar.sh
+                        surfcoVar.plt (check val1, val2, val3, val4, ncellx, ncelly)
+    -> output               surfcoVar.png
+                            res.surfcoVar_rhoYk-T
+                            res.surfcoVar_theta-T
+                            res.surfcoVar_theta-rhoYk
+                            res.surfcoVar_theta-vx
+                            res.surfcoVar_theta-vy
+                            res.surfcoVar_theta-vz
+* mean: rho1            zavg_rhoY1mean.sh
+                        zavg_rhoY1mean.plt (1%, check val, ncellx, ncelly, ncellz, dz)
+    -> output               zavg_rhoY1mean.png
+                            res.zavg_rhoY1mean
+* surface coverage      ads.sh
+                        ads.py (check Ncellx, Ncelly, meantheta1, vartheta1)
+                        ads.plt (check val1, val2)
+    -> output               ads.png
+                            res.ads
+                            res.ads_mean
+                            res.ads_var
+* mass conservation     mass_cons.sh
+                        mass_cons.py (check Ncellx, Ncelly, Ncellz, dx, dy, dz, Ntot, mass)
+    -> output               res.mass_cons
+* actual eq surf cov    theta_eq.sh
+                        theta_eq.py (Ncellx, Ncelly, Ncellz, dx, dy, dz, Ntot, meandens, meantheta)
+    -> output               res.theta_eq

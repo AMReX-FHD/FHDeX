@@ -19,10 +19,15 @@ AMREX_GPU_MANAGED amrex::Real MFsurfchem::e_beta;
 AMREX_GPU_MANAGED int MFsurfchem::splitting_MFsurfchem;
 AMREX_GPU_MANAGED int MFsurfchem::conversion_MFsurfchem;
 
+AMREX_GPU_MANAGED int MFsurfchem::sample_output_flag;
+
 void InitializeMFSurfchemNamespace()
 {
     // extract inputs parameters
     ParmParse pp;
+
+    sample_output_flag = 1;  //default: don't output
+    pp.query("sample_output_flag", sample_output_flag);
 
     n_ads_spec = 0;
     // get the number of species that undergoes adsoprtion/desorption
@@ -167,12 +172,16 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 amrex:: Real tempratio = prim_arr(i,j,k,4)/T_init[0];
 
                 for (int m=0;m<n_ads_spec;m++) {
-                    amrex::Real pres = prim_arr(i,j,k,5);   // total pressure
-                    pres *= prim_arr(i,j,k,6+nspecies+m);   // partial pressure
-
+		    // amrex::Real pres = prim_arr(i,j,k,5);   // total pressure
+		    // amrex::Print() << "full pressure " << pres << "\n"; 
+                    // pres *= prim_arr(i,j,k,6+nspecies+m);   // partial pressure
+		    // amrex::Print() << "prim_arr " << prim_arr(i,j,k,6+nspecies+m) << std::endl;
+		    // amrex::Print() << "partial pressure " << pres << "\n";
+		    amrex::Real pres = 595634.6828;
+		    
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
-  		    amrex::Real meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
+  		    amrex::Real meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt;//*pow(tempratio,k_beta);
                     amrex::Real meanNdes = des_rate[m]*theta*Ntot*dt;
 
                     amrex::Real Nads;
@@ -193,6 +202,18 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 		    }
 		    else {
 		        dNadsdes_arr(i,j,k,m) = Nads-Ndes;
+			if (sample_output_flag == 0 && j == 0 && k == 0 ){
+			  amrex::Print() << "DATA "
+			  	       << prim_arr(i,j,k,4) << " "
+			    	       << prim_arr(i,j,k,5) << " "
+			    	       << prim_arr(i,j,k,6+nspecies) << " "
+			    	       << theta << " "
+				       << Nads << " "
+				       << Ndes <<" "
+				       << Nads-Ndes<<"\n";
+
+			}
+			
 		    }
                 }
             }

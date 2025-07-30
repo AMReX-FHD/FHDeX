@@ -1,0 +1,457 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+all_theta = []
+all_Nads = []
+all_Ndes = []
+all_delta = []
+
+for i in range(1, 401):
+    filename = f"data{i}.txt"
+    theta = np.loadtxt(filename,usecols = (-4))
+    Nads = np.loadtxt(filename,usecols = (-3))
+    Ndes = np.loadtxt(filename,usecols = (-2))
+    delta = np.loadtxt(filename,usecols = (-1))
+    all_theta.append(theta)
+    all_Nads.append(Nads)
+    all_Ndes.append(Ndes)
+    all_delta.append(delta)
+    
+
+all_theta = np.array(all_theta)
+all_Nads = np.array(all_Nads)
+all_Ndes = np.array(all_Ndes)
+all_delta = np.array(all_delta)
+
+
+### plot mean of sample trajectories of theta
+plt.figure(figsize=(10, 5))
+plt.plot(all_theta.mean(axis=0))
+plt.title(r"Mean of sample trajectories of $\theta$")
+plt.savefig("Sample trajectories of theta (mean)")
+plt.close()
+
+### plot variance of sample trajectories of theta
+plt.figure(figsize=(10, 5))
+plt.plot(all_theta.var(axis=0))
+plt.title(r"Variance of sample trajectories of $\theta$")
+plt.savefig("Sample trajectories of theta (var)")
+plt.close()
+
+### plot 20 sample trajectories of theta
+plt.figure(figsize=(10, 5))
+for i in range(20):
+    plt.plot(all_theta[i, :])
+plt.xlabel('time step')
+plt.ylabel(r'$\theta$')
+plt.savefig("Sample trajectories of theta")
+plt.close()
+
+### statistics of theta
+print(all_theta.shape)
+print(all_theta.mean())
+print(all_theta.std())
+all_theta_flat = all_theta.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_theta_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Estimated PDF of $\theta$')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_theta_flat, bw_adjust = 3.0)
+plt.hist(all_theta_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Histogram of $\theta$')
+plt.savefig("theta_dist.png", dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+### plot adsorption desorption
+plt.figure(figsize=(10, 5))
+plt.plot(all_Nads[0,:], label= 'Adsorption')
+plt.plot(all_Ndes[0,:], label = 'Desorption')
+plt.plot(all_delta[0,:], label = 'Net adsorption-desorption')
+plt.legend()
+plt.savefig('Adsorption-desorption')
+plt.close()
+
+######### define ACF based on bruteforce method #########
+def acf_numpy(x, lags=None):
+    """
+    Compute the unnormalized autocovariance function for an array of shape (n_trajectories, n_timepoints)
+
+    Parameters:
+        x: ndarray of shape (N, T) -- N trajectories, T timepoints
+        lags: int or array-like or None
+
+    Returns:
+        corr: ndarray of shape (len(lags),)
+    """
+    x = np.asarray(x)
+    x = x - x.mean(axis=1, keepdims=True)  # center each trajectory
+
+    N, T = x.shape
+    if lags is None:
+        lags = np.arange(T)
+    elif isinstance(lags, int):
+        lags = np.arange(lags)
+    else:
+        lags = np.array(lags)
+
+    corr = np.zeros(len(lags))
+    for i, lag in enumerate(lags):
+        if lag >= T:
+            continue
+        u = x[:, :T - lag]
+        v = x[:, lag:]
+        corr[i] = np.sum(u * v) / (N * (T - lag))
+
+    return corr
+
+### plot acf of theta
+print("generating ACF of theta")
+acf_vals = acf_numpy(all_theta)
+plt.figure(figsize=(10, 5))
+plt.plot(acf_vals)
+plt.xlabel('lags')
+plt.ylabel('ACF')
+plt.title(r"ACF of $\theta$")
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('acf_theta', dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+### statistics of Nads
+print(all_Nads.shape)
+print(all_Nads.mean())
+print(all_Nads.std())
+
+all_Nads_flat = all_Nads.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_Nads_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Estimated PDF of Nads')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_Nads_flat, bw_adjust = 3.0)
+plt.hist(all_Nads_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Histogram of Nads')
+plt.savefig("Nads_dist.png", dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+### statistics of Ndes
+print(all_Ndes.shape)
+print(all_Ndes.mean())
+print(all_Ndes.std())
+
+all_Ndes_flat = all_Ndes.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_Ndes_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Estimated PDF of Ndes')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_Ndes_flat, bw_adjust = 3.0)
+plt.hist(all_Ndes_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Histogram of Ndes')
+plt.savefig("Ndes_dist.png", dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+### statistics of Net adsorption-desorption
+print(all_delta.shape)
+print(all_delta.mean())
+print(all_delta.std())
+
+all_delta_flat = all_delta.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_delta_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Estimated PDF of $\Delta$')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_delta_flat, bw_adjust = 3.0)
+plt.hist(all_delta_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Histogram of $\Delta$')
+plt.savefig("Net_dist.png", dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+########################## Keep last 80000 with step size 100 (800 points in total) #######################
+print("Keep last 80000")
+all_theta_slice = all_theta[:,-80000::100]
+### plot 20 sample trajectories of theta
+plt.figure(figsize=(10, 5))
+for i in range(20):
+    plt.plot(all_theta_slice[i, :])
+plt.xlabel('time step')
+plt.ylabel(r'$\theta$')
+plt.savefig(r"Sample trajectories of theta 800")
+plt.close()
+
+### statistics of theta
+print(all_theta_slice.shape)
+print(all_theta_slice.mean())
+print(all_theta_slice.std())
+
+all_theta_flat = all_theta_slice.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_theta_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Estimated PDF of $\theta$')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_theta_flat, bw_adjust = 3.0)
+plt.hist(all_theta_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Histogram of $\theta$')
+plt.savefig("theta_dist_800.png", dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+all_Nads_slice = all_Nads[:,-80000::100]
+all_Ndes_slice = all_Ndes[:,-80000::100]
+all_delta_slice = all_delta[:,-80000::100]
+### plot adsorption desorption
+plt.figure(figsize=(10, 5))
+plt.plot(all_Nads_slice[0,:], label= 'Adsorption')
+plt.plot(all_Ndes_slice[0,:], label = 'Desorption')
+plt.plot(all_delta_slice[0,:], label = 'Net adsorption-desorption')
+plt.legend()
+plt.savefig('Adsorption-desorption 800')
+plt.close()
+
+### plot acf of theta
+print("generating ACF of theta")
+acf_vals = acf_numpy(all_theta_slice)
+plt.figure(figsize=(10, 5))
+plt.plot(acf_vals)
+plt.xlabel('lags')
+plt.ylabel('ACF')
+plt.title(r"ACF of $\theta$")
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('acf_theta 800', dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+### statistics of Nads
+print(all_Nads_slice.shape)
+print(all_Nads_slice.mean())
+print(all_Nads_slice.std())
+
+all_Nads_flat = all_Nads_slice.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_Nads_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Estimated PDF of Nads')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_Nads_flat, bw_adjust = 3.0)
+plt.hist(all_Nads_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Histogram of Nads')
+plt.savefig("Nads_dist 800.png", dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+### statistics of Ndes
+print(all_Ndes_slice.shape)
+print(all_Ndes_slice.mean())
+print(all_Ndes_slice.std())
+
+all_Ndes_flat = all_Ndes_slice.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_Ndes_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Estimated PDF of Ndes')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_Ndes_flat, bw_adjust = 3.0)
+plt.hist(all_Ndes_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Histogram of Ndes')
+plt.savefig("Ndes_dist 800.png", dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+### statistics of Net adsorption-desorption
+print(all_delta_slice.shape)
+print(all_delta_slice.mean())
+print(all_delta_slice.std())
+
+all_delta_flat = all_delta_slice.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_delta_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Estimated PDF of $\Delta$')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_delta_flat, bw_adjust = 3.0)
+plt.hist(all_delta_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Histogram of $\Delta$')
+plt.savefig("Net_dist 800.png", dpi = 300, bbox_inches = 'tight')
+plt.close()
+
+########################## Keep last 40000 with step size 100 (400 points in total) ########################
+print("Keep last 40000")
+all_theta_slice = all_theta[:,-40000::100]
+### plot 20 sample trajectories of theta
+plt.figure(figsize=(10, 5))
+for i in range(20):
+    plt.plot(all_theta_slice[i, :])
+plt.xlabel('time step')
+plt.ylabel(r'$\theta$')
+plt.savefig(r"Sample trajectories of theta 400")
+
+### statistics of theta
+print(all_theta_slice.shape)
+print(all_theta_slice.mean())
+print(all_theta_slice.std())
+
+all_theta_flat = all_theta_slice.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_theta_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Estimated PDF of $\theta$')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_theta_flat, bw_adjust = 3.0)
+plt.hist(all_theta_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Histogram of $\theta$')
+plt.savefig("theta_dist_400.png", dpi = 300, bbox_inches = 'tight')
+
+all_Nads_slice = all_Nads[:,-40000::100]
+all_Ndes_slice = all_Ndes[:,-40000::100]
+all_delta_slice = all_delta[:,-40000::100]
+### plot adsorption desorption
+plt.figure(figsize=(10, 5))
+plt.plot(all_Nads_slice[0,:], label= 'Adsorption')
+plt.plot(all_Ndes_slice[0,:], label = 'Desorption')
+plt.plot(all_delta_slice[0,:], label = 'Net adsorption-desorption')
+plt.legend()
+plt.savefig('Adsorption-desorption 400')
+### plot acf of theta
+print("generating ACF of theta")
+acf_vals = acf_numpy(all_theta_slice)
+plt.figure(figsize=(10, 5))
+plt.plot(acf_vals)
+plt.xlabel('lags')
+plt.ylabel('ACF')
+plt.title(r"ACF of $\theta$")
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('acf_theta 400', dpi = 300, bbox_inches = 'tight')
+
+### statistics of Nads
+print(all_Nads_slice.shape)
+print(all_Nads_slice.mean())
+print(all_Nads_slice.std())
+
+all_Nads_flat = all_Nads_slice.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_Nads_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Estimated PDF of Nads')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_Nads_flat, bw_adjust = 3.0)
+plt.hist(all_Nads_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Histogram of Nads')
+plt.savefig("Nads_dist 400.png", dpi = 300, bbox_inches = 'tight')
+
+### statistics of Ndes
+print(all_Ndes_slice.shape)
+print(all_Ndes_slice.mean())
+print(all_Ndes_slice.std())
+
+all_Ndes_flat = all_Ndes_slice.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_Ndes_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Estimated PDF of Ndes')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_Ndes_flat, bw_adjust = 3.0)
+plt.hist(all_Ndes_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title('Histogram of Ndes')
+plt.savefig("Ndes_dist 400.png", dpi = 300, bbox_inches = 'tight')
+
+# statistics of net adsorption-desorption
+print(all_delta_slice.shape)
+print(all_delta_slice.mean())
+print(all_delta_slice.std())
+
+all_delta_flat = all_delta_slice.reshape(-1, 1)
+plt.figure(figsize=(10, 5))
+# subplot 1: KDE
+plt.subplot(1, 2, 1)
+sns.kdeplot(all_delta_flat, bw_adjust = 3.0)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Estimated PDF of $\Delta$')
+
+# subplot 2: Histogram
+plt.subplot(1, 2, 2)
+sns.kdeplot(all_delta_flat, bw_adjust = 3.0)
+plt.hist(all_delta_flat, bins=13, density=True, alpha=0.6)
+plt.xlabel('Value')
+plt.ylabel('Probability Density')
+plt.title(r'Histogram of $\Delta$')
+plt.savefig("Net_dist 400.png", dpi = 300, bbox_inches = 'tight')

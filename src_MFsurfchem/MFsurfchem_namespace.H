@@ -18,4 +18,6 @@ namespace MFsurfchem {
     extern AMREX_GPU_MANAGED int splitting_MFsurfchem;
     extern AMREX_GPU_MANAGED int conversion_MFsurfchem;
 
+    extern AMREX_GPU_MANAGED int sample_output_flag;
+
 }
