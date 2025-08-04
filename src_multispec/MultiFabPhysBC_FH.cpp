@@ -156,6 +156,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 });
             }
             else if (bc_mass_lo[1] == 4) {
+ //               amrex::Print() << " entering special FH bc routine lo " <<  bc_mass_lo[1] << " " << contact_angle_lo[1] << std::endl;
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < lo) {
@@ -165,6 +166,20 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*scratch*(1.-scratch)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+			if(ncomp == 3){
+			    amrex::Real inc = data(i,j,k,scomp+0) - data(i,lo,k,scomp+0) ;
+			    amrex::Real c1pr = amrex::max(1.e-4,  data(i,lo,k,scomp+1)) ;
+			    amrex::Real c2pr = amrex::max(1.e-4,  data(i,lo,k,scomp+2)) ;
+			    data(i,j,k,scomp+1) = data(i,lo,k,scomp+1)-inc*c1pr/(c1pr+c2pr);
+			    data(i,j,k,scomp+2) = data(i,lo,k,scomp+2)-inc*c2pr/(c1pr+c2pr);
+			}
+
+//			if(k == 191)
+//			{
+//			amrex::Real sum_test = data(i,j,k,scomp+0) + data(i,j,k,scomp+1)+ data(i,j,k,scomp+2) ;
+//			amrex::Print() << "in bc bot " << i << " " << data(i,j,k,scomp+0) << " " <<  data(i,j,k,scomp+1) << " " <<  data(i,j,k,scomp+2) << " " << sum_test << std::endl;
+//			}
+
 
 //                        if(j == lo-1 && i > 60 && i < 70){
 //                           amrex::Print() << " normal derivative " << cos(contact_angle_lo[1])*data(i,lo,k,scomp+0)*data(i,lo,k,scomp+1)*coeff << std::endl;
@@ -201,6 +216,20 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         //data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + dx[1]*std::cos(contact_angle_hi[1])*data(i,hi,k,scomp+0)*data(i,hi,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+			if(ncomp == 3){
+			    amrex::Real inc = data(i,j,k,scomp+0) - data(i,hi,k,scomp+0) ;
+			    amrex::Real c1pr = amrex::max(1.e-4,  data(i,hi,k,scomp+1)) ;
+			    amrex::Real c2pr = amrex::max(1.e-4,  data(i,hi,k,scomp+2)) ;
+			    data(i,j,k,scomp+1) = data(i,hi,k,scomp+1) -inc*c1pr/(c1pr+c2pr);
+			    data(i,j,k,scomp+2) = data(i,hi,k,scomp+1) -inc*c2pr/(c1pr+c2pr);
+			}
+
+
+//			if(k == 191)
+//			{
+//			amrex::Real sum_test = data(i,j,k,scomp+0) + data(i,j,k,scomp+1)+ data(i,j,k,scomp+2) ;
+//			amrex::Print() << "in bc top " << i << " " << data(i,j,k,scomp+0) << " " <<  data(i,j,k,scomp+1) << " " <<  data(i,j,k,scomp+2) << " " << sum_test <<  std::endl;
+//			}
 
                         //data(i,j,k,scomp+1) = data(lo,j,k,scomp+1) + 0.5*dx[0]*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
                     }

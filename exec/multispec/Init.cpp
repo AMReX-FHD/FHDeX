@@ -60,6 +60,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // ASA
     if (prob_type == 11) {
 
+	int jshift = 0;
+	jshift = 57;
         Box slab(geom.Domain()); slab.setRange(0,0); slab.setRange(2,0); // This creates a box on the x-face only
 	int scomps = 2*nspecies+6;
         FArrayBox my_stuff(slab,scomps);                  // This creates a FAB on that box with 10 components 
@@ -83,7 +85,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                     for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) = init_data(0,j,0,n+offset);
+		            int jindx = min(j+jshift,127);
+                            c(i,j,k,n) = init_data(0,jindx,0,n+offset);
+                            //c(i,j,k,n) = init_data(0,j,0,n+offset);
                     }
             });
 	} // mfi
@@ -478,6 +482,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                              x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub ;
                              y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;
+			     Real xshift = 0.5*(prob_lo[0]+prob_hi[0]);
 
 
                 if (smoothing_width == 0.) {
@@ -489,7 +494,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                             c(i,j,k,n) += c_init_1[n];
                         }
 		    } else if (y < film_thickness+surf_thickness) {
-			if(x < radius_cyl){
+			if(std::abs(x-xshift) < 0.5*radius_cyl){
                            for (int n=0; n<nspecies; ++n) {
                                c(i,j,k,n) += c_init_3[n];
                            }
@@ -633,7 +638,6 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	        }
             });
 
-
         } else if (prob_type == 17) {
 
 	    amrex::Real rad = radius_cyl;
@@ -690,6 +694,107 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/(factor*factor*factor);
                }
+            });
+
+
+
+        } else if (prob_type == 18) {
+
+	    amrex::Real rad = radius_cyl;
+            amrex::Real alpha = contact_angle_lo[1];
+	    amrex::Real rad2 = .00212;
+            GpuArray<Real,AMREX_SPACEDIM> droplet_center;
+
+            AMREX_D_TERM(droplet_center[0] = center[0];,
+                     droplet_center[1] = rad*std::cos(alpha)+rad+rad2 + 4*dx[1];,
+                     droplet_center[2] = center[2];);
+
+	    amrex::Print() << " rad stuff " << rad << " " << rad2 << " " << std::cos(alpha) << " " << alpha << std::endl;
+
+
+	    int nsub = 10;
+	    Real factor = nsub;
+	    Real dxsub = dx[0]/factor;
+	    Real dysub = dx[1]/factor;
+	    Real dzsub = dx[2]/factor;
+	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
+            
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+               for (int n=0; n<nspecies; ++n) {
+                   c(i,j,k,n) = 0.;
+               }
+
+            Real x,y,z;
+            Real x2,y2,z2;
+
+            for(int i1=0; i1<nsub; ++i1) {
+            for(int j1=0; j1<nsub; ++j1) {
+            for(int k1=0; k1<nsub; ++k1) {
+
+                AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
+                             y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - rad*std::cos(alpha);,
+                             z = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - center[2];);
+
+                AMREX_D_TERM(x2 = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - droplet_center[0];,
+                             y2 = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - droplet_center[1];,
+                             z2 = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - droplet_center[2];);
+
+		amrex::Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
+		amrex::Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);
+
+
+                if (smoothing_width == 0.) {
+
+                    // discontinuous interface
+                    if (r < rad) {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) += c_init_1[n];
+                        }
+                    } else if (r2 < rad2){
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) += c_init_3[n];
+                        }
+
+                    } else {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) += c_init_2[n];
+                        }
+                    }
+                    
+                } else {
+                    // smooth interface
+                    for (int n=0; n<nspecies; ++n) {
+                        c(i,j,k,n) += c_init_2[n] +
+                                     (c_init_1[n]-c_init_2[n]) *0.5*(1. + std::tanh(-(r-rad)/(smoothing_width*dx[0]))) +
+                                     (c_init_3[n]-c_init_2[n]) *0.5*(1. + std::tanh(-(r2-rad2)/(smoothing_width*dx[0])));
+
+                    }
+                }
+             }    
+             }    
+             }    
+               for (int n=0; n<nspecies; ++n) {
+                   c(i,j,k,n) = c(i,j,k,n)/(factor*factor*factor);
+               }
+            });
+
+            const Array4<Real> & vmac = (umac[1]).array(mfi);
+            Box bx_vmac = mfi.tilebox(nodal_flag_y);
+
+	    amrex::Real veldrop = -100.;
+
+            amrex::ParallelFor(bx_vmac, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real x2,y2,z2;
+                AMREX_D_TERM(x2 = prob_lo[0] + (i+0.5)*dx[0] - droplet_center[0];,
+                             y2 = prob_lo[1] + (j)*dx[1] - droplet_center[1];,
+                             z2 = prob_lo[2] + (k+0.5)*dx[2] - droplet_center[2];);
+
+                Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);
+                if (r2 < rad2) {
+                        vmac(i,j,k) = veldrop;
+                }
             });
 
 
