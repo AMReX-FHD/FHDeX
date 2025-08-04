@@ -241,6 +241,7 @@ int                        common::plot_means;
 int                        common::plot_vars;
 int                        common::plot_covars;
 int                        common::plot_cross;
+int                        common::plot_deltaY_dir;
 int                        common::particle_motion;
 
 AMREX_GPU_MANAGED amrex::Real common::turb_a;
@@ -340,7 +341,7 @@ void InitializeCommonNamespace() {
     // primvars - number of primative variables (no default)
 
     cross_cell = 0;     // cell to compute spatial correlation
-    do_slab_sf = 0;     // whether to compute SF in two slabs separated by cross_cell
+    do_slab_sf = 0;     // whether to compute SF in two slabs separated by membrane_cell
 
     for (int i=0; i<MAX_SPECIES; ++i) {
         qval[i] = 0.;                // charge on an ion
@@ -610,6 +611,7 @@ void InitializeCommonNamespace() {
     plot_vars = 0;
     plot_covars = 0;
     plot_cross = 0;
+    plot_deltaY_dir = -1;
     particle_motion = 0;
 
     // turblent forcing parameters
@@ -1138,6 +1140,7 @@ void InitializeCommonNamespace() {
     pp.query("plot_vars",plot_vars);
     pp.query("plot_covars",plot_covars);
     pp.query("plot_cross",plot_cross);
+    pp.query("plot_deltaY_dir",plot_deltaY_dir);
     pp.query("particle_motion",particle_motion);
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);

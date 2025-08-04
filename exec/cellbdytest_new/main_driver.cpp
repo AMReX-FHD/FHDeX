@@ -1809,18 +1809,18 @@ void main_driver(const char* argv)
 
             // charge
             MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);
-            structFact_charge.FortStructure(struct_cc_charge,geomP);
+            structFact_charge.FortStructure(struct_cc_charge);
 
             // velocity
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 ShiftFaceToCC(umac[d],0,struct_cc_vel,d,1);
             }
-            structFact_vel.FortStructure(struct_cc_vel,geom);
+            structFact_vel.FortStructure(struct_cc_vel);
             
             // plot structure factor on plot_int
             if (istep%plot_int == 0) {
-                structFact_charge.WritePlotFile(istep,time,geomP,"plt_SF_charge");
-                structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
+                structFact_charge.WritePlotFile(istep,time,"plt_SF_charge");
+                structFact_vel   .WritePlotFile(istep,time,"plt_SF_vel");
             }
         }
 

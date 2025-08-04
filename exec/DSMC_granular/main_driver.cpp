@@ -402,14 +402,14 @@ void main_driver(const char* argv)
 			MultiFab::Copy(structFactPrimMF,primInst,8,cnt_sf,numvars_sf,0);
 			cnt_sf += numvars_sf;
 
-			structFactPrim.FortStructure(structFactPrimMF,geom);
+			structFactPrim.FortStructure(structFactPrimMF);
 		}
 
 		if(istep > amrex::Math::abs(n_steps_skip) &&
 			struct_fact_int > 0 && plot_int > 0 &&
 			istep%plot_int == 0)
 		{
-			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
+			structFactPrim.WritePlotFile(istep,time,"plt_SF_prim");
 		}
 
 		//////////////////////////////////////

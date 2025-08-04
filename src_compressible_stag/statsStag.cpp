@@ -34,6 +34,7 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
+        if (!plot_means) Abort("plot_vars and plot_covars require plot_means");
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
                            cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,thetacoVar,steps);
         consVar.FillBoundary(geom.periodicity());
@@ -97,6 +98,7 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
+        if (!plot_means) Abort("plot_vars and plot_covars require plot_means");
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
                            cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,thetacoVar,steps);
         consVar.FillBoundary(geom.periodicity());
@@ -146,6 +148,7 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
+        if (!plot_means) Abort("plot_vars and plot_covars require plot_means");
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
                            cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,thetacoVar,steps);
         consVar.FillBoundary(geom.periodicity());

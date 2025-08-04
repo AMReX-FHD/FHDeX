@@ -20,6 +20,10 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
     }
 
     phi_old[lev].FillBoundary(Geom(lev).periodicity());
+
+    // We do this here so we can print the FABs for debugging
+    phi_new[lev].setVal(0.0);
+
     advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, dt_lev, npts_scale, geom[lev], bcs);
 
     // Increment or decrement the flux registers by area and time-weighted fluxes

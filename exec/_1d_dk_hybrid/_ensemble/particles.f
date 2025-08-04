@@ -61,6 +61,8 @@ c     write(6,*) num_part,dx
 
       do n=1,num_part
            
+        if(part(n).ge.0.d0)then
+
           bin = part(n)/dx + 1
 
           if(bin.ge.jpartl .and. bin .le.jpartr)then
@@ -72,8 +74,10 @@ c     write(6,*) num_part,dx
 c             write(6,*)" particle ",n," at ", part(n)," bin ",bin,
 c    1               jpartl,jpartr
           endif
+       endif
 
        enddo
+
 
        do j=jpartl,jpartr
 
@@ -94,31 +98,64 @@ c    1               jpartl,jpartr
       double precision u(0:ndim+1), part(pdim),xl(ndim+1)
       double precision dx, rn_unif
 
-      integer j,npart,n,k
+      double precision sumcdf, factor, factorial, mean,var
+
+      integer j,npart,n,k, ipois
 
       parameter (nloc = 2000)
+
+      ipois = 1
 
 c doesn't fill bc for reservoir.  do that separately
 
 c     write(6,*)" interior particles ", num_part
 c     k = num_part
 
-      if(jpartl.gt.npghost .and. jpartr .le.npts-npghost)then
+c     if(jpartl.gt.npghost .and. jpartr .le.npts-npghost)then
 
       do j=jpartl-npghost,jpartl-1
 
          call random_number(rn_unif)
          npart = u(j)*dx+rn_unif
+c        if(j.eq.0)write(6,*)npart," particles at 0"
 c        npart = u(j)*dx+0.5d0
+   
+         if(j.eq.0 .and. ipois.eq.1)then
+            mean = 0.d0
+            var = 0.d0
+
+            npart = 0
+            factor = dexp(-u(j)*dx)
+            sumcdf = factor
+            factorial = 1.d0
+            do n = 1,1000
+              if(rn_unif .le. sumcdf) go to 500
+              npart = npart+1
+              factorial = factorial * (u(j)*dx)/dfloat(n)
+              sumcdf = sumcdf + factor*factorial
+            enddo
+500   continue
+         endif
+          
 
          if(npart.gt.0)then
-            do n=1,npart
+           if(j.eq.0)then
+              do n=1,npart
 
-               num_part = num_part + 1
-               call random_number(rn_unif)
-               part(num_part) = xl(j)+rn_unif*dx
+                 num_part = num_part + 1
+                 call random_number(rn_unif)
+                 part(num_part) = -dx+ rn_unif*dx
 
-            enddo
+              enddo
+           else
+              do n=1,npart
+
+                 num_part = num_part + 1
+                 call random_number(rn_unif)
+                 part(num_part) = xl(j)+rn_unif*dx
+
+              enddo
+           endif
          endif
 
        enddo
@@ -141,7 +178,7 @@ c        npart = u(j)*dx+0.5d0
 
        enddo
 
-      endif
+c     endif
 
 c     write(6,*)" number total, ghost ", num_part, num_part-k
 
@@ -170,12 +207,16 @@ c     write(6,*)" number total, ghost ", num_part, num_part-k
 
           inc = normal*sqrt(dt)
 
-          if(inc .gt.dx)then
+          if(abs(inc) .gt.dx)then
               ibad = ibad + 1
-c            write(6,*)"bad point ",ibad,inc,dx,inc/dx
-              inc = dx
+c             write(6,*)"bad point ",ibad,n,inc,dx,inc/dx
+              inc = sign(dx,inc)
           endif
           part_new(n) = part(n) + inc
+
+c         if(part(n) .le. 2*dx)then
+c             write(6,*)"particle update ", n, part(n),part_new(n)
+c         endif
 
        enddo
 
@@ -184,9 +225,11 @@ c            write(6,*)"bad point ",ibad,inc,dx,inc/dx
        endif
 
           
-      if(jpartl.gt.1 .and. jpartr.le.npts)then
+c     if(jpartl.gt.1 .and. jpartr.le.npts)then
 
           do n=1,num_part 
+
+           if(jpartl.gt.1 )then
 
               if(part_new(n).ge.xl(jpartl) 
      1            .and. part(n).lt.xl(jpartl))then 
@@ -200,12 +243,19 @@ c            write(6,*)"bad point ",ibad,inc,dx,inc/dx
                  crossl = crossl+1.d0
 
               endif
+
+           endif
+
+           if(jpartr.lt.npts )then
+
               if(part_new(n).ge.xl(jpartr+1) 
      1            .and. part(n).lt.xl(jpartr+1))then 
 
                  crossr = crossr-1.d0
 
               endif
+
+
               if(part_new(n).lt.xl(jpartr+1) 
      1            .and. part(n).ge.xl(jpartr+1))then 
 
@@ -213,9 +263,11 @@ c            write(6,*)"bad point ",ibad,inc,dx,inc/dx
 
               endif
 
+           endif
+
           enddo
 
-      endif
+c     endif
 
 c     write(6,*)" number of particles crossing ", crossl, crossr
 

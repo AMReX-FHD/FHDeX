@@ -95,8 +95,12 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
 
 void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,
-                                const int& ncomp)
+                                const int& ncomp, int outcomp)
 {
+    if (outcomp == -1) {
+        outcomp = incomp; // default outcomp is incomp unless specified
+    }
+
     // number of points in the averaging direction
     int npts = n_cells[dir];
 
@@ -166,7 +170,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
         const Array4<Real> mf = mf_out.array(mfi);
 
         for (auto n=0; n<ncomp; ++n) {
-            comp = incomp+n;
+            comp = outcomp+n;
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
@@ -189,7 +193,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
 
 
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
-			    const Geometry& geom, const int& dir,
+			    const int& dir,
 			    const int& incomp, const int& ncomp,
                             const int& slablo, const int& slabhi)
 {
@@ -199,19 +203,9 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
     if (dir >= AMREX_SPACEDIM) {
         Abort("ComputeVerticalAverage: invalid dir");
     }
-    
-    // debugging
-    bool write_data = false;
-
-    // this is a full MultiFab with pencil-shaped boxes
-    // we will define mf_flat as a flattened MultiFab that
-    // has the same BoxArray but flattened in the dir direction
-    // and the same DistributionMapping so
-    // we can do the averaging from mf_pencil to mf_flat on a box-by-box basis
-    MultiFab mf_pencil;
 
     // get a single Box that spans the full domain
-    Box domain(geom.Domain());
+    Box domain(mf.boxArray().minimalBox());
 
     // these are the transverse directions (i.e., NOT the dir direction)
     int dir1=0, dir2=0;
@@ -229,7 +223,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
         dir2 = 1;
     }
 #endif
-
+    
     // max_grid_size_pencil will be equal to the number of cells in the domain in the dir direction
     // and uses max_grid_projection to set the non-dir directions
     Vector<int> max_grid_size_pencil(AMREX_SPACEDIM);
@@ -238,36 +232,6 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
 #if (AMREX_SPACEDIM == 3)
     max_grid_size_pencil[dir2] = max_grid_projection[1];
 #endif
-
-    // create the BoxArray for the pencil MultiFab
-    BoxArray ba_pencil(domain);
-    ba_pencil.maxSize(IntVect(max_grid_size_pencil));
-
-    // create DistributionMapping on the pencil BoxArray
-    DistributionMapping dmap_pencil(ba_pencil);
-
-    // build pencil MultiFab
-    mf_pencil.define(ba_pencil,dmap_pencil,ncomp,0);
-
-    // copy data from full MultiFab to pencil MultiFab
-    mf_pencil.ParallelCopy(mf, incomp, 0, ncomp);
-
-    // create a single flattened box with coordinate index 0 in the dir direction
-    IntVect dom_lo(domain.loVect());
-    IntVect dom_hi(domain.hiVect());
-    if (dom_lo[dir] != 0) {
-        Abort("ComputeVerticalAverage requires dom_lo[dir]=0");
-    }
-    dom_hi[dir] = 0;
-    Box domain_flat(dom_lo, dom_hi);
-    
-    // create the BoxArray for the flattened MultiFab
-    BoxArray ba_flat(domain_flat);
-    ba_flat.maxSize(IntVect(max_grid_size_pencil));
-
-    // build flattened MultiFab and initialize to zero
-    mf_flat.define(ba_flat,dmap_pencil,ncomp,0);
-    mf_flat.setVal(0.);
 
     // this is the inverse of the number of cells in the dir direction we are averaging over
     // by default we average over the entire domain, but one can pass in slab_lo/hi to set bounds
@@ -278,71 +242,54 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
         ninv = 1./(domain.length(dir));
     }
 
-    // average pencil data onto the flattened MultiFab
-    for ( MFIter mfi(mf_pencil); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
+    MultiFab mf_onecomp(mf.boxArray(), mf.DistributionMap(), 1, 0);
 
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
+    for (int n=0; n<ncomp; ++n) {
 
-        const Array4<Real> meanfab = mf_flat.array(mfi);
-        const Array4<Real> inputfab = mf_pencil.array(mfi);
+        // copy a component of mf into mf_onecomp
+        MultiFab::Copy(mf_onecomp,mf,incomp+n,0,1,0);
 
-        if (dir == 0) {
-        
-            for (auto n = incomp; n<incomp+ncomp; ++n) {
-            for (auto k = lo.z; k <= hi.z; ++k) {
-            for (auto j = lo.y; j <= hi.y; ++j) {
-            for (auto i = lo.x; i <= hi.x; ++i) {
-                if ((i >= slablo) and (i <= slabhi)) {
-                    meanfab(0,j,k,n) = meanfab(0,j,k,n) + ninv*inputfab(i,j,k,n);
-                }
-            }
-            }
-            }
-            }
-            
-        } else if (dir == 1) {
-        
-            for (auto n = incomp; n<incomp+ncomp; ++n) {
-            for (auto k = lo.z; k <= hi.z; ++k) {
-            for (auto j = lo.y; j <= hi.y; ++j) {
-            for (auto i = lo.x; i <= hi.x; ++i) {
-                if ((j >= slablo) and (j <= slabhi)) {
-                    meanfab(i,0,k,n) = meanfab(i,0,k,n) + ninv*inputfab(i,j,k,n);
-                }
-            }
-            }
-            }
-            }
+        // sum up
+        auto const& ma = mf_onecomp.const_arrays();
+        auto fab = ReduceToPlane<ReduceOpSum,Real>(dir, domain, mf_onecomp,
+          [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
+          {
+              return ma[box_no](i,j,k); // data at (i,j,k) of Box box_no
+          });
 
-        } else if (dir == 2) {
-        
-            for (auto n = incomp; n<incomp+ncomp; ++n) {
-            for (auto k = lo.z; k <= hi.z; ++k) {
-            for (auto j = lo.y; j <= hi.y; ++j) {
-            for (auto i = lo.x; i <= hi.x; ++i) {
-                if ((k >= slablo) and (k <= slabhi)) {
-                    meanfab(i,j,0,n) = meanfab(i,j,0,n) + ninv*inputfab(i,j,k,n);
-                }
-            }
-            }
-            }
-            }
+        Box dom2d = fab.box();
+        Vector<Box> bv(ParallelDescriptor::NProcs(),dom2d);
+        BoxArray ba(bv.data(), bv.size());
+
+        Vector<int> pmap(ParallelDescriptor::NProcs());
+        std::iota(pmap.begin(), pmap.end(), 0);
+        DistributionMapping dm(std::move(pmap));
+
+        MultiFab mftmp(ba, dm, 1, 0, MFInfo().SetAlloc(false));
+        mftmp.setFab(ParallelDescriptor::MyProc(),
+                     FArrayBox(fab.box(), 1, fab.dataPtr()));
+
+        // divide by number of cells in column to create average
+        mftmp.mult(ninv);
+
+        BoxArray ba2(dom2d);
+
+        ba2.maxSize(IntVect(max_grid_size_pencil));
+
+        if (n==0) {
+            mf_flat.define(ba2, DistributionMapping{ba2}, ncomp, 0);
         }
-    }
 
-    // debugging
-    if (write_data) {
-        VisMF::Write(mf,"mf_full");
-        VisMF::Write(mf_pencil,"mf_pencil");
-        VisMF::Write(mf_flat,"mf_flat");
-    }
+        MultiFab mf_flat_onecomp(ba2, DistributionMapping{ba2}, fab.nComp(), 0);
+        mf_flat_onecomp.setVal(0.);
+        mf_flat_onecomp.ParallelAdd(mftmp);
 
+        mf_flat.ParallelCopy(mf_flat_onecomp, 0, n, 1);
+    }
 }
 
 void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
-                  const Geometry& geom, const int dir, const int slice,
+                  const int dir, const int slice,
                   const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ExtractSlice()",ExtractSlice);
@@ -350,7 +297,7 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
     // create BoxArray
 
     // get lo and hi coordinates of problem domain
-    Box domain(geom.Domain());
+    Box domain(mf.boxArray().minimalBox());
     IntVect dom_lo(domain.loVect());
     IntVect dom_hi(domain.hiVect());
 
@@ -384,7 +331,96 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
 
     // create a new DistributionMapping and define the MultiFab
     DistributionMapping dmap_slice(ba_slice);
-    mf_slice.define(ba_slice,dmap_slice,ncomp,0);
+    MultiFab mf_slice_tmp(ba_slice,dmap_slice,ncomp,0);
         
-    mf_slice.ParallelCopy(mf, incomp, 0, ncomp);
+    mf_slice_tmp.ParallelCopy(mf, incomp, 0, ncomp);
+
+    // now copy this into a multifab with index zero in the dir direction rather than slicepoint
+    // (structure factor code requires this)
+    dom_lo[dir] = 0;
+    dom_hi[dir] = 0;
+
+    Box domain_slice2(dom_lo,dom_hi);
+    BoxArray ba_slice2(domain_slice2);
+    ba_slice2.maxSize(IntVect(max_grid_slice));
+    mf_slice.define(ba_slice2,dmap_slice,ncomp,0);
+
+    for ( MFIter mfi(mf_slice_tmp,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real> & slice = mf_slice.array(mfi);
+        const Array4<Real> & slice_tmp = mf_slice_tmp.array(mfi);
+
+        if (dir == 0) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                slice(0,j,k,n) = slice_tmp(i,j,k,n);
+            });
+        }
+        if (dir == 1) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                slice(i,0,k,n) = slice_tmp(i,j,k,n);
+            });
+        }
+        if (dir == 2) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                slice(i,j,0,n) = slice_tmp(i,j,k,n);
+            });
+        }
+    }
+}
+
+
+void ExtractXPencil(const MultiFab& mf, MultiFab& mf_pencil,
+                    const int pencily, const int pencilz,
+                    const int incomp, const int ncomp)
+{
+    BL_PROFILE_VAR("ExtractXPencil()",ExtractXPencil);
+    
+    // create BoxArray
+
+    // get lo and hi coordinates of problem domain
+    Box domain(mf.boxArray().minimalBox());
+    IntVect dom_lo(domain.loVect());
+    IntVect dom_hi(domain.hiVect());
+
+    dom_lo[1] = dom_hi[1] = pencily;
+    dom_lo[2] = dom_hi[2] = pencilz;
+
+    // create a BoxArray with a single box containing the pencil
+    Box domain_pencil(dom_lo, dom_hi);
+    BoxArray ba_pencil(domain_pencil);
+
+    // create a new DistributionMapping and define the MultiFab
+    DistributionMapping dmap_pencil(ba_pencil);
+    MultiFab mf_pencil_tmp(ba_pencil,dmap_pencil,ncomp,0);
+
+    // copy data from full MF into pencil
+    mf_pencil_tmp.ParallelCopy(mf, incomp, 0, ncomp);
+
+    // now copy this into a multifab with index zero in x and y
+    // (structure factor code requires this)
+    dom_lo[1] = dom_hi[1] = 0;
+    dom_lo[2] = dom_hi[2] = 0;
+
+    Box domain_pencil2(dom_lo,dom_hi);
+    BoxArray ba_pencil2(domain_pencil2);
+    mf_pencil.define(ba_pencil2,dmap_pencil,ncomp,0);
+
+    for ( MFIter mfi(mf_pencil_tmp,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real> & pencil = mf_pencil.array(mfi);
+        const Array4<Real> & pencil_tmp = mf_pencil_tmp.array(mfi);
+
+        amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            pencil(i,0,0,n) = pencil_tmp(i,j,k,n);
+        });
+
+    }
 }

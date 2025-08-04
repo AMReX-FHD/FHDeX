@@ -2,6 +2,7 @@
 #include "AMReX_ParmParse.H"
 
 AMREX_GPU_MANAGED int MFsurfchem::n_ads_spec;
+AMREX_GPU_MANAGED int MFsurfchem::ads_wall_dir;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::surfcov0;
 
 AMREX_GPU_MANAGED amrex::Real MFsurfchem::surf_site_num_dens;
@@ -16,6 +17,7 @@ AMREX_GPU_MANAGED amrex::Real MFsurfchem::k_beta;
 AMREX_GPU_MANAGED amrex::Real MFsurfchem::e_beta;
 
 AMREX_GPU_MANAGED int MFsurfchem::splitting_MFsurfchem;
+AMREX_GPU_MANAGED int MFsurfchem::conversion_MFsurfchem;
 
 void InitializeMFSurfchemNamespace()
 {
@@ -28,6 +30,9 @@ void InitializeMFSurfchemNamespace()
 
     // if n_ads_spec is set to 0 or not defined in the inputs file, quit the routine
     if (n_ads_spec==0) return;
+
+    ads_wall_dir = 2;
+    pp.query("ads_wall_dir",ads_wall_dir);
 
     // load default values to surfcov0 array
     for (int m=0;m<n_ads_spec;m++) surfcov0[m] = 0.;
@@ -75,6 +80,13 @@ void InitializeMFSurfchemNamespace()
     // get splitting type: first order (0), strang (1)
     splitting_MFsurfchem = 0; // default value
     pp.query("splitting_MFsurfchem",splitting_MFsurfchem);
+
+    // ads/des of species 1 -> ads of species 1 + desorption of species (1+n)
+    conversion_MFsurfchem = 0; // default value
+    pp.query("conversion_MFsurfchem",conversion_MFsurfchem);
+    if ( (n_ads_spec + conversion_MFsurfchem) > nspecies) {
+        Abort("ERROR: desorption species is not included in nspecies");
+    }
     return;
 }
 
@@ -96,9 +108,9 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
-            if (k==0) {
+            if ( (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0) ) {
                 if (stoch_surfcov0==1) {
-                    amrex::Real Ntot = rint(surf_site_num_dens*dx[0]*dx[1]);  // total number of reactive sites
+                    amrex::Real Ntot = rint(surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3]);  // total number of reactive sites
                     GpuArray<int,MAX_SPECIES> Nocc;
                
                     for (int m=0;m<n_ads_spec;m++) Nocc[m] = 0;
@@ -126,7 +138,7 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
     return;
 }
 
-void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes,
+void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes,
                        const amrex::Geometry& geom, const amrex::Real dt)
 {
     
@@ -139,12 +151,14 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         const Array4<Real> & prim_arr = prim.array(mfi);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
         const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
+        const Array4<Real> & dNads_arr = dNads.array(mfi);
+        const Array4<Real> & dNdes_arr = dNdes.array(mfi);
 
-        amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
+        amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
-            if (k==0) {
+            if ( (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0) ) {
                 amrex::Real sumtheta = 0.;
                 for (int m=0;m<n_ads_spec;m++) {
                     sumtheta += surfcov_arr(i,j,k,m);
@@ -173,7 +187,13 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                         Ndes = RandomPoisson(meanNdes,engine);
                     }
 
-                    dNadsdes_arr(i,j,k,m) = Nads-Ndes;
+		    if (conversion_MFsurfchem > 0) {
+		        dNads_arr(i,j,k,m) = Nads;
+			dNdes_arr(i,j,k,m) = Ndes;
+		    }
+		    else {
+		        dNadsdes_arr(i,j,k,m) = Nads-Ndes;
+		    }
                 }
             }
         });
@@ -182,7 +202,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
     return;
 }
 
-void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes,
+void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes,
                        const amrex::Geometry& geom)
 {
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
@@ -194,22 +214,40 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         const Array4<Real> & prim_arr = prim.array(mfi);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
         const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
+        const Array4<Real> & dNads_arr = dNads.array(mfi);
+        const Array4<Real> & dNdes_arr = dNdes.array(mfi);
 
-        amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
+        amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (k==0) {
+            if ( (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0) ) {
 
                 amrex::Real T_inst = prim_arr(i,j,k,4);
 
                 for (int m=0;m<n_ads_spec;m++) {
-                    amrex::Real dN = dNadsdes_arr(i,j,k,m);
-                    amrex::Real factor1 = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
-		    amrex::Real factor2 = (e_beta*k_B*T_inst+(e0[m]+hcv[m]*T_inst)*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
-                    surfcov_arr(i,j,k,m) += dN/Ntot;
-                    cu_arr(i,j,k,0) -= factor1*dN;
-                    cu_arr(i,j,k,5+m) -= factor1*dN;
-                    cu_arr(i,j,k,4) -= factor2*dN;
+		    if (conversion_MFsurfchem > 0) {
+                        amrex::Real mconv = m + conversion_MFsurfchem;
+                        amrex::Real dNads = dNads_arr(i,j,k,m);
+                        amrex::Real dNdes = dNdes_arr(i,j,k,m);
+                        amrex::Real factor1 = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
+                        amrex::Real factor1conv = molmass[mconv]/AVONUM/(dx[0]*dx[1]*dx[2]);
+                        amrex::Real factor2 = (e_beta*k_B*T_inst+(e0[m]+hcv[m]*T_inst)*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
+                        amrex::Real factor2conv = (e_beta*k_B*T_inst+(e0[mconv]+hcv[mconv]*T_inst)*molmass[mconv]/AVONUM)/(dx[0]*dx[1]*dx[2]);
+                        surfcov_arr(i,j,k,m) += (dNads-dNdes)/Ntot;
+                        cu_arr(i,j,k,0) -= factor1*dNads - factor1conv*dNdes;
+                        cu_arr(i,j,k,5+m) -= factor1*dNads;
+                        cu_arr(i,j,k,5+mconv) += factor1conv*dNdes;
+                        cu_arr(i,j,k,4) -= factor2*dNads - factor2conv*dNdes;
+		    }
+		    else {
+                        amrex::Real dN = dNadsdes_arr(i,j,k,m);
+                        amrex::Real factor1 = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
+                        amrex::Real factor2 = (e_beta*k_B*T_inst+(e0[m]+hcv[m]*T_inst)*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
+                        surfcov_arr(i,j,k,m) += dN/Ntot;
+                        cu_arr(i,j,k,0) -= factor1*dN;
+                        cu_arr(i,j,k,5+m) -= factor1*dN;
+                        cu_arr(i,j,k,4) -= factor2*dN;
+		    }
                 }
             }
         });

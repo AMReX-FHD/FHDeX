@@ -316,6 +316,7 @@ namespace common {
     extern int                        plot_vars;
     extern int                        plot_covars;
     extern int                        plot_cross;
+    extern int                        plot_deltaY_dir;
     extern int                        particle_motion;
 
     // parameters for turbulent forcing example
