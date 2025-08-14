@@ -42,6 +42,7 @@ void WriteCheckPoint(int step,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      const amrex::MultiFab& coVars,
+                     const amrex::MultiFab& mom3,
                      const amrex::MultiFab& surfcov,
                      const amrex::MultiFab& surfcovMeans,
                      const amrex::MultiFab& surfcovVars,
@@ -225,6 +226,11 @@ void WriteCheckPoint(int step,
     VisMF::Write(coVars,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
 
+    // mom3
+    if (plot_mom3)
+    VisMF::Write(mom3,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mom3"));
+
     if (n_ads_spec>0) {
         // surfcov
         VisMF::Write(surfcov,
@@ -262,6 +268,7 @@ void ReadCheckPoint(int& step,
                     std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                     std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                     amrex::MultiFab& coVars,
+                    amrex::MultiFab& mom3,
                     amrex::MultiFab& surfcov,
                     amrex::MultiFab& surfcovMeans,
                     amrex::MultiFab& surfcovVars,
@@ -382,13 +389,16 @@ void ReadCheckPoint(int& step,
 
         // coVars
         coVars.define(ba,dmap,26,0);
+
+        // mom3
+        if (plot_mom3) mom3.define(ba,dmap,nvars+1,0);
         
         if (n_ads_spec>0) {
             // surfcov
             surfcov.define(ba,dmap,n_ads_spec,0);
             surfcovMeans.define(ba,dmap,n_ads_spec,0);
             surfcovVars.define(ba,dmap,n_ads_spec,0);
-	    surfcovcoVars.define(ba,dmap,n_ads_spec*6,0);
+	        surfcovcoVars.define(ba,dmap,n_ads_spec*6,0);
         }
 
         // spatialCrossMF
@@ -493,9 +503,10 @@ void ReadCheckPoint(int& step,
             for (int m=0;m<n_ads_spec;m++) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
-		surfcovcoVars.setVal(0.0);
+		        surfcovcoVars.setVal(0.0);
             }
         }
+        if (plot_mom3) mom3.setVal(0.0);
     }
     else {
         Read_Copy_MF_Checkpoint(cuMeans,"cuMeans",checkpointname,ba_old,dmap_old,nvars,1);
@@ -529,8 +540,9 @@ void ReadCheckPoint(int& step,
         if (n_ads_spec>0) {
             Read_Copy_MF_Checkpoint(surfcovMeans,"surfcovMeans",checkpointname,ba_old,dmap_old,n_ads_spec,0);
             Read_Copy_MF_Checkpoint(surfcovVars,"surfcovVars",checkpointname,ba_old,dmap_old,n_ads_spec,0);
-	    Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
+	        Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
         }
+        if (plot_mom3) Read_Copy_MF_Checkpoint(mom3,"mom3",checkpointname,ba_old,dmap_old,nvars+1,0);
     }
 
     // FillBoundaries

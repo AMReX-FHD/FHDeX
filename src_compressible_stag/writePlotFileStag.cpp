@@ -20,10 +20,11 @@ void WritePlotFileStag(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& mom3,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
-		       const amrex::MultiFab& surfcovcoVars,
+		               const amrex::MultiFab& surfcovcoVars,
                        const amrex::MultiFab& eta,
                        const amrex::MultiFab& kappa,
                        const amrex::MultiFab& zeta)
@@ -87,6 +88,8 @@ void WritePlotFileStag(int step,
 
 	if (nspec_surfcov>0) nplot += nspec_surfcov*6;
     }
+
+    if (plot_mom3) nplot += nvars+1;
 
     if (plot_deltaY_dir != -1) {
         nplot += nspecies;
@@ -254,11 +257,17 @@ void WritePlotFileStag(int step,
         amrex::MultiFab::Copy(plotfile,coVars,0,cnt,numvars,0);
         cnt+=numvars;
 
-	if (nspec_surfcov>0) {
-	    numvars = nspec_surfcov*6;
-	    amrex::MultiFab::Copy(plotfile,surfcovcoVars,0,cnt,numvars,0);
-	    cnt+=numvars;
-	}
+        if (nspec_surfcov>0) {
+            numvars = nspec_surfcov*6;
+            amrex::MultiFab::Copy(plotfile,surfcovcoVars,0,cnt,numvars,0);
+            cnt+=numvars;
+        }
+    }
+
+    if (plot_mom3) {
+        numvars = nvars+1;
+        amrex::MultiFab::Copy(plotfile,mom3,0,cnt,numvars,0);
+        cnt+=nvars+1;
     }
 
     if (plot_deltaY_dir != -1) {
@@ -446,17 +455,30 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "rhoYkL-vx";
         varNames[cnt++] = "rhoYkH-vx";
 
-	if (nspec_surfcov>0) {
-	    for (i=0; i<nspec_surfcov; i++) {
-		varNames[cnt++] = "rhoYk-T";
-	        varNames[cnt++] = "theta-rhoYk";
-	        varNames[cnt++] = "theta-vx";
-	        varNames[cnt++] = "theta-vy";
-	        varNames[cnt++] = "theta-vz";
-	        varNames[cnt++] = "theta-T";
-	    }
-	}
+        if (nspec_surfcov>0) {
+            for (i=0; i<nspec_surfcov; i++) {
+            varNames[cnt++] = "rhoYk-T";
+                varNames[cnt++] = "theta-rhoYk";
+                varNames[cnt++] = "theta-vx";
+                varNames[cnt++] = "theta-vy";
+                varNames[cnt++] = "theta-vz";
+                varNames[cnt++] = "theta-T";
+            }
+        }
+    }
 
+    if (plot_mom3) {
+        varNames[cnt++] = "rhomom3";
+        varNames[cnt++] = "velxmom3";
+        varNames[cnt++] = "velymom3";
+        varNames[cnt++] = "velzmom3";
+        varNames[cnt++] = "rhoEmom3";
+        x = "Ykmom3_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
+        varNames[cnt++] = "Tmom3";
     }
 
     if (plot_deltaY_dir != -1) {
