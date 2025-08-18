@@ -127,7 +127,7 @@ void RK3stepStag(MultiFab& cu,
                  pele::physics::PeleParams<pele::physics::transport::TransParm<
                  pele::physics::PhysicsType::eos_type,
                  pele::physics::PhysicsType::transport_type>>& trans_parms);
-#elif
+#else
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
                  MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& vel,

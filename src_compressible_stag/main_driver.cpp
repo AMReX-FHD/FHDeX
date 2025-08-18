@@ -1113,14 +1113,14 @@ void main_driver(const char* argv)
 #if defined(PELEPHYSICS)
           RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce, trans_parms);
-#elif
+#else
           RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
 #endif
         } else {
 #if defined(PELEPHYSICS)
             calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
-#elif
+#else
             calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 #endif
         }

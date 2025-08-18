@@ -45,7 +45,7 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
                   pele::physics::PeleParams<pele::physics::transport::TransParm<
                   pele::physics::PhysicsType::eos_type,
                   pele::physics::PhysicsType::transport_type>>& trans_parms);
-#elif
+#else
 void calculateTransportCoeffs(const MultiFab& prim_in,
 			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
 			      MultiFab& chi_in, MultiFab& Dij_in);

@@ -105,7 +105,7 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         });
     }
 }
-#elif
+#else
 void calculateTransportCoeffs(const MultiFab& prim_in, 
 			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
 			      MultiFab& chi_in, MultiFab& Dij_in)

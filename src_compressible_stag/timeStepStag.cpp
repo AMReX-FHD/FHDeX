@@ -28,7 +28,7 @@ void RK3stepStag(MultiFab& cu,
                  pele::physics::PeleParams<pele::physics::transport::TransParm<
                  pele::physics::PhysicsType::eos_type,
                  pele::physics::PhysicsType::transport_type>>& trans_parms)
-#elif
+#else
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
                  MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& vel,
@@ -348,7 +348,7 @@ void RK3stepStag(MultiFab& cu,
     /////////////////////////////////////////////////////
 #if defined(PELEPHYSICS)
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
-#elif
+#else
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 #endif
 
@@ -584,7 +584,7 @@ void RK3stepStag(MultiFab& cu,
     // Compute transport coefs after setting BCs
 #if defined(PELEPHYSICS)
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
-#elif
+#else
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 #endif
 
@@ -922,7 +922,7 @@ void RK3stepStag(MultiFab& cu,
     // Compute transport coefs after setting BCs
 #if defined(PELEPHYSICS)
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
-#elif
+#else
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 #endif
 
