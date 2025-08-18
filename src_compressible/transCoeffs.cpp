@@ -34,6 +34,10 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         const Array4<Real>& chi   =   chi_in.array(mfi);
         const Array4<Real>& Dij   =   Dij_in.array(mfi);
 
+#if defined(PELEPHYSICS)
+        auto const* ltransparm = trans_parms.device_parm();
+#endif
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
         
@@ -55,28 +59,57 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             // compute mole fractions from mass fractions
             GetMolfrac(Yk_fixed, Xk_fixed);
 
+#if defined(PELEPHYSICS)
+            amrex::Real Tloc = prim(i,j,k,4);
+            amrex::Real rholoc = prim(i,j,k,0);
+            amrex::Real Yloc[MAX_SPECIES] = {0.0};
+            amrex::Real Xloc[MAX_SPECIES] = {0.0};
+            for (int ns = 0; ns < nspecies; ++ns) {
+                Yloc[ns] = prim(i, j, k, 6+ns);
+                Xloc[ns] = prim(i, j, k, 6+nspecies+ns);
+            }
+
+            const bool get_xi = true, get_mu = true, get_lam = true,
+                  get_Ddiag = true, get_chi = true;
+            amrex::Real muloc, xiloc, lamloc;
+            amrex::Real Dbinloc[MAX_SPECIES*MAX_SPECIES], chi_mixloc[MAX_SPECIES] = {0.0};
+
+            auto trans = pele::physics::PhysicsType::transport();
+            trans.transport_full(get_xi, get_mu, get_lam, get_Ddiag, get_chi, 
+                                 Tloc, rholoc, Yloc, 
+                                 Dbinloc, chi_mixloc, muloc, xiloc, lamloc, ltransparm);
+            amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES> Dloc;
+            D_GIO1(Dbinloc,Yloc,Xloc,Dloc,nspecies);
+            eta(i,j,k) = muloc;
+            kappa(i,j,k) = lamloc;
+            zeta(i,j,k) = xiloc;
+#elif
+            amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES> Dloc;
+            amrex::GpuArray<amrex::Real,MAX_SPECIES> chiloc;
+
             if (transport_type == 1) { // Giovangigli
-                IdealMixtureTransportGIO(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+                IdealMixtureTransportGIO(prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
                                          Yk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
-                                         Dij, chi);
+                                         Dloc, chiloc);
             }
 
             else if (transport_type == 2) { // Waldmann-Valk
-                IdealMixtureTransportVW(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+                IdealMixtureTransportVW(prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
                                       Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
-                                      Dij, chi);
+                                      Dloc, chiloc);
             }
             else if (transport_type == 3) { // Hirschfelder-Curtiss-Bird for binary mixtures
-                IdealMixtureTransportHCBBin(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+                IdealMixtureTransportHCBBin(prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
                                             Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
-                                            Dij, chi);
+                                            Dloc, chiloc);
             }
-
+#endif
             // want this multiplied by rho for all times
             for (int kk=0; kk<nspecies; ++kk) {
+                chi(i,j,k,kk) = chiloc[kk];
                 for (int ll=0; ll<nspecies; ++ll) {
                     int n = kk*nspecies + ll;
-                    Dij(i,j,k,n) *= prim(i,j,k,0);
+                    Dij(i,j,k,n) = Dloc[n]*prim(i,j,k,0);
                 }
             }
 
@@ -89,3 +122,5 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         });
     }
 }
+#endif
+

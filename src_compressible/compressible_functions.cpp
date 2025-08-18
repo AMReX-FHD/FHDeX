@@ -12,6 +12,7 @@ AMREX_GPU_MANAGED int compressible::turbRestartRun = 1;
 AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
 
+
 void InitializeCompressibleNamespace()
 {
     // extract inputs parameters

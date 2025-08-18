@@ -5,8 +5,24 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
 
+#if defined(PELEPHYSICS)
+#include "PelePhysics.H" 
+#endif
+
 #include "common_functions.H"
 #include "compressible_namespace.H"
+
+#if defined(PELEPHYSICS)
+class TransCoeff
+{
+public:
+    // created once per program, defined right here
+    inline static pele::physics::PeleParams<pele::physics::transport::TransParm<
+    pele::physics::PhysicsType::eos_type,
+    pele::physics::PhysicsType::transport_type>>
+    trans_parms {};
+};
+#endif
 
 using namespace amrex;
 using namespace compressible;
@@ -514,11 +530,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
              const GpuArray<Real,MAX_SPECIES>& Ykp,
              const GpuArray<Real,MAX_SPECIES>& Xkp,
-             const Array4<Real>& D_tilde,
-             const int nspecies,
+             amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES>& D_tilde,
+             const int nspecies/*,
              const int iloc,
              const int jloc,
-             const int kloc)
+             const int kloc*/)
 {
     int i,j,k,ll;
     Real term1, term2, Deltamat, scr;
@@ -637,7 +653,7 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
        for (j=0; j<nspecies; ++j) {
            // indicies on LHS are switched due to C++/F90 memory layout
            // this is the only location this needs to happen I believe
-           D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
+           D_tilde[j*nspecies+i] = Diff_ij[i*nspecies+j]*Ykp[i];
        }
     }
     
@@ -648,11 +664,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
              const GpuArray<Real,MAX_SPECIES>& Ykp,
              const GpuArray<Real,MAX_SPECIES>& Xkp,
-             const Array4<Real>& D_tilde,
-             const int nspecies,
+             amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES>& D_tilde,
+             const int nspecies/*,
              const int iloc,
              const int jloc,
-             const int kloc)
+             const int kloc*/)
 {
     int i,j,k,ll;
     Real term1, term2, Deltamat, scr;
@@ -771,7 +787,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
        for (j=0; j<nspecies; ++j) {
            // indicies on LHS are switched due to C++/F90 memory layout
            // this is the only location this needs to happen I believe
-           D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
+           D_tilde[j*nspecies+i] = Diff_ij[i*nspecies+j]*Ykp[i];
        }
     }
     
@@ -912,7 +928,7 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ThermalDiff ( int iloc, int jloc, int kloc,
+void ThermalDiff ( /*int iloc, int jloc, int kloc,*/
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& /*sigma11*/,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij1,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij2,
@@ -920,7 +936,7 @@ void ThermalDiff ( int iloc, int jloc, int kloc,
                    const GpuArray<Real,MAX_SPECIES>& Xkp,
                    const Real sqrtT,
                    const GpuArray<Real,MAX_SPECIES>& mk,
-                   const Array4<Real>& kT,
+                   amrex::GpuArray<amrex::Real,MAX_SPECIES>& kT,
                    const int nspecies)
 {
 
@@ -961,7 +977,7 @@ void ThermalDiff ( int iloc, int jloc, int kloc,
         for (j=0; j<nspecies; ++j) {
             sumTemp = sumTemp + Xkp[j]*alphaij[k*nspecies+j];
         }
-        kT(iloc,jloc,kloc,k) = sumTemp;
+        kT[k] = sumTemp;
     }
 }
 
@@ -1046,7 +1062,7 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 // Transport Coefficients from Valk/Waldmann
-void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
+void IdealMixtureTransportVW ( /*int iloc, int jloc, int kloc,*/
                                Real const density,
                                Real const temperature,
                                Real const pressure,
@@ -1055,8 +1071,10 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
                                Real& eta,
                                Real& kappa,
                                Real& zeta,
-                               const Array4<Real>& diff_ij,
-                               const Array4<Real>& chitil)
+                               /*const Array4<Real>& diff_ij,*/
+                               amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES>& diff_ij,
+                               /*const Array4<Real>& chitil,*/
+                               amrex::GpuArray<amrex::Real,MAX_SPECIES>& chitil)
 {
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dbin;
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> omega11;
@@ -1141,10 +1159,10 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
     LambdaLin(Dbin,omega11,yytr,temperature,density,molecular_mass,kappa,nspecies,k_B);
     // kappa = 0.d0
 
-    D_GIO(Dbin,yytr,xxtr,diff_ij,nspecies,iloc,jloc,kloc);
+    D_GIO(Dbin,yytr,xxtr,diff_ij,nspecies);
     // diff_ij = 0.0d0
 
-    ThermalDiff(iloc,jloc,kloc,sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,
+    ThermalDiff(sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,
                 chitil,nspecies);
     // chitil = 0.0d0
 }
@@ -1152,7 +1170,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 // Transport Coefficients from Giovangigli
-void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
+void IdealMixtureTransportGIO (/*int iloc, int jloc, int kloc,*/
                                Real const /*density*/,
                                Real const temperature,
                                Real const pressure,
@@ -1160,12 +1178,15 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
                                Real& eta,
                                Real& kappa,
                                Real& zeta,
-                               const Array4<Real>& diff_ij,
-                               const Array4<Real>& chitil)
+                               /*const Array4<Real>& diff_ij,*/
+                               amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES>& diff_ij,
+                               /*const Array4<Real>& chitil,*/
+                               amrex::GpuArray<amrex::Real,MAX_SPECIES>& chitil)
 {
     Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> mu;
     Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> diam;
-    Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> Dbin;
+    //Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> Dbin;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dbin;
     Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> amat;
 
     GpuArray<Real,MAX_SPECIES> molecular_mass;
@@ -1219,7 +1240,7 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
     kT = k_B*temperature;
     for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
-            Dbin(i,j) = (3.0/16.0)*sqrt(2.0*pi*kT*kT*kT/mu(i,j))/(pressure*pi*diam(i,j)*diam(i,j));
+            Dbin[i*nspecies+j] = (3.0/16.0)*sqrt(2.0*pi*kT*kT*kT/mu(i,j))/(pressure*pi*diam(i,j)*diam(i,j));
         }
     }
 
@@ -1240,13 +1261,13 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
                 amat(i,i) = Xkp[i]*Xkp[i]/eta1[i];
                 for (int k=0; k<nspecies; ++k) {
                     if (k!=i) {
-                        amat(i,i) += 2.0*kT*Xkp[i]*Xkp[k]/(pressure*Dbin(i,k)*(molecular_mass[i]+molecular_mass[k]))*
+                        amat(i,i) += 2.0*kT*Xkp[i]*Xkp[k]/(pressure*Dbin[i*nspecies+k]*(molecular_mass[i]+molecular_mass[k]))*
                                      (1.0+0.6*molecular_mass[k]/molecular_mass[i]*AKL);
                     }
                 }
             }
             else {
-                amat(i,j) = 2.0*kT*Xkp[i]*Xkp[j]/(pressure*Dbin(i,j)*(molecular_mass[i]+molecular_mass[j]))*(0.6*AKL-1.0);
+                amat(i,j) = 2.0*kT*Xkp[i]*Xkp[j]/(pressure*Dbin[i*nspecies+j]*(molecular_mass[i]+molecular_mass[j]))*(0.6*AKL-1.0);
             }
         }
     }
@@ -1284,17 +1305,17 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
         Bi[i] = rhs[i];
         for (int j=0; j<nspecies; ++j) {
             if (i==j) {
-                amat(i,i) = Xkp[i]*Xkp[i]/Dbin(i,j)*2.0*AKL;
+                amat(i,i) = Xkp[i]*Xkp[i]/Dbin[i*nspecies+j]*2.0*AKL;
                 for (int k=0; k<nspecies; ++k) {
                     if (k!=i) {
-                        amat(i,i) += Xkp[i]*Xkp[k]/Dbin(i,k)*mu(i,k)/(molecular_mass[i]+molecular_mass[k])*
+                        amat(i,i) += Xkp[i]*Xkp[k]/Dbin[i*nspecies+k]*mu(i,k)/(molecular_mass[i]+molecular_mass[k])*
                                      (7.5*molecular_mass[i]/molecular_mass[k]+6.25*molecular_mass[k]/molecular_mass[i]
                                       -3.0*molecular_mass[k]/molecular_mass[i]*BKL+4.0*AKL);
                     }
                 }
             }
             else {
-                amat(i,j) = -1.0*Xkp[i]*Xkp[j]/Dbin(i,j)*mu(i,j)/(molecular_mass[i]+molecular_mass[j])*(55.0/4.0-3.0*BKL-4.0*AKL);
+                amat(i,j) = -1.0*Xkp[i]*Xkp[j]/Dbin[i*nspecies+j]*mu(i,j)/(molecular_mass[i]+molecular_mass[j])*(55.0/4.0-3.0*BKL-4.0*AKL);
             }
         }
     }
@@ -1326,35 +1347,35 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
      
     // Thermal Diffusion Ratios
     for (int i=0; i<nspecies; ++i) {
-        chitil(iloc,jloc,kloc,i) = 0.0;
+        chitil[i] = 0.0;
         for (int j=0; j<nspecies; ++j) {
             if (i==j) {
                 amat(i,i) = 0.0;
                 for (int k=0; k<nspecies; ++k) {
                     if (k!=i) {
-                        amat(i,i) -= 0.5*Xkp[k]/Dbin(i,k)*molecular_mass[k]/(molecular_mass[i]+molecular_mass[k])*(6.0*CKL-5.0);
+                        amat(i,i) -= 0.5*Xkp[k]/Dbin[i*nspecies+k]*molecular_mass[k]/(molecular_mass[i]+molecular_mass[k])*(6.0*CKL-5.0);
                     }
                 }
             }
             else {
-                amat(i,j) = 0.5*Xkp[j]/Dbin(i,j)*molecular_mass[i]/(molecular_mass[i]+molecular_mass[j])*(6.0*CKL-5.0);
+                amat(i,j) = 0.5*Xkp[j]/Dbin[i*nspecies+j]*molecular_mass[i]/(molecular_mass[i]+molecular_mass[j])*(6.0*CKL-5.0);
             }
         }
     }
 
     for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
-            chitil(iloc,jloc,kloc,i) += amat(i,j)*Bi[j];
+            chitil[i] += amat(i,j)*Bi[j];
         }
     }
 
-    D_GIO1(Dbin,Ykp,Xkp,diff_ij,nspecies,iloc,jloc,kloc);
+    D_GIO(Dbin,Ykp,Xkp,diff_ij,nspecies);
 }
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 // Transport Coefficients from Hirschfelder-Curtiss-Bird for Binary Mixtures
-void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
+void IdealMixtureTransportHCBBin ( /*int iloc, int jloc, int kloc,*/
                                    Real const density,
                                    Real const temperature,
                                    Real const /*pressure*/,
@@ -1363,8 +1384,10 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
                                    Real& eta,
                                    Real& kappa,
                                    Real& zeta,
-                                   const Array4<Real>& diff_ij,
-                                   const Array4<Real>& chitil)
+                                   /*const Array4<Real>& diff_ij,*/
+                                   amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES>& diff_ij,
+                                   /*const Array4<Real>& chitil,*/
+                                   amrex::GpuArray<amrex::Real,MAX_SPECIES>& chitil)
 {
 
     // This routine calculates transport coefficients for a 
@@ -1465,15 +1488,15 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
     Real diffO_tilde = mR*diff*yytr[1]*yytr[1]*yytr[1]/(yytr[0]*xxtr[1]*xxtr[1]);
     Real diff1_tilde = mR*diff*yytr[1]*yytr[1]/(xxtr[1]*xxtr[1]);
 
-    diff_ij(iloc,jloc,kloc,0) =  1.0*yytr[0]*diffO_tilde;
-    diff_ij(iloc,jloc,kloc,1) = -1.0*yytr[0]*diffO_tilde;
-    diff_ij(iloc,jloc,kloc,2) = -1.0*yytr[0]*diff1_tilde;
-    diff_ij(iloc,jloc,kloc,3) =  1.0*yytr[0]*diff1_tilde;
+    diff_ij[0] =  1.0*yytr[0]*diffO_tilde;
+    diff_ij[1] = -1.0*yytr[0]*diffO_tilde;
+    diff_ij[2] = -1.0*yytr[0]*diff1_tilde;
+    diff_ij[3] =  1.0*yytr[0]*diff1_tilde;
 
     // Fil the thermal diffusion ratio vector
     thermal_diff = thermal_diff*mR*yytr[1]*yytr[1]/(xxtr[1]*xxtr[1]);
-    chitil(iloc,jloc,kloc,0) = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]); 
-    chitil(iloc,jloc,kloc,1) =  1.0*xxtr[1]*thermal_diff/(mR*yytr[1]*yytr[1]);
+    chitil[0] = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]); 
+    chitil[1] =  1.0*xxtr[1]*thermal_diff/(mR*yytr[1]*yytr[1]);
 
 }
 
