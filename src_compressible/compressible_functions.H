@@ -12,18 +12,6 @@
 #include "common_functions.H"
 #include "compressible_namespace.H"
 
-#if defined(PELEPHYSICS)
-class TransCoeff
-{
-public:
-    // created once per program, defined right here
-    inline static pele::physics::PeleParams<pele::physics::transport::TransParm<
-    pele::physics::PhysicsType::eos_type,
-    pele::physics::PhysicsType::transport_type>>
-    trans_parms {};
-};
-#endif
-
 using namespace amrex;
 using namespace compressible;
 
@@ -50,9 +38,18 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 		   const Vector< Real >& stoch_weights,
 	           const Real dt);
 
+#if defined(PELEPHYSICS)
+void calculateTransportCoeffs(const MultiFab& prim_in, 
+			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
+			      MultiFab& chi_in, MultiFab& Dij_in,
+                  pele::physics::PeleParams<pele::physics::transport::TransParm<
+                  pele::physics::PhysicsType::eos_type,
+                  pele::physics::PhysicsType::transport_type>>& trans_parms);
+#elif
 void calculateTransportCoeffs(const MultiFab& prim_in,
 			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
 			      MultiFab& chi_in, MultiFab& Dij_in);
+#endif
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& prim, MultiFab& source,
@@ -661,7 +658,7 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
+void D_GIO1 (amrex::Real* Dbin,
              const GpuArray<Real,MAX_SPECIES>& Ykp,
              const GpuArray<Real,MAX_SPECIES>& Xkp,
              amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES>& D_tilde,
@@ -683,7 +680,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
         term2 = 0.;
         for (j=0; j<nspecies; ++j) {
             if (j != i) {
-                term2 = term2 + Xkp[j]/Dbin(i,j);
+                term2 = term2 + Xkp[j]/Dbin[i*nspecies+j];
             }
         }
         Di[i] = (1.-Ykp[i])/term2;
@@ -712,12 +709,12 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
                 term1 = 0.;
                 for (k=0; k<nspecies; ++k) {
                     if (k != i) {
-                        term1 = term1 + Xkp[i]*Xkp[k]/Dbin(i,k);
+                        term1 = term1 + Xkp[i]*Xkp[k]/Dbin[i*nspecies+k];
                     }
                 }
                 Deltamat = term1;
             } else {
-                Deltamat = -Xkp[i]*Xkp[j]/Dbin(i,j);
+                Deltamat = -Xkp[i]*Xkp[j]/Dbin[i*nspecies+j];
             }
             Zmat[i*nspecies+j] = -Deltamat;
         }
@@ -782,7 +779,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
         
     }
 
-    // Compute D_tilde
+    // Compute D_tilde = Y*D
     for (i=0; i<nspecies; ++i) {
        for (j=0; j<nspecies; ++j) {
            // indicies on LHS are switched due to C++/F90 memory layout

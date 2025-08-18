@@ -109,9 +109,10 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
                    std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in);
 
+#if defined(PELEPHYSICS)                 
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
-                 MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& facevel,
+                 MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& vel,
                  MultiFab& source,
                  MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
                  MultiFab& chi, MultiFab& D,
@@ -121,7 +122,27 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
                  MultiFab& ranchem,
-                 const amrex::Geometry& geom, const amrex::Real dt, const int step, TurbForcingComp& turbforce);
+                 const amrex::Geometry& geom, const amrex::Real dt, const int step,
+                 TurbForcingComp& turbforce,
+                 pele::physics::PeleParams<pele::physics::transport::TransParm<
+                 pele::physics::PhysicsType::eos_type,
+                 pele::physics::PhysicsType::transport_type>>& trans_parms);
+#elif
+void RK3stepStag(MultiFab& cu, 
+                 std::array< MultiFab, AMREX_SPACEDIM >& cumom,
+                 MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& vel,
+                 MultiFab& source,
+                 MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
+                 MultiFab& chi, MultiFab& D,
+                 std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                 std::array< MultiFab, 2 >& edgeflux_x,
+                 std::array< MultiFab, 2 >& edgeflux_y,
+                 std::array< MultiFab, 2 >& edgeflux_z,
+                 std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
+                 MultiFab& ranchem,
+                 const amrex::Geometry& geom, const amrex::Real dt, const int step,
+                 TurbForcingComp& turbforce);
+#endif
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& velStag_in,

@@ -10,6 +10,25 @@
 #include "rng_functions.H"
 #include <AMReX_VisMF.H>
 
+#if defined(PELEPHYSICS)                 
+void RK3stepStag(MultiFab& cu, 
+                 std::array< MultiFab, AMREX_SPACEDIM >& cumom,
+                 MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& vel,
+                 MultiFab& source,
+                 MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
+                 MultiFab& chi, MultiFab& D,
+                 std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                 std::array< MultiFab, 2 >& edgeflux_x,
+                 std::array< MultiFab, 2 >& edgeflux_y,
+                 std::array< MultiFab, 2 >& edgeflux_z,
+                 std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
+                 MultiFab& ranchem,
+                 const amrex::Geometry& geom, const amrex::Real dt, const int step,
+                 TurbForcingComp& turbforce,
+                 pele::physics::PeleParams<pele::physics::transport::TransParm<
+                 pele::physics::PhysicsType::eos_type,
+                 pele::physics::PhysicsType::transport_type>>& trans_parms)
+#elif
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
                  MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& vel,
@@ -24,6 +43,7 @@ void RK3stepStag(MultiFab& cu,
                  MultiFab& ranchem,
                  const amrex::Geometry& geom, const amrex::Real dt, const int step,
                  TurbForcingComp& turbforce)
+#endif
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
 
@@ -326,8 +346,11 @@ void RK3stepStag(MultiFab& cu,
     }
     
     /////////////////////////////////////////////////////
-
+#if defined(PELEPHYSICS)
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
+#elif
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+#endif
 
     calculateFluxStag(cu, cumom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
@@ -559,7 +582,11 @@ void RK3stepStag(MultiFab& cu,
     setBCStag(prim, cup, cupmom, vel, geom);
 
     // Compute transport coefs after setting BCs
+#if defined(PELEPHYSICS)
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
+#elif
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+#endif
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -893,7 +920,11 @@ void RK3stepStag(MultiFab& cu,
     setBCStag(prim, cup2, cup2mom, vel, geom);
 
     // Compute transport coefs after setting BCs
+#if defined(PELEPHYSICS)
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
+#elif
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+#endif
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields

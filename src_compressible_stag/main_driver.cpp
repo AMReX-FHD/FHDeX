@@ -25,6 +25,10 @@
 using namespace surfchem_mui;
 #endif
 
+#if defined(PELEPHYSICS)
+#include "PelePhysics.H" 
+#endif
+
 using namespace std::chrono;
 using namespace amrex;
 
@@ -200,6 +204,14 @@ void main_driver(const char* argv)
     MultiFab kappa;
     MultiFab chi;
     MultiFab D;
+
+#if defined(PELEPHYSICS)
+    static pele::physics::PeleParams<pele::physics::transport::TransParm<
+    pele::physics::PhysicsType::eos_type,
+    pele::physics::PhysicsType::transport_type>>
+    trans_parms;
+    trans_parms.initialize();
+#endif
 
     // conserved quantaties
     MultiFab cu;
@@ -1098,10 +1110,19 @@ void main_driver(const char* argv)
 
         // FHD
         if (turbRestartRun) {
+#if defined(PELEPHYSICS)
+          RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
+              faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce, trans_parms);
+#elif
           RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+#endif
         } else {
+#if defined(PELEPHYSICS)
+            calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
+#elif
             calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+#endif
         }
 
 	if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
@@ -1766,6 +1787,9 @@ void main_driver(const char* argv)
     }
 #endif
 
+#if defined(PELEPHYSICS)
+    trans_parms.deallocate();
+#endif
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time, ParallelDescriptor::IOProcessorNumber());
