@@ -51,6 +51,22 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
 			      MultiFab& chi_in, MultiFab& Dij_in);
 #endif
 
+#if defined(PELEPHYSICS)                 
+void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
+             MultiFab& prim, MultiFab& source,
+             MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
+             MultiFab& chi, MultiFab& D,
+             std::array<MultiFab, AMREX_SPACEDIM>& flux,
+             std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
+             std::array<MultiFab, AMREX_SPACEDIM>& cornx,
+             std::array<MultiFab, AMREX_SPACEDIM>& corny,
+             std::array<MultiFab, AMREX_SPACEDIM>& cornz,
+             MultiFab& visccorn, MultiFab& rancorn, MultiFab& ranchem,
+             const amrex::Geometry& geom, const amrex::Real dt,
+             pele::physics::PeleParams<pele::physics::transport::TransParm<
+             pele::physics::PhysicsType::eos_type,
+             pele::physics::PhysicsType::transport_type>>& trans_parms);
+#else
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& prim, MultiFab& source,
              MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
@@ -62,6 +78,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn, MultiFab& ranchem,
              const Geometry& geom, const Real dt);
+#endif
 
 void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in);
 

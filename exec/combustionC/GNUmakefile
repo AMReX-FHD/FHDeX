@@ -1,7 +1,9 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../amrex/
+# AMREX_HOME ?= ../../../amrex/
 PELE_PHYSICS_HOME ?= ../../../PelePhysics/
+AMREX_HOME        ?= $(abspath $(lastword $(PELE_PHYSICS_HOME)/Submodules/amrex))
+SUNDIALS_HOME     ?= $(abspath $(lastword $(PELE_PHYSICS_HOME)/Submodules/sundials))
 
 # FHDeX compiler flags
 DEBUG         = FALSE
@@ -9,6 +11,7 @@ USE_MPI       = TRUE
 USE_OMP       = FALSE
 USE_CUDA      = FALSE
 USE_HIP       = FALSE
+USE_SUNDIALS  = TRUE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
@@ -41,42 +44,42 @@ endif
 
 # Set up the compiler locations
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+ifeq ($(USE_AMREX_LIB), TRUE)
+  CEXE_sources :=
+endif
 
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
+include ../../src_compressible_stag/Make.package
 VPATH_LOCATIONS   += ../../src_compressible_stag/
 INCLUDE_LOCATIONS += ../../src_compressible_stag/
-Bpack += ../../src_compressible_stag/Make.package
-Blocs += ../../src_compressible_stag
 
+include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/
 INCLUDE_LOCATIONS += ../../src_compressible/
-Bpack += ../../src_compressible/Make.package
-Bpack += ../../src_compressible
 
+include ../../src_chemistry/Make.package
 VPATH_LOCATIONS   += ../../src_chemistry/
 INCLUDE_LOCATIONS += ../../src_chemistry/
-Bpack += ../../src_chemistry/Make.package
-Blocs += ../../src_chemistry
 
+include ../../src_MFsurfchem/Make.package
+VPATH_LOCATIONS   += ../../src_MFsurfchem/
+INCLUDE_LOCATIONS += ../../src_MFsurfchem/
+
+include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
 INCLUDE_LOCATIONS += ../../src_rng/
-Bpack += ../../src_rng/Make.package
-Blocs += ../../src_rng
 
+include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
-Bpack += ../../src_common/Make.package
-Blocs += ../../src_common
 
-Bpack += $(AMREX_HOME)/Src/Base/Make.package
-Blocs += $(AMREX_HOME)/Src/Base
+include $(AMREX_HOME)/Src/Base/Make.package
 
+include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
-Bpack += ../../src_analysis/Make.package
-Blocs += ../../src_analysis
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
@@ -84,12 +87,22 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 ifeq ($(USE_PELE_PHYSICS), TRUE)
 
   DEFINES           += -DPELEPHYSICS
+  
+  UTILITY_HOME = $(PELE_PHYSICS_HOME)/Source/Utility/
+  VPATH_LOCATIONS += $(UTILITY_HOME)
+  INCLUDE_LOCATIONS += $(UTILITY_HOME)
+  include $(UTILITY_HOME)/BlackBoxFunction/Make.package
+  VPATH_LOCATIONS += $(UTILITY_HOME)/BlackBoxFunction
+  INCLUDE_LOCATIONS += $(UTILITY_HOME)/BlackBoxFunction
+  include $(UTILITY_HOME)/Utilities/Make.package
+  VPATH_LOCATIONS += $(UTILITY_HOME)/Utilities
+  INCLUDE_LOCATIONS += $(UTILITY_HOME)/Utilities
+
   PP_SRC_HOME 	     = $(PELE_PHYSICS_HOME)/Source
   EXTERN_CORE       += $(PP_SRC_HOME)
-  INCLUDE_LOCATIONS += $(PP_SRC_HOME)
+  include $(PP_SRC_HOME)/Make.package
   VPATH_LOCATIONS   += $(PP_SRC_HOME)
-  Bpack             += $(PP_SRC_HOME)/Make.package
-  Blocs             += $(PP_SRC_HOME)
+  INCLUDE_LOCATIONS += $(PP_SRC_HOME)
 
   ifeq ($(PELE_COMPILE_AJACOBIAN), TRUE)
     DEFINES += -DPELE_COMPILE_AJACOBIAN
@@ -110,26 +123,45 @@ ifeq ($(USE_PELE_PHYSICS), TRUE)
     DEFINES += -DUSE_SRK_EOS
   endif
   EXTERN_CORE       += $(EOS_HOME)
+  include $(EOS_HOME)/Make.package
   INCLUDE_LOCATIONS += $(EOS_HOME)
   VPATH_LOCATIONS   += $(EOS_HOME)
-  Bpack             += $(EOS_HOME)/Make.package
-  Blocs             += $(EOS_HOME)
-
+  ifeq ($(Eos_Model), Fuego)
+    TRANSPORT_TYPE := IDEAL_GAS
+  else
+    ifeq ($(Eos_Model), GammaLaw)
+      TRANSPORT_TYPE := IDEAL_GAS
+    else
+      TRANSPORT_TYPE := REAL_GAS
+    endif
+  endif
+  
   # Reactions
-  REACTIONS_HOME = $(PELE_PHYSICS_HOME)/Source/Reactions
-  EXTERN_CORE       += $(REACTIONS_HOME)
+  REACTIONS_HOME ?= $(PELE_PHYSICS_HOME)/Source/Reactions
+  include $(REACTIONS_HOME)/Make.package
   INCLUDE_LOCATIONS += $(REACTIONS_HOME)
   VPATH_LOCATIONS   += $(REACTIONS_HOME)
-  Bpack += $(REACTIONS_HOME)/Make.package
-  Blocs += $(REACTIONS_HOME)
+  ifeq ($(Eos_Model), GammaLaw)
+    ifneq ($(Chemistry_Model), Null)
+      $(error Chemistry_Model definition not compatible with Eos_Model=GammaLaw)
+    endif
+  endif
+  CHEM_HOME = $(PELE_PHYSICS_HOME)/Mechanisms/$(Chemistry_Model)
+  CHEM_ALL  = $(PELE_PHYSICS_HOME)/Mechanisms
+  VPATH_LOCATIONS += $(CHEM_HOME) $(CHEM_ALL)
+  include $(CHEM_HOME)/Make.package
+  include $(CHEM_ALL)/Make.package
+	Blocs += $(CHEM_HOME) $(CHEM_ALL)
+  REACTIONS_HOME = $(PELE_PHYSICS_HOME)/Source/Reactions
+  EXTERN_CORE       += $(REACTIONS_HOME)
   include $(PELE_PHYSICS_HOME)/ThirdParty/Make.ThirdParty
 
   ifdef Chemistry_Model
     CHEM_HOME = $(PELE_PHYSICS_HOME)/Mechanisms/$(Chemistry_Model)
   endif
+  include $(CHEM_HOME)/Make.package
   VPATH_LOCATIONS += $(CHEM_HOME)
-  Bpack += $(CHEM_HOME)/Make.package
-  Blocs += $(CHEM_HOME)
+  INCLUDE_LOCATIONS += $(CHEM_HOME)
 
   # Transport
   TRANSPORT_HOME = $(PELE_PHYSICS_HOME)/Source/Transport
@@ -143,15 +175,21 @@ ifeq ($(USE_PELE_PHYSICS), TRUE)
     DEFINES += -DUSE_SUTHERLAND_TRANSPORT
   endif
   EXTERN_CORE       += $(TRANSPORT_HOME)
+  include $(TRANSPORT_HOME)/Make.package
   INCLUDE_LOCATIONS += $(TRANSPORT_HOME)
   VPATH_LOCATIONS   += $(TRANSPORT_HOME)
-  Bpack             += $(TRANSPORT_HOME)/Make.package
-  Blocs             += $(TRANSPORT_HOME)
 endif
 
-$(info $${Blocs} is [${Blocs}])
 
-include $(Bpack)
+TPL:
+	@echo "==> Building SUNDIALS library"
+	@cd $(PELE_PHYSICS_HOME)/ThirdParty; $(MAKE) sundials SUNDIALS_HOME=$(SUNDIALS_HOME) AMREX_HOME=$(AMREX_HOME) USE_SYCL=$(USE_SYCL) USE_HIP=$(USE_HIP) USE_CUDA=$(USE_CUDA) PELE_USE_KLU=$(PELE_USE_KLU) PELE_USE_MAGMA=$(PELE_USE_MAGMA) DEBUG=$(DEBUG) COMP=$(HOSTCC) NVCC=$(COMP) CUDA_ARCH=$(CUDA_ARCH) PRECISION=$(PRECISION)
 
-INCLUDE_LOCATIONS += $(Blocs)
-VPATH_LOCATIONS   += $(Blocs)
+TPLclean:
+	@echo "==> Removing SUNDIALS library"
+	@cd $(PELE_PHYSICS_HOME)/ThirdParty; $(MAKE) SUNDIALS_HOME=$(SUNDIALS_HOME) AMREX_HOME=$(AMREX_HOME) USE_SYCL=$(USE_SYCL) USE_HIP=$(USE_HIP) USE_CUDA=$(USE_CUDA) PELE_USE_KLU=$(PELE_USE_KLU) PELE_USE_MAGMA=$(PELE_USE_MAGMA) DEBUG=$(DEBUG) COMP=$(HOSTCC) NVCC=$(COMP) CUDA_ARCH=$(CUDA_ARCH) PRECISION=$(PRECISION) clean
+
+TPLrealclean:
+	@echo "==> Removing SUNDIALS library"
+	@cd $(PELE_PHYSICS_HOME)/ThirdParty; $(MAKE) SUNDIALS_HOME=$(SUNDIALS_HOME) AMREX_HOME=$(AMREX_HOME) USE_SYCL=$(USE_SYCL) USE_HIP=$(USE_HIP) USE_CUDA=$(USE_CUDA) PELE_USE_KLU=$(PELE_USE_KLU) PELE_USE_MAGMA=$(PELE_USE_MAGMA) DEBUG=$(DEBUG) COMP=$(HOSTCC) NVCC=$(COMP) CUDA_ARCH=$(CUDA_ARCH) PRECISION=$(PRECISION) realclean
+

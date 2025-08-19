@@ -16,6 +16,10 @@
 #include "surfchem_mui_functions.H"
 #endif
 
+#if defined(PELEPHYSICS)
+#include "PelePhysics.H" 
+#endif
+
 using namespace std::chrono;
 using namespace amrex;
 
@@ -162,6 +166,14 @@ void main_driver(const char* argv)
     MultiFab kappa(ba,dmap,1,ngc);
     MultiFab chi(ba,dmap,nspecies,ngc);
     MultiFab D(ba,dmap,nspecies*nspecies,ngc);
+
+#if defined(PELEPHYSICS)
+    static pele::physics::PeleParams<pele::physics::transport::TransParm<
+    pele::physics::PhysicsType::eos_type,
+    pele::physics::PhysicsType::transport_type>>
+    trans_parms;
+    trans_parms.initialize();
+#endif
 
     eta.setVal(1.0,0,1,ngc);
     zeta.setVal(1.0,0,1,ngc);
@@ -571,8 +583,13 @@ void main_driver(const char* argv)
         if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt);
 
         // FHD
+#if defined(PELEPHYSICS)
+        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
+                stochFlux, cornx, corny, cornz, visccorn, rancorn, ranchem, geom, dt, trans_parms);
+#else
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, ranchem, geom, dt);
+#endif
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #ifdef MUI
@@ -916,6 +933,11 @@ void main_driver(const char* argv)
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         }
     }
+
+
+#if defined(PELEPHYSICS)
+    trans_parms.deallocate();
+#endif
 
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;

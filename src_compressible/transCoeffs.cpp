@@ -80,12 +80,12 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
                                  Tloc, rholoc, Yloc, 
                                  Dbinloc, chi_mixloc, muloc, xiloc, lamloc, ltransparm);
             amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES> Dloc;
-            D_GIO1(Dbinloc,Yloc,Xloc,Dloc,nspecies);
+            D_GIO1(Dbinloc,Yk_fixed,Xk_fixed,Dloc,nspecies);
             eta(i,j,k) = muloc;
             kappa(i,j,k) = lamloc;
             zeta(i,j,k) = xiloc;
             for (int kk=0; kk<nspecies; ++kk) {
-                chi(i,j,k,kk) = chiloc[kk]/Xloc[kk]; // re-scale thermal diffusion coefficients (pg. 24, Eq. 2.5.24, Giovangigli)
+                chi(i,j,k,kk) = chi_mixloc[kk]/Xloc[kk]; // re-scale thermal diffusion coefficients (pg. 24, Eq. 2.5.24, Giovangigli)
             }
             
             // want this multiplied by rho for all times (rho*D_tilde = rho*Y*D)
