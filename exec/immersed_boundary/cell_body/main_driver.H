@@ -46,7 +46,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
                      int component_src, int component_dest);
 
-Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom, 
+Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom,
 		           const RealVect & x_anchor, const RealVect & e_anchor);
 
 

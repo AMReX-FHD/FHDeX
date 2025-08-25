@@ -6,15 +6,15 @@
 struct Kernel1P
 {
     static constexpr int ks = 2;
-    
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE    
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     Real operator() (Real r_in) const noexcept
     {
         Real kernel_1p;
 
         Real r1 = std::abs(r_in);
         Real r2 = r1*r1;
-        
+
         if (r1 <= 0.5)
         {
             kernel_1p = 1;
@@ -31,15 +31,15 @@ struct Kernel1P
 struct Kernel3P
 {
     static constexpr int ks = 2;
-    
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE    
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     Real operator() (Real r_in) const noexcept
     {
         Real kernel_3p;
 
         Real r1 = std::abs(r_in);
         Real r2 = r1*r1;
-        
+
         if (r1 <= 0.5)
         {
             kernel_3p = (1+std::sqrt(1-(3*r2)))/3.0;
@@ -67,7 +67,7 @@ struct Kernel4P
         Real kernel_4p;
 
         Real r2 = r_in*r_in;
-        
+
         if (r_in <= -2)
         {
             kernel_4p = 0.0;
@@ -92,7 +92,7 @@ struct Kernel4P
        {
            kernel_4p = 0.0;
        }
-        
+
         return kernel_4p;
     }
 };
@@ -152,7 +152,7 @@ Real phi1 (Real r)
 struct Kernel6P
 {
     static constexpr int ks = 4;
-    
+
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     Real operator() (Real r_in) const noexcept
     {
@@ -161,13 +161,13 @@ struct Kernel6P
         //>Yuanxun Bao, Jason Kaye, Charles S. Peskin, *Journal of Computational Physics* **316**, 139 (2016)
         //>https://dx.doi.org/10.1016/j.jcp.2016.04.024
         //Note also: https://github.com/stochasticHydroTools/IBMethod/blob/master/IBKernels/Kernels.c because the paper above has mistakes (but the repo's OK)
-        
+
         Real kernel_6p;
-        
+
         //internal parameters
         Real K = 59.0/60 - std::sqrt(29.0)/20.0;
         Real sgn = (3.0/2 - K)/std::abs(3.0/2 - K);
-        
+
         //pre-computed ratios
         Real inv16 = 1.0/16.0;
         Real inv8 = 1.0/8.0;
@@ -175,14 +175,14 @@ struct Kernel6P
         Real inv4 = 1.0/4.0;
         Real inv6 = 1.0/6.0;
         Real rat58 = 5.0/8.0;
-        
+
         //internal variables
         Real r = r_in;
-        
+
         //compute kernel function
         if (r <= -3)
         {
-            kernel_6p = 0.0; 
+            kernel_6p = 0.0;
         }
         else if (r <= -2)
         {
@@ -217,19 +217,19 @@ struct Kernel6P
         {
             kernel_6p = 0.0;
         }
-        
+
         return kernel_6p;
     }
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-Real integral(Real beta_in, int w_in) 
+Real integral(Real beta_in, int w_in)
 {
     Real beta = beta_in;
     Real w = static_cast<Real>(w_in);
     int nbin = 100;
     Real dxi = w/nbin;
-    Real integral = 0.0; 
+    Real integral = 0.0;
 
     // mid-point rule for integration
     for (int i = 0; i < nbin; i++) {

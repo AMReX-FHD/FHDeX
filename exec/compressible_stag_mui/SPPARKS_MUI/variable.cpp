@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -84,7 +84,7 @@ void Variable::set(int narg, char **arg)
   // if var already exists, just skip (except EQUAL vars)
 
   if (find(arg[0]) >= 0 && strcmp(arg[1],"equal") != 0) return;
-      
+
   // make space for new variable
 
   if (nvar == maxvar) {
@@ -94,7 +94,7 @@ void Variable::set(int narg, char **arg)
     style = (int *) memory->srealloc(style,maxvar*sizeof(int),"var:style");
     num = (int *) memory->srealloc(num,maxvar*sizeof(int),"var:num");
     index = (int *) memory->srealloc(index,maxvar*sizeof(int),"var:index");
-    data = (char ***) 
+    data = (char ***)
       memory->srealloc(data,maxvar*sizeof(char **),"var:data");
   }
 
@@ -118,7 +118,7 @@ void Variable::set(int narg, char **arg)
     index[nvar] = 0;
     data[nvar] = new char*[num[nvar]];
     for (int i = 0; i < num[nvar]; i++) data[nvar][i] = NULL;
-    
+
   // EQUAL
   // remove pre-existing var if also style EQUAL (allows it to be reset)
   // num = 2, index = 1st value
@@ -137,7 +137,7 @@ void Variable::set(int narg, char **arg)
     data[nvar] = new char*[num[nvar]];
     copy(1,&arg[2],data[nvar]);
     data[nvar][1] = NULL;
-    
+
   // WORLD
   // num = listed args, index = partition this proc is in, data = copied args
   // error check that num = # of worlds in universe
@@ -183,7 +183,7 @@ void Variable::set(int narg, char **arg)
     }
 
     for (int jvar = 0; jvar < nvar; jvar++)
-      if (num[jvar] && (style[jvar] == UNIVERSE || style[jvar] == ULOOP) && 
+      if (num[jvar] && (style[jvar] == UNIVERSE || style[jvar] == ULOOP) &&
 	  num[nvar] != num[jvar])
 	error->all(FLERR,"All universe/uloop variables must have same # of values");
 
@@ -330,7 +330,7 @@ char *Variable::retrieve(char *name)
   if (index[ivar] >= num[ivar]) return NULL;
 
   char *str;
-  if (style[ivar] == INDEX || style[ivar] == WORLD || 
+  if (style[ivar] == INDEX || style[ivar] == WORLD ||
       style[ivar] == UNIVERSE) {
     str = data[ivar][index[ivar]];
   } else if (style[ivar] == LOOP || style[ivar] == ULOOP) {
@@ -369,7 +369,7 @@ double Variable::compute_equal(int ivar)
    search for name in list of variables names
    return index or -1 if not found
 ------------------------------------------------------------------------- */
-  
+
 int Variable::find(char *name)
 {
   for (int i = 0; i < nvar; i++)
@@ -380,7 +380,7 @@ int Variable::find(char *name)
 /* ----------------------------------------------------------------------
    return 1 if variable is EQUAL style, 0 if not
 ------------------------------------------------------------------------- */
-  
+
 int Variable::equalstyle(int ivar)
 {
   if (style[ivar] == EQUAL) return 1;
@@ -390,7 +390,7 @@ int Variable::equalstyle(int ivar)
 /* ----------------------------------------------------------------------
    remove Nth variable from list and compact list
 ------------------------------------------------------------------------- */
-  
+
 void Variable::remove(int n)
 {
   delete [] names[n];
@@ -408,9 +408,9 @@ void Variable::remove(int n)
 }
 
 /* ----------------------------------------------------------------------
-   copy narg strings from **from to **to 
+   copy narg strings from **from to **to
 ------------------------------------------------------------------------- */
-  
+
 void Variable::copy(int narg, char **from, char **to)
 {
   int n;
@@ -684,18 +684,18 @@ int Variable::math_function(char *word, char *contents,
 {
   // word not a match to any math function
 
-  if (strcmp(word,"sqrt") && strcmp(word,"exp") && 
+  if (strcmp(word,"sqrt") && strcmp(word,"exp") &&
       strcmp(word,"ln") && strcmp(word,"log") &&
       strcmp(word,"sin") && strcmp(word,"cos") &&
       strcmp(word,"tan") && strcmp(word,"asin") &&
       strcmp(word,"acos") && strcmp(word,"atan") &&
       strcmp(word,"ceil") && strcmp(word,"floor") && strcmp(word,"round"))
     return 0;
-    
+
   double value;
 
   value = evaluate(contents);
-    
+
   if (strcmp(word,"sqrt") == 0) {
     if (value < 0.0) error->all(FLERR,"Sqrt of negative in variable formula");
     argstack[nargstack++] = sqrt(value);
@@ -717,11 +717,11 @@ int Variable::math_function(char *word, char *contents,
     argstack[nargstack++] = tan(value);
 
   } else if (strcmp(word,"asin") == 0) {
-    if (value < -1.0 || value > 1.0) 
+    if (value < -1.0 || value > 1.0)
       error->all(FLERR,"Arcsin of invalid value in variable formula");
     argstack[nargstack++] = asin(value);
   } else if (strcmp(word,"acos") == 0) {
-    if (value < -1.0 || value > 1.0) 
+    if (value < -1.0 || value > 1.0)
       error->all(FLERR,"Arccos of invalid value in variable formula");
     argstack[nargstack++] = acos(value);
   } else if (strcmp(word,"atan") == 0) {

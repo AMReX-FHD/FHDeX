@@ -20,7 +20,7 @@ public:
 	using REAL       = typename CONFIG::REAL;
 	using INT        = typename CONFIG::INT;
 	using time_type  = typename CONFIG::time_type;
-	
+
 	chrono_sampler_gauss( time_type newcutoff, REAL newsigma ) {
 		sigma  = newsigma;
 		cutoff = newcutoff;

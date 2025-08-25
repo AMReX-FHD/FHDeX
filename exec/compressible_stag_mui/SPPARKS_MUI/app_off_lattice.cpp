@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -37,7 +37,7 @@ enum{INTERIOR,EDGE,GHOST};            // same as in comm_off_lattice.cpp
 
 /* ---------------------------------------------------------------------- */
 
-AppOffLattice::AppOffLattice(SPPARKS *spk, int narg, char **arg) : 
+AppOffLattice::AppOffLattice(SPPARKS *spk, int narg, char **arg) :
   App(spk,narg,arg)
 {
   appclass = OFF_LATTICE;
@@ -109,7 +109,7 @@ AppOffLattice::~AppOffLattice()
   memory->destroy(imageproc);
   memory->destroy(ghostindex);
   memory->destroy(ghostproc);
-  
+
   delete [] stencil;
   delete [] neighs;
 }
@@ -149,7 +149,7 @@ void AppOffLattice::init()
     error->all(FLERR,
 	       "Cannot use raster rejection KMC in parallel with no sectors");
 
-  if (sweepflag && dt_sweep == 0.0) 
+  if (sweepflag && dt_sweep == 0.0)
     error->all(FLERR,"App did not set dt_sweep");
 
   // total size of a site = id + xyz + per-site quantities
@@ -179,7 +179,7 @@ void AppOffLattice::init()
     else nsector = 8;
 
     if (dimension == 3) {
-      if (nsector == 2 && (domain->procgrid[1] != 1 || 
+      if (nsector == 2 && (domain->procgrid[1] != 1 ||
 			   domain->procgrid[2] != 1))
 	error->all(FLERR,"Invalid number of sectors");
       if (nsector == 4 && domain->procgrid[2] != 1)
@@ -224,7 +224,7 @@ void AppOffLattice::init()
 
   // create bins for sites
   // redo this on every init in case cutoff changed
-  
+
   init_bins();
 
   // create stencil for neighbor finding
@@ -331,7 +331,7 @@ void AppOffLattice::iterate_kmc_global(double stoptime)
   /*
   int isite;
   double dt;
-  
+
   // global KMC runs with one set
   // save ptr to system solver
 
@@ -401,14 +401,14 @@ void AppOffLattice::iterate_kmc_sector(double stoptime)
       }
 
       solve = set[iset].solve;
-      
+
       propensity = set[iset].propensity;
       i2site = set[iset].i2site;
       int *site2i = set[iset].site2i;
 
       //solve->update(nsites,bsites,propensity);
       timer->stamp(TIME_COMM);
-      
+
       // pmax = maximum sector propensity per site
 
       if (Ladapt) {
@@ -419,19 +419,19 @@ void AppOffLattice::iterate_kmc_sector(double stoptime)
 	  pmax = MAX(ptmp,pmax);
 	}
       }
-      
+
       // execute events until sector time threshhold reached
-      
+
       done = 0;
       timesector = 0.0;
       while (!done) {
 	timer->stamp();
 	isite = solve->event(&dt);
 	timer->stamp(TIME_SOLVE);
-	
+
 	if (isite < 0) done = 1;
 	else {
-	  timesector += dt;	
+	  timesector += dt;
 	  if (timesector >= dt_kmc) done = 1;
 	  else {
 	    //site_event(site2i[isite]);
@@ -440,7 +440,7 @@ void AppOffLattice::iterate_kmc_sector(double stoptime)
 	  timer->stamp(TIME_APP);
 	}
       }
-      
+
       if (nprocs > 1) {
 	comm->reverse_sector(iset);
 	timer->stamp(TIME_COMM);
@@ -448,7 +448,7 @@ void AppOffLattice::iterate_kmc_sector(double stoptime)
     }
 
     // keep looping until overall time threshhold reached
-    
+
     time += dt_kmc;
     if (time >= stoptime) alldone = 1;
     if (alldone || time >= nextoutput)
@@ -487,7 +487,7 @@ void AppOffLattice::iterate_rejection(double stoptime)
     in_sector[i] = 1;
     site2i[i] = i;
   }
-  
+
   int done = 0;
   while (!done) {
     for (int iset = 0; iset < nset; iset++) {
@@ -526,7 +526,7 @@ void AppOffLattice::iterate_rejection(double stoptime)
 
       if (sweepflag == RANDOM) {
 	nrange = nlocal_sector;
-	for (i = 0; i < nselect; i++) 
+	for (i = 0; i < nselect; i++)
 	  sitelist[i] = site2i[ranapp->irandom(nrange) - 1];
 	for (int m = 0; m < nselect; m++) {
 	  if (in_sector[sitelist[m]] == 0) continue;
@@ -583,7 +583,7 @@ void AppOffLattice::rkmc_params(int nlocal_sector, int &nloop, int &nselect)
       nloop = 0;
       nselect = static_cast<int> (n/nglobal * nlocal_sector);
     }
-    
+
   } else if (sweepflag == RASTER) {
     int n;
     if (nstop > 0.0) n = static_cast<int> (nstop);
@@ -641,7 +641,7 @@ void AppOffLattice::check(char *str, int flag, int iset)
     int mprev = -1;
     while (m >= 0) {
       if (prev[m] != mprev) {
-	printf("%s LINK me %d: m %d id " TAGINT_FORMAT 
+	printf("%s LINK me %d: m %d id " TAGINT_FORMAT
 	       " bin %d prev %d mprev %d nloc %d\n",
 	       str,me,m,id[m],bin[m],prev[m],mprev,nlocal);
 	error->one(FLERR,"LINK MISMATCH");
@@ -683,7 +683,7 @@ void AppOffLattice::check(char *str, int flag, int iset)
   }
 
   // test that no bin has too many sites
-  
+
   for (int i = 0; i < nbins; i++) {
     count = 0;
     int m = binhead[i];
@@ -937,18 +937,18 @@ void AppOffLattice::init_bins()
   // determine if each bin is INTERIOR or EDGE or GHOST
 
   if (dimension == 3) {
-    for (i = 0; i < nbinx; i++) 
-      for (j = 0; j < nbiny; j++) 
+    for (i = 0; i < nbinx; i++)
+      for (j = 0; j < nbiny; j++)
 	for (k = 0; k < nbinz; k++) {
 	  m = k*nbiny*nbinx + j*nbinx + i;
-	  if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1 || 
+	  if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1 ||
 	      k == 0 || k == nbinz-1) binflag[m] = GHOST;
 	  else if (i > 1 && i < nbinx-2 && j > 1 && j < nbiny-2 &&
 		   k > 1 && k < nbinz-2) binflag[m] = INTERIOR;
 	  else binflag[m] = EDGE;
 	}
   } else if (dimension == 2) {
-    for (i = 0; i < nbinx; i++) 
+    for (i = 0; i < nbinx; i++)
       for (j = 0; j < nbiny; j++) {
 	m = j*nbinx + i;
 	if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1)
@@ -958,7 +958,7 @@ void AppOffLattice::init_bins()
 	else binflag[m] = EDGE;
       }
   } else {
-    for (i = 0; i < nbinx; i++) 
+    for (i = 0; i < nbinx; i++)
       for (j = 0; j < nbiny; j++) {
 	m = j*nbinx + i;
 	if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1)
@@ -987,14 +987,14 @@ void AppOffLattice::init_bins()
 
       if (dimension >= 2) {
 	if (iy == 0 && myloc[1] == 0) pbcoffset[m][1] = -1;
-	else if (iy == nbiny-1 && myloc[1] == procgrid[1]-1) 
+	else if (iy == nbiny-1 && myloc[1] == procgrid[1]-1)
 	  pbcoffset[m][1] = 1;
 	else pbcoffset[m][1] = 0;
       } else pbcoffset[m][1] = 0;
 
       if (dimension == 3) {
 	if (iz == 0 && myloc[2] == 0) pbcoffset[m][2] = -1;
-	else if (iz == nbinz-1 && myloc[2] == procgrid[2]-1) 
+	else if (iz == nbinz-1 && myloc[2] == procgrid[2]-1)
 	  pbcoffset[m][2] = 1;
 	else pbcoffset[m][2] = 0;
       } else pbcoffset[m][2] = 0;
@@ -1222,11 +1222,11 @@ int AppOffLattice::site2bin(int i)
 {
   // DEBUG check - can delete eventually
 
-  if (xyz[i][0] < subxlo-binx-EPSILON || 
+  if (xyz[i][0] < subxlo-binx-EPSILON ||
       xyz[i][0] >= subxhi+binx+EPSILON ||
-      xyz[i][1] < subylo-biny-EPSILON || 
+      xyz[i][1] < subylo-biny-EPSILON ||
       xyz[i][1] >= subyhi+biny+EPSILON ||
-      xyz[i][2] < subzlo-binz-EPSILON || 
+      xyz[i][2] < subzlo-binz-EPSILON ||
       xyz[i][2] >= subzhi+binz+EPSILON) {
     printf("BAD SITE: %d %d %d %d: %g %g %g " TAGINT_FORMAT "\n",
 	   me,i,bin[i],nlocal,xyz[i][0],xyz[i][1],xyz[i][2],id[i]);
@@ -1238,20 +1238,20 @@ int AppOffLattice::site2bin(int i)
   int ix,iy,iz;
 
   if (xyz[i][0] >= subxhi) ix = nbinx-1;
-  else if (xyz[i][0] >= subxlo) 
+  else if (xyz[i][0] >= subxlo)
     ix = static_cast<int> ((xyz[i][0]-subxlo)*invbinx) + 1;
   else ix = 0;
 
   if (dimension >= 2) {
     if (xyz[i][1] >= subyhi) iy = nbiny-1;
-    else if (xyz[i][1] >= subylo) 
+    else if (xyz[i][1] >= subylo)
       iy = static_cast<int> ((xyz[i][1]-subylo)*invbiny) + 1;
     else iy = 0;
   } else iy = 0;
 
   if (dimension == 3) {
     if (xyz[i][2] >= subzhi) iz = nbinz-1;
-    else if (xyz[i][2] >= subzlo) 
+    else if (xyz[i][2] >= subzlo)
       iz = static_cast<int> ((xyz[i][2]-subzlo)*invbinz) + 1;
     else iz = 0;
   } else iz = 0;
@@ -1580,7 +1580,7 @@ void AppOffLattice::add_image_bins(int m, int i, int j, int k)
 /* ----------------------------------------------------------------------
    grow per-site arrays
    n = 0 grows arrays by DELTA
-   n > 0 allocates arrays to size n 
+   n > 0 allocates arrays to size n
 ------------------------------------------------------------------------- */
 
 void AppOffLattice::grow(int n)

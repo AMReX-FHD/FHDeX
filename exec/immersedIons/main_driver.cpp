@@ -31,7 +31,7 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
-        
+
     int step = 1;
     Real time = 0.;
     int statsCount = 1;
@@ -51,12 +51,12 @@ void main_driver(const char* argv)
 
     // BoxArray electrostatic grid
     BoxArray bp;
-    
+
     // Box for the fluid
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
-    
+
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap;
 
@@ -88,13 +88,13 @@ void main_driver(const char* argv)
         else {
 	        tempang = floor(eskernel_fluid[i]/2)+1;
         }
-        
+
         if(tempang > ang)
         {
             ang = tempang;
-        }   
+        }
     }
-    
+
     int ngp = 1;
     // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
     //     not sure if it will cause problem for BCs.
@@ -106,7 +106,7 @@ void main_driver(const char* argv)
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
         ngp = 4;
-    } 
+    }
 
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
@@ -130,7 +130,7 @@ void main_driver(const char* argv)
 
     // MF for charge mean and variance
     MultiFab chargeM;
-    
+
     if (restart < 0) {
 
         if (seed > 0) {
@@ -160,7 +160,7 @@ void main_driver(const char* argv)
 
         // how boxes are distrubuted among MPI processes
         dmap.define(ba);
-        
+
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             touched[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
@@ -174,7 +174,7 @@ void main_driver(const char* argv)
 
         bc = ba;
         bp = ba;
-        
+
         // particle grid_refine: <1 = refine, >1 = coarsen.
         // assume only powers of 2 for now
         if (particle_grid_refine < 1) {
@@ -185,7 +185,7 @@ void main_driver(const char* argv)
             int sizeRatio = (int)(particle_grid_refine);
             bc.coarsen(sizeRatio);
         }
-        
+
         if (es_grid_refine < 1) {
             int sizeRatio = (int)(1.0/es_grid_refine);
             bp.refine(sizeRatio);
@@ -194,7 +194,7 @@ void main_driver(const char* argv)
             int sizeRatio = (int)(es_grid_refine);
             bp.coarsen(sizeRatio);
         }
-        
+
         // Variables (C++ index)
         // ( 0) Members
         // ( 1) Density
@@ -212,7 +212,7 @@ void main_driver(const char* argv)
         // (13) Cz
         particleMeans.define(bc, dmap, 8+nspecies, 0);
         particleMeans.setVal(0.);
-        
+
         // Variables (C++ index)
         // ( 0) Members
         // ( 1) Density
@@ -231,19 +231,19 @@ void main_driver(const char* argv)
         // (14) RhoGCross
         // (15) Cx
         // (16) Cy
-        // (17) Cz 
+        // (17) Cz
 
         //Cell centred es potential
         potential.define(bp, dmap, 1, ngp);
         potentialM.define(bp, dmap, 1, 1);
         potential.setVal(0.);
         potentialM.setVal(0.);
-        
+
         chargeM.define(bp, dmap, 1, 1);  // mean
         chargeM.setVal(0);
     }
     else {
-        
+
         // restart from checkpoint
         ReadCheckPoint(step,time,statsCount,umac,umacM,pres,
                        particleMeans,particleVars,chargeM,
@@ -251,7 +251,7 @@ void main_driver(const char* argv)
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
-        
+
         // grab fluid BoxArray from umac and convert to cell-centered
         ba = umac[0].boxArray();
         ba.enclosedCells();
@@ -266,7 +266,7 @@ void main_driver(const char* argv)
     // Domain boxes for particle and electrostatic grids
     Box domainC = domain;
     Box domainP = domain;
-    
+
     // particle grid and es grid_refine: <1 = refine, >1 = coarsen.
     // assume only powers of 2 for now
     // note particle grid BoxArray was handled above
@@ -442,7 +442,7 @@ void main_driver(const char* argv)
     }
 
     for(int i=0;i<nspecies;i++) {
-        
+
         ionParticle[i].m = mass[i];
         ionParticle[i].q = qval[i];
 
@@ -461,7 +461,7 @@ void main_driver(const char* argv)
                 ionParticle[i].dryDiff = ionParticle[i].totalDiff;
                 ionParticle[i].wetDiff = 0;
             }
-            else {            
+            else {
                 // dry = total - wet
                 ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff;
             }
@@ -470,7 +470,7 @@ void main_driver(const char* argv)
         else { // zero or negative diameter
 
             // set total diffusion from inputs
-            ionParticle[i].totalDiff = diff[i];            
+            ionParticle[i].totalDiff = diff[i];
 
             // set diameter from total diffusion (Stokes Einsten)
             ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*M_PI*(ionParticle[i].totalDiff)*visc_coef);
@@ -484,7 +484,7 @@ void main_driver(const char* argv)
                 ionParticle[i].dryDiff = ionParticle[i].totalDiff;
                 ionParticle[i].wetDiff = 0;
             }
-            else {            
+            else {
                 // dry = total - wet
                 ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff;
             }
@@ -516,18 +516,18 @@ void main_driver(const char* argv)
         ionParticle[i].eepsilon = eepsilon[i];
 
         // round up particles so there are the same number in each box;
-        // we have to divide them into whole numbers of particles somehow. 
+        // we have to divide them into whole numbers of particles somehow.
         if (particle_count[i] >= 0) {
             ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
             ionParticle[i].total = particle_count[i];
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
-            
+
             Print() << "Species " << i << " count adjusted to " << ionParticle[i].total << "\n";
         }
         else {
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
             ionParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
-            // adjust number of particles up so there is the same number per box  
+            // adjust number of particles up so there is the same number per box
             ionParticle[i].ppb = (double)ionParticle[i].total/(double)ba.size();
             //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
@@ -540,7 +540,7 @@ void main_driver(const char* argv)
         realParticles = realParticles + ionParticle[i].total*particle_neff;
         simParticles = simParticles + ionParticle[i].total;
     }
-    
+
     Print() << "Total real particles: " << realParticles << "\n";
     Print() << "Total sim particles: " << simParticles << "\n";
 
@@ -551,7 +551,7 @@ void main_driver(const char* argv)
 
     // see the variable list used above above for particleMeans
     MultiFab particleInstant(bc, dmap, 8+nspecies, 0);
-    
+
     //-----------------------------
     //  Hydro setup
 
@@ -559,7 +559,7 @@ void main_driver(const char* argv)
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
 
-    // this only needs 1 ghost cell    
+    // this only needs 1 ghost cell
     MultiFab rho(ba, dmap, 1, 1);
     rho.setVal(1.);
 
@@ -569,7 +569,7 @@ void main_driver(const char* argv)
     // beta -> 1
     // beta_ed -> 1
     // gamma -> 1
-    
+
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -604,7 +604,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Define & initalize eta & temperature multifabs
     ///////////////////////////////////////////
-    
+
     // eta & temperature
     const Real eta_const = visc_coef;
     const Real temp_const = T_init[0];      // [units: K]
@@ -614,11 +614,11 @@ void main_driver(const char* argv)
     // temp_cc -> 1
     // eta_ed -> 0
     // temp_ed -> 0
-    
+
     // eta and temperature; cell-centered
     MultiFab  eta_cc(ba, dmap, 1, 1);
     MultiFab temp_cc(ba, dmap, 1, 1);
-    
+
     // eta and temperature; nodal
     std::array< MultiFab, NUM_EDGE >  eta_ed;
     std::array< MultiFab, NUM_EDGE > temp_ed;
@@ -667,7 +667,7 @@ void main_driver(const char* argv)
     weights = {1.0};
 
     ///////////////////////////////////////////
-        
+
     // additional staggered velocity MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -716,7 +716,7 @@ void main_driver(const char* argv)
         planeFile >> fileCount;
     }
     paramPlaneCount = paramPlaneCount + fileCount;
-    
+
     Gpu::ManagedVector<paramPlane> paramPlaneList(paramPlaneCount);
     // Set up a pointer to access data of paramPlaneList, which is used as a normal vector everywhere
     paramPlane* pparamPlaneList = paramPlaneList.data();
@@ -724,12 +724,12 @@ void main_driver(const char* argv)
 
     // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
 
-    //----------------------    
+    //----------------------
     // Particle tile size
     //----------------------
     Vector<int> ts(BL_SPACEDIM);
-    
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {        
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
         if (max_particle_tile_size[d] > 0) {
             ts[d] = max_particle_tile_size[d];
         }
@@ -772,7 +772,7 @@ void main_driver(const char* argv)
 //           max_sr_range = range ;
 //        }
 //    }
-    
+
     if(max_sr_range > max_es_range)
     {
         max_range = max_sr_range;
@@ -800,8 +800,8 @@ void main_driver(const char* argv)
 
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
-    
-    //----------------------    
+
+    //----------------------
     // Electrostatic setup
     //----------------------
 
@@ -843,7 +843,7 @@ void main_driver(const char* argv)
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         external[d].define(bp, dmap, 1, ngp);
     }
-    
+
     ///////////////////////////////////////////
     // structure factor for charge-charge
     ///////////////////////////////////////////
@@ -905,7 +905,7 @@ void main_driver(const char* argv)
     s_pairB_vel[4] = 2;
     s_pairA_vel[5] = 2; // zvel-zvel
     s_pairB_vel[5] = 2;
-    
+
     Vector<Real> scaling_vel(nvar_sf_vel);
     for (int i=0; i<nvar_sf_vel; ++i) {
         scaling_vel[i] = 1.;
@@ -970,8 +970,8 @@ void main_driver(const char* argv)
         if(step < 100 && step > 80) dt = dt*10000;
         if(step > 100) dt = dt*100000;
     }
-            
-    
+
+
 
     particles.initRankLists(simParticles);
 
@@ -983,27 +983,27 @@ void main_driver(const char* argv)
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
-        
+
         if(ramp_step==2)
         {
             if(istep == 50)
             {
                     dt = dt*2;
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
-            
+
             if(istep == 100)
             {
                     dt = dt*2;
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 150)
             {
                     dt = dt*2;
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
@@ -1011,42 +1011,42 @@ void main_driver(const char* argv)
             if(istep == 200)
             {
                     dt = dt*2;
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 250)
             {
                     dt = dt*2;
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 300)
             {
                     dt = dt*2;
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
             if(istep == 350)
             {
                     dt = dt*2;
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 400)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
-            
+
             if(istep == 500)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
@@ -1054,7 +1054,7 @@ void main_driver(const char* argv)
             if(istep == 600)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
@@ -1062,7 +1062,7 @@ void main_driver(const char* argv)
             if(istep == 700)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
@@ -1070,38 +1070,38 @@ void main_driver(const char* argv)
             if(istep == 800)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 900)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
             if(istep == 1000)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
             if(istep == 1100)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
-            
+
             if(istep == 1200)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }if(istep == 1300)
             {
                     dt = dt*sqrt(5);
-                    
+
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }if(istep == 1400)
             {
@@ -1127,7 +1127,7 @@ void main_driver(const char* argv)
                     dt = dt*2;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
-            
+
             if(istep == 40)
             {
                     dt = dt*5;
@@ -1165,7 +1165,7 @@ void main_driver(const char* argv)
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
-            
+
             if(istep == 480)
             {
                     dt = dt*2;
@@ -1201,7 +1201,7 @@ void main_driver(const char* argv)
             }
           }else
         {
-        
+
             if(istep == 20)
             {
                     dt = dt*10;
@@ -1243,59 +1243,59 @@ void main_driver(const char* argv)
 //            Real x1 = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
 //            Real y1 = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
 //            Real z1 = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
-////          
+////
 ////            Real seprad = ionParticle[0].d/2.0;
-////  
+////
 ////            Real x2 = x1 + 0.0*ionParticle[0].d/2.0;
 ////            Real y2 = y1;
 ////            Real z2 = z1;
-//////            
+//////
 //            particles.SetPosition(kk,x1 ,y1, z1);
 ////            particles.SetPosition(kk+1,x2 ,y2, z2);
-//            
+//
 //           // Print() << "Seperating particles " << kk << " and " << kk+1 << " by " << (x1 -x2)/seprad << " radii.\n";
-//            
+//
 //            kk = kk+2;
-//            
+//
 
 //          }
 
-//          kk =1;          
+//          kk =1;
 //          while(kk<ionParticle[0].total)
 //          {
 //            Real xPos[ionParticle[0].total];
 //            Real yPos[ionParticle[0].total];
 //            Real zPos[ionParticle[0].total];
-//            
+//
 //            particles.PullDown(0, xPos, -1, ionParticle[0].total);
 //            particles.PullDown(0, yPos, -2, ionParticle[0].total);
 //            particles.PullDown(0, zPos, -3, ionParticle[0].total);
-//            
+//
 //            Real x1 = xPos[kk-1];
 //            Real y1 = yPos[kk-1];
 //            Real z1 = zPos[kk-1];
-////          
+////
 //            Real seprad = ionParticle[0].d/2.0;
-//  
+//
 //            Real x2 = x1 + 6.0*ionParticle[0].d/2.0;
 //            Real y2 = y1;
 //            Real z2 = z1;
-//////            
+//////
 ////            particles.SetPosition(kk,x1 ,y1, z1);
 //            particles.SetPosition(kk+1,x2 ,y2, z2);
-//            
+//
 //           // Print() << "Seperating particles " << kk << " and " << kk+1 << " by " << (x1 -x2)/seprad << " radii.\n";
-//            
+//
 //            kk = kk+2;
-//            
+//
 
 //          }
-//            
+//
 //            x1 = 0.5*prob_hi[0] + (amrex::Random()-0.5)*(prob_hi[0]-prob_lo[0])*0.25;
 //            y1 = 0.1875*dxp[0];
 //            z1 = 0.5*prob_hi[2] + (amrex::Random()-0.5)*(prob_hi[2]-prob_lo[2])*0.25;
-            
-            
+
+
 //            Real costheta = 2.*amrex::Random() - 1.;
 //            Real sintheta = sqrt(1. - costheta*costheta);
 
@@ -1308,11 +1308,11 @@ void main_driver(const char* argv)
 //            Real x2 = x1 + dr*cosphi;
 //            Real y2 = y1;
 //            Real z2 = z1 + dr*sinphi;;
-//            
+//
 //            particles.SetPosition(1,x1 ,y1, z1);
 //            particles.SetPosition(2,x2 ,y2, z2);
 
-    
+
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1346,7 +1346,7 @@ void main_driver(const char* argv)
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
-	
+
 
         if (sr_tog != 0 || es_tog==3) {
 
@@ -1359,7 +1359,7 @@ void main_driver(const char* argv)
             // spreads charge density from ions onto multifab 'charge'.
             particles.collectFieldsGPU(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
         }
-        
+
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
         // Then calculate gradient and put in 'efieldCC', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
@@ -1388,8 +1388,8 @@ void main_driver(const char* argv)
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
-        
-        
+
+
         MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
         MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
         MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
@@ -1398,7 +1398,7 @@ void main_driver(const char* argv)
         if (fluid_tog == 1) {
 
             if(particles.getTotalPinnedMarkers() != 0)
-            {         
+            {
 
                 Real check;
 
@@ -1410,7 +1410,7 @@ void main_driver(const char* argv)
 //                        source    [d].setVal(0.0);      // reset source terms
 //                        sourceTemp[d].setVal(0.0);      // reset source terms
 //                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
 //                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 //                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
 //                    particles.fillMobilityMatrix(ii,0);
@@ -1420,7 +1420,7 @@ void main_driver(const char* argv)
 //                        source    [d].setVal(0.0);      // reset source terms
 //                        sourceTemp[d].setVal(0.0);      // reset source terms
 //                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
 //                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 //                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
 //                    particles.fillMobilityMatrix(ii,1);
@@ -1430,7 +1430,7 @@ void main_driver(const char* argv)
 //                        source    [d].setVal(0.0);      // reset source terms
 //                        sourceTemp[d].setVal(0.0);      // reset source terms
 //                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
 //                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 //                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
 //                    particles.fillMobilityMatrix(ii,2);
@@ -1472,7 +1472,7 @@ void main_driver(const char* argv)
         else if (fluid_tog == 2) {
             Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
         }
-       
+
         //Real check;
         //particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords,check);
         //particles.TwoParticleCorrelation();
@@ -1506,19 +1506,19 @@ void main_driver(const char* argv)
         // this way, e.g., plot 10 will contain the average of steps 1-10
         // instead of the instantaneous value at step 10
         // however this has the same effect on currentEst so the diagnostics
-        // in immersedIons/postprocessing will have to be updated to account for this        
+        // in immersedIons/postprocessing will have to be updated to account for this
         */
         // reset statistics after step n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
         if ((n_steps_skip > 0 && istep == n_steps_skip) ||
             (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
-            
+
             particleMeans.setVal(0.0);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 umacM[d].setVal(0.);
             }
-                
+
             Print() << "Resetting stat collection.\n";
 
             statsCount = 1;
@@ -1526,7 +1526,7 @@ void main_driver(const char* argv)
 
         // g(r)
         if(radialdist_int>0 && istep%radialdist_int == 0) {
-            
+
             // timer
             Real time_PC1 = ParallelDescriptor::second();
 
@@ -1545,10 +1545,10 @@ void main_driver(const char* argv)
 
             // timer
             Real time_PC1 = ParallelDescriptor::second();
-        
+
             // compute g(x), g(y), g(z)
             particles.CartesianDistribution(simParticles, istep, ionParticle);
-            
+
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;
             ParallelDescriptor::ReduceRealMax(time_PC2);
@@ -1568,9 +1568,9 @@ void main_driver(const char* argv)
 
         //Don't forget to add a remove(filename) so it doesn't append to old data
         OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
-        
+
         statsCount++;
-        
+
 	//_______________________________________________________________________
 	// Update structure factor
         if (struct_fact_int > 0 &&
@@ -1586,7 +1586,7 @@ void main_driver(const char* argv)
                 ShiftFaceToCC(umac[d],0,struct_cc_vel,d,1);
             }
             structFact_vel.FortStructure(struct_cc_vel);
-            
+
             // plot structure factor on plot_int
             if (istep%plot_int == 0) {
                 structFact_charge.WritePlotFile(istep,time,"plt_SF_charge");
@@ -1628,7 +1628,7 @@ void main_driver(const char* argv)
         Real time2 = ParallelDescriptor::second() - time1;
         ParallelDescriptor::ReduceRealMax(time2);
         amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
-        
+
         time = time + dt;
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -1650,7 +1650,7 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        
+
     }
     ///////////////////////////////////////////
         //test change

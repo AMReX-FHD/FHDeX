@@ -91,7 +91,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
-						
+
 						p.rdata(FHD_realData::velx) = vpart[0];
 						p.rdata(FHD_realData::vely) = vpart[1];
 						p.rdata(FHD_realData::velz) = vpart[2];
@@ -155,7 +155,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
     Redistribute();
 	//SortParticles();
 	SortParticlesDB();
-	
+
 	// Zero bulk velocities in each cell
 //	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
 //	{
@@ -169,7 +169,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 
 //		IntVect smallEnd = tile_box.smallEnd();
 //		IntVect bigEnd = tile_box.bigEnd();
-//	
+//
 //		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
 //		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
 //		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {

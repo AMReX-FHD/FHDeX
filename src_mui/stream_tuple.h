@@ -13,7 +13,7 @@
 
 // stream-in/out for std::tuple.
 // The order of elements in stream-in/out is first-argument to last-argument.
-// So then you can stream-out by tuple 
+// So then you can stream-out by tuple
 //   stream << std::make_tuple(1,3.0,std::string("string"));
 // and stream-in by elements
 //   int i; double d; std::string s;

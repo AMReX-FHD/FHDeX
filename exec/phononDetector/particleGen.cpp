@@ -21,7 +21,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 	Real umax = 0, vmax = 0, wmax = 0;
 	Real spd;
 	Real u[nspecies],v[nspecies],w[nspecies];
-	
+
 	Print() << "LOAD PARTICLES\n";
 
 	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi)
@@ -52,11 +52,11 @@ void FhdParticleContainer::InitParticles(Real & dt)
 					    p.id()  = ParticleType::NextID();
 					    p.cpu() = ParallelDescriptor::MyProc();
 					    p.idata(FHD_intData::sorted) = -1;
-					    
-                        particleFile >> p.pos(0);                       
+
+                        particleFile >> p.pos(0);
                         particleFile >> p.pos(1);
                         particleFile >> p.pos(2);
-                        
+
                         Print() << "part: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << endl;
 
 						p.idata(FHD_intData::species) = i_spec;
@@ -72,7 +72,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
-						
+
 						p.rdata(FHD_realData::velx) = vpart[0];
 						p.rdata(FHD_realData::vely) = vpart[1];
 						p.rdata(FHD_realData::velz) = vpart[2];
@@ -128,13 +128,13 @@ void FhdParticleContainer::InitParticles(Real & dt)
 						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
-						
+
 						p.rdata(FHD_realData::velx) = vpart[0];
 						p.rdata(FHD_realData::vely) = vpart[1];
 						p.rdata(FHD_realData::velz) = vpart[2];
 						spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
 
-	
+
 						p.rdata(FHD_realData::boostx) = 0;
 						p.rdata(FHD_realData::boosty) = 0;
 						p.rdata(FHD_realData::boostz) = 0;
@@ -181,9 +181,9 @@ void FhdParticleContainer::InitParticles(Real & dt)
 
 	Redistribute();
 //	SortParticlesDB();
-	
+
 	// Zero bulk velocities in each cell
-	
+
 }
 
 void FhdParticleContainer::ReInitParticles()

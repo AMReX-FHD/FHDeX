@@ -16,14 +16,14 @@ void WritePlotFile(int step,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& pres)
 {
-    
+
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
-    
+
     std::string plotfilename = Concatenate(plot_base_name,step,7);
 
 
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
-    
+
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
@@ -84,9 +84,9 @@ void WritePlotFile(int step,
     // write a plotfile
     // timer
     Real t1 = ParallelDescriptor::second();
-        
+
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
-    
+
     Real t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2);
     amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;

@@ -36,12 +36,12 @@ int main (int argc, char* argv[])
         if (argc == 1) {
             PrintUsage(argv[0]);
         }
-        
+
         ParmParse pp;
-        
+
         int step;
         pp.query("step",step);
-        
+
         std::string iFile         = amrex::Concatenate("plt",step,9);
 
         Vector<std::string> scalar_out(3);
@@ -106,12 +106,12 @@ int main (int argc, char* argv[])
         // read in prob_lo and prob_hi
         amrex::GpuArray<amrex::Real, 3> prob_lo, prob_hi;
         for (int i=0; i<3; ++i) {
-            x >> prob_lo[i];        
+            x >> prob_lo[i];
         }
         for (int i=0; i<3; ++i) {
-            x >> prob_hi[i];        
+            x >> prob_hi[i];
         }
-        
+
         // now read in the plotfile data
         // check to see whether the user pointed to the plotfile base directory
         // or the data itself
@@ -143,11 +143,11 @@ int main (int argc, char* argv[])
 
         // set to 1 (periodic)
         Vector<int> is_periodic(3,1);
-        
+
         Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-        
+
         const Real* dx = geom.CellSize();
-  
+
         ////////////////////////////////////////////////////////////////////////
         ////////////// velocity Laplacian PDFs /////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
@@ -163,7 +163,7 @@ int main (int argc, char* argv[])
         laplacian.FillBoundary(geom.periodicity());
 
         for (int m=0; m<5; ++m) {
-            
+
             Vector<Real> L2(3,0.);
             for (int i=0; i<3; i++)
                 L2[i]=0.;
@@ -173,7 +173,7 @@ int main (int argc, char* argv[])
                 const Box& bx = mfi.validbox();
                 const auto lo = amrex::lbound(bx);
                 const auto hi = amrex::ubound(bx);
-                
+
                 const Array4<Real>& lap = laplacian.array(mfi);
 
                 for (auto n=0; n<3; ++n) {
@@ -182,7 +182,7 @@ int main (int argc, char* argv[])
                 for (auto i = lo.x; i <= hi.x; ++i) {
 
                     L2[n] += lap(i,j,k,n)*lap(i,j,k,n);
-                        
+
                 }
                 }
                 }
@@ -195,7 +195,7 @@ int main (int argc, char* argv[])
             L2[0] = sqrt(L2[0]/totpts);
             L2[1] = sqrt(L2[1]/totpts);
             L2[2] = sqrt(L2[2]/totpts);
-            Print() << "L2 norm of Laplacian to power " << m << " is " << L2[0] 
+            Print() << "L2 norm of Laplacian to power " << m << " is " << L2[0]
                     << " "  << L2[1] << " "  << L2[2] << " " << std::endl;
 
             for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
@@ -234,7 +234,7 @@ int main (int argc, char* argv[])
                 const Box& bx = mfi.validbox();
                 const auto lo = amrex::lbound(bx);
                 const auto hi = amrex::ubound(bx);
-                
+
                 const Array4<Real>& lap = laplacian.array(mfi);
 
                 for (auto n=0; n<3; ++n) {
@@ -244,14 +244,14 @@ int main (int argc, char* argv[])
 
                     int index = floor((lap(i,j,k,n) + hbinwidth)/binwidth);
                     index += halfbin;
-                    
+
                     if( index >=0 && index <= nbins) {
                         bins[index] += 1;
                         totbin++;
                     }
 
                     count++;
-                        
+
                 }
                 }
                 }
@@ -262,12 +262,12 @@ int main (int argc, char* argv[])
             ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins+1);
             ParallelDescriptor::ReduceLongSum(count);
             ParallelDescriptor::ReduceLongSum(totbin);
-            Print() << "Points outside of range "<< count - totbin << " " << 
+            Print() << "Points outside of range "<< count - totbin << " " <<
                        (double)(count-totbin)/count << std::endl;
 
             // print out contents of bins to the screen
             for (int i=0; i<nbins+1; ++i) {
-                Print() << "For  m= "<< m << " " <<  (i-halfbin)*binwidth << " " 
+                Print() << "For  m= "<< m << " " <<  (i-halfbin)*binwidth << " "
                         << bins[i]/(count*binwidth) << std::endl;
             }
             if (ParallelDescriptor::IOProcessor()) {
@@ -278,7 +278,7 @@ int main (int argc, char* argv[])
                 }
                 outfile.close();
             }
-        
+
             for ( MFIter mfi(vel_grown,false); mfi.isValid(); ++mfi ) {
 
                 const Box& bx = mfi.validbox();
@@ -313,7 +313,7 @@ int main (int argc, char* argv[])
         ////////////////////////////////////////////////////////////////////////
         ////////////// velocity Laplacian PDFs /////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
-  
+
         ////////////////////////////////////////////////////////////////////////
         ///////////////////////// scalar  PDFs /////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
@@ -359,7 +359,7 @@ int main (int argc, char* argv[])
                 const Box& bx = mfi.validbox();
                 const auto lo = amrex::lbound(bx);
                 const auto hi = amrex::ubound(bx);
-                
+
                 const Array4<Real>& sca = scalar.array(mfi);
 
                 for (auto k = lo.z; k <= hi.z; ++k) {
@@ -368,14 +368,14 @@ int main (int argc, char* argv[])
 
                     int index = floor((sca(i,j,k,m) + hbinwidth)/binwidth);
                     index += halfbin;
-                    
+
                     if( index >=0 && index <= nbins) {
                         bins[index] += 1;
                         totbin++;
                     }
 
                     count++;
-                        
+
                 }
                 }
                 }
@@ -385,12 +385,12 @@ int main (int argc, char* argv[])
             ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins+1);
             ParallelDescriptor::ReduceLongSum(count);
             ParallelDescriptor::ReduceLongSum(totbin);
-            Print() << "Points outside of range "<< count - totbin << " " << 
+            Print() << "Points outside of range "<< count - totbin << " " <<
                        (double)(count-totbin)/count << std::endl;
 
             // print out contents of bins to the screen
             for (int i=0; i<nbins+1; ++i) {
-                Print() << "For scalar m = "<< m << " " <<  (i-halfbin)*binwidth << " " 
+                Print() << "For scalar m = "<< m << " " <<  (i-halfbin)*binwidth << " "
                         << bins[i]/(count*binwidth) << std::endl;
             }
             if (ParallelDescriptor::IOProcessor()) {
@@ -403,7 +403,7 @@ int main (int argc, char* argv[])
             }
         }
     }
-        
+
     amrex::Finalize();
 
 }

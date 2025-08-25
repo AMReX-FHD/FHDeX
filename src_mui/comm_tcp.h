@@ -155,9 +155,9 @@ public:
 	static const uint64_t OUT = 4;
 	static const uint64_t CALL = 32;
 	static const uint64_t ET = 1u<<31; // edge triggered
-	
+
 	typedef std::function<void(uint64_t)> callback_t;
-	
+
 	poll_scheduler(int max){
 		buf_.reserve(max+1);
 		callbacks_.reserve(max+1);
@@ -170,7 +170,7 @@ public:
 		pipe_write_.reset(pipes[1]);
 		add(pipe_read_, IN, std::bind(&poll_scheduler::pop_event_, this));
 	}
-	
+
 	~poll_scheduler() {
 		for( auto& a: callbacks_ )
 			SYSCHECK(epoll_ctl(epfd_, EPOLL_CTL_DEL, a.first, NULL));
@@ -178,7 +178,7 @@ public:
 
 	poll_scheduler(const poll_scheduler&) = delete;
 	poll_scheduler& operator=(const poll_scheduler&) = delete;
-	
+
 	void run() {
 		buf_.resize(callbacks_.size());
 		int nfd = epoll_wait(epfd_, buf_.data(), buf_.size(), 100);
@@ -218,7 +218,7 @@ private:
 	uint64_t translate_from_(uint64_t ps_ev) {
 		return (ps_ev&IN?EPOLLIN:0u) | (ps_ev&OUT?EPOLLOUT:0u) |(ps_ev&ET?EPOLLET:0u);
 	}
-	
+
 	std::unordered_map<int, callback_t> callbacks_;
 	std::vector<epoll_event> buf_;
 	unique_fd_ epfd_;
@@ -233,7 +233,7 @@ namespace {
 struct read_buffer : istream {
 	static const int BUFSIZE = MUI_TCP_BUF_SIZE;
 	struct node_t { char buf[BUFSIZE]; };
-	
+
 	std::pair<int,char*> get_buffer() {
 		if(nodes_.empty() || tail_ == BUFSIZE) {
 			nodes_.emplace_back();
@@ -271,7 +271,7 @@ struct read_buffer : istream {
 		psize_ = size_;
 	}
 	std::size_t size() const { return size_; }
-	
+
 	std::deque<node_t> nodes_;
 	std::size_t psize_ = 0u;
 	std::size_t size_ = 0u;
@@ -288,7 +288,7 @@ public:
 	: fd_(std::move(fd)), callback_(std::move(callback)) {}
 	read_que( read_que&& ) = default;
 	read_que& operator=( read_que&& ) = default;
-	
+
 	void try_recv(int){
 		while(true){
 			std::pair<int,char*> p = buf_.get_buffer();
@@ -334,7 +334,7 @@ public:
 		send_.swap(rhs.send_);
 		return *this;
 	}
-	
+
 	void try_send(int){
 		while(true) {
 			mutex_.lock();
@@ -360,7 +360,7 @@ public:
 		}
 	}
 	void push( std::vector<char> data ){
-		if( data.size() > std::numeric_limits<ssize_t>::max() ) 
+		if( data.size() > std::numeric_limits<ssize_t>::max() )
 			throw std::range_error("cannot send data larger than ssize_t");
 		if( !data.empty() ) {
 			std::lock_guard<std::mutex> lock(mutex_);
@@ -394,13 +394,13 @@ public:
 		std::thread th = std::thread(std::bind(&comm_fd::run_, this));
 		thread_.swap(th);
 	}
-	
+
 	~comm_fd() {
 		die_.store(true);
 		poll_.schedule(-1);
 		thread_.join();
 	}
-	
+
 	int local_rank() const { return local_rank_; }
 	int local_size() const { return local_size_; }
 	int remote_size() const { return remote_size_; }
@@ -439,7 +439,7 @@ private:
 
 	int local_rank_, local_size_, remote_size_;
 
-	std::thread thread_;	
+	std::thread thread_;
 	std::atomic_bool die_;
 
 	poll_scheduler poll_;
@@ -464,16 +464,16 @@ inline communicator* create_comm_tcp( const char* str ){
 	hint.ai_family = AF_INET;	// use ip v4
 	hint.ai_socktype = SOCK_STREAM;	// TCP/IP
 	hint.ai_flags = AI_NUMERICSERV|(is_server?AI_PASSIVE:0);
-	
+
 	if(int err = getaddrinfo(is_server?0:u.host().c_str(), u.path().c_str(), &hint, &tmp))
 		throw std::runtime_error(gai_strerror(err));
 	info.reset(tmp);
-	
+
 	for(; tmp!=NULL; tmp = tmp->ai_next){
 		int s = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
 		if(s == -1 ) continue;
 		sock.reset(s);
-		
+
 		if( is_server ){
 			if( bind(sock, tmp->ai_addr, tmp->ai_addrlen) != -1 ) break;
 		} else {
@@ -481,9 +481,9 @@ inline communicator* create_comm_tcp( const char* str ){
 		}
 	}
 	if(tmp == NULL) throw std::runtime_error("tcp connection error.");
-	
+
 	unique_fd_ wfd, rfd;
-	
+
 	if( is_server ){
 		SYSCHECK(listen(sock,1));
 		wfd.reset(SYSCHECK(accept(sock,0,0)));
@@ -506,7 +506,7 @@ inline communicator* create_comm_shm( const char* str ){
 	std::string patha = std::string("/dev/shm/") + u.host() + "_A";
 	std::string pathb = std::string("/dev/shm/") + u.host() + "_B";
 	bool is_wr = false;
-	
+
 	if(mkfifo(patha.c_str(), S_IRUSR | S_IWUSR)) {
 		int err = errno;
 		if(err != EEXIST) throw std::system_error(err, std::system_category());
@@ -515,12 +515,12 @@ inline communicator* create_comm_shm( const char* str ){
 	if(!is_wr)
 		if(int ret = mkfifo(pathb.c_str(), S_IRUSR | S_IWUSR))
 			throw std::system_error(errno, std::system_category());
-	
+
 	unique_fd_ afd = SYSCHECK(open(patha.c_str(), is_wr?O_RDONLY:O_WRONLY));
 	SYSCHECK(fcntl(afd,F_SETFL,O_NONBLOCK));
 	unique_fd_ bfd = SYSCHECK(open(pathb.c_str(), is_wr?O_WRONLY:O_RDONLY));
 	SYSCHECK(fcntl(bfd,F_SETFL,O_NONBLOCK));
-	
+
 	std::vector<mui::unique_fd_> w; w.emplace_back(std::move(is_wr?bfd:afd));
 	std::vector<mui::unique_fd_> r; r.emplace_back(std::move(is_wr?afd:bfd));
 	return static_cast<communicator*>(new comm_fd(0,1,std::move(w),std::move(r)));

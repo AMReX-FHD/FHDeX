@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -27,7 +27,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-AppPottsPin::AppPottsPin(SPPARKS *spk, int narg, char **arg) : 
+AppPottsPin::AppPottsPin(SPPARKS *spk, int narg, char **arg) :
   AppPotts(spk,narg,arg)
 {
   // parse arguments for PottsPin class only, not children
@@ -35,7 +35,7 @@ AppPottsPin::AppPottsPin(SPPARKS *spk, int narg, char **arg) :
   if (strcmp(style,"potts/pin") != 0) return;
 
   if (narg != 2) error->all(FLERR,"Illegal app_style command");
-  
+
   nspins = atoi(arg[1]);
   if (nspins <= 0) error->all(FLERR,"Illegal app_style command");
   dt_sweep = 1.0/nspins;
@@ -52,7 +52,7 @@ void AppPottsPin::input_app(char *command, int narg, char **arg)
     pfraction = atof(arg[0]);
     multi = atoi(arg[1]);
     nthresh = atoi(arg[2]);
-    if (pfraction < 0.0 || pfraction > 1.0) 
+    if (pfraction < 0.0 || pfraction > 1.0)
       error->all(FLERR,"Illegal pin command");
     if (multi != 0 && multi != 1) error->all(FLERR,"Illegal pin command");
     if (nthresh < 0) error->all(FLERR,"Illegal pin command");
@@ -273,7 +273,7 @@ void AppPottsPin::pin_create()
 	  }
 	}
       }
-      
+
       nme = 0;
       for (i = 0; i < nlocal; i++)
 	if (spin[i] > nspins) nme++;
@@ -321,7 +321,7 @@ void AppPottsPin::pin_create()
 	  list[j++] = id[i];
 	} else flags[0] = flags[1] = 0;
       } else flags[0] = flags[1] = 0;
-      
+
       MPI_Allreduce(&flags,&flagall,2,MPI_INT,MPI_SUM,world);
 
       if (flagall[0]) {

@@ -63,11 +63,11 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
 ///////////////////////////
 // in ComputeDivAndGrad.cpp
 
-void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi_fc, 
-                int start_incomp, int start_outcomp, int ncomp, 
+void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+                int start_incomp, int start_outcomp, int ncomp,
                 const Geometry & geom, int increment=0);
 
-void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi, 
+void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
                  int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,
                  int increment=0);
 
@@ -111,7 +111,7 @@ void ComputeDivCC(const MultiFab& vel_in,
                    MultiFab& div_in,
                    int outcomp,
                    const Geometry & geom);
-    
+
 ///////////////////////////
 // in Debug.cpp
 void PrintMF(const MultiFab& MF, int comp_lo, int comp_hi);
@@ -132,7 +132,7 @@ Real ComputeSpatialMean(MultiFab& mf, const int& incomp);
 
 Real ComputeSpatialVariance(MultiFab& mf, const int& incomp);
 
-void ComputeBasicStats(MultiFab & instant, MultiFab & means, 
+void ComputeBasicStats(MultiFab & instant, MultiFab & means,
                 const int incomp, const int outcomp, const int steps);
 
 void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom);
@@ -149,7 +149,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
 void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,
                                 const int& ncomp, int outcomp=-1);
-    
+
 void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_flat,
                             const int& dir, const int& incomp, const int& ncomp,
                             const int& slablo=-1, const int& slabhi=99999);
@@ -241,7 +241,7 @@ void EdgeL2Norm(const std::array<MultiFab, NUM_EDGE>& m1,
 		const int& comp,
                 std::array<MultiFab, NUM_EDGE>& mscr,
 		Real& norm_l2);
-    
+
 void CCL2Norm(const MultiFab & m1,
 	      const int & comp,
               amrex::MultiFab& mscr,

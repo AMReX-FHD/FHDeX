@@ -20,7 +20,7 @@ public:
 	using REAL       = typename CONFIG::REAL;
 	using INT        = typename CONFIG::INT;
 	using time_type  = typename CONFIG::time_type;
-	
+
 	chrono_sampler_exact( time_type tol = time_type(0) ) {
 		tolerance = tol;
 	}

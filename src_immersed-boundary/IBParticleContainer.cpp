@@ -293,7 +293,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
                    // HACK orientation hard coded in
                     RealVect ori = RealVect(
                             AMREX_D_DECL(0.,0.,1. ));
-                     
+
                     // Radius
                     Real r = part.rdata(IBP_realData::radius);
 
@@ -487,7 +487,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
                        & n_marker,
                        dx, & ghost);
 */
-         Real pos[AMREX_SPACEDIM]; 
+         Real pos[AMREX_SPACEDIM];
          Real v_spread[AMREX_SPACEDIM];
 
 	 for (int i=0; i<n_marker; ++i) {
@@ -501,7 +501,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
                          if (pos[1] >= (tile_box.hiVect()[1]+1)*dx[1]) continue;
 
                          if (pos[2] < tile_box.loVect()[2]*dx[2]) continue;
-                         if (pos[2] >= (tile_box.hiVect()[2]+1)*dx[2]) continue; 
+                         if (pos[2] >= (tile_box.hiVect()[2]+1)*dx[2]) continue;
                  }
                  for (int j=0; j<AMREX_SPACEDIM; ++j)
                          v_spread[j] = f_in[j][i];
@@ -521,7 +521,7 @@ Real kernel_3p(Real r_in)
     Real r;
     Real r1;
     Real r2;
- 
+
     //initialize r
     r = r_in;
     r1 = amrex::Math::abs(r_in);
@@ -567,7 +567,7 @@ Real kernel_6p(Real r_in)
 
     //compute kernel function
     if (r <= -3){
-       kernel_6p = 0.0; 
+       kernel_6p = 0.0;
     }else if (r <= -2){
        r += 3;
        kernel_6p = phi1(r);
@@ -613,7 +613,7 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
         invdx[i]=1.0/dx[i];
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
-        invvol *= invdx[i]; 
+        invvol *= invdx[i];
 
     if (nghost == 0){
         int loc = amrex::Math::floor(pos[0] * invdx[0] - gs);
@@ -634,7 +634,7 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
         jlo = amrex::Math::floor(pos[1] * invdx[1] - gs);
         jhi = amrex::Math::floor(pos[1] * invdx[1] + gs);
         klo = amrex::Math::floor(pos[2] * invdx[2] - gs);
-        khi = amrex::Math::floor(pos[2] * invdx[2] + gs); 
+        khi = amrex::Math::floor(pos[2] * invdx[2] + gs);
     }
 
     IntVect scalx_lo(ilo,jlo,klo);
@@ -645,7 +645,7 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
     const Box bx_y(scaly_lo, scaly_hi);
     IntVect scalz_lo(ilo,jlo,klo);
     IntVect scalz_hi(ihi,jhi,khi+1);
-    const Box bx_z(scalz_lo, scalz_hi);    
+    const Box bx_z(scalz_lo, scalz_hi);
 
 
     Array4<Real> const& fout_x = f_out[0].array(*mfi);
@@ -773,7 +773,7 @@ void IBParticleContainer::InvInterpolateMarkers(int lev, const ParticleIndex & p
     for (int i=0; i<1; ++i) {
         pkernel_fluid_in[i] = pkernel_fluid[i];
     }
-    
+
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
         const Box & bx       = mfi.growntilebox();
@@ -1446,7 +1446,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
 
         // Add to list
 
- 
+
         if (unique) {
             // If in unique-mode: Don't add unless `part_info` is not already in `info`
             const auto & search = std::find(std::begin(info), std::end(info), part_info);

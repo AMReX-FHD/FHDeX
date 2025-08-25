@@ -21,9 +21,9 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
              const amrex::Geometry& geom, const amrex::Real dt)
 {
     BL_PROFILE_VAR("RK3step()",RK3step);
-    
+
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    
+
     /////////////////////////////////////////////////////
     // Initialize white noise fields
 
@@ -99,7 +99,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
     /////////////////////////////////////////////////////
 
-    // Compute transport coefs after setting BCs    
+    // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     ///////////////////////////////////////////////////////////
@@ -116,14 +116,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
     // apply weights (only momentum and energy)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
-	MultiFab::LinComb(stochFlux[d], 
-			  stoch_weights[0], stochFlux_A[d], 1, 
+	MultiFab::LinComb(stochFlux[d],
+			  stoch_weights[0], stochFlux_A[d], 1,
 			  stoch_weights[1], stochFlux_B[d], 1,
 			  1, nvars-1, 0);
     }
 
-    MultiFab::LinComb(rancorn, 
-		      stoch_weights[0], rancorn_A, 0, 
+    MultiFab::LinComb(rancorn,
+		      stoch_weights[0], rancorn_A, 0,
 		      stoch_weights[1], rancorn_B, 0,
 		      0, 1, 0);
 
@@ -143,7 +143,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<Real> & cu_fab = cu.array(mfi);
@@ -153,7 +153,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
                      Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
                      Array4<Real const> const& zflux_fab = flux[2].array(mfi););
 
-		  // for the box, 
+		  // for the box,
 		  // for loop for GPUS
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept // <- just leave it
         {
@@ -201,7 +201,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     }
 
     conservedToPrimitive(prim, cup);
-    
+
     // Set BC: 1) fill boundary 2) physical
     cup.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
@@ -224,14 +224,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
     // apply weights (only momentum and energy)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
-	MultiFab::LinComb(stochFlux[d], 
-			  stoch_weights[0], stochFlux_A[d], 1, 
+	MultiFab::LinComb(stochFlux[d],
+			  stoch_weights[0], stochFlux_A[d], 1,
 			  stoch_weights[1], stochFlux_B[d], 1,
 			  1, nvars-1, 0);
     }
 
-    MultiFab::LinComb(rancorn, 
-		      stoch_weights[0], rancorn_A, 0, 
+    MultiFab::LinComb(rancorn,
+		      stoch_weights[0], rancorn_A, 0,
 		      stoch_weights[1], rancorn_B, 0,
 		      0, 1, 0);
 
@@ -251,7 +251,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<Real> & cu_fab = cu.array(mfi);
@@ -275,7 +275,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 //        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
 //        {
 //            cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
-//                                       (  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0])                                                                                                                                                   
+//                                       (  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0])
 //                                       +dt*source_fab(i,j,k,n)  );
 //        });
 
@@ -303,7 +303,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
                                               + grav[2]*cup_fab(i,j,k,3));
         });
     }
-        
+
     conservedToPrimitive(prim, cup2);
 
     // Set BC: 1) fill boundary 2) physical
@@ -320,7 +320,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     // Set stochastic weights
     swgt2 = ( 1.0*std::sqrt(2.0) - 2.0*std::sqrt(3.0) ) / 10.0;
     stoch_weights = {swgt1, swgt2};
-    
+
     AMREX_D_TERM(stochFlux[0].setVal(0.0);,
                  stochFlux[1].setVal(0.0);,
                  stochFlux[2].setVal(0.0););
@@ -328,14 +328,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
     // apply weights (only momentum and energy)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
-	MultiFab::LinComb(stochFlux[d], 
-			  stoch_weights[0], stochFlux_A[d], 1, 
+	MultiFab::LinComb(stochFlux[d],
+			  stoch_weights[0], stochFlux_A[d], 1,
 			  stoch_weights[1], stochFlux_B[d], 1,
 			  1, nvars-1, 0);
     }
 
-    MultiFab::LinComb(rancorn, 
-		      stoch_weights[0], rancorn_A, 0, 
+    MultiFab::LinComb(rancorn,
+		      stoch_weights[0], rancorn_A, 0,
 		      stoch_weights[1], rancorn_B, 0,
 		      0, 1, 0);
 
@@ -355,7 +355,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<Real> & cu_fab = cu.array(mfi);
@@ -370,21 +370,21 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
             cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
                                     (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                                      + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
-                                                     + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]) 
+                                                     + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
                                                                                                             )
                                     + dt*source_fab(i,j,k,n) );
-            
+
         });
 
 //        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
 //        {
 //            cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
 //                                    (     (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0])
-//                                                   
+//
 //                                    + dt*source_fab(i,j,k,n) );
-//            
+//
 //        });
-        
+
 //  what to do about tests
 
 //              if(cup(i,j,k,1) .lt. 0) then
@@ -408,7 +408,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
                                              + grav[1]*cup2_fab(i,j,k,2)
                                              + grav[2]*cup2_fab(i,j,k,3) );
         });
-        
+
     }
 
     conservedToPrimitive(prim, cu);

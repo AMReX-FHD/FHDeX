@@ -63,13 +63,13 @@ void anchor_coupling_markers(IBMarkerContainer & ib_mc, int ib_lev, int componen
                 for (int d=0; d<AMREX_SPACEDIM; ++d) anchor_bdy_marker_2[d] = mark.rdata(component + d) ;
         }
 
-        //find and update velocities of two anchor markers on flagellum  
+        //find and update velocities of two anchor markers on flagellum
 	for (int i = 0; i < np; ++i) {
             ParticleType & mark = markers[i];
             if((mark.idata(IBMInt::id_1) == 0)&&(mark.idata(IBMInt::cpu_1) == 0))
                 for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_bdy_marker_1[d] ;
             if((mark.idata(IBMInt::id_1) == 1)&&(mark.idata(IBMInt::cpu_1) == 0))
-                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_bdy_marker_2[d] ;     
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_bdy_marker_2[d] ;
         }
 
     }
@@ -149,8 +149,8 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 }
 
 
-void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map, 
-		       const std::map<int, std::vector<int>> & bond_neighbors, 
+void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
+		       const std::map<int, std::vector<int>> & bond_neighbors,
 		       Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
                        int component, bool pred_pos,
@@ -200,7 +200,7 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
     std::vector<int> reduced_ibs = ib_mc.get_reduced_map();
 
     Real k_spr  = ib_flagellum::k_spring[0];
-    Real k_bdy_spr  = k_spr; 
+    Real k_bdy_spr  = k_spr;
 
     for(int i=0; i<N; i++){
         if (ibs[i] != 1) continue; //Note: cell body IB was hardcoded to 1 => generalize later
@@ -213,12 +213,12 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
 
         //RealVect      pos = {pos_x[global_idx], pos_y[global_idx, pos_z[global_idx]};
 
-        //go through each neighbor according to the bond map    
+        //go through each neighbor according to the bond map
         for(const auto idx : bond_neighbors.at(id)){
-   
+
             double l_0 = bond_map.at(std::tuple{id, idx});
 	    int global_idx_nbr = IBMarkerContainer::storage_idx(sorted_ibs[idx + reduced_ibs[1]]);
-        
+
             RealVect      pos = {pos_x[global_idx],     pos_y[global_idx],     pos_z[global_idx]};
 	    RealVect  nbr_pos = {pos_x[global_idx_nbr], pos_y[global_idx_nbr], pos_z[global_idx_nbr]};
 
@@ -246,8 +246,8 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
 
             ParticleType & mark = markers[m_index.first];
 
-            int id      = mark.idata(IBMInt::id_1); 
-            int i_ib    = mark.idata(IBMInt::cpu_1); 
+            int id      = mark.idata(IBMInt::id_1);
+            int i_ib    = mark.idata(IBMInt::cpu_1);
 
             int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
 
@@ -313,14 +313,14 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
         if (n_marker[i_ib] <= 0) continue;
-	if (i_ib != 0) continue; 
+	if (i_ib != 0) continue;
 
         int N       = ib_flagellum::n_marker[i_ib];
         Real L      = ib_flagellum::length[i_ib];
         Real l_link = L/(N-1);
 
         Real k_spr  = ib_flagellum::k_spring[i_ib];
-        Real k_driv = ib_flagellum::k_driving[i_ib]; 
+        Real k_driv = ib_flagellum::k_driving[i_ib];
 
         for (int ind = index_start; ind <(index_start + N - 1); ++ind){
             int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
@@ -365,7 +365,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
         for (int ind=index_start; ind < index_start+N; ++ind ) {    //going through the sorted ibs index
 
                 //Getting index for the current marker in the PullDown Vectors
-                int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);  
+                int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
 
                 if(IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) != i_ib) {
                     Print() << IBMarkerContainer::immbdy_idx(sorted_ibs[ind])

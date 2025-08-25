@@ -55,7 +55,7 @@ void ReadCheckPoint(int& step,
 
 void ReadFile(const std::string& filename, Vector<char>& charBuf,
               bool bExitOnError=true);
-    
+
 ///////////////////////////
 
 ///////////////////////////

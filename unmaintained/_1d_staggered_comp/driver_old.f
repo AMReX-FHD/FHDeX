@@ -59,7 +59,7 @@ c    1            vmsqt(1:ndim,4,4)
      1      iper,dorand,seed,T0,rhoamb,camb,across,ntherm,nstep,dt,nout,
      2      icor,nstat
 
-c   
+c
        mass1 = 6.63d-23
        mass0 = mass1*3.d0
        d0=3.66d-8
@@ -77,12 +77,12 @@ c
        rgas0 = kboltz/mass0
 
        pi = 4.d0*atan2(1.d0,1.d0)
- 
+
        cv0 = 1.5*rgas0
        cv1 = 1.5*rgas1
- 
+
        pamb = .5*rhoamb*T0*(rgas0+rgas1)
- 
+
        etaC0 = 5.d0/(16.d0*d0**2)*sqrt(mass0*kboltz/pi)
        kappaC0 = 15.d0*kboltz/(4.d0*mass0)*etaC0
        etaC1 = 5.d0/(16.d0*d1**2)*sqrt(mass1*kboltz/pi)
@@ -131,7 +131,7 @@ c   set up stuff to gather statistics
       nstep = nstep + ntherm
       istat = 0
 
-        
+
            do  i=1,npts
              con(i,1) = rhoamb
              con(i,2) = 0.d0
@@ -151,7 +151,7 @@ c     if(n.gt.ntherm)dorand = 0.d0
          else
             jstart = 1
          endif
-	     
+
          time = dfloat(n)*dt
 
          do j=0,npts+2
@@ -245,7 +245,7 @@ c     if(n.gt.ntherm)dorand = 0.d0
           else
              con(npts+1,2) = con(1,2)
           endif
-         
+
          if(mod(n,nout).eq.0)then
 
          totmass = 0.d0
@@ -416,7 +416,7 @@ c     if(n.gt.ntherm)dorand = 0.d0
       character*15 presfile
       character*15 xmomfile
       character*10 step
-    
+
       write(step,'(i10.10)') n
       rhofile = "rho_" // step
       tempfile = "temp_" // step
@@ -462,7 +462,7 @@ c        write(6,101)xl(j),con(j,2)
         write(24,102)xl(j),con(j,2)
       enddo
       close(24)
-     
+
   101 format(1p8e15.7)
   102 format(1p6e20.12)
       return

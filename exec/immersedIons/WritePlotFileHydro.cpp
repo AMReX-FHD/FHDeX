@@ -13,9 +13,9 @@ void WritePlotFileHydro(int step,
 		   const MultiFab& pres,
                    std::array< MultiFab, AMREX_SPACEDIM >& umacM)
 {
-    
+
     BL_PROFILE_VAR("WritePlotFileHydro()",WritePlotFileHydro);
-    
+
     const std::string plotfilename = Concatenate("plt",step,9);
 
     BoxArray ba = pres.boxArray();
@@ -29,7 +29,7 @@ void WritePlotFileHydro(int step,
     int nPlot = 3*AMREX_SPACEDIM+2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
-    
+
     Vector<std::string> varNames(nPlot);
 
     // keep a counter for plotfile variables
@@ -55,7 +55,7 @@ void WritePlotFileHydro(int step,
         x += (120+i);
         varNames[cnt++] = x;
     }
-    
+
     // reset plotfile variable counter
     cnt = 0;
 
@@ -82,12 +82,12 @@ void WritePlotFileHydro(int step,
     cnt+=AMREX_SPACEDIM;
 
     // write a plotfile
-    
+
     // timer
     Real t1 = ParallelDescriptor::second();
-    
+
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
-    
+
     Real t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2);
     amrex::Print() << "Time spent writing plotfile for hydro " << t2 << std::endl;

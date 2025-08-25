@@ -10,7 +10,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     const int nprocs = ParallelDescriptor::NProcs();
-    
+
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
     RealVect inv_dx = RealVect(AMREX_D_DECL(geom.InvCellSize(0),
@@ -35,12 +35,12 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 	    speciesAccumulateP[i_spec] = speciesAccumulateP[i_spec-1]+particleInfo[i_spec].total;
 	}
     }
-        
+
     // load bond connectivity and bond strengths into two separate arrays.
     loadBonds(totalParticles, "bonds.csv");
 
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
-        
+
 	pinnedParticlesIDGlobal.clear();
         const Box& tile_box  = mfi.tilebox();
         const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
@@ -50,7 +50,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
         //Assuming tile=box for now, i.e. no tiling.
         IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();       
+        IntVect bigEnd = tile_box.bigEnd();
 
 	//const Real* box_lo = tile_realbox.lo();
 	//const Real* box_hi = tile_realbox.hi();
@@ -67,7 +67,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 		Real buf_pos0, buf_pos1, buf_pos2;
 
 	        particleFile >> buf_id;
-                particleFile >> buf_pos0;                       
+                particleFile >> buf_pos0;
                 particleFile >> buf_pos1;
                 particleFile >> buf_pos2;
                 particleFile >> buf_species;
@@ -104,7 +104,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     p.idata(FHD_intData::species) = buf_species;
 
                     p.idata(FHD_intData::pinned) = buf_pinned;
-	
+
 	            p.idata(FHD_intData::groupid) = buf_groupid;
 	            //particleFile >> p.idata(FHD_intData::prev);
 	            //particleFile >> p.idata(FHD_intData::next);
@@ -127,7 +127,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     {
 		        //pinnedParticlesIDGlobal.push_back(p.idata(FHD_intData::id_global));
                         pinnedParticles++;
-	                y_lo_wall = p.pos(1); 
+	                y_lo_wall = p.pos(1);
                     }
 
                     p.rdata(FHD_realData::spring) = 1;
@@ -201,7 +201,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     p.rdata(FHD_realData::sigma) = particleInfo[p.idata(FHD_intData::species)-1].sigma;
                     p.rdata(FHD_realData::eepsilon) = particleInfo[p.idata(FHD_intData::species)-1].eepsilon;
 
-                    p.rdata(FHD_realData::potential) = 0;                 
+                    p.rdata(FHD_realData::potential) = 0;
 
                     // set distance for which we do direct, short range coulomb force calculation
                     // in p3m to be 6.5*dx_poisson_grid
@@ -330,7 +330,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                         p.rdata(FHD_realData::sigma) = particleInfo[p.idata(FHD_intData::species)-1].sigma;
                         p.rdata(FHD_realData::eepsilon) = particleInfo[p.idata(FHD_intData::species)-1].eepsilon;
 
-                        p.rdata(FHD_realData::potential) = 0;                 
+                        p.rdata(FHD_realData::potential) = 0;
 
                         // set distance for which we do direct, short range coulomb force calculation
                         // in p3m to be 6.5*dx_poisson_grid
@@ -395,9 +395,9 @@ void FhdParticleContainer::ReInitParticles()
 
     //Note we are resetting the particle ID count here, this is only valid if one rank is doing the generating.
     //ParticleType::NextID(1);
-        
+
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
-        
+
         const Box& tile_box  = mfi.tilebox();
         const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
         const int grid_id = mfi.index();
@@ -418,7 +418,7 @@ void FhdParticleContainer::ReInitParticles()
 	        auto& p = pstruct[i];
                 if(p.idata(FHD_intData::pinned) != 0) {
                     pinnedParticles++;
-		    y_lo_wall = p.pos(1); 
+		    y_lo_wall = p.pos(1);
                 }
             }
         }

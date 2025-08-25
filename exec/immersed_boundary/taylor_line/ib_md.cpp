@@ -74,11 +74,11 @@ void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 
 Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 
-	
+
 
 
 /*******************************This ony has to do with flagellum(fourier)******************************/
-    
+
 	if(immbdy::contains_fourier) {
 
         // First two nodes reserved as "anchor"
@@ -125,7 +125,7 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 }
 
 /*This is when the particles get their new information*/
- 
+
 void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
                        int component, bool pred_pos,
@@ -159,7 +159,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     Print() << "number of flagellum = ";
     for (auto & i:ibs) Print() << i << " ";
     Print() << std::endl;
-   
+
 
     //Vectors for storing forces in each direction
     Vector<Real> fx(ib_mc.getTotalNumIDs());
@@ -175,7 +175,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
     int index_start = 0;
 
-    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {   
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
         if (n_marker[i_ib] <= 0) continue;
 
@@ -184,7 +184,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     	Real l_link = L/(N-1);
 
     	Real k_spr  = ib_flagellum::k_spring[i_ib];
-    	Real k_driv = ib_flagellum::k_driving[i_ib]; 
+    	Real k_driv = ib_flagellum::k_driving[i_ib];
 
         for (int ind = index_start; ind <(index_start + N - 1); ++ind){
             int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
@@ -270,7 +270,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 } else {                        // for harmonic waveform of Taylor lines
 
                         if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last markers on the flagellum that doesn't have either next or previous marker
- 
+
  				Print() << "Updating bending forces..." << std::endl;
 
                                 int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
@@ -302,8 +302,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 }
        }
        index_start += N;
-    }	
-		
+    }
+
     // Fianlly, Iterating through all markers and add forces
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
@@ -334,7 +334,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 };
 
 
-        
+
 
    // for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
    //     // Get marker data (local to current thread)

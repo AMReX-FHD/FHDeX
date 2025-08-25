@@ -8,7 +8,7 @@
 #include <omp.h>
 #endif
 
-namespace 
+namespace
 {
     std::uint_fast32_t bl_rng_parallel_seed (int s, int rank, int nprocs)
     {
@@ -51,7 +51,7 @@ extern "C"
 	return dist(rd);
     }
 
-    // 
+    //
     // engine
     //
     using BLRngEngine = std::mt19937;
@@ -217,17 +217,17 @@ extern "C"
 	static_assert(std::mt19937::min() == 0, "hg_genrand: std::mt19937::min() != 0");
 	static_assert((double)std::mt19937::max() * fac < 1.0, "hg_genrand: < 1 failed");
 	// Some codes have the following constant hard wired.
-	static_assert((double)std::mt19937::max() * 2.3283064370807969e-10 < 1.0, 
+	static_assert((double)std::mt19937::max() * 2.3283064370807969e-10 < 1.0,
 		      "hg_genrand: check constant");
 	static_assert((double)std::mt19937::max() * 2.3283064370807969e-10 > 1.0 - 2.0*std::numeric_limits<double>::epsilon(),
 		      "hg_genrand: check constant");
 
 	auto y = (*rng)();
-	*rn = (double)y * fac; /* reals: [0,1)-interval */    
+	*rn = (double)y * fac; /* reals: [0,1)-interval */
     }
 
     void hg_genrand_sp (float* rn, BLRngEngine* rng)
-    {    
+    {
 	constexpr float fac = (1.0f - std::numeric_limits<float>::epsilon())
             / static_cast<float>(std::mt19937::max());
 
@@ -235,10 +235,10 @@ extern "C"
 	static_assert(std::mt19937::min() == 0, "hg_genrand_sp: std::mt19937::min() != 0");
 	static_assert((float)std::mt19937::max() * fac < 1.0f, "hg_genrand_sp: < 1 failed");
 	// Some codes have the following constant hard wired.
-	static_assert((float)std::mt19937::max() * 2.32830616e-10f < 1.0f, 
-		      "hg_genrand_sp: check constant");	
-	static_assert((float)std::mt19937::max() * 2.32830616e-10f > 1.0f - 2.0f*std::numeric_limits<float>::epsilon(), 
-		      "hg_genrand_sp: check constant");	
+	static_assert((float)std::mt19937::max() * 2.32830616e-10f < 1.0f,
+		      "hg_genrand_sp: check constant");
+	static_assert((float)std::mt19937::max() * 2.32830616e-10f > 1.0f - 2.0f*std::numeric_limits<float>::epsilon(),
+		      "hg_genrand_sp: check constant");
 
 	auto y = (*rng)();
 	*rn = (float)y * fac; /* reals: [0,1)-interval */

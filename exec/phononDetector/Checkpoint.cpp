@@ -361,7 +361,7 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     particles.ReInitParticles();
 }
 
-void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
               bool bExitOnError) {
 
     enum { IO_Buffer_Size = 262144 * 8 };

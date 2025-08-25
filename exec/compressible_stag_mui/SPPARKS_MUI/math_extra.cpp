@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -79,7 +79,7 @@ int mldivide3(const double m[3][3], const double *v, double *ans)
   }
 
   if (aug[2][2] == 0.0) return 1;
-  
+
   // back substitution
 
   ans[2] = aug[2][3]/aug[2][2];
@@ -102,7 +102,7 @@ int jacobi(double matrix[3][3], double *evalues, double evectors[3][3])
 {
   int i,j,k;
   double tresh,theta,tau,t,sm,s,h,g,c,b[3],z[3];
-  
+
   for (i = 0; i < 3; i++) {
     for (j = 0; j < 3; j++) evectors[i][j] = 0.0;
     evectors[i][i] = 1.0;
@@ -111,17 +111,17 @@ int jacobi(double matrix[3][3], double *evalues, double evectors[3][3])
     b[i] = evalues[i] = matrix[i][i];
     z[i] = 0.0;
   }
-  
+
   for (int iter = 1; iter <= MAXJACOBI; iter++) {
     sm = 0.0;
     for (i = 0; i < 2; i++)
       for (j = i+1; j < 3; j++)
 	sm += fabs(matrix[i][j]);
     if (sm == 0.0) return 0;
-    
+
     if (iter < 4) tresh = 0.2*sm/(3*3);
     else tresh = 0.0;
-    
+
     for (i = 0; i < 2; i++) {
       for (j = i+1; j < 3; j++) {
 	g = 100.0*fabs(matrix[i][j]);
@@ -152,7 +152,7 @@ int jacobi(double matrix[3][3], double *evalues, double evectors[3][3])
 	}
       }
     }
-    
+
     for (i = 0; i < 3; i++) {
       evalues[i] = b[i] += z[i];
       z[i] = 0.0;
@@ -309,15 +309,15 @@ void omega_to_angmom(double *w, double *ex, double *ey, double *ez,
 void exyz_to_q(double *ex, double *ey, double *ez, double *q)
 {
   // squares of quaternion components
-  
+
   double q0sq = 0.25 * (ex[0] + ey[1] + ez[2] + 1.0);
   double q1sq = q0sq - 0.5 * (ey[1] + ez[2]);
   double q2sq = q0sq - 0.5 * (ex[0] + ez[2]);
   double q3sq = q0sq - 0.5 * (ex[0] + ey[1]);
-  
+
   // some component must be greater than 1/4 since they sum to 1
   // compute other components from it
-  
+
   if (q0sq >= 0.25) {
     q[0] = sqrt(q0sq);
     q[1] = (ey[2] - ez[1]) / (4.0*q[0]);
@@ -354,11 +354,11 @@ void q_to_exyz(double *q, double *ex, double *ey, double *ez)
   ex[0] = q[0]*q[0] + q[1]*q[1] - q[2]*q[2] - q[3]*q[3];
   ex[1] = 2.0 * (q[1]*q[2] + q[0]*q[3]);
   ex[2] = 2.0 * (q[1]*q[3] - q[0]*q[2]);
-  
+
   ey[0] = 2.0 * (q[1]*q[2] - q[0]*q[3]);
   ey[1] = q[0]*q[0] - q[1]*q[1] + q[2]*q[2] - q[3]*q[3];
   ey[2] = 2.0 * (q[2]*q[3] + q[0]*q[1]);
-  
+
   ez[0] = 2.0 * (q[1]*q[3] + q[0]*q[2]);
   ez[1] = 2.0 * (q[2]*q[3] - q[0]*q[1]);
   ez[2] = q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3];
@@ -389,7 +389,7 @@ void quat_to_mat(const double *quat, double mat[3][3])
   mat[1][0] = twoij+twokw;
   mat[1][1] = w2-i2+j2-k2;
   mat[1][2] = twojk-twoiw;
-	
+
   mat[2][0] = twoik-twojw;
   mat[2][1] = twojk+twoiw;
   mat[2][2] = w2-i2-j2+k2;
@@ -420,7 +420,7 @@ void quat_to_mat_trans(const double *quat, double mat[3][3])
   mat[0][1] = twoij+twokw;
   mat[1][1] = w2-i2+j2-k2;
   mat[2][1] = twojk-twoiw;
-	
+
   mat[0][2] = twoik-twojw;
   mat[1][2] = twojk+twoiw;
   mat[2][2] = w2-i2-j2+k2;

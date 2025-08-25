@@ -39,7 +39,7 @@ void MultiFabFillRandomNormal(MultiFab& mf, const int& scomp, const int& ncomp,
 
     // FillRandomNormal requires standard deviation
     amrex::Real stddev = sqrt(variance);
-    
+
     FillRandomNormal(mf, scomp, ncomp, mean, stddev);
 
     // overridesync

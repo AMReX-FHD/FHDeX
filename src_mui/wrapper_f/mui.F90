@@ -1,7 +1,7 @@
 module mui_3df
   use iso_c_binding, only : c_ptr, c_char,c_double
   implicit none
-  public 
+  public
   interface
     subroutine mui_create_uniface3d_f(uniface,domain) bind(c)
       import :: c_ptr,c_char
@@ -20,5 +20,5 @@ module mui_3df
       import :: c_ptr
       type(c_ptr), intent(in),value :: uniface
     end subroutine mui_destroy_uniface3d_f
-  end interface 
+  end interface
 end module mui_3df

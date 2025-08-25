@@ -9,7 +9,7 @@ it does the following:
   2. computes mass fluxes and flux divergences
      if restarting, the subroutine ends; otherwise
   3. perform an initial projection
-  
+
 overdamped schemes need to do 1. and 2. within the advance_timestep routine
 in principle, performing an initial projection for overdamped will change
 the reference state for the GMRES solver
@@ -39,12 +39,12 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (algorithm_type == 2) {
         Abort("InitialProjection.cpp: should not call initial_projection for overdamped scheme");
     }
-    
+
     BoxArray ba = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();
-    
+
     Real dt_eff;
-    
+
     Vector<Real> weights;
     if (algorithm_type == 5 || algorithm_type == 6) {
         weights = {1., 0.};
@@ -63,7 +63,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Abort("Error: only algorithm_type=5 allowed for nreactions>0");
         } else if (use_Poisson_rng == 2) {
             Abort("Error: currently use_Poisson_rng=2 not allowed for algorithm_type=5 and nreactions>0");
-        }        
+        }
     }
     */
 
@@ -83,7 +83,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         total_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         gradp[d]          .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
     }
-    
+
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
     //
     //
@@ -95,7 +95,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (variance_coef_mass != 0. && algorithm_type != 6) {
         sMassFlux.fillMassStochastic();
     }
-        
+
     ComputeMassFluxdiv(rho,rhotot,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                        diff_mass_flux,stoch_mass_flux,sMassFlux,dt_eff,time,geom,weights,
                        charge_old,grad_Epot_old,Epot,permittivity);
@@ -131,7 +131,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
         // build rhs = div(v^init) - S^0
-        
+
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             // to deal with reservoirs
             // set normal velocity on physical domain boundaries
@@ -163,7 +163,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MacProj macproj;
         macproj.Define(ba,dmap,geom);
         macproj.Solve(rhototinv_fc,mac_rhs,phi,geom,true);
-        
+
         // v^0 = v^init - (1/rho^0) grad phi
         SubtractWeightedGradP(umac,rhototinv_fc,phi,gradp,geom);
 

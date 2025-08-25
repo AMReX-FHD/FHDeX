@@ -13,7 +13,7 @@ void ExternalForce(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
         AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
                      const Box & bx_y = mfi.nodaltilebox(1);,
                      const Box & bx_z = mfi.nodaltilebox(2););
-        
+
         amrex::ParallelFor(bx_x, bx_y,
 #if (AMREX_SPACEDIM == 3)
                            bx_z,
@@ -27,18 +27,18 @@ void ExternalForce(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
                     gru(i,j,k) += 1000.;
                 }
                 */
-                
+
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 // modify gmres_rhs_u[1] here
-                
+
             }
 #if (AMREX_SPACEDIM == 3)
           , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 // modify gmres_rhs_u[2] here
-                
+
             }
 #endif
             );

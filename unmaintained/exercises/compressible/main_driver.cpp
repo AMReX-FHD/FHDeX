@@ -19,7 +19,7 @@ void main_driver(const char* argv)
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
     read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    
+
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeCompressibleNamespace();
@@ -27,7 +27,7 @@ void main_driver(const char* argv)
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     get_hc_gas();
-  
+
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -70,7 +70,7 @@ void main_driver(const char* argv)
                     bc_Xk_z_lo.data(),
                     bc_Xk_z_hi.data());
     }
- 
+
 
 
     // make BoxArray and Geometry
@@ -133,13 +133,13 @@ void main_driver(const char* argv)
 
     // transport properties
     /*
-      Referring to K. Balakrishnan et al., 
+      Referring to K. Balakrishnan et al.,
       "Fluctuating hydrodynamics of multispecies nonreactive mixtures",
       Phys. Rev. E, 89, 1, 2014
 
       "kappa" and "zeta" in the code have opposite meanings from what they
       represent in the paper.  So kappa in the paper is bulk viscosity (see
-      the equation for Pi immediately after (28)), but in the code it's zeta. 
+      the equation for Pi immediately after (28)), but in the code it's zeta.
       Zeta is a thermodiffusion coefficient (see the equation for Q'
       immediately before (25)), but in the code it's kappa... and furthermore
       I believe kappa in the code is actually zeta/T^2.
@@ -181,19 +181,19 @@ void main_driver(const char* argv)
 
     MultiFab primxav(ba,dmap,nprimvars,ngc);
 
-    //statistics    
+    //statistics
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
     MultiFab cuVars   (ba,dmap,nvars,ngc);
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
-    
+
     MultiFab cuVertAvg;  // flattened multifab defined below
 
     MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
     MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
-    
+
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
@@ -250,7 +250,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Structure factor:
     ///////////////////////////////////////////
-    
+
     ////////////////////////////////
     // create equilibrium covariance matrix
     Real molmix, avgmolmass;
@@ -320,7 +320,7 @@ void main_driver(const char* argv)
     beqmvars[cnt++] = Eeqmvar;                    // rhoE,rhoE
     beqmvars[cnt++] = MEeqmcovar;                 // rho_k,rhoE   - scaled by mass fracs later
     beqmvars[cnt++] = Meqmvar;                    // rho_k,rho_l  - scaled by mass fracs later
-    
+
 //    // loop over lower triangular block matrix
 //    cnt = 0;
 //    int bcnt = 0;
@@ -354,12 +354,12 @@ void main_driver(const char* argv)
 //	      }
 
 //	    } else {
-//	      
+//
 //	      // if rho_k & energy, only scale by Yk
 //	      if(blocks[ib]==nspecies && jb==2) {
 //	    	eqmvars[cnt] *= rhobar[i];
 //	      }
-//	      
+//
 //	    }
 
 //	  }
@@ -404,10 +404,10 @@ void main_driver(const char* argv)
 
     // structure factor class for full dataset
     StructFact structFact(ba,dmap,var_names,eqmvars);
-    
+
     // structure factor class for vertically-averaged dataset
     StructFact structFactVA;
-    
+
     Geometry geom_flat;
 
     if(project_dir >= 0){
@@ -420,7 +420,7 @@ void main_driver(const char* argv)
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     	dom_hi[project_dir] = 0;
         Box domain(dom_lo, dom_hi);
-	
+
     	// This defines the physical box
     	Vector<Real> projected_hi(AMREX_SPACEDIM);
     	for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -436,13 +436,13 @@ void main_driver(const char* argv)
 
       structFactVA.~StructFact(); // destruct
       new(&structFactVA) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
-    
+
     }
 
     ///////////////////////////////////////////
 
     // Initialize everything
-    
+
     prim.setVal(0.0,0,nprimvars,ngc);
     prim.setVal(rho0,0,1,ngc);      // density
     prim.setVal(0.,1,3,ngc);        // x/y/z velocity
@@ -496,7 +496,7 @@ void main_driver(const char* argv)
 
         // timer
         Real ts1 = ParallelDescriptor::second();
-    
+
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
@@ -507,7 +507,7 @@ void main_driver(const char* argv)
 
         // timer
         Real aux1 = ParallelDescriptor::second();
-        
+
         // compute mean and variances
 	if (step > n_steps_skip) {
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, statsCount, dx);
@@ -532,7 +532,7 @@ void main_driver(const char* argv)
 
             }
         }
- 
+
 //	// collect a snapshot for structure factor
 //	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 //            MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
@@ -550,12 +550,12 @@ void main_driver(const char* argv)
 //                structFactVA.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
 //            }
 //        }
-        
+
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
         ParallelDescriptor::ReduceRealMax(aux2);
         amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
-        
+
         time = time + dt;
     }
 

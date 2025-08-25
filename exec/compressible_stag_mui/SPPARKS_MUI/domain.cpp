@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -89,7 +89,7 @@ void Domain::set_lattice(int narg, char **arg)
 }
 
 /* ----------------------------------------------------------------------
-   create a new region 
+   create a new region
 ------------------------------------------------------------------------- */
 
 void Domain::add_region(int narg, char **arg)
@@ -102,7 +102,7 @@ void Domain::add_region(int narg, char **arg)
 
   if (nregion == maxregion) {
     maxregion += DELTA;
-    regions = (Region **) 
+    regions = (Region **)
       memory->srealloc(regions,maxregion*sizeof(Region *),"domain:regions");
   }
 
@@ -135,7 +135,7 @@ int Domain::find_region(char *name)
 }
 
 /* ----------------------------------------------------------------------
-   boundary settings from the input script 
+   boundary settings from the input script
 ------------------------------------------------------------------------- */
 
 void Domain::set_boundary(int narg, char **arg)
@@ -183,7 +183,7 @@ void Domain::procs2domain_1d()
   myloc[1] = myloc[2] = 0;
 
   subxlo = boxxlo + myloc[0] * xprd/procgrid[0];
-  if (myloc[0] < procgrid[0]-1) 
+  if (myloc[0] < procgrid[0]-1)
     subxhi = boxxlo + (myloc[0]+1) * xprd/procgrid[0];
   else subxhi = boxxhi;
 
@@ -214,7 +214,7 @@ void Domain::procs2domain_2d()
     // surf = perimeter of a proc sub-domain
 
     double bestsurf = 2.0 * (xprd+yprd);
- 
+
     ipx = 1;
     while (ipx <= nprocs) {
       if (nprocs % ipx == 0) {
@@ -239,12 +239,12 @@ void Domain::procs2domain_2d()
   myloc[2] = 0;
 
   subxlo = boxxlo + myloc[0] * xprd/procgrid[0];
-  if (myloc[0] < procgrid[0]-1) 
+  if (myloc[0] < procgrid[0]-1)
     subxhi = boxxlo + (myloc[0]+1) * xprd/procgrid[0];
   else subxhi = boxxhi;
 
   subylo = boxylo + myloc[1] * yprd/procgrid[1];
-  if (myloc[1] < procgrid[1]-1) 
+  if (myloc[1] < procgrid[1]-1)
     subyhi = boxylo + (myloc[1]+1) * yprd/procgrid[1];
   else subyhi = boxyhi;
 
@@ -269,7 +269,7 @@ void Domain::procs2domain_3d()
   } else {
 
     double bestsurf = 2.0 * (xprd*yprd + yprd*zprd + zprd*xprd);
-  
+
     // loop thru all possible factorizations of nprocs
     // surf = surface area of a proc sub-domain
 
@@ -304,17 +304,17 @@ void Domain::procs2domain_3d()
   myloc[2] = me / (procgrid[0]*procgrid[1]);
 
   subxlo = boxxlo + myloc[0] * xprd/procgrid[0];
-  if (myloc[0] < procgrid[0]-1) 
+  if (myloc[0] < procgrid[0]-1)
     subxhi = boxxlo + (myloc[0]+1) * xprd/procgrid[0];
   else subxhi = boxxhi;
 
   subylo = boxylo + myloc[1] * yprd/procgrid[1];
-  if (myloc[1] < procgrid[1]-1) 
+  if (myloc[1] < procgrid[1]-1)
     subyhi = boxylo + (myloc[1]+1) * yprd/procgrid[1];
   else subyhi = boxyhi;
 
   subzlo = boxzlo + myloc[2] * zprd/procgrid[2];
-  if (myloc[2] < procgrid[2]-1) 
+  if (myloc[2] < procgrid[2]-1)
     subzhi = boxzlo + (myloc[2]+1) * zprd/procgrid[2];
   else subzhi = boxzhi;
 }
@@ -334,18 +334,18 @@ void Domain::pbcwrap(double* xyz)
     while (xyz[0] >= boxxhi)
       xyz[0] -= xprd;
   }
-  
+
   // y coord
-  
+
   if (yperiodic) {
     while (xyz[1] < boxylo)
       xyz[1] += yprd;
     while (xyz[1] >= boxyhi)
       xyz[1] -= yprd;
   }
-  
+
   // z coord
-  
+
   if (zperiodic) {
     while (xyz[2] < boxzlo)
       xyz[2] += zprd;

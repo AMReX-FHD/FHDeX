@@ -25,7 +25,7 @@ using namespace amrex;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-  
+
     BL_PROFILE_VAR("main_driver()",main_driver);
 
     // store the current time so we can later compute total run time.
@@ -100,7 +100,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
-    
+
     MultiFab rhotot(ba, dmap, 1, 1);
     rhotot.setVal(1.);
 
@@ -217,7 +217,7 @@ void main_driver(const char* argv)
       mfluxdiv_correct[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
       mfluxdiv_correct[d].setVal(0.0);
     }
-    
+
     ///////////////////////////////////////////
 
     ///////////////////////////////////////////
@@ -227,8 +227,8 @@ void main_driver(const char* argv)
     Vector< amrex::Real > weights;
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
-    
-    // Declare object of StochMomFlux class 
+
+    // Declare object of StochMomFlux class
     StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
@@ -270,7 +270,7 @@ void main_driver(const char* argv)
 
     MultiFab struct_in_cc;
     struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
-    
+
     amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
     amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
 
@@ -283,7 +283,7 @@ void main_driver(const char* argv)
     s_pairA[2] = 2;
     s_pairB[2] = 2;
 #endif
-    
+
     StructFact structFact(ba,dmap,var_names);
     // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
     */
@@ -305,18 +305,18 @@ void main_driver(const char* argv)
 #endif
 			  dx, geom.ProbLo(), geom.ProbHi(),
 			  ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-        
+
         // AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
         //                             BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm,
         //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
         //              dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
         //                             BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm,
         //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
         //              dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
         //                             BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm,
         //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
     	// initialize tracer
@@ -325,10 +325,10 @@ void main_driver(const char* argv)
     		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
     }
-    
+
     // Add initial equilibrium fluctuations
     sMflux.addMomFluctuations(umac, rhotot, temp_cc, initial_variance_mom);
-    
+
     // Project umac onto divergence free field
     MultiFab macphi(ba,dmap,1,1);
     MultiFab macrhs(ba,dmap,1,1);
@@ -344,7 +344,7 @@ void main_driver(const char* argv)
     Real time = 0.;
 
     // write out initial state
-    if (plot_int > 0) 
+    if (plot_int > 0)
       {
 	WritePlotFile(step,time,geom,umac,rho,rhoxav,tracer,pres);
       }
@@ -355,7 +355,7 @@ void main_driver(const char* argv)
         Real step_strt_time = ParallelDescriptor::second();
 
 	if(variance_coef_mom != 0.0) {
-    
+
 	  // Fill stochastic terms
 	  sMflux.fillMomStochastic();
 
@@ -378,7 +378,7 @@ void main_driver(const char* argv)
 		alpha_fc,beta,gamma,beta_ed,geom,dt);
 
 	//////////////////////////////////////////////////
-	
+
 	///////////////////////////////////////////
 	// Update structure factor
 	///////////////////////////////////////////
@@ -393,7 +393,7 @@ void main_driver(const char* argv)
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
-    
+
         amrex::Print() << "Advanced step " << step << " in " << step_stop_time << " seconds\n";
 
         time = time + dt;
@@ -407,7 +407,7 @@ void main_driver(const char* argv)
     	  WritePlotFile(step,time,geom,umac,rho, rhoxav,tracer,pres);
         }
     }
-    
+
     /*
     if (struct_fact_int > 0) {
       Real dVol = dx[0]*dx[1];
@@ -418,17 +418,17 @@ void main_driver(const char* argv)
 	dVol *= dx[2];
 	tot_n_cells = n_cells[2]*tot_n_cells;
       }
-    
+
       // let rhotot = 1
       Real SFscale = dVol/(k_B*temp_const);
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
+
       structFact.Finalize(SFscale);
       structFact.WritePlotFile(step,time,geom,"plt_SF");
     }
     */
 
-    // Call the timer again and compute the maximum difference between the start time 
+    // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);

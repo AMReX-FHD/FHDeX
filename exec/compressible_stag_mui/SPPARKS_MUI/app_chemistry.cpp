@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -29,7 +29,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-AppChemistry::AppChemistry(SPPARKS *spk, int narg, char **arg) : 
+AppChemistry::AppChemistry(SPPARKS *spk, int narg, char **arg) :
   App(spk,narg,arg)
 {
   if (narg != 1) error->all(FLERR,"Illegal app_style command");
@@ -178,7 +178,7 @@ void AppChemistry::iterate()
       // inform Gillespie solver of changes
 
       for (m = 0; m < ndepends[ireaction]; m++)
-	propensity[depends[ireaction][m]] = 
+	propensity[depends[ireaction][m]] =
 	  compute_propensity(depends[ireaction][m]);
       solve->update(ndepends[ireaction],depends[ireaction],propensity);
 
@@ -235,7 +235,7 @@ void AppChemistry::stats_header(char *strtmp)
 void AppChemistry::set_count(int narg, char **arg)
 {
   if (narg != 2) error->all(FLERR,"Illegal count command");
-  
+
   int ispecies = find_species(arg[0]);
   if (ispecies < 0) {
     char *str = new char[128];
@@ -287,9 +287,9 @@ void AppChemistry::add_reaction(int narg, char **arg)
   // error checks
 
   if (iarg == narg) error->all(FLERR,"Reaction has no numeric rate");
-  if (iarg < 1 || iarg > 3) 
+  if (iarg < 1 || iarg > 3)
     error->all(FLERR,"Reaction must have 0,1,2 reactants");
-  if (narg-1 - iarg > MAX_PRODUCT) 
+  if (narg-1 - iarg > MAX_PRODUCT)
     error->all(FLERR,"Reaction cannot have more than MAX_PRODUCT products");
 
   // extract reactant and product species names
@@ -312,7 +312,7 @@ void AppChemistry::add_reaction(int narg, char **arg)
     products[nreactions][i - (iarg+1)] = ispecies;
     nproduct[nreactions]++;
   }
-  
+
   nreactions++;
 }
 
@@ -482,11 +482,11 @@ double AppChemistry::compute_propensity(int m)
   if (nreactant[m] == 0) p = factor_zero * rate[m];
   else if (nreactant[m] == 1) p = pcount[reactants[m][0]] * rate[m];
   else {
-    if (reactants[m][0] == reactants[m][1]) 
-      p = 0.5 * factor_dual * pcount[reactants[m][0]] * 
+    if (reactants[m][0] == reactants[m][1])
+      p = 0.5 * factor_dual * pcount[reactants[m][0]] *
 	(pcount[reactants[m][1]] - 1) * rate[m];
     else
-      p = factor_dual * pcount[reactants[m][0]] * 
+      p = factor_dual * pcount[reactants[m][0]] *
 	pcount[reactants[m][1]] * rate[m];
   }
   return p;

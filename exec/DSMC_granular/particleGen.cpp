@@ -167,7 +167,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 
 	Redistribute();
 	SortParticles();
-	
+
 	// Zero bulk velocities in each cell
 	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
 	{
@@ -181,7 +181,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 
 		IntVect smallEnd = tile_box.smallEnd();
 		IntVect bigEnd = tile_box.bigEnd();
-	
+
 		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
 		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
 		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {

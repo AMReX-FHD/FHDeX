@@ -158,7 +158,7 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::velz);
 
     // anchor the first two markers on flagellum with the two markers on the cells body
-    // by ensuing they share the same velocities before moving 
+    // by ensuing they share the same velocities before moving
     if(immbdy::contains_fourier)
        anchor_coupling_markers(ib_mc, ib_lev, IBMReal::velx);
 //     anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);

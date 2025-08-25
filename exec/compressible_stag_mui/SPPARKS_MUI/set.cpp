@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -106,7 +106,7 @@ void Set::command(int narg, char **arg)
     dvalue = atof(arg[2]);
     iarg = 3;
   } else error->all(FLERR,"Illegal set command");
-    
+
   // parse optional args
 
   fraction = 1.0;
@@ -119,7 +119,7 @@ void Set::command(int narg, char **arg)
     if (strcmp(arg[iarg],"fraction") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal set command");
       fraction = atof(arg[iarg+1]);
-      if (fraction <= 0.0 || fraction > 1.0) 
+      if (fraction <= 0.0 || fraction > 1.0)
         error->all(FLERR,"Illegal set command");
       iarg += 2;
     } else if (strcmp(arg[iarg],"region") == 0) {
@@ -208,7 +208,7 @@ void Set::command(int narg, char **arg)
   tagint nbig = count;
   tagint allcount;
   MPI_Allreduce(&nbig,&allcount,1,MPI_SPK_TAGINT,MPI_SUM,world);
-    
+
   if (domain->me == 0) {
     if (screen) fprintf(screen,"  " TAGINT_FORMAT " settings made for %s\n",
 			allcount,arg[0]);

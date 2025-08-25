@@ -30,7 +30,7 @@ void StagExpSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     BoxArray ba_base = beta_cc.boxArray();
 
     Box pd = pd_base;
-    BoxArray ba(ba_base); 
+    BoxArray ba(ba_base);
     //////////////////////////////////
 
     Real weight_lap;

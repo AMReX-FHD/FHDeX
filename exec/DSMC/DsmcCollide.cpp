@@ -86,20 +86,20 @@ void FhdParticleContainer::CalcSelections(Real dt)
 
 		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
 		const Array4<Real> & arrselect = mfselect.array(mfi);
-		
+
 		auto inds = m_bins.permutationPtr();
         auto offs = m_bins.offsetsPtr();
-        
+
         Real ocollisionCellVolTmp = ocollisionCellVol;
    		Real particle_neff_tmp = particle_neff;
-   		
+
    		Real csx[MAX_SPECIES*MAX_SPECIES];
-   		
+
    		for(int i=0;i<(nspecies*nspecies);i++)
    		{
    		    csx[i] = interproperties[i].csx;
    		}
-   		
+
 		amrex::ParallelForRNG(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept {
 			int ij_spec;
 			long np_i, np_j;
@@ -127,7 +127,7 @@ void FhdParticleContainer::CalcSelections(Real dt)
 					NSel = particle_neff_tmp*np_i*np_j*crossSection*vrmax*ocollisionCellVolTmp*dt*2;
 					if(i_spec==j_spec) {NSel = NSel*0.5;}
 					arrselect(i,j,k,ij_spec) = std::floor(NSel + amrex::Random(engine));
-					
+
 				}
 			}
 		});
@@ -151,18 +151,18 @@ void FhdParticleContainer::CollideParticles(Real dt)
 
 		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
 		const Array4<Real> & arrselect = mfselect.array(mfi);
-		
+
 		auto inds = m_bins.permutationPtr();
         auto offs = m_bins.offsetsPtr();
 
 
 		IntVect smallEnd = tile_box.smallEnd();
 		IntVect bigEnd = tile_box.bigEnd();
-		
+
         dsmcSpecies* propertiesTmp = properties.data();
-        
+
         Real mass[MAX_SPECIES];
-   		
+
    		for(int i=0;i<(nspecies);i++)
    		{
    		    mass[i] = properties[i].mass;
@@ -180,16 +180,16 @@ void FhdParticleContainer::CollideParticles(Real dt)
 			int np[MAX_SPECIES];
 			int pindxi, pindxj, bini, binj;
 			int ij_spec;
-			
+
 
 			RealVect eij, vreij;
 			RealVect vi, vj, vij;
 			RealVect vijpost, boost;
 			Real massi, massj, massij;
 			Real vrmag, vrmax, vreijmag;
-			
+
 			unsigned int* specLists[MAX_SPECIES];
-			
+
 			for(int i=0;i<nspecies;i++)
 			{
 			    specLists[i] = getCellList(inds,offs,iv,i,tile_box);
@@ -214,7 +214,7 @@ void FhdParticleContainer::CollideParticles(Real dt)
 
             int totalSelect2 = totalSel;
 			int speci, specj, specij;
-			
+
 
 			while (totalSel>0)
 			{
@@ -224,7 +224,7 @@ void FhdParticleContainer::CollideParticles(Real dt)
 				speci = -1; specj = -1; specij = -1;
 
 
-    			//for (int i_spec = nspecies-1; i_spec>=0; i_spec--)    			
+    			//for (int i_spec = nspecies-1; i_spec>=0; i_spec--)
 				for(int i_spec = 0; i_spec<nspecies; i_spec++)
 				{
 					for(int j_spec=i_spec;j_spec<nspecies;j_spec++)
@@ -238,14 +238,14 @@ void FhdParticleContainer::CollideParticles(Real dt)
 							spec_select = true;
 							specij = ij_spec;
 							speci = i_spec; specj = j_spec;
-							
-							
+
+
 							NSel[ij_spec] -= 1;
 						}
 					}
 				}
 
-	
+
 				totalSel--;
 				massi = mass[speci];
 				massj = mass[specj];
@@ -254,26 +254,26 @@ void FhdParticleContainer::CollideParticles(Real dt)
 //				pindxi = (int)floor(amrex::Random()*m_cell_vectors[speci][grid_id][imap].size());
 //				pindxj = (int)floor(amrex::Random()*m_cell_vectors[specj][grid_id][imap].size());
                 pindxi = (int)floor(amrex::Random(engine)*getBinSize(offs,iv,speci,tile_box));
-                pindxj = (int)floor(amrex::Random(engine)*getBinSize(offs,iv,specj,tile_box));               
+                pindxj = (int)floor(amrex::Random(engine)*getBinSize(offs,iv,specj,tile_box));
                 pindxi = specLists[speci][pindxi];
                 pindxj = specLists[specj][pindxj];
 				//pindxi = m_cell_vectors[speci][grid_id][imap][pindxi];
 				//pindxj = m_cell_vectors[specj][grid_id][imap][pindxj];
-				
+
 				//if(i==1){Print() << "spec " << speci << " part " << pindxi << " of "  << m_cell_vectors[speci][grid_id][imap].size() << endl;}
                 //if(i==1){Print() << "spec " << specj << " part " << pindxj << " of "  << m_cell_vectors[specj][grid_id][imap].size() << endl;}
-				
+
 				ParticleType & parti = particles[pindxi];
 				ParticleType & partj = particles[pindxj];
 
 				vi[0] = parti.rdata(FHD_realData::velx);
 				vi[1] = parti.rdata(FHD_realData::vely);
 				vi[2] = parti.rdata(FHD_realData::velz);
-				
+
 				vj[0] = partj.rdata(FHD_realData::velx);
 				vj[1] = partj.rdata(FHD_realData::vely);
 				vj[2] = partj.rdata(FHD_realData::velz);
-				
+
 				//if(i==1){Print() << "vel1 " << vi[0] << " vel2 " << vj[0] << endl;}
 
 				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
@@ -347,16 +347,16 @@ void FhdParticleContainer::CollideParticles2(Real dt)
 			long imap = tile_box.index(iv);
 			int Nselect[nspecies*nspecies];
 			Real Rselect[nspecies*nspecies];
-			
+
 			for(int k=0; k<nspecies*nspecies; k++)
 			{
 			    Nselect[k] = 0;
 			}
-						
+
 			for(int i_spec = 0; i_spec<nspecies; i_spec++)
 			{
 			    for(int j_spec = 0; j_spec<nspecies; j_spec++)
-			    {   
+			    {
                    int ij_index = getSpeciesIndex(i_spec,j_spec);
                    int np_i = m_cell_vectors[i_spec][grid_id][imap].size();
                    int np_j = m_cell_vectors[j_spec][grid_id][imap].size();
@@ -366,22 +366,22 @@ void FhdParticleContainer::CollideParticles2(Real dt)
                    Rselect[ij_index] += select;
                 }
             }
-            
+
             for(int i_spec = 0; i_spec<nspecies; i_spec++)
 			{
 			    for(int j_spec = 0; j_spec<nspecies; j_spec++)
-			    {   
+			    {
                    int ij_index = getSpeciesIndex(i_spec,j_spec);
                    Nselect[ij_index] = floor(Rselect[ij_index] + amrex::Random());
                 }
             }
 
-	        int totalCol = 0;            
+	        int totalCol = 0;
             for(int k=0; k<nspecies*nspecies; k++)
 			{
 			    totalCol += Nselect[k];
 			}
-			
+
 			while(totalCol > 0)
 			{
    				Real RR = amrex::Random();
@@ -390,7 +390,7 @@ void FhdParticleContainer::CollideParticles2(Real dt)
 				int speci = -1;
 				int specj = -1;
 				int specij = -1;
-				
+
 				for(int i_spec = 0; i_spec<nspecies; i_spec++)
 				{
 					for(int j_spec=i_spec;j_spec<nspecies;j_spec++)
@@ -404,14 +404,14 @@ void FhdParticleContainer::CollideParticles2(Real dt)
 							spec_select = true;
 							specij = ij_spec;
 							speci = i_spec; specj = j_spec;
-							
-							
+
+
 							Nselect[ij_spec] -= 1;
 						}
 					}
 				}
 				totalCol--;
-				
+
 				Real massi = properties[speci].mass;
 				Real massj = properties[specj].mass;
 				Real massij = properties[speci].mass + properties[specj].mass;
@@ -420,7 +420,7 @@ void FhdParticleContainer::CollideParticles2(Real dt)
 				int pindxj = (int)floor(amrex::Random()*m_cell_vectors[specj][grid_id][imap].size());
 				pindxi = m_cell_vectors[speci][grid_id][imap][pindxi];
 				pindxj = m_cell_vectors[specj][grid_id][imap][pindxj];
-				
+
 				ParticleType & parti = particles[pindxi];
 				ParticleType & partj = particles[pindxj];
 
@@ -432,11 +432,11 @@ void FhdParticleContainer::CollideParticles2(Real dt)
 				vi[0] = parti.rdata(FHD_realData::velx);
 				vi[1] = parti.rdata(FHD_realData::vely);
 				vi[2] = parti.rdata(FHD_realData::velz);
-				
+
 				vj[0] = partj.rdata(FHD_realData::velx);
 				vj[1] = partj.rdata(FHD_realData::vely);
 				vj[2] = partj.rdata(FHD_realData::velz);
-				
+
 				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
 				Real vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2));
 				if(vrmag>arrvrmax(i,j,k,specij)) {arrvrmax(i,j,k,specij) = 1.1*vrmag;}
@@ -470,8 +470,8 @@ void FhdParticleContainer::CollideParticles2(Real dt)
 					partj.rdata(FHD_realData::velz) = vj[2] + vreij[2]*massi;
 					totalCol++;
 				}
-			
-			
+
+
 			}
 
 

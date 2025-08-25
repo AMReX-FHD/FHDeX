@@ -29,7 +29,7 @@ void ImplicitDiffusion(MultiFab& n_old,
     // store one component at a time and take L(phi) one component at a time
     MultiFab phi     (ba,dmap,1,1);
     MultiFab rhs_comp(ba,dmap,1,0);
-    
+
     // build array of boundary conditions needed by MLABecLaplacian
     std::array<LinOpBCType, AMREX_SPACEDIM> lo_mlmg_bc;
     std::array<LinOpBCType, AMREX_SPACEDIM> hi_mlmg_bc;
@@ -39,8 +39,8 @@ void ImplicitDiffusion(MultiFab& n_old,
         if (bc_mass_lo[idim] == -1 || bc_mass_hi[idim] == -1) {
             if ( !(bc_mass_lo[idim] == -1 && bc_mass_hi[idim] == -1) ) {
                 Abort("Both bc_mass_lo and bc_mass_hi must be periodic in a given direction if the other one is");
-            }            
-            lo_mlmg_bc[idim] = LinOpBCType::Periodic;            
+            }
+            lo_mlmg_bc[idim] = LinOpBCType::Periodic;
             hi_mlmg_bc[idim] = LinOpBCType::Periodic;
         }
 
@@ -96,19 +96,19 @@ void ImplicitDiffusion(MultiFab& n_old,
 
         // tell the operator what the numerical values for physical boundary conditions are
         mlabec.setLevelBC(0, &phi);
-        
+
         MLMG mlmg(mlabec);
 
         // solver parameters
         mlmg.setMaxIter(100);
         mlmg.setVerbose(0);
         mlmg.setBottomVerbose(0);
-        
+
         // do solve
         mlmg.solve({&phi}, {&rhs_comp}, 1.e-10, 0.0);
 
         MultiFab::Copy(n_new,phi,0,i,1,0);
-        
+
     }
 
     n_new.FillBoundary(geom.periodicity());

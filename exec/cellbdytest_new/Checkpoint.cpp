@@ -19,7 +19,7 @@ namespace {
 
 void WriteCheckPoint(int step,
                      amrex::Real time,
-                     int statsCount,                     
+                     int statsCount,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umacM,
                      const MultiFab& pres,
@@ -54,7 +54,7 @@ void WriteCheckPoint(int step,
     // ---- after all directories are built
     // ---- ParallelDescriptor::IOProcessor() creates the directories
     amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
-    
+
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
     // write Header file
@@ -84,7 +84,7 @@ void WriteCheckPoint(int step,
 
         // write out statsCount
         HeaderFile << statsCount << "\n";
-        
+
         // write the BoxArray (fluid)
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
@@ -169,13 +169,13 @@ void WriteCheckPoint(int step,
     // charge
     VisMF::Write(chargeM,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "chargeM"));
-    
+
     // electrostatic potential
     VisMF::Write(potential,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
     VisMF::Write(potentialM,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
-    
+
     // initial dsf state
     VisMF::Write(struct_cc_numdens0_real,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "struct_cc_numdens0_real"));
@@ -233,9 +233,9 @@ void ReadCheckPoint(int& step,
         GotoNextLine(is);
 
         // read in statsCount
-        is >> statsCount; 
-	GotoNextLine(is); 
-	
+        is >> statsCount;
+	GotoNextLine(is);
+
         // read in BoxArray (fluid) from Header
         BoxArray ba;
         ba.readFrom(is);
@@ -252,7 +252,7 @@ void ReadCheckPoint(int& step,
 
         // create a distribution mapping
         DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
-        
+
         //set number of ghost cells to fit whole peskin kernel
         int ang = 1;
         if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
@@ -269,7 +269,7 @@ void ReadCheckPoint(int& step,
         }
 
         // build MultiFab data
-        
+
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac [d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);
@@ -281,7 +281,7 @@ void ReadCheckPoint(int& step,
         // particle means and variances
         particleMeans.define(bc,dm,14,0);
         particleVars .define(bc,dm,18,0);
-        
+
         // cell centred es potential
         int ngp = 1;
         // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
@@ -307,7 +307,7 @@ void ReadCheckPoint(int& step,
         potential.define(bp,dm,1,ngp);
         potentialM.define(bp,dm,1,1);
     }
-    
+
     // C++ random number engine
     // each MPI process reads in its own file
     int comm_rank;
@@ -321,25 +321,25 @@ void ReadCheckPoint(int& step,
 #ifdef AMREX_USE_CUDA
         Abort("Restart with negative seed not supported on GPU");
 #endif
-        
+
         // read in rng state from checkpoint
         // don't read in all the rng states at once (overload filesystem)
         // one at a time read the rng states to different files, one for each MPI rank
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
-    
+
                 if (seed < 0) {
                     // create filename, e.g. chk0000005/rng0000002
                     std::string FileBase(checkpointname + "/rng");
                     std::string File = amrex::Concatenate(FileBase,comm_rank,7);
-                    
+
                     // read in contents
                     Vector<char> fileCharPtr;
                     ReadFile(File, fileCharPtr);
                     std::string fileCharPtrString(fileCharPtr.dataPtr());
                     std::istringstream is(fileCharPtrString, std::istringstream::in);
-                    
+
                     // restore random state
                     amrex::RestoreRandomState(is, 1, 0);
                 }
@@ -351,13 +351,13 @@ void ReadCheckPoint(int& step,
 
     }
     else if (seed == 0) {
-                
+
         // initializes the seed for C++ random number calls based on the clock
         auto now = time_point_cast<nanoseconds>(system_clock::now());
         int randSeed = now.time_since_epoch().count();
         // broadcast the same root seed to all processors
         ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-        
+
         InitRandom(randSeed+ParallelDescriptor::MyProc(),
                    ParallelDescriptor::NProcs(),
                    randSeed+ParallelDescriptor::MyProc());
@@ -394,7 +394,7 @@ void ReadCheckPoint(int& step,
     // pressure
     VisMF::Read(pres,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pressure"));
-        
+
     // particle means and variances
     VisMF::Read(particleMeans,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleMeans"));
@@ -404,13 +404,13 @@ void ReadCheckPoint(int& step,
     // charge
     VisMF::Read(chargeM,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "chargeM"));
-    
+
     // electrostatic potential
     VisMF::Read(potential,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
     VisMF::Read(potentialM,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
-    
+
     // initial dsf state
     VisMF::Read(struct_cc_numdens0_real,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "struct_cc_numdens0_real"));
@@ -419,12 +419,12 @@ void ReadCheckPoint(int& step,
 }
 
 void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp) {
-    
+
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPointParticles()",ReadCheckPointParticles);
 
     std::string checkpointname;
-    
+
     // checkpoint file name, e.g., chk0000010
     if (particle_restart > 0) {
         checkpointname = amrex::Concatenate(chk_base_name,particle_restart,9);
@@ -436,7 +436,7 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
     amrex::Print() << "Restart particles from checkpoint " << checkpointname << "\n";
 
     std::string line, word;
-    
+
         int temp;
         std::string File(checkpointname + "/Header");
         Vector<char> fileCharPtr;
@@ -475,7 +475,7 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
 
         // create a distribution mapping
         DistributionMapping dm { bc, ParallelDescriptor::NProcs() };
-        
+
         //set number of ghost cells to fit whole peskin kernel
         int ang = 1;
         if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
@@ -514,7 +514,7 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
     }
 
     Geometry geomC(minBox,&realDomain,CoordSys::cartesian,is_periodic_c.data());
-   
+
 //    Print() <<  "domain: " << domain << std::endl;
 //    Print() <<  "geom: " << geomC << std::endl;
 //    Print() <<  "Box Array: " << bc << std::endl;
@@ -528,13 +528,13 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
     int np = particles.TotalNumberOfParticles();
     //particlesTemp.Checkpoint("testcheck","particle");
     Print() << "Checkpoint contains " << np << " particles." <<std::endl;
-    
+
     particles.ReInitParticles();
 
     particles.PostRestart();
 }
 
-void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
               bool bExitOnError) {
 
     enum { IO_Buffer_Size = 262144 * 8 };

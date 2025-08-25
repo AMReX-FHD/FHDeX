@@ -510,7 +510,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
         // MultiFabPhysBC fixme face-centered data
-        
+
         advFluxdivPred[d].FillBoundary(geom.periodicity());
         // MultiFabPhysBC fixme face-centered data
     }

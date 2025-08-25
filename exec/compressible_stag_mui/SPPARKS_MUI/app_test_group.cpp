@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -44,11 +44,11 @@ AppTestGroup::AppTestGroup(SPPARKS *spk, int narg, char **arg) :
   tweak = atof(arg[5]);
 
   if (nevents == 0) error->all(FLERR,"Invalid event count for app_style test/group");
-  if (pmin <= 0.0 || pmin >= pmax) 
+  if (pmin <= 0.0 || pmin >= pmax)
     error->all(FLERR,"Invalid probability bounds for app_style test/group");
   if (tweak >= 100.0)
     error->all(FLERR,"Invalid probability delta for app_style test/group");
- 
+
   pmax -= EPSILON*pmax;
   tweak = 2.0*tweak / 100.0;
 
@@ -185,7 +185,7 @@ void AppTestGroup::iterate()
 
     if (dep_graph) {
       for (m = 0; m < ndepends[ievent]; m++)
-	propensity[depends[ievent][m]] = 
+	propensity[depends[ievent][m]] =
 	  compute_propensity(depends[ievent][m]);
       solve->update(ndepends[ievent],depends[ievent],propensity);
 
@@ -253,7 +253,7 @@ void AppTestGroup::stats_header(char *strtmp)
 void AppTestGroup::build_dependency_graph()
 {
   memory->create(ndepends,nevents,"test:ndepends");
-  for (int m = 0; m < nevents; m++) 
+  for (int m = 0; m < nevents; m++)
     ndepends[m] = static_cast<int> (ndep*random->uniform()) + 1;
 
   int nmax = 1;
@@ -262,7 +262,7 @@ void AppTestGroup::build_dependency_graph()
   memory->create(depends,nevents,nmax,"test:depends");
 
   // set each dependency to random reaction other than self
-  
+
   for (int m = 0; m < nevents; m++)
     for (int e = 0; e < ndepends[m]; e++) {
       depends[m][e] = m;
@@ -279,7 +279,7 @@ double AppTestGroup::compute_propensity(int m)
 {
   double p = propensity[m];
   p += p*tweak*(random->uniform()-0.5);
-  
+
   p = MIN(p,pmax);
   p = MAX(p,pmin);
   return p;

@@ -26,7 +26,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	Real xl = prob_hi[0] - prob_lo[0];
 	Real yl = prob_hi[1] - prob_lo[1];
 	Real zl = prob_hi[2] - prob_lo[2];
-	
+
   if(bc_vel_lo[0]==3 || bc_vel_lo[0]==5 || bc_vel_lo[0]==6 || bc_vel_lo[0]==7)
   {
 		// Mass densities defined
@@ -52,7 +52,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			{
 				bc_Xk_x_lo[l] = bc_Yk_x_lo[l]*rho_lo[0]/mass[l];
 				n_lo[0] += bc_Xk_x_lo[l];
-				
+
 			}
 			for(int l=0; l<nspecies; l++)
 			{
@@ -255,12 +255,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			{
 				bc_Xk_x_hi[l] = bc_Yk_x_hi[l]*rho_hi[0]/mass[l];
 				n_hi[0] += bc_Xk_x_hi[l];
-				
+
 			}
 			for(int l=0; l<nspecies; l++)
 			{
 				bc_Xk_x_hi[l] /= n_hi[0];
-				cout << "n: " << bc_Xk_x_lo[l] << endl;				
+				cout << "n: " << bc_Xk_x_lo[l] << endl;
 			}
 		}
 		// Number densities defined
@@ -442,17 +442,17 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		}
         paramPlaneList[i].temperatureLeft  = T_init[0];
         paramPlaneList[i].temperatureRight = T_init[0];
-	    
+
         paramPlaneList[i].specularityLeft   = 0;
      	paramPlaneList[i].momentumConsLeft  = 1;
         paramPlaneList[i].sourceLeft 			  = 0;
      	paramPlaneList[i].sinkLeft   			  = 0;
-    	
+
     	paramPlaneList[i].specularityRight 	= 0;
    	    paramPlaneList[i].momentumConsRight = 1;
 		paramPlaneList[i].sourceRight 			= 0;
 		paramPlaneList[i].sinkRight   			= 0;
-	    
+
 		paramPlaneList[i].boundary = i+1;
 	}
 
@@ -460,7 +460,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	paramPlaneList[0].x0 = domainLo[0];
 	paramPlaneList[0].y0 = domainLo[1];
 	paramPlaneList[0].z0 = domainLo[2];
-    
+
 	paramPlaneList[0].area = zl*yl;
 
 	paramPlaneList[0].ux = 0;
@@ -477,13 +477,13 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	paramPlaneList[0].lnx = -1;
 	paramPlaneList[0].lny = 0;
 	paramPlaneList[0].lnz = 0;
-    
+
 	paramPlaneList[0].rnx = 1;
 	paramPlaneList[0].rny = 0;
 	paramPlaneList[0].rnz = 0;
 
 	if(bc_vel_lo[0] == -1)
-	{   
+	{
 		paramPlaneList[0].periodicity = 1;
 		paramPlaneList[0].porosityLeft = 1;
 		paramPlaneList[0].porosityRight = 1;
@@ -518,11 +518,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	paramPlaneList[0].sinkRight = 1;
 
 		for (int l=0; l<nspecies; l++)
-		{    	
+		{
         	//paramPlaneList[0].densityRight[l] = bc_Xk_x_lo[l]*n_lo[0];
         	paramPlaneList[0].densityRight[l] = bc_Yk_x_lo[l];
            	paramPlaneList[0].temperatureRight = t_lo[0];
-        }		 
+        }
 	}
 	else if(bc_vel_lo[0] == 4)
 	{
@@ -536,9 +536,9 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	paramPlaneList[0].specularityRight 	= 0;
 
 		for (int l=0; l<nspecies; l++)
-		{    	
+		{
            	paramPlaneList[0].temperatureRight = t_lo[0];
-        }		 
+        }
 	}
 	else if(bc_vel_lo[0] == 5)
 	{
@@ -550,14 +550,14 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
      	paramPlaneList[0].sinkLeft = 0;
     	paramPlaneList[0].sinkRight = 0;
     	paramPlaneList[0].specularityRight 	= 1;
-        
+
         Real total_n0 = 0;
 		for (int l=0; l<nspecies; l++)
-		{    	
+		{
            	paramPlaneList[0].temperatureRight = t_lo[0];
    		   	paramPlaneList[0].species[l] = bc_Yk_x_lo[l];
         }
-              		 
+
 	}
 	else
 	{
@@ -567,7 +567,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		paramPlaneList[0].specularityLeft = 1;
 		paramPlaneList[0].specularityRight = 1;
 	}
-        
+
 	theta = getTheta(paramPlaneList[0].lnx, paramPlaneList[0].lny, paramPlaneList[0].lnz);
 	phi   = getPhi(paramPlaneList[0].lnx, paramPlaneList[0].lny, paramPlaneList[0].lnz);
 
@@ -596,7 +596,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	paramPlaneList[1].x0 = domainHi[0];
 	paramPlaneList[1].y0 = domainLo[1];
 	paramPlaneList[1].z0 = domainLo[2];
-    
+
 	paramPlaneList[1].area = zl*yl;
 
 	paramPlaneList[1].ux = 0;
@@ -613,18 +613,18 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[1].lnx = -1;
   paramPlaneList[1].lny = 0;
   paramPlaneList[1].lnz = 0;
-  
+
   paramPlaneList[1].rnx = 1;
   paramPlaneList[1].rny = 0;
   paramPlaneList[1].rnz = 0;
 
   if(bc_vel_hi[0] == -1)
-  {   
+  {
     paramPlaneList[1].periodicity = 1;
     paramPlaneList[1].porosityLeft = 1;
     paramPlaneList[1].porosityRight = 1;
   }
-  else if (bc_vel_hi[0] == 2) 
+  else if (bc_vel_hi[0] == 2)
   {
     paramPlaneList[1].periodicity = 0;
     paramPlaneList[1].porosityLeft = 0;
@@ -649,17 +649,17 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		}else
 		{
 		    paramPlaneList[1].sourceLeft = 3;
-		}		
+		}
      	paramPlaneList[1].sinkLeft = 1;
     	paramPlaneList[1].sinkRight = 0;
 
 		for (int l=0; l<nspecies; l++)
-		{    	
+		{
         	//paramPlaneList[1].densityLeft[l] = bc_Xk_x_hi[l]*n_hi[0];
         	//Print() << "NUM: " << bc_Yk_x_hi[l] << endl;
         	paramPlaneList[1].densityLeft[l] = bc_Yk_x_hi[l];
            	paramPlaneList[1].temperatureRight = t_hi[0];
-        }  
+        }
   }
   else if(bc_vel_hi[0] == 4)
   {
@@ -673,10 +673,10 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	paramPlaneList[1].specularityLeft = 0;
 
 		for (int l=0; l<nspecies; l++)
-		{    	
+		{
 
            	paramPlaneList[1].temperatureLeft = t_hi[0];
-        }  
+        }
   }
   else if(bc_vel_hi[0] == 5)
   {
@@ -691,7 +691,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
         Real total_n0 = 0;
 		for (int l=0; l<nspecies; l++)
-		{    	
+		{
 
            	paramPlaneList[1].temperatureLeft = t_hi[0];
    		   	paramPlaneList[1].species[l] = bc_Yk_x_hi[l];
@@ -736,7 +736,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[2].x0 = domainLo[0];
   paramPlaneList[2].y0 = domainLo[1];
   paramPlaneList[2].z0 = domainLo[2];
-  
+
   paramPlaneList[2].area = xl*zl;
 
   paramPlaneList[2].ux = 1;
@@ -753,18 +753,18 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[2].lnx = 0;
   paramPlaneList[2].lny = 1;
   paramPlaneList[2].lnz = 0;
-  
+
   paramPlaneList[2].rnx = 0;
   paramPlaneList[2].rny = -1;
   paramPlaneList[2].rnz = 0;
 
   if(bc_vel_lo[1] == -1)
-  {   
+  {
     paramPlaneList[2].periodicity = 1;
     paramPlaneList[2].porosityLeft = 1;
     paramPlaneList[2].porosityRight = 1;
   }
-  else if (bc_vel_lo[1] == 2) 
+  else if (bc_vel_lo[1] == 2)
   {
     paramPlaneList[2].periodicity = 0;
     paramPlaneList[2].porosityLeft = 0;
@@ -778,7 +778,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   {
 		paramPlaneList[2].periodicity = 1;
     paramPlaneList[2].porosityLeft = 1;
-    paramPlaneList[2].porosityRight = 1;   
+    paramPlaneList[2].porosityRight = 1;
   }
   else
   {
@@ -817,7 +817,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[3].x0 = domainLo[0];
   paramPlaneList[3].y0 = domainHi[1];
   paramPlaneList[3].z0 = domainLo[2];
-  
+
   paramPlaneList[3].area = xl*zl;
 
   paramPlaneList[3].ux = 1;
@@ -834,18 +834,18 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[3].lnx = 0;
   paramPlaneList[3].lny = 1;
   paramPlaneList[3].lnz = 0;
-  
+
   paramPlaneList[3].rnx = 0;
   paramPlaneList[3].rny = -1;
   paramPlaneList[3].rnz = 0;
 
   if(bc_vel_hi[1] == -1)
-  {   
+  {
     paramPlaneList[3].periodicity = 1;
     paramPlaneList[3].porosityLeft = 1;
     paramPlaneList[3].porosityRight = 1;
   }
-  else if (bc_vel_hi[1] == 2) 
+  else if (bc_vel_hi[1] == 2)
   {
     paramPlaneList[3].periodicity = 0;
     paramPlaneList[3].porosityLeft = 0;
@@ -859,7 +859,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   {
 		paramPlaneList[3].periodicity = 1;
     paramPlaneList[3].porosityLeft = 1;
-    paramPlaneList[3].porosityRight = 1;   
+    paramPlaneList[3].porosityRight = 1;
 	}
   else
   {
@@ -898,7 +898,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[4].x0 = domainLo[0];
   paramPlaneList[4].y0 = domainLo[1];
   paramPlaneList[4].z0 = domainLo[2];
-  
+
   paramPlaneList[4].area = xl*yl;
 
   paramPlaneList[4].ux = 1;
@@ -915,18 +915,18 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[4].lnx = 0;
   paramPlaneList[4].lny = 0;
   paramPlaneList[4].lnz = 1;
-  
+
   paramPlaneList[4].rnx = 0;
   paramPlaneList[4].rny = 0;
   paramPlaneList[4].rnz = -1;
 
   if(bc_vel_lo[2] == -1)
-  {   
+  {
     paramPlaneList[4].periodicity = 1;
     paramPlaneList[4].porosityLeft = 1;
     paramPlaneList[4].porosityRight = 1;
   }
-  else if (bc_vel_lo[2] == 2) 
+  else if (bc_vel_lo[2] == 2)
   {
     paramPlaneList[4].periodicity = 0;
     paramPlaneList[4].porosityLeft = 0;
@@ -940,7 +940,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   {
 		paramPlaneList[4].periodicity = 1;
     paramPlaneList[4].porosityLeft = 1;
-    paramPlaneList[4].porosityRight = 1;   
+    paramPlaneList[4].porosityRight = 1;
   }
   else
   {
@@ -979,7 +979,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[5].x0 = domainLo[0];
   paramPlaneList[5].y0 = domainLo[1];
   paramPlaneList[5].z0 = domainHi[2];
-  
+
   paramPlaneList[5].area = xl*yl;
 
   paramPlaneList[5].ux = 1;
@@ -996,7 +996,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[5].lnx = 0;
   paramPlaneList[5].lny = 0;
   paramPlaneList[5].lnz = 1;
-  
+
   paramPlaneList[5].rnx = 0;
   paramPlaneList[5].rny = 0;
   paramPlaneList[5].rnz = -1;
@@ -1017,12 +1017,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[5].dbesslist;
 
   if(bc_vel_hi[2] == -1)
-  {   
+  {
     paramPlaneList[5].periodicity = 1;
     paramPlaneList[5].porosityLeft = 1;
     paramPlaneList[5].porosityRight = 1;
   }
-  else if (bc_vel_hi[2] == 2) 
+  else if (bc_vel_hi[2] == 2)
   {
     paramPlaneList[5].periodicity = 0;
     paramPlaneList[5].porosityLeft = 0;
@@ -1036,7 +1036,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   {
 		paramPlaneList[5].periodicity = 1;
     paramPlaneList[5].porosityLeft = 1;
-    paramPlaneList[5].porosityRight = 1;   
+    paramPlaneList[5].porosityRight = 1;
   }
   else
   {
@@ -1521,7 +1521,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			(bc_vel_lo[i] == -1 || bc_vel_lo[i] == 3))
 		{
 			paramPlaneList[p].periodicity = 1;
-			
+
 			if(bc_vel_lo[i] == 3)
 			{
 				paramPlaneList[p].velx = t_lo[i];
@@ -1551,7 +1551,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   			paramPlaneList[p].specularityLeft = 1;
   			paramPlaneList[p].specularityRight = 1;
   		}
-  		
+
   		// Concentration Wall
   		if(bc_mass_lo[i] == 1)
   		{
@@ -1559,23 +1559,23 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				{
 					if(i==0)
 					{
-						paramPlaneList[p].densityLeft[l] = 
+						paramPlaneList[p].densityLeft[l] =
 							bc_Xk_x_lo[l]*n_lo[0];
-						paramPlaneList[p].densityRight[l] = 
+						paramPlaneList[p].densityRight[l] =
 							bc_Xk_x_lo[l]*n_lo[0];
 					}
 					else if(i==1)
 					{
-						paramPlaneList[p].densityLeft[l] = 
+						paramPlaneList[p].densityLeft[l] =
 							bc_Xk_y_lo[l]*n_lo[1];
-						paramPlaneList[p].densityRight[l] = 
+						paramPlaneList[p].densityRight[l] =
 							bc_Xk_y_lo[l]*n_lo[1];
 					}
 					else
 					{
-						paramPlaneList[p].densityLeft[l]  = 
+						paramPlaneList[p].densityLeft[l]  =
 							bc_Xk_z_lo[l]*n_lo[2];
-						paramPlaneList[p].densityRight[l] = 
+						paramPlaneList[p].densityRight[l] =
 							bc_Xk_z_lo[l]*n_lo[1];
 					}
 				}
@@ -1593,41 +1593,41 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			for (int l=0; l<nspecies; l++) {
 				if(i==0)
 				{
-					paramPlaneList[p].densityLeft[l]  = 
+					paramPlaneList[p].densityLeft[l]  =
 						bc_Xk_x_lo[l]*n_lo[0];
-					paramPlaneList[p].densityRight[l] = 
+					paramPlaneList[p].densityRight[l] =
 						bc_Xk_x_lo[l]*n_lo[0];
 				}
 				else if(i==1)
 				{
-					paramPlaneList[p].densityLeft[l]  = 
+					paramPlaneList[p].densityLeft[l]  =
 						bc_Xk_y_lo[l]*n_lo[1];
-					paramPlaneList[p].densityRight[l] = 
+					paramPlaneList[p].densityRight[l] =
 						bc_Xk_y_lo[l]*n_lo[1];
 				}
 				else
 				{
-					paramPlaneList[p].densityLeft[l]  = 
+					paramPlaneList[p].densityLeft[l]  =
 						bc_Xk_z_lo[l]*n_lo[2];
-					paramPlaneList[p].densityRight[l] = 
+					paramPlaneList[p].densityRight[l] =
 						bc_Xk_z_lo[l]*n_lo[2];
 				}
 			}
-			
+
 			//if(bc_therm_lo[i] == 2)
 			//{
 				paramPlaneList[p].temperatureLeft = t_lo[i];
-  			    paramPlaneList[p].temperatureRight = t_lo[i];					
+  			    paramPlaneList[p].temperatureRight = t_lo[i];
 			//}
 		}
-  	
+
 		// Upper Boundary (Right, Top, Front)
 		paramPlaneList[p+1].specularityLeft = 0;
 		paramPlaneList[p+1].specularityRight = 0;
 		paramPlaneList[p+1].sourceLeft = 0;
   	paramPlaneList[p+1].sinkLeft = 0;
     paramPlaneList[p+1].sourceRight = 0;
-    paramPlaneList[p+1].sinkRight = 0;    	
+    paramPlaneList[p+1].sinkRight = 0;
   	paramPlaneList[p+1].porosityLeft = 1;
   	paramPlaneList[p+1].porosityRight = 1;
   	paramPlaneList[p+1].periodicity = 0;
@@ -1637,7 +1637,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[p+1].vely = -1;
     paramPlaneList[p+1].velz = -1;
 
-    
+
 		for (int l=0; l<nspecies; l++)
 		{
 			if(i==0)
@@ -1685,7 +1685,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				paramPlaneList[p+1].temperatureLeft = t_hi[i];
   			paramPlaneList[p+1].temperatureRight = t_hi[i];
   		}
-  		else if(bc_vel_hi[i] == 2) 
+  		else if(bc_vel_hi[i] == 2)
   		{
   			paramPlaneList[p+1].specularityLeft = 1;
   			paramPlaneList[p+1].specularityRight = 1;
@@ -1698,23 +1698,23 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				{
 					if(i==0)
 					{
-						paramPlaneList[p+1].densityLeft[l] = 
+						paramPlaneList[p+1].densityLeft[l] =
 							bc_Xk_x_hi[l]*n_hi[0];
-						paramPlaneList[p+1].densityRight[l] = 
+						paramPlaneList[p+1].densityRight[l] =
 							bc_Xk_x_hi[l]*n_hi[0];
 					}
 					else if(i==1)
 					{
-						paramPlaneList[p+1].densityLeft[l] = 
+						paramPlaneList[p+1].densityLeft[l] =
 							bc_Xk_y_hi[l]*n_hi[1];
-						paramPlaneList[p+1].densityRight[l] = 
+						paramPlaneList[p+1].densityRight[l] =
 							bc_Xk_y_hi[l]*n_hi[1];
 					}
 					else
 					{
-						paramPlaneList[p+1].densityLeft[l]  = 
+						paramPlaneList[p+1].densityLeft[l]  =
 							bc_Xk_z_hi[l]*n_hi[2];
-						paramPlaneList[p+1].densityRight[l] = 
+						paramPlaneList[p+1].densityRight[l] =
 							bc_Xk_z_hi[l]*n_hi[2];
 					}
 				}
@@ -1735,34 +1735,34 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				{
 					paramPlaneList[p+1].densityLeft[l]  =
 						bc_Xk_x_hi[l]*n_hi[0];
-					paramPlaneList[p+1].densityRight[l] = 
+					paramPlaneList[p+1].densityRight[l] =
 						bc_Xk_x_hi[l]*n_hi[0];
 				}
 				else if(i==1)
 				{
-					paramPlaneList[p+1].densityLeft[l]  = 
+					paramPlaneList[p+1].densityLeft[l]  =
 						bc_Xk_y_hi[l]*n_hi[1];
-					paramPlaneList[p+1].densityRight[l] = 
+					paramPlaneList[p+1].densityRight[l] =
 						bc_Xk_y_hi[l]*n_hi[1];
 				}
 				else
 				{
-					paramPlaneList[p+1].densityLeft[l]  = 
+					paramPlaneList[p+1].densityLeft[l]  =
 						bc_Xk_z_hi[l]*n_hi[2];
-					paramPlaneList[p+1].densityRight[l] = 
+					paramPlaneList[p+1].densityRight[l] =
 						bc_Xk_z_hi[l]*n_hi[2];
 				}
 			}
 			//if(bc_therm_hi[i] == 2)
 			//{
 				paramPlaneList[p+1].temperatureLeft = t_hi[i];
-  			paramPlaneList[p+1].temperatureRight = t_hi[i];					
+  			paramPlaneList[p+1].temperatureRight = t_hi[i];
 			//}
 		}
   	p += 2;
   }
   }
-  
+
     //Print() << "Wall: " << paramPlaneList[0].sourceRight << ", " << paramPlaneList[0].densityRight[0] << ", " << paramPlaneList[0].temperatureRight << "\n";
 
     std::ifstream planeFile("paramplanes.dat");
@@ -1771,9 +1771,9 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     {
         planeFile >> fileCount;
     }
-    
+
     int totalCount = 6+fileCount;
-    
+
     Print() << "Creating " << totalCount << " parametric surfaces\n";
 
     for(int i=6; i<totalCount; i++)
@@ -1804,7 +1804,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         planeFile >> paramPlaneList[i].lnx;
         planeFile >> paramPlaneList[i].lny;
         planeFile >> paramPlaneList[i].lnz;
-        
+
         planeFile >> paramPlaneList[i].porosityRight;
         planeFile >> paramPlaneList[i].specularityRight;
         planeFile >> paramPlaneList[i].temperatureRight;
@@ -1832,7 +1832,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         planeFile >> paramPlaneList[i].area;
 
         paramPlaneList[i].boundary = i+1;
-            
+
         theta = getTheta(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
         phi   = getPhi(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
 
@@ -1856,7 +1856,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[i].fxRightAv = 0;
         paramPlaneList[i].fyRightAv = 0;
         paramPlaneList[i].fzRightAv = 0;
-       
+
 
     }
     planeFile.close();
@@ -1873,9 +1873,9 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
     {
         planeFile >> fileCount;
     }
-    
+
     int totalCount = fileCount;
-    
+
     Print() << "Creating " << totalCount << " parametric surfaces\n";
 
     for(int i=0; i<totalCount; i++)
@@ -1906,7 +1906,7 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
         planeFile >> paramPlaneList[i].lnx;
         planeFile >> paramPlaneList[i].lny;
         planeFile >> paramPlaneList[i].lnz;
-        
+
         planeFile >> paramPlaneList[i].porosityRight;
         planeFile >> paramPlaneList[i].specularityRight;
         planeFile >> paramPlaneList[i].temperatureRight;
@@ -1934,7 +1934,7 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
         planeFile >> paramPlaneList[i].area;
 
         paramPlaneList[i].boundary = i+1;
-            
+
         theta = getTheta(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
         phi   = getPhi(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
 
@@ -1958,31 +1958,31 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
         paramPlaneList[i].fxRightAv = 0;
         paramPlaneList[i].fyRightAv = 0;
         paramPlaneList[i].fzRightAv = 0;
-        
+
         paramPlaneList[i].recCountRight = 0;
         paramPlaneList[i].recCountLeft = 0;
-        
+
         if(paramPlaneList[i].momentumConsRight > 0)
         {
             paramPlaneList[i].xVelRecRight = new double[WRITE_BUFFER];
             paramPlaneList[i].yVelRecRight = new double[WRITE_BUFFER];
-            paramPlaneList[i].zVelRecRight = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].zVelRecRight = new double[WRITE_BUFFER];
             paramPlaneList[i].xPosRecRight = new double[WRITE_BUFFER];
             paramPlaneList[i].yPosRecRight = new double[WRITE_BUFFER];
-            paramPlaneList[i].zPosRecRight = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].zPosRecRight = new double[WRITE_BUFFER];
             paramPlaneList[i].freqRecRight = new double[WRITE_BUFFER];
-            paramPlaneList[i].timeRecRight = new double[WRITE_BUFFER];            
+            paramPlaneList[i].timeRecRight = new double[WRITE_BUFFER];
         }
         if(paramPlaneList[i].momentumConsLeft > 0)
         {
             paramPlaneList[i].xVelRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].yVelRecLeft = new double[WRITE_BUFFER];
-            paramPlaneList[i].zVelRecLeft = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].zVelRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].xPosRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].yPosRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].zPosRecLeft = new double[WRITE_BUFFER];
-            paramPlaneList[i].freqRecLeft = new double[WRITE_BUFFER];                                   
-            paramPlaneList[i].timeRecLeft = new double[WRITE_BUFFER];            
+            paramPlaneList[i].freqRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].timeRecLeft = new double[WRITE_BUFFER];
         }
 
 
@@ -1994,15 +1994,15 @@ void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const R
 {
 
 	bool proc_enter = true;
-	
+
 	const Real* dx = Geom.CellSize();
-	
+
 
 	Real smallNumber = dx[0];
 	if(dx[1] < smallNumber){smallNumber = dx[1];}
 	if(dx[2] < smallNumber){smallNumber = dx[2];}
 	smallNumber = smallNumber*0.00000001;
-	
+
     int procID = ParallelDescriptor::MyProc();
 
 	for(MFIter mfi = MFIter(bCell); mfi.isValid(); ++mfi)
@@ -2013,7 +2013,7 @@ void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const R
 
 			const int grid_id = mfi.index();
 		    const int tile_id = mfi.LocalTileIndex();
-		
+
 		    Gpu::ManagedVector<paramPlane> paramPlaneListTmp;
             paramPlaneListTmp.resize(paramPlaneCount);
             for(int i=0;i<paramPlaneCount;i++)
@@ -2022,7 +2022,7 @@ void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const R
 
             }
             paramPlane* paramPlaneListPtr = paramPlaneListTmp.data();
-            
+
             Array4<int> bCellArr  = bCell[mfi].array();
 
 			for(int i = 0; i< paramPlaneCount; i++)
@@ -2031,41 +2031,41 @@ void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const R
     			{
 			        Real uCoord = amrex::Random()*(paramPlaneList[i].uTop+2.0*fixed_dt*phonon_sound_speed)-fixed_dt*phonon_sound_speed;
 			        Real vCoord = amrex::Random()*(paramPlaneList[i].vTop+2.0*fixed_dt*phonon_sound_speed)-fixed_dt*phonon_sound_speed;
-			        
+
 				    Real posx = paramPlaneListPtr[i].x0 + paramPlaneListPtr[i].ux*uCoord + paramPlaneListPtr[i].vx*vCoord;
 				    Real posy = paramPlaneListPtr[i].y0 + paramPlaneListPtr[i].uy*uCoord + paramPlaneListPtr[i].vy*vCoord;
 				    Real posz = paramPlaneListPtr[i].z0 + paramPlaneListPtr[i].uz*uCoord + paramPlaneListPtr[i].vz*vCoord;
-				    
+
 				    Real nCoord = amrex::Random()*fixed_dt*phonon_sound_speed;
-				    
+
 			        posx = posx + nCoord*paramPlaneListPtr[i].lnx;
 				    posy = posy + nCoord*paramPlaneListPtr[i].lny;
 				    posz = posz + nCoord*paramPlaneListPtr[i].lnz;
-				    
+
 			        int cell[3];
 			        cell[0] = (int)floor((posx-prob_lo[0])/dx[0]);
 			        cell[1] = (int)floor((posy-prob_lo[1])/dx[1]);
 			        cell[2] = (int)floor((posz-prob_lo[2])/dx[2]);
-			        
+
 			        if((cell[0] >= 0) && (cell[0] < n_cells[0]) && (cell[1] >= 0) && (cell[1] < n_cells[1]) && (cell[2] >= 0) && (cell[2] < n_cells[2]))
 			        {
 			            bCellArr(cell[0],cell[1],cell[2]) = 1;
 			        }
-			        
+
 			        posx = posx - 2.0*nCoord*paramPlaneListPtr[i].lnx;
 				    posy = posy - 2.0*nCoord*paramPlaneListPtr[i].lny;
 				    posz = posz - 2.0*nCoord*paramPlaneListPtr[i].lnz;
-				    
+
 			        cell[0] = (int)floor((posx-prob_lo[0])/dx[0]);
 			        cell[1] = (int)floor((posy-prob_lo[1])/dx[1]);
 			        cell[2] = (int)floor((posz-prob_lo[2])/dx[2]);
-			        
+
 			        if((cell[0] >= 0) && (cell[0] < n_cells[0]) && (cell[1] >= 0) && (cell[1] < n_cells[1]) && (cell[2] >= 0) && (cell[2] < n_cells[2]))
 			        {
 			            bCellArr(cell[0],cell[1],cell[2]) = 1;
-			        }			        
+			        }
 			    }
-			    
+
 			}
 		}
     }

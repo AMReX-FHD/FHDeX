@@ -67,7 +67,7 @@ template<typename Head, typename... Tail> struct get_head_ { typedef Head type; 
 template<typename... Types>
 using get_head_t_ = typename get_head_<Types...>::type;
 
-// type dispatcher. 
+// type dispatcher.
 template<id_t i, typename R, typename... Args> struct apply_visitor_impl_;
 template<id_t i, typename R, typename Head, typename... Tail>
 struct apply_visitor_impl_<i,R,Head,Tail...> {

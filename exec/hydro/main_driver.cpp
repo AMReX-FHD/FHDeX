@@ -49,13 +49,13 @@ void main_driver(const char* argv)
     // This defines the physical box, [-1,1] in each direction.
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-    
+
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
 
     Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    
+
     // BoxArray
     BoxArray ba;
 
@@ -93,7 +93,7 @@ void main_driver(const char* argv)
 
     }
     /////////////////////////////////////////
-    
+
     int step_start;
     amrex::Real time;
 
@@ -102,7 +102,7 @@ void main_driver(const char* argv)
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    
+
     if (restart > 0) {
         ReadCheckPoint(step_start,time,umac,turbforce,ba,dmap);
     }
@@ -116,18 +116,18 @@ void main_driver(const char* argv)
         ba.maxSize(IntVect(max_grid_size));
 
         dmap.define(ba);
-    
+
 	if (turbForcing == 1) {
 	  turbforce.define(ba,dmap,turb_a,turb_b);
 	}
 
         const RealBox& realDomain = geom.ProbDomain();
         int dm;
-        
+
         AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                      umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                      umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    
+
         InitVel(umac,geom);
 
         // temporary for addMomfluctuations and MacProj_hydro
@@ -135,7 +135,7 @@ void main_driver(const char* argv)
         rho.setVal(1.);
         MultiFab temp_cc(ba, dmap, 1, 1);
         temp_cc.setVal(T_init[0]);
-    
+
         // Add initial equilibrium fluctuations
         if(initial_variance_mom != 0.0) {
             addMomFluctuations(umac, rho, temp_cc, initial_variance_mom,geom);
@@ -162,7 +162,7 @@ void main_driver(const char* argv)
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
-    
+
     ///////////////////////////////////////////
     // alpha, beta, gamma:
     ///////////////////////////////////////////
@@ -181,7 +181,7 @@ void main_driver(const char* argv)
     //  0 = inertial
     //  1 = overdamped
     Real factor = (algorithm_type == 0) ? 0.5 : 1.0;
-    
+
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
     beta.setVal(factor*visc_coef); // multiply by factor here
@@ -198,7 +198,7 @@ void main_driver(const char* argv)
 #endif
     for (int d=0; d<NUM_EDGE; ++d) {
         beta_ed[d].setVal(factor*visc_coef); // multiply by factor here
-    }    
+    }
 
     // cell-centered gamma
     MultiFab gamma(ba, dmap, 1, 1);
@@ -283,16 +283,16 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Initialize structure factor object for analysis
     ///////////////////////////////////////////
-    
+
     // variables are velocities
     int structVars = AMREX_SPACEDIM;
 
     MultiFab structFactMF(ba, dmap, structVars, 0);
     structFactMF.setVal(0.);
-    
+
     Vector< std::string > var_names;
     var_names.resize(structVars);
-    
+
     int cnt = 0;
     std::string x;
 
@@ -305,7 +305,7 @@ void main_driver(const char* argv)
 
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
-    
+
     Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
     dProb = 1./dProb;
 
@@ -314,7 +314,7 @@ void main_driver(const char* argv)
     int compute_all_pairs = 1;
 
     int nPairs = (compute_all_pairs) ? structVars*(structVars+1)/2 : 2;
-    
+
     Vector<Real> var_scaling(nPairs);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dVol;
@@ -323,7 +323,7 @@ void main_driver(const char* argv)
     StructFact structFact;
 
     if (restart < 0) {
-    
+
         if (compute_all_pairs) {
             // option to compute all pairs
             structFact.define(ba,dmap,var_names,var_scaling);
@@ -338,7 +338,7 @@ void main_driver(const char* argv)
             s_pairB[0] = 0;
             s_pairA[1] = 1;
             s_pairB[1] = 1;
-    
+
             structFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
         }
     } else {
@@ -368,11 +368,11 @@ void main_driver(const char* argv)
 
       structFactFlattened.define(ba_flat,dmap_flat,var_names,var_scaling);
     }
-    
+
     ///////////////////////////////////////////
     // Structure factor object to help compute tubulent energy spectra
     ///////////////////////////////////////////
-    
+
     // option to compute only specified pairs
     amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
     amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
@@ -381,17 +381,17 @@ void main_driver(const char* argv)
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dVol;
     }
-    
+
     // Select which variable pairs to include in structure factor:
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         s_pairA[d] = d;
         s_pairB[d] = d;
-    }    
+    }
     StructFact turbStructFact;
     if (turbForcing == 1) {
         turbStructFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
     }
-    
+
     ///////////////////////////////////////////
 
     if (restart < 0) {
@@ -429,11 +429,11 @@ void main_driver(const char* argv)
             }
         }
     }
-    
+
     std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
     AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
+                 umacTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
     // temporaries for energy dissipation calculation
     MultiFab gradU;
@@ -443,7 +443,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE > curlUtemp;
 
     if (turbForcing == 1) {
-    
+
         gradU.define(ba,dmap,AMREX_SPACEDIM,0);
         ccTemp.define(ba,dmap,1,0);
 
@@ -457,7 +457,7 @@ void main_driver(const char* argv)
 #elif (AMREX_SPACEDIM == 2)
         curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
 #endif
-    
+
 #if (AMREX_SPACEDIM == 3)
         curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
         curlUtemp[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
@@ -510,7 +510,7 @@ void main_driver(const char* argv)
                 structFactFlattened.FortStructure(Flattened);
             }
         }
-                
+
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
 
@@ -555,7 +555,7 @@ void main_driver(const char* argv)
         }
 
         if (turbForcing == 1) {
-        
+
             // compute kinetic energy integral( (1/2) * rho * U dot U dV)
             Vector<Real> udotu(3);
             Vector<Real> skew(3);
@@ -593,9 +593,9 @@ void main_driver(const char* argv)
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 CCMoments(gradU,d,ccTemp,4,kurt[d]);
             }
-        
+
             // FORM 2: <-u_j Lap(u_j)>
-        
+
             // compute [Lap(u) Lap(v) Lap(w)]
             ComputeStagLap(umac,Lumac,geom);
 
@@ -605,7 +605,7 @@ void main_driver(const char* argv)
 
             // compute <-u_j Lap(u_j)>
             Real FORM2 = -visc_coef*dProb*( uLapu[0] + uLapu[1] + uLapu[2] );
-        
+
             // FORM 3: <du_i/dx_j du_i/dx_j> using cell-centered and edge-centered
 
             // FORM 4: <curl(V) dot (curl(V)> using cell-centered gradients
@@ -616,7 +616,7 @@ void main_driver(const char* argv)
             EdgeInnerProd(curlU,0,curlU,0,curlUtemp,curlUdotcurlU);
             Real FORM5 = (AMREX_SPACEDIM == 2) ? visc_coef*dProb*curlUdotcurlU[0]
                 : visc_coef*dProb*(curlUdotcurlU[0] + curlUdotcurlU[1] + curlUdotcurlU[2]);
-        
+
             Print() << "Energy dissipation "
                     << time << " "
                     << FORM1 << " "
@@ -646,10 +646,10 @@ void main_driver(const char* argv)
             AverageFaceToCC(umac,gradU,0);
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 Print() << "Sum of umac in direction " << d << "= "
-                        << gradU.sum(d) << std::endl;          
+                        << gradU.sum(d) << std::endl;
             }
         }
-        
+
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -670,7 +670,7 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        
+
     }
 
     // Call the timer again and compute the maximum difference between the start time

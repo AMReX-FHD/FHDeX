@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -30,7 +30,7 @@ enum{ZERO,ERBIUM,HYDROGEN,HELIUM,VACANCY};      // same as DiagErbium
 
 /* ---------------------------------------------------------------------- */
 
-AppErbium::AppErbium(SPPARKS *spk, int narg, char **arg) : 
+AppErbium::AppErbium(SPPARKS *spk, int narg, char **arg) :
   AppLattice(spk,narg,arg)
 {
   ninteger = 2;
@@ -122,7 +122,7 @@ void AppErbium::input_app(char *command, int narg, char **arg)
       else error->all(FLERR,"Illegal event command");
 
       none++;
-      
+
     } else if (rstyle == 2) {
       if (narg != 8) error->all(FLERR,"Illegal event command");
 
@@ -239,7 +239,7 @@ void AppErbium::init_app()
     memory->create(firstevent,nlocal,"app:firstevent");
 
     // esites must be large enough for 3 sites and their 1st neighbors
-    
+
     esites = new int[3 + 3*maxneigh];
   }
 
@@ -487,7 +487,7 @@ void AppErbium::add_event(int i, int rstyle, int which, double propensity,
 
   if (nevents == maxevent) {
     maxevent += DELTAEVENT;
-    events = 
+    events =
       (Event *) memory->srealloc(events,maxevent*sizeof(Event),"app:events");
     for (int m = nevents; m < maxevent; m++) events[m].next = m+1;
     freeevent = nevents;

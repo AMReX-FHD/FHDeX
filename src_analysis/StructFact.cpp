@@ -60,7 +60,7 @@ void StructFact::define(const BoxArray& ba_in,
             l_s_pairB[counter] = i;
             ++counter;
         }
-    }      
+    }
 
     define(ba_in, dmap_in, var_names, var_scaling_in, l_s_pairA, l_s_pairB, verbosity_in);
 
@@ -80,7 +80,7 @@ void StructFact::define(const BoxArray& ba_in,
   BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
 
   verbosity = verbosity_in;
-  
+
   if (s_pairA_in.size() != s_pairB_in.size())
         amrex::Error("StructFact::define() - Must have an equal number of components");
 
@@ -98,20 +98,20 @@ void StructFact::define(const BoxArray& ba_in,
   for (int n=0; n<NCOV; n++) {
       scaling[n] = 1.0/var_scaling_in[n];
   }
-  
+
   s_pairA.resize(NCOV);
   s_pairB.resize(NCOV);
-  
+
   // Set vectors identifying covariance pairs
   for (int n=0; n<NCOV; n++) {
     s_pairA[n] = s_pairA_in[n];
     s_pairB[n] = s_pairB_in[n];
   }
-  
+
   // Create vector of unique variable indices to select which to take the FFT
   NVARU = 2*NCOV;    // temporary before selecting unique variables
   amrex::Vector< int > varu_temp (NVARU);
-  
+
   // "Stack" on vectors A and B
   int indx = 0;
   for (int n=0; n<NCOV; n++) {
@@ -153,11 +153,11 @@ void StructFact::define(const BoxArray& ba_in,
       N_dup = N_dup+1;
     }
   }
-  
+
   // Resize based on number of unique variables
   int N_u = NVARU - N_dup;
   var_u.resize(N_u);
-  
+
   // Only select unique pairs
   indx = 0;
   var_u[indx] = varu_temp[0];
@@ -167,10 +167,10 @@ void StructFact::define(const BoxArray& ba_in,
       var_u[indx] = varu_temp[n];
     }
   }
-  
+
   // Update number of variables according to unique vars
   NVARU = N_u;
-  
+
   for (int n=0; n<NCOV; n++) {
     Print() << "SF pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
   }
@@ -228,11 +228,11 @@ void StructFact::define(const BoxArray& ba_in,
 
   // required only to define geom object
   Vector<int> is_periodic(AMREX_SPACEDIM,1);
-      
+
   geom_sf.define(domain,&kspace,CoordSys::cartesian,is_periodic.data());
 
-  
-  
+
+
 }
 
 void StructFact::FortStructure(const MultiFab& variables,
@@ -242,7 +242,7 @@ void StructFact::FortStructure(const MultiFab& variables,
 
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
-  
+
   MultiFab variables_dft_real(ba, dm, NVAR, 0);
   MultiFab variables_dft_imag(ba, dm, NVAR, 0);
 
@@ -259,12 +259,12 @@ void StructFact::FortStructure(const MultiFab& variables,
   // temporary storage built on BoxArray and DistributionMapping of "cov_real/imag/mag"
   MultiFab cov_temp2;
   cov_temp2.define(cov_real.boxArray(), cov_real.DistributionMap(), 1, 0);
-  
+
   int index = 0;
   for (int n=0; n<NCOV; n++) {
     int i = s_pairA[n];
     int j = s_pairB[n];
-    
+
     // Compute temporary real and imaginary components of covariance
 
     // Real component of covariance
@@ -274,10 +274,10 @@ void StructFact::FortStructure(const MultiFab& variables,
 
     // copy into a MF with same ba and dm as cov_real/imag/mag
     cov_temp2.ParallelCopy(cov_temp,0,0,1);
-        
+
     if (reset == 1) {
         MultiFab::Copy(cov_real,cov_temp2,0,index,1,0);
-    } else {        
+    } else {
         MultiFab::Add(cov_real,cov_temp2,0,index,1,0);
     }
 
@@ -289,7 +289,7 @@ void StructFact::FortStructure(const MultiFab& variables,
 
     // copy into a MF with same ba and dm as cov_real/imag/mag
     cov_temp2.ParallelCopy(cov_temp,0,0,1);
-    
+
     if (reset == 1) {
         MultiFab::Copy(cov_imag,cov_temp2,0,index,1,0);
     } else {
@@ -302,12 +302,12 @@ void StructFact::FortStructure(const MultiFab& variables,
 
   bool write_data = false;
   if (write_data) {
-    std::string plotname; 
+    std::string plotname;
     plotname = "a_VAR";
     VisMF::Write(variables,plotname);
-    plotname = "a_COV_REAL"; 
+    plotname = "a_COV_REAL";
     VisMF::Write(cov_real,plotname);
-    plotname = "a_COV_IMAG"; 
+    plotname = "a_COV_IMAG";
     VisMF::Write(cov_imag,plotname);
   }
 
@@ -316,21 +316,21 @@ void StructFact::FortStructure(const MultiFab& variables,
   } else {
       nsamples++;
   }
-  
+
 }
 
 void StructFact::Reset() {
 
     BL_PROFILE_VAR("StructFact::Reset()", StructFactReset);
-  
+
     cov_real.setVal(0.);
     cov_imag.setVal(0.);
     nsamples = 0;
-    
+
 }
 
 void StructFact::ComputeFFT(const MultiFab& variables,
-			    MultiFab& variables_dft_real, 
+			    MultiFab& variables_dft_real,
 			    MultiFab& variables_dft_imag,
                             bool unpack)
 {
@@ -384,7 +384,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
     MultiFab variables_dft_real_onegrid(ba_onegrid,dm_onegrid,1,0);
     MultiFab variables_dft_imag_onegrid(ba_onegrid,dm_onegrid,1,0);
-    
+
     // we will take one FFT at a time and copy the answer into the
     // corresponding component of variables_dft_real/imag
     for (int comp=0; comp<NVAR; comp++) {
@@ -538,7 +538,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 void StructFact::WritePlotFile(const int step, const Real time,
                                std::string plotfile_base,
                                const int& zero_avg) {
-  
+
   BL_PROFILE_VAR("StructFact::WritePlotFile()",StructFactWritePlotFile);
 
   MultiFab plotfile;
@@ -563,7 +563,7 @@ void StructFact::WritePlotFile(const int step, const Real time,
 
   std::string name = plotfile_base;
   name += "_mag";
-  
+
   const std::string plotfilename1 = amrex::Concatenate(name,step,9);
   nPlot = NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
@@ -572,19 +572,19 @@ void StructFact::WritePlotFile(const int step, const Real time,
   for (int n=0; n<NCOV; n++) {
       varNames[n] = cov_names[n];
   }
-  
+
   MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
 
   // write a plotfile
   WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom_sf,time,step);
-  
+
   //////////////////////////////////////////////////////////////////////////////////
   // Write out real and imaginary components of structure factor to plot file
   //////////////////////////////////////////////////////////////////////////////////
 
   name = plotfile_base;
   name += "_real_imag";
-  
+
   const std::string plotfilename2 = amrex::Concatenate(name,step,9);
   nPlot = 2*NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
@@ -616,9 +616,9 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
                           const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::Finalize()",StructFactFinalize);
-  
+
   Real nsamples_inv = 1.0/(Real)nsamples;
-  
+
   ShiftFFT(cov_real_in,zero_avg);
   ShiftFFT(cov_imag_in,zero_avg);
 
@@ -631,7 +631,7 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
   for (int d=0; d<NCOV; d++) {
       cov_imag_in.mult(scaling[d],d,1);
   }
-  
+
   cov_mag.setVal(0.0);
   MultiFab::AddProduct(cov_mag,cov_real_in,0,cov_real_in,0,0,NCOV,0);
   MultiFab::AddProduct(cov_mag,cov_imag_in,0,cov_imag_in,0,0,NCOV,0);
@@ -643,7 +643,7 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
 // Finalize covariances - scale & compute magnitude
 void StructFact::CallFinalize(const int& zero_avg)
 {
-  
+
   BL_PROFILE_VAR("CallFinalize()",CallFinalize);
 
   // Build temp real & imag components
@@ -676,7 +676,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
   BoxArray ba_onegrid;
   {
       Box domain = dft_out.boxArray().minimalBox();
-      
+
       // Initialize the boxarray "ba" from the single box "bx"
       ba_onegrid.define(domain);
   }
@@ -695,7 +695,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
 	  for (MFIter mfi(dft_onegrid); mfi.isValid(); ++mfi) {
 	      const Box& bx = mfi.tilebox();
 	      const Array4<Real>& dft_temp = dft_onegrid_temp.array(mfi);
-	      amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept                                                                                                
+	      amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
               {
   		  if (i == 0 && j == 0 && k == 0) {
 		      dft_temp(i,j,k) = 0.;
@@ -703,7 +703,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
               });
 	  }
       }
-    
+
     // Shift DFT by N/2+1 (pi)
     for (MFIter mfi(dft_onegrid); mfi.isValid(); ++mfi) {
 
@@ -755,7 +755,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
     Gpu::DeviceVector<int>  phicnt_device(npts);
 
     Gpu::HostVector<Real> phisum_host(npts);
-    
+
     Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
     int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
@@ -764,7 +764,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
       phisum_ptr[d] = 0.;
       phicnt_ptr[d] = 0;
     });
-    
+
 
 //    Gpu::DeviceVector<Real> phisum_device_large(npts_sq);
 //    Gpu::DeviceVector<int>  phicnt_device_large(npts_sq);
@@ -773,14 +773,14 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
 //        phisum_device_large[d] = 0.;
 //        phicnt_device_large[d] = 0;
 //    }
-    
+
   //  Real* phisum_large_gpu = phisum_device_large.dataPtr();  // pointer to data
  //   int*  phicnt_large_gpu = phicnt_device_large.dataPtr();  // pointer to data
 
     // only consider cells that are within 15k of the center point
-    
+
     for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<Real> & cov = cov_mag.array(mfi);
@@ -794,7 +794,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
             Real dist = (ilen*ilen + jlen*jlen + klen*klen);
  //           int idist = (ilen*ilen + jlen*jlen + klen*klen);
             dist = std::sqrt(dist);
-            
+
             if ( dist <= center[0]-0.5) {
 	        dist = dist+0.5;
                 int cell = int(dist);
@@ -807,12 +807,12 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
             }
         });
     }
-        
+
     for (int d=1; d<npts; ++d) {
         ParallelDescriptor::ReduceRealSum(phisum_device[d]);
         ParallelDescriptor::ReduceIntSum(phicnt_device[d]);
     }
-        
+
 #if 0
     for (int d=1; d<npts_sq; ++d) {
         ParallelDescriptor::ReduceRealSum(phisum_device_large[d]);
@@ -824,7 +824,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
         std::string turbNamedisc = "turb_disc";
         turbNamedisc += std::to_string(step);
         turbNamedisc += ".txt";
-        
+
         turb_disc.open(turbNamedisc);
         for (int d=1; d<npts_sq; ++d) {
 	    if(phicnt_device_large[d]>0) {
@@ -840,7 +840,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
         std::string turbNamealt = "turb_alt";
         turbNamealt += std::to_string(step);
         turbNamealt += ".txt";
-        
+
         turb_alt.open(turbNamealt);
         for (int d=1; d<npts; ++d) {
             turb_alt << d << " " << phisum_device[d] << std::endl;
@@ -849,7 +849,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
 #endif
 
     Real dk = 1.;
-    
+
 #if (AMREX_SPACEDIM == 2)
     amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
     {
@@ -870,7 +870,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
 #endif
 
     Gpu::copy(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
-    
+
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
         std::string turbBaseName = "turb_";
@@ -878,7 +878,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
         //turbName += std::to_string(step);
         std::string turbName = Concatenate(turbBaseName,step,7);
         turbName += ".txt";
-        
+
         turb.open(turbName);
         for (int d=1; d<npts; ++d) {
             turb << d << " " << phisum_host[d] << std::endl;
@@ -906,7 +906,7 @@ void StructFact::IntegratekShellsScalar(const int& step, const amrex::Vector< st
     Gpu::DeviceVector<int>  phicnt_device(npts);
 
     Gpu::HostVector<Real> phisum_host(npts);
-    
+
     Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
     int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
@@ -917,11 +917,11 @@ void StructFact::IntegratekShellsScalar(const int& step, const amrex::Vector< st
           phisum_ptr[d] = 0.;
           phicnt_ptr[d] = 0;
         });
-        
+
         // only consider cells that are within 15k of the center point
-        
+
         for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-            
+
             const Box& bx = mfi.tilebox();
 
             const Array4<Real> & cov = cov_mag.array(mfi);
@@ -934,7 +934,7 @@ void StructFact::IntegratekShellsScalar(const int& step, const amrex::Vector< st
 
                 Real dist = (ilen*ilen + jlen*jlen + klen*klen);
                 dist = std::sqrt(dist);
-                
+
                 if ( dist <= center[0]-0.5) {
                     dist = dist+0.5;
                     int cell = int(dist);
@@ -943,14 +943,14 @@ void StructFact::IntegratekShellsScalar(const int& step, const amrex::Vector< st
                 }
             });
         }
-            
+
         for (int d=1; d<npts; ++d) {
             ParallelDescriptor::ReduceRealSum(phisum_device[d]);
             ParallelDescriptor::ReduceIntSum(phicnt_device[d]);
         }
-            
+
         Real dk = 1.;
-    
+
 #if (AMREX_SPACEDIM == 2)
 #if 0
         for (int d=1; d<npts; ++d) {
@@ -983,13 +983,13 @@ void StructFact::IntegratekShellsScalar(const int& step, const amrex::Vector< st
         });
 #endif
         Gpu::copy(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
-        
+
         if (ParallelDescriptor::IOProcessor()) {
             std::ofstream turb;
             std::string turbBaseName = "turb_"+names[var_ind];
             std::string turbName = Concatenate(turbBaseName,step,7);
             turbName += ".txt";
-            
+
             turb.open(turbName);
             for (int d=1; d<npts; ++d) {
                 turb << d << " " << phisum_host[d] << std::endl;

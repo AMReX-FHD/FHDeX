@@ -89,10 +89,10 @@ void main_driver(const char* argv)
     Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
 
     const Real* dx = geom.CellSize();
-        
+
     BoxArray ba;
     DistributionMapping dmap;
-    
+
     int step_start;
     amrex::Real time;
 
@@ -124,7 +124,7 @@ void main_driver(const char* argv)
     int compute_all_pairs = 1;
 
     int nPairs = (compute_all_pairs) ? nspecies*(nspecies+1)/2 : 2;
-    
+
     Vector<Real> var_scaling(nPairs);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dv;
@@ -136,7 +136,7 @@ void main_driver(const char* argv)
 
         step_start = 1;
         time = 0.;
-        
+
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
 
@@ -148,7 +148,7 @@ void main_driver(const char* argv)
 
         n_old.define(ba,dmap,nspecies,1);
         n_new.define(ba,dmap,nspecies,1);
-    
+
         if (model_file_init) {
             Abort("model_file_init not supported yet");
         } else {
@@ -178,7 +178,7 @@ void main_driver(const char* argv)
             s_pairB[0] = 0;
             s_pairA[1] = 1;
             s_pairB[1] = 1;
-    
+
             structFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
         }
 
@@ -186,7 +186,7 @@ void main_driver(const char* argv)
 
         // checkpoint restart
         Abort("checkpoint read not implemented yet");
-        
+
     }
 
     Real dt;
@@ -220,12 +220,12 @@ void main_driver(const char* argv)
             Print() << "WARNING in advance_reaction_diffusion: use splitting based schemes (temporal_integrator>=0) for diffusion only" << std::endl;
         }
     }
-    
+
     int istep = (restart < 0) ? 0 : restart;
     WritePlotFile(istep,time,geom,n_old);
 
     ///////////////////////////////////////////
-    
+
     // Create output file for averaged density
     std::ofstream outputFile("averagedDensity.txt");
     outputFile << "time ";
@@ -240,7 +240,7 @@ void main_driver(const char* argv)
 
         // store the current time so we can later compute total run time.
         Real step_strt_time = ParallelDescriptor::second();
-        
+
         AdvanceTimestep(n_old,n_new,dt,time,geom);
 
         time += dt;
@@ -273,7 +273,7 @@ void main_driver(const char* argv)
             structFact.FortStructure(n_new);
 
         }
-        
+
         if (plot_int > 0 && step%plot_int == 0) {
 
             WritePlotFile(step,time,geom,n_new);
@@ -287,7 +287,7 @@ void main_driver(const char* argv)
         if (chk_int > 0 && step%chk_int == 0) {
             Abort("checkpoint write not implemented yet");
         }
-        
+
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -308,7 +308,7 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        
+
     }
 
     outputFile.close();

@@ -218,7 +218,7 @@ void main_driver(const char * argv) {
 
      // Get sorted ibs list
     vector<pair<int, int>> sorted_ibs = ib_mc.get_sorted_map();
-    
+
 //   	vector<pair<int, int>> sorted_ibs;
 
 //    	for (int i = 0; i < ibs.size(); ++i) {
@@ -231,7 +231,7 @@ void main_driver(const char * argv) {
 	for (int i = 0; i < ibs.size(); i++) {
       		 Print() << sorted_ibs[i].first << "\t" << sorted_ibs[i].second << std::endl;
     	}
-   
+
 
     //Vectors for storing forces in each direction
     Vector<Real> fx(ib_mc.getTotalNumIDs());
@@ -256,7 +256,7 @@ void main_driver(const char * argv) {
 	        //Getting index for the current marker in the PullDown Vectors
 		int i_c = sorted_ibs[ind].second;
 
-	       	if(sorted_ibs[ind].first != i_ib) Abort("Mismatched flagella detected in predictor!!! flee for your lunch!");                  
+	       	if(sorted_ibs[ind].first != i_ib) Abort("Mismatched flagella detected in predictor!!! flee for your lunch!");
 
                 if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last marker on the flagellum that doesn't have either next or previous marker
 	               //Getting indexes for the previous/minus and next/plus markers in the PullDown Vectors
@@ -339,16 +339,16 @@ void main_driver(const char * argv) {
     for (auto & i:fz) Print() << i << " ";
     Print() << std::endl;
 
-   
-//   for (int i=0; i<ib_mc.getTotalNumIDs(); i++) { 
+
+//   for (int i=0; i<ib_mc.getTotalNumIDs(); i++) {
 //    	std::vector<int>::iterator gx = std::find(sorted_ibs.begin(), sorted_ibs.end(), i_ib);
-                    
+
    //actual index in PullDown vectors
 //    int i_c = sorted.ibs[std::distance(sorted_ibs.begin(), gx) + id].second;
 
 //    Print() << "Adding forces to particles..." << std::endl;
 
-  
+
 
 
     // Just for fun, print out the max runtime

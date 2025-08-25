@@ -14,18 +14,18 @@
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
-void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 
-	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew, 
+void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
+	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
 	       MultiFab& pres, MultiFab& tracer,
 	       MultiFab& rho, MultiFab& rhotot,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
 	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	       const MultiFab& beta, const MultiFab& gamma,
-	       const std::array< MultiFab, NUM_EDGE >& beta_ed, 
+	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
 	       const Geometry geom, const Real& dt)
 {
-  
+
   BL_PROFILE_VAR("advance()",advance);
 
   const Real* dx = geom.CellSize();
@@ -46,13 +46,13 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     gmres_rhs_u[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
     gmres_rhs_u[d].setVal(0.0);
   }
-       
+
   std::array< MultiFab, AMREX_SPACEDIM > Lumac;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     Lumac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
     Lumac[d].setVal(0.0);
   }
-  
+
   // advective terms
   std::array< MultiFab, AMREX_SPACEDIM > advFluxdiv;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -79,7 +79,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     rhotot_face[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
     rhotot_face[d].setVal(0.0);
   }
-  
+
   MultiFab tracerPred(ba,dmap,1,1);
   MultiFab advFluxdivS(ba,dmap,1,1);
 
@@ -88,7 +88,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   MultiFab adv_mass_fluxdiv(ba,dmap,nspecies,1);
 
   MultiFab diff_mass_fluxdiv(ba,dmap,nspecies,1);
-  
+
   std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     diff_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 1);
@@ -173,7 +173,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     umac[d].FillBoundary(geom.periodicity());
   }
-  
+
   //////////////////////////
   // Advance tracer
   //////////////////////////
@@ -204,7 +204,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   rho.FillBoundary(geom.periodicity());
   rhotot.FillBoundary(geom.periodicity()); // hack
-  
+
   // FIXME: stage_time = 0.0
   ComputeMassFluxdiv(rho,rhotot,
   		     diff_mass_fluxdiv,diff_mass_flux,
@@ -212,7 +212,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // ComputeMassFluxdiv(rho,rhotot,diff_mass_fluxdiv,
   // 		     stoch_mass_fluxdiv,diff_mass_flux,
   // 		     stoch_mass_flux,dt,0.0,geom);
-  
+
   MkAdvSFluxdiv_cc(umac,rho,adv_mass_fluxdiv,geom,0,nspecies,0);
 
   MultiFab::Copy(rhoPred, rho, 0, 0, nspecies, 1);
@@ -224,7 +224,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   MultiFab::Add(rhoPred,adv_mass_fluxdiv, 0,0,nspecies,0);
 
   //////////////////////////////////////////////////
-    
+
   //////////////////////////////////////////////////
   // ADVANCE velocity field (Stage 1)
   //////////////////////////////////////////////////
@@ -245,7 +245,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
-	       
+
     gmres_rhs_u[d].mult(dtinv, 1);
 
     MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d],  0, 0, 1, 0);
@@ -302,13 +302,13 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   rho.FillBoundary(geom.periodicity());  // hack
   rhotot.FillBoundary(geom.periodicity());  // hack
-  
+
   // // Hack: Write out mfabs
   // std::string plotfilename;
   // plotfilename = "rho_test";
   // VisMF::Write(rhotot,plotfilename);
   // exit(0);
-  
+
   //////////////////////////////////////////////////
 
   //////////////////////////////////////////////////
@@ -341,9 +341,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
-  
+
     gmres_rhs_u[d].mult(dtinv, 1);
-    
+
     MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d],  0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], Lumac[d],             0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],        0, 0, 1, 0);
@@ -354,7 +354,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // initial guess for new solution
     MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
   }
-	       
+
   pres.setVal(0.);  // initial guess
 
   // call GMRES here

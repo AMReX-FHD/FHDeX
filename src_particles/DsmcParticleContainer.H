@@ -148,9 +148,9 @@ struct getBin
         {
             for(int i=0;i<spec;i++)
             {
-                map += ncells;   
+                map += ncells;
             }
-        }            
+        }
         //Print() << "map: " << map << ", spec: " << spec << endl;
         return static_cast<unsigned int>(map);
     }
@@ -170,10 +170,10 @@ int mapBin(IntVect iv, int spec, Box domain)
     {
         for(int i=0;i<spec;i++)
         {
-            map += ncells;   
+            map += ncells;
         }
     }
-    return map;        
+    return map;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -199,7 +199,7 @@ public:
 
 	using FhdParIter = ParIter<FHD_realData::count, FHD_intData::count>;
 
-	FhdParticleContainer(const Geometry & geom, 
+	FhdParticleContainer(const Geometry & geom,
 		const DistributionMapping & dmap,
 		const BoxArray & ba,
 		int ncells);
@@ -249,7 +249,7 @@ public:
 		MultiFab& spatialCross1D,
 		const int steps,
 		Real time);
-		
+
    void EvaluateStatsPhonon(MultiFab& cuInst,
 		MultiFab& cuMeans,
 		MultiFab& cuVars,
@@ -257,9 +257,9 @@ public:
 		Real time);
 
 	void OutputParticles();
-	
+
 	void zeroCells();
-		
+
 
   //Real Tg0[MAX_SPECIES];
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -287,7 +287,7 @@ public:
 	const Real phi_max = 0.643;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Constants	
+	// Constants
 	Real pi_usr = 4.0*atan(1.0);
 
 protected:
@@ -295,7 +295,7 @@ protected:
     std::map<int, std::vector<vector<int> > > m_cell_vectors[MAX_SPECIES];
     //std::vector<std::map<int, std::vector<Gpu::ManagedVector<int> > >> m_cell_vectors;
     //std::vector<std::vector<Gpu::ManagedVector<int>>>  m_cell_vectors[MAX_SPECIES];
-    
+
     DenseBins<ParticleType> m_bins;
 };
 

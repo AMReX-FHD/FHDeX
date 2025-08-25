@@ -4,7 +4,7 @@
 #include <AMReX_MultiFab.H>
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 

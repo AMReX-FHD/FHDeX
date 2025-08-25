@@ -25,10 +25,10 @@ void BDS(MultiFab& s_update,
     AMREX_D_TERM( dxinv[0] = 1./dx[0];,
 		  dxinv[1] = 1./dx[1];,
 		  dxinv[2] = 1./dx[2];);
-	
+
     BoxArray ba = s_update.boxArray();
     DistributionMapping dmap = s_update.DistributionMap();
-    
+
     std::array< MultiFab, AMREX_SPACEDIM > sedge;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       sedge[d].define(convert(ba,nodal_flag_dir[d]), dmap, ncomp, 1);
@@ -59,7 +59,7 @@ void BDS(MultiFab& s_update,
                              AMREX_D_DECL(u, v, w),
                              fq.array(mfi),
                              geom, dt, proj_type);
-	
+
 	// flip the sign to return div
         auto const& s_update_arr  = s_update.array(mfi);
         amrex::ParallelFor(bx, ncomp, [=]
@@ -4157,11 +4157,11 @@ void BDS_Proj(const Box& bx,
      }
 
      BDS_Proj_local(sedge,ncomp,proj_type);
-     
+
      for (int n=0; n<ncomp; ++n) {
        sedgex(i,j,k,n) = sedge[n];
      }
-     
+
    });
 
    Box const& ybx = amrex::surroundingNodes(bx,1);
@@ -4173,7 +4173,7 @@ void BDS_Proj(const Box& bx,
      }
 
      BDS_Proj_local(sedge,ncomp,proj_type);
-     
+
      for (int n=0; n<ncomp; ++n) {
        sedgey(i,j,k,n) = sedge[n];
      }
@@ -4191,7 +4191,7 @@ void BDS_Proj(const Box& bx,
      }
 
      BDS_Proj_local(sedge,ncomp,proj_type);
-     
+
      for (int n=0; n<ncomp; ++n) {
        sedgez(i,j,k,n) = sedge[n];
      }

@@ -18,11 +18,11 @@ void calculateFlux(const MultiFab& cons,
     {
         const Box& bx = mfi.validbox();
 
-        //NOTE: Must do stoch. fluxes first, 
+        //NOTE: Must do stoch. fluxes first,
 	//      because fluxes at boundaries are weighted according to BCs
 
         stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-		   cons[mfi].dataPtr(),      
+		   cons[mfi].dataPtr(),
 		   flux[0][mfi].dataPtr(),
 		   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
@@ -32,18 +32,18 @@ void calculateFlux(const MultiFab& cons,
 		   stochFlux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
 		   stochFlux[2][mfi].dataPtr(),
-#endif  
+#endif
 		   ZFILL(dx), &dt);
 
-	
+
 //	diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-//		  cons[mfi].dataPtr(),  
-//		  prim[mfi].dataPtr(),  
-//		  eta[mfi].dataPtr(),  
-//		  zeta[mfi].dataPtr(),  
-//		  kappa[mfi].dataPtr(),  
-//		  chi[mfi].dataPtr(),  
-//		  D[mfi].dataPtr(),  
+//		  cons[mfi].dataPtr(),
+//		  prim[mfi].dataPtr(),
+//		  eta[mfi].dataPtr(),
+//		  zeta[mfi].dataPtr(),
+//		  kappa[mfi].dataPtr(),
+//		  chi[mfi].dataPtr(),
+//		  D[mfi].dataPtr(),
 //		  flux[0][mfi].dataPtr(),
 //		  flux[1][mfi].dataPtr(),
 //#if (AMREX_SPACEDIM == 3)
@@ -60,7 +60,7 @@ void calculateFlux(const MultiFab& cons,
 //		  cornz[2][mfi].dataPtr(),
 //		  visccorn[mfi].dataPtr(),
 //		  ZFILL(dx));
-   
+
     }
 
 }

@@ -10,13 +10,13 @@ void StagMGSolver::Define(const BoxArray& ba_in,
                           const Geometry& geom_in) {
 
     BL_PROFILE_VAR("StagMGSolver::Define()",StagMGSolver_Define);
-    
+
     // get the problem domain and boxarray at level 0
     pd_base = geom_in.Domain();
     ba_base = ba_in;
-    
-    dmap = dmap_in;    
-    
+
+    dmap = dmap_in;
+
     // compute the number of multigrid levels assuming stag_mg_minwidth is the length of the
     // smallest dimension of the smallest grid at the coarsest multigrid level
     nlevs_mg = ComputeNlevsMG(ba_base);
@@ -39,15 +39,15 @@ void StagMGSolver::Define(const BoxArray& ba_in,
     geom_mg.resize(nlevs_mg);
 
     const Real* dx = geom_in.CellSize();
-    
+
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-    
+
     Vector<int> is_periodic(AMREX_SPACEDIM);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         is_periodic[i] = geom_in.isPeriodic(i);
     }
-    
+
     for (int n=0; n<nlevs_mg; ++n) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // compute dx at this level of multigrid
@@ -94,7 +94,7 @@ void StagMGSolver::Define(const BoxArray& ba_in,
                 beta_ed_mg[n][d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 0);
         }
     } // end loop over multigrid levels
-    
+
 }
 
 
@@ -659,7 +659,7 @@ void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 // compute the number of multigrid levels assuming minwidth is the length of the
 // smallest dimension of the smallest grid at the coarsest multigrid level
 int StagMGSolver::ComputeNlevsMG(const BoxArray& ba) {
-    
+
     BL_PROFILE_VAR("ComputeNlevsMG()",ComputeNlevsMG);
 
     int nlevs_mg = -1;
@@ -748,7 +748,7 @@ void StagMGSolver::StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c
 
         if (simple_stencil == 0) {
 
-#if (AMREX_SPACEDIM == 2)            
+#if (AMREX_SPACEDIM == 2)
             amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 phix_c_fab(i,j,k) = 0.25*( phix_f_fab(2*i  ,2*j,k) + phix_f_fab(2*i  ,2*j+1,k))
@@ -793,7 +793,7 @@ void StagMGSolver::StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c
         }
         else if (simple_stencil == 1) {
 
-#if (AMREX_SPACEDIM == 2)            
+#if (AMREX_SPACEDIM == 2)
             amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 phix_c_fab(i,j,k) = 0.5*(phix_f_fab(2*i,2*j,k) + phix_f_fab(2*i,2*j+1,k));
@@ -918,7 +918,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             int joff = pow(-1,j%2+1);
-            
+
             if (i%2 == 0) {
                 // linear interpolation
                 phix_f(i,j,k) = phix_f(i,j,k)
@@ -936,7 +936,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             int ioff = pow(-1,i%2+1);
-            
+
             if (j%2 == 0) {
                 // linear interpolation
                 phiy_f(i,j,k) = phiy_f(i,j,k)
@@ -960,7 +960,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         Real nine32 = 9./32.;
         Real three32 = 3./32.;
         Real one32 = 1./32.;
-    
+
         amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
@@ -989,7 +989,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         },
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            
+
             int ioff = pow(-1,i%2+1);
             int koff = pow(-1,k%2+1);
 
@@ -1015,7 +1015,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         },
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            
+
             int ioff = pow(-1,i%2+1);
             int joff = pow(-1,j%2+1);
 

@@ -152,7 +152,7 @@ void SumEdge(const std::array<MultiFab, NUM_EDGE>& m1,
   if (AMREX_SPACEDIM == 2) {
       return;
   }
-  
+
   //////// xz-edges
 
   ReduceData<Real> reduce_dataxz(reduce_op);

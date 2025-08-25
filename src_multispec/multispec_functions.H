@@ -500,7 +500,7 @@ void ComputeFHGammaLocal (
         Real Nbar;
 
         GetMonomerTot ( massFrac, fh_monomers, Nbar, nspecies);
-    
+
         for (int n=0; n<nspecies; n++){
            for (int m=0; m<nspecies; m++){
               Real wn = std::max(std::min( massFrac[n],1.),0.);

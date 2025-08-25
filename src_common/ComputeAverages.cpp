@@ -6,7 +6,7 @@ int greatest_common_factor(int,int);
 void factor(int,int*,int);
 
 void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& incomp,
-                            const int& ncomp, const int& step, const Geometry& geom, 
+                            const int& ncomp, const int& step, const Geometry& geom,
                             const std::string& file_prefix)
 {
     // number of points in the averaging direction
@@ -80,7 +80,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
         std::string filename = amrex::Concatenate(file_prefix,step,9);
         std::ofstream outfile;
         outfile.open(filename);
-    
+
         // write out result
         for (r=0; r<npts; ++r) {
             for (auto n=0; n<ncomp+1; ++n) {
@@ -223,7 +223,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
         dir2 = 1;
     }
 #endif
-    
+
     // max_grid_size_pencil will be equal to the number of cells in the domain in the dir direction
     // and uses max_grid_projection to set the non-dir directions
     Vector<int> max_grid_size_pencil(AMREX_SPACEDIM);
@@ -293,7 +293,7 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
                   const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ExtractSlice()",ExtractSlice);
-    
+
     // create BoxArray
 
     // get lo and hi coordinates of problem domain
@@ -332,7 +332,7 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
     // create a new DistributionMapping and define the MultiFab
     DistributionMapping dmap_slice(ba_slice);
     MultiFab mf_slice_tmp(ba_slice,dmap_slice,ncomp,0);
-        
+
     mf_slice_tmp.ParallelCopy(mf, incomp, 0, ncomp);
 
     // now copy this into a multifab with index zero in the dir direction rather than slicepoint
@@ -379,7 +379,7 @@ void ExtractXPencil(const MultiFab& mf, MultiFab& mf_pencil,
                     const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ExtractXPencil()",ExtractXPencil);
-    
+
     // create BoxArray
 
     // get lo and hi coordinates of problem domain

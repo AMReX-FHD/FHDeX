@@ -67,7 +67,7 @@ public:
 
 	shape<CONFIG>& get() { return *content; }
 	const shape<CONFIG>& get() const { return *content; }
-	
+
 	shape_type type() const noexcept { return content ? content->type() : shape_type::universe;  }
 	box<CONFIG> bbox() const;
 
@@ -87,7 +87,7 @@ public:
 		}
 		return stream;
 	}
-	
+
 private:
 	std::unique_ptr<shape<CONFIG> > content;
 };
@@ -163,7 +163,7 @@ public:
 	coordinate_type& get_min() { return min; }
 	coordinate_type  get_max() const { return max; }
 	coordinate_type& get_max() { return max; }
-	
+
 	shape<CONFIG>* clone() const { return static_cast<shape<CONFIG>*>(new box(*this)); }
 	shape_type type() const noexcept { return shape_type::box; }
 	box<CONFIG> bbox() const;
@@ -192,7 +192,7 @@ public:
 	any_shape<CONFIG>& left() { return lhs_; }
 	const any_shape<CONFIG>& right() const { return rhs_; }
 	any_shape<CONFIG>& right() { return rhs_; }
-	
+
 	shape<CONFIG>* clone() const { return static_cast<shape<CONFIG>*>(new or_set(*this)); }
 	shape_type type() const noexcept { return shape_type::or_set; }
 	box<CONFIG> bbox() const;

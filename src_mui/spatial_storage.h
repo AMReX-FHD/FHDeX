@@ -23,7 +23,7 @@ public:
 	using EXCEPTION = typename CONFIG::EXCEPTION;
 
 private: // functors
-	struct insert_ { 
+	struct insert_ {
 		template<typename T> void operator()( T& t ){
 			T& rhs = storage_cast<T&>(st);
 			t.insert(t.end(), std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()));
@@ -57,7 +57,7 @@ public:
 		rhs.swap(*this);
 		return *this;
 	}
-	
+
 	void swap( spatial_storage& rhs ) noexcept(noexcept(BIN(std::move(rhs.bin_)))) {
 		data_.swap(rhs.data_);
 		if( is_bin_ && rhs.is_bin_ ) bin_.swap(rhs.bin_);
@@ -71,15 +71,15 @@ public:
 			rhs.destroy_if_bin_();
 		}
 	}
-	
+
 
 	// no lock internally; it's job of uniface because
 	// we need more large lock if there is no rw-lock.
 	template<typename REGION, typename FOCUS, typename SAMPLER>
-	typename SAMPLER::OTYPE 
+	typename SAMPLER::OTYPE
 	query(const REGION& reg, const FOCUS& f, const SAMPLER& s) const {
 		using vec = std::vector<std::pair<point_type,typename SAMPLER::ITYPE> >;
-		if( data_.empty() ) 
+		if( data_.empty() )
 			return s.filter(f, virtual_container<typename SAMPLER::ITYPE,CONFIG>(vec(),std::vector<bool>()));
 		if( !is_built() ) EXCEPTION(std::logic_error("spatial storage: query error. "
 		                                              "not builded bin. Internal data was corrupsed."));
@@ -87,10 +87,10 @@ public:
 		return s.filter(f,virtual_container<typename SAMPLER::ITYPE,CONFIG>(st,bin_.query(reg)));
 	}
 	template<typename REGION, typename FOCUS, typename SAMPLER>
-	typename SAMPLER::OTYPE 
+	typename SAMPLER::OTYPE
 	query2(const REGION& reg, const FOCUS& f, const SAMPLER& s) const {
 		using vec = std::vector<std::pair<point_type,typename SAMPLER::ITYPE> >;
-		if( data_.empty() ) 
+		if( data_.empty() )
 			return s.filter(f, vec());
 		if( !is_built() ) EXCEPTION( std::logic_error("spatial storage: query error. "
 		                                               "not builded bin. Internal data was corrupsed.") );
@@ -105,7 +105,7 @@ public:
 		}
 	}
 	template<typename REGION, typename FOCUS, typename SAMPLER>
-	typename SAMPLER::OTYPE 
+	typename SAMPLER::OTYPE
 	build_and_query_ts(const REGION& reg, const FOCUS& f, const SAMPLER& s) {
 		// this method is thread-safe. other methods are not.
 		{
@@ -121,13 +121,13 @@ public:
 		else if( data_.which() == storage.which() ) data_.apply_visitor(insert_{storage});
 		else EXCEPTION(bad_storage_id("spatial storage: insert error. Type doesn't match."));
 	}
-	
+
 	bool is_built() const { return is_bin_; }
 	bool empty() const { return data_.empty(); }
 private:
-	void destroy_if_bin_() { 
+	void destroy_if_bin_() {
 		if( is_built() ) {
-			bin_.~BIN(); 
+			bin_.~BIN();
 			is_bin_ = false;
 		}
 	}

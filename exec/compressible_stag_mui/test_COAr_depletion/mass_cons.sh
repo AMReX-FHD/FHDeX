@@ -15,7 +15,7 @@ fi
 
 for pltfile in $pltfiles
 do
-    $exec -p $pltfile -o $tmpfile -v 2 surfcov_0 rhoYkInstant_0 
+    $exec -p $pltfile -o $tmpfile -v 2 surfcov_0 rhoYkInstant_0
     python $pyscr $tmpfile >> $outfile
 done
 

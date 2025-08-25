@@ -18,9 +18,9 @@ void WritePlotFile(int step,
                    const MultiFab& charge,
                    const MultiFab& Epot)
 {
-    
+
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
-    
+
     const std::string plotfilename = Concatenate(plot_base_name,step,7);
 
     BoxArray ba = pres.boxArray();
@@ -39,7 +39,7 @@ void WritePlotFile(int step,
         // Epot
         nPlot += 2;
     }
-    
+
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
     Vector<std::string> varNames(nPlot);
@@ -60,7 +60,7 @@ void WritePlotFile(int step,
         x += (49+i);
         varNames[cnt++] = x;
     }
-    
+
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         std::string x = "averaged_vel";
         x += (120+i);
@@ -86,13 +86,13 @@ void WritePlotFile(int step,
     // copy rhotot into plotfile
     MultiFab::Copy(plotfile, rhotot, 0, cnt, 1, 0);
     cnt++;
-    
+
     // copy densities into plotfile
     for (int i=0; i<nspecies; ++i) {
         MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
         cnt++;
     }
-    
+
     // copy densities and convert to concentrations
     for (int i=0; i<nspecies; ++i) {
         MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
@@ -125,9 +125,9 @@ void WritePlotFile(int step,
     // write a plotfile
     // timer
     Real t1 = ParallelDescriptor::second();
-    
+
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
-    
+
     Real t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2);
     amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;

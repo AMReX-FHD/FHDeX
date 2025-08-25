@@ -33,17 +33,17 @@ void main_driver(const char* argv)
 	Real dt = fixed_dt;
 	Real time = 0.;
 	int statsCount = 1;
-	
+
 	MultiFab cuInst, cuMeans, cuVars;
 	MultiFab primInst, primMeans, primVars;
 	MultiFab coVars;
 
 	// For long-range temperature-related correlations
 	MultiFab cvlMeans, cvlInst, QMeans;
-	
+
     int ncross = 38+nspecies*nspecies + nspecies;
     MultiFab spatialCross1D;
-	
+
 	int iprim = 10;
     int nprim = (nspecies+1)*iprim;
 
@@ -67,8 +67,8 @@ void main_driver(const char* argv)
 	{
 		Abort("Must supply non-negative seed");
 	}
-	
-	
+
+
 	if (restart < 0)
 	{
 		if (seed > 0)
@@ -168,8 +168,8 @@ void main_driver(const char* argv)
 
 		int ncovar = 25;
 		coVars.define(ba, dmap, ncovar, 0); coVars.setVal(0.);
-		
-		
+
+
 		spatialCross1D.define(ba,dmap,ncross,0); spatialCross1D.setVal(0.);
 
 	}
@@ -183,13 +183,13 @@ void main_driver(const char* argv)
 		ba = cuInst.boxArray();
 
 	}
-	
+
 		// Specific Heat
 	int ncvl = nspecies+1;
 	cvlInst.define(ba, dmap, ncvl, 0);  cvlInst.setVal(0.);
 	cvlMeans.define(ba, dmap, ncvl, 0); cvlMeans.setVal(0.);
 	QMeans.define(ba, dmap, ncvl, 0); QMeans.setVal(0.);
-	
+
 	Vector<int> is_periodic (AMREX_SPACEDIM,0);
 	for (int i=0; i<AMREX_SPACEDIM; ++i)
 	{
@@ -247,12 +247,12 @@ void main_driver(const char* argv)
 	{
 		var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
 	}
-	
+
     // Standard 3D structure factors
 
     MultiFab structFactPrimMF;
     int structVarsPrim = (nspecies+1)*4;
-    
+
     Vector< std::string > primNames;
     primNames.resize(structVarsPrim);
     std::string x;
@@ -271,14 +271,14 @@ void main_driver(const char* argv)
       primNames[cnt++] = amrex::Concatenate("vInstant_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("cInstant_",ispec,2);
     }
-        
+
     Vector<Real> var_scaling_prim;
     var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
     for (int d=0; d<var_scaling_prim.size(); ++d) {
         var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
-        
-        
+
+
     structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
     StructFact structFactPrim(ba,dmap,primNames,var_scaling_prim);
 
@@ -304,11 +304,11 @@ void main_driver(const char* argv)
 	max_step += step;
 	n_steps_skip += step;
 	Real tbegin, tend;
-	
-	
+
+
 	particles.zeroCells();
 	zeroMassFlux(paramPlaneList, paramPlaneCount);
-	
+
     //Initial condition
     spatialCross1D.setVal(0.);
 	cuMeans.setVal(0.);
@@ -325,21 +325,21 @@ void main_driver(const char* argv)
 	writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 			coVars,spatialCross1D,particles,geom,time,ncross,stepTemp);
 
-	
-	
+
+
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		tbegin = ParallelDescriptor::second();
-		
+
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		
+
 //		if(istep%2!=0)
 		if(false)
-        {        
+        {
 		    particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
-					
+
 			if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
 
 
@@ -349,30 +349,30 @@ void main_driver(const char* argv)
 	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+2, l*4+1, 1, 0);
 	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+3, l*4+2, 1, 0);
 	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+9, l*4+3, 1, 0);
-	                
+
 	                //Print() << l*iprim+1 << " -> " << l*4+0 << endl;
 	            }
-	            
+
 	            //PrintMF(structFactPrimMF,0,-1);
       	        //PrintMF(primInst,1,1);
-	            
+
                 //structFactPrim.FortStructure(structFactPrimMF);
-		
+
 		    }
         }
 
 		//particles.externalForce(dt);
-		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);		
+		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);
                 //reduceMassFlux(paramPlaneList, paramPlaneCount);
 
         if(true)
-//        if(istep%2==0)        
-        {        
+//        if(istep%2==0)
+        {
 		    particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
-					
+
 			if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
 
 
@@ -382,15 +382,15 @@ void main_driver(const char* argv)
 	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+2, l*4+1, 1, 0);
 	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+3, l*4+2, 1, 0);
 	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+9, l*4+3, 1, 0);
-	                
+
 	                //Print() << l*iprim+1 << " -> " << l*4+0 << endl;
 	            }
-	            
+
 	            //PrintMF(structFactPrimMF,0,-1);
       	        //PrintMF(primInst,1,1);
-	            
+
                 //structFactPrim.FortStructure(structFactPrimMF);
-		
+
 		    }
         }
 		//////////////////////////////////////
@@ -414,10 +414,10 @@ void main_driver(const char* argv)
 		{
 			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				coVars,spatialCross1D,particles,geom,time,ncross,istep);
-				
+
 			structFactPrim.WritePlotFile(istep,time,"plt_SF_prim");
 		}
-		
+
         if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
             //reset stats
             statsCount = 1;
@@ -429,7 +429,7 @@ void main_driver(const char* argv)
 	        coVars.setVal(0.);
 
         }
-        
+
         if (chk_int > 0 && istep%chk_int == 0 && istep > step)
 		{
 			WriteCheckPoint(istep, time, dt, statsCount,

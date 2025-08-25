@@ -4,7 +4,7 @@
 #include <AMReX_MultiFab.H>
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
@@ -24,7 +24,7 @@ extern "C"
                               amrex::Real* phi_avg);
 
 
-                              
+
 
   void rk2_stage2(const int* lo, const int* hi,
 			      amrex::Real* phi,

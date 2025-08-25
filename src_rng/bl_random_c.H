@@ -29,7 +29,7 @@ BLRng_restore (T& rng, const char* name)
 }
 
 template <typename Return_t, typename Distro_t, typename Engine_t>
-Return_t 
+Return_t
 BLRng_get (Distro_t& distro, Engine_t& eng)
 {
     return distro(eng);

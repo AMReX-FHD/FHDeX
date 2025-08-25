@@ -25,7 +25,7 @@ void ComputeMassFluxdiv(MultiFab& rho,
 
   int ng = rho.nGrow();
   int nspecies2 = nspecies*nspecies;
-  
+
   MultiFab rhoWchi(         ba, dmap, nspecies2, ng);  // rho*W*chi*Gamma
   MultiFab molarconc(       ba, dmap, nspecies , ng);  // molar concentration
   MultiFab molmtot(         ba, dmap, 1        , ng);  // total molar mass
@@ -34,7 +34,7 @@ void ComputeMassFluxdiv(MultiFab& rho,
   MultiFab D_bar(           ba, dmap, nspecies2, ng);  // D_bar-matrix
   MultiFab D_therm(         ba, dmap, nspecies2, ng);  // DT-matrix
   MultiFab zeta_by_Temp(    ba, dmap, nspecies2, ng);  // for Thermo-diffusion
- // if( use_flory_huggins == 1 ) 
+ // if( use_flory_huggins == 1 )
   MultiFab massfrac(       ba, dmap, nspecies , ng);  // molar concentration
 
  // rhoWchi.setVal(0.);
@@ -44,12 +44,12 @@ void ComputeMassFluxdiv(MultiFab& rho,
       sqrtLonsager_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);
   }
   ComputeRhotot(rho,rhotot,1);
-  
-  // compute molmtot, molarconc (primitive variables) for 
-  // each-cell from rho(conserved) 
+
+  // compute molmtot, molarconc (primitive variables) for
+  // each-cell from rho(conserved)
   ComputeMolconcMolmtot(rho,rhotot,molarconc,molmtot);
-  
-  // populate D_bar and Hessian matrix 
+
+  // populate D_bar and Hessian matrix
   ComputeMixtureProperties(rho,rhotot,D_bar,D_therm,Hessian);
 
   // compute Gamma from Hessian
@@ -63,7 +63,7 @@ void ComputeMassFluxdiv(MultiFab& rho,
 
   // compute rho*W*chi and zeta/Temp
   ComputeRhoWChi(rho,rhotot,molarconc,rhoWchi,D_bar);
-  //ComputeZetaByTemp(molarconc,D_Bar,Temp,zeta_by_Temp,D_therm); 
+  //ComputeZetaByTemp(molarconc,D_Bar,Temp,zeta_by_Temp,D_therm);
   if (is_nonisothermal == 1) {
       Abort("ComputeMassFluxDiv: implement is_nonisothermal");
   }
@@ -74,7 +74,7 @@ void ComputeMassFluxdiv(MultiFab& rho,
   } else {
       DiffusiveMassFluxdiv(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
   }
-  
+
   // compute external forcing for manufactured solution and add to diff_mass_fluxdiv
   // we should move this to occur before the call to compute_mass_fluxdiv and into
   // the advance_timestep routines
@@ -84,7 +84,7 @@ void ComputeMassFluxdiv(MultiFab& rho,
       Abort("ComputMassFluxdiv: external source not implemented yet for this prob_type");
   }
 
-  // compute stochastic fluxdiv 
+  // compute stochastic fluxdiv
   if (variance_coef_mass != 0.) {
 
       // compute face-centered cholesky-factored Lonsager^(1/2)
@@ -94,11 +94,11 @@ void ComputeMassFluxdiv(MultiFab& rho,
                                  dt,weights);
 
   }
-  
+
   if (use_charged_fluid) {
       ElectroDiffusiveMassFluxdiv(rho,Temp,rhoWchi,diff_mass_flux,diff_mass_fluxdiv,
                                   stoch_mass_flux,charge,grad_Epot,Epot,permittivity,
                                   dt,1,geom);
   }
-  
+
 }

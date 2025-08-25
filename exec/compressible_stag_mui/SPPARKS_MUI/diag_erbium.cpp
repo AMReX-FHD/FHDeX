@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -88,19 +88,19 @@ void DiagErbium::init()
     else if (list[i][0] == 's') {
       which[i] = ONE;
       int n = atoi(&list[i][1]);
-      if (n < 1 || n > none) 
+      if (n < 1 || n > none)
 	error->all(FLERR,"Invalid value setting in diag_style erbium");
       index[i] = n - 1;
     } else if (list[i][0] == 'd') {
       which[i] = TWO;
       int n = atoi(&list[i][1]);
-      if (n < 1 || n > ntwo) 
+      if (n < 1 || n > ntwo)
 	error->all(FLERR,"Invalid value setting in diag_style erbium");
       index[i] = n - 1;
     } else if (list[i][0] == 't') {
       which[i] = THREE;
       int n = atoi(&list[i][1]);
-      if (n < 1 || n > nthree) 
+      if (n < 1 || n > nthree)
 	error->all(FLERR,"Invalid value setting in diag_style erbium");
       index[i] = n - 1;
     } else error->all(FLERR,"Invalid value setting in diag_style erbium");
@@ -136,7 +136,7 @@ void DiagErbium::compute()
     else if (which[i] == ONE) ivalue = apperbium->scount[index[i]];
     else if (which[i] == TWO) ivalue = apperbium->dcount[index[i]];
     else if (which[i] == THREE) ivalue = apperbium->tcount[index[i]];
-    
+
     MPI_Allreduce(&ivalue,&ivector[i],1,MPI_INT,MPI_SUM,world);
   }
 }

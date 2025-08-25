@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -173,7 +173,7 @@ CommOffLattice::Swap *CommOffLattice::create_swap_all()
 	list[n][1] = imageindex[m][i];
 	list[n][2] = imageproc[m][i];
 	n++;
-      } 
+      }
 
   // create swap based on list of bins to send
 
@@ -772,7 +772,7 @@ void CommOffLattice::perform_swap(Swap *swap)
 	xyz[j][2] = rbuf[m++] + pbcoffset[jbin][2]*zprd;
 	if (site_only) site[j] = static_cast<int> (rbuf[m++]);
 	else {
-	  for (k = 0; k < ninteger; k++) 
+	  for (k = 0; k < ninteger; k++)
 	    iarray[k][j] = static_cast<int> (rbuf[m++]);
 	  for (k = 0; k < ndouble; k++) darray[k][j] = rbuf[m++];
 	}
@@ -1010,7 +1010,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
 	xyz[j][2] = rbuf[m++];
 	if (site_only) site[j] = static_cast<int> (rbuf[m++]);
 	else {
-	  for (k = 0; k < ninteger; k++) 
+	  for (k = 0; k < ninteger; k++)
 	    iarray[k][j] = static_cast<int> (rbuf[m++]);
 	  for (k = 0; k < ndouble; k++) darray[k][m] = rbuf[m++];
 	}
@@ -1027,7 +1027,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
    nbinx,nbiny,nbinz = extent of local bins
 ------------------------------------------------------------------------- */
 
-int CommOffLattice::bin_sector_ghost(int isector, int ibin, 
+int CommOffLattice::bin_sector_ghost(int isector, int ibin,
 				     int nbinx, int nbiny, int nbinz)
 {
   int i = ibin % nbinx;
@@ -1153,7 +1153,7 @@ void CommOffLattice::setup_sector_chunks(int nbinx, int nbiny, int nbinz)
 ------------------------------------------------------------------------- */
 
 void CommOffLattice::fill_chunk(int isector, int ichunk,
-				int ilo, int ihi, int jlo, int jhi, 
+				int ilo, int ihi, int jlo, int jhi,
 				int klo, int khi)
 {
   chunklo[isector][ichunk][0] = ilo;

@@ -25,7 +25,7 @@ conv_tool_exec="DiffSameDomainRefinedStag${dims}d.gnu.ex"
 # Loop over viscosity types
 for visc_ind in 1
 do
-    
+
     # Create directory name
     visctype=${Visctype[$visc_ind]}
     dir_top="${data_dir}/${dims}D/Data_visc_${visctype}"

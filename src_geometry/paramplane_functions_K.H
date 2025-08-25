@@ -6,7 +6,7 @@
 #include <math.h>
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, 
+void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes,
                                                 const int ns, int* flag, const GpuArray<Real, 3>& phi, const GpuArray<Real, 3>& plo, Real* inttime)
 {
     Real proj[3];
@@ -19,7 +19,7 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, co
     {
         proj[d] = part.pos(d) + delt*part.rdata(FHD_realData::velx + d);
     }
-    
+
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         box1lo[d] = plo[d];
@@ -32,7 +32,7 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, co
         	(proj[1] > box1lo[1]) && (proj[2] > box1lo[2]) )
       {
             *flag = 1;
-      } 
+      }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -51,7 +51,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 	*inttime = delt;
 	*intsurf = -1;
 	Real uval, vval, tval;
-	
+
 	//pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
 
     //Complete
@@ -73,13 +73,13 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 
                        //Print() << "Checking particle " << part.id() << ", wall " << s << endl;
                        //Print() << uval/surf->uTop << ", " << vval/surf->vTop << ", " << tval/delt << endl;
-       
+
 			if(  ((uval > 0) && (uval < surf->uTop)) && ((vval > 0) && (vval < surf->vTop))  &&  ((tval > 0) && (tval < *inttime))   )
 			{
 				*inttime = tval;
 				*intsurf = s;
 
-				Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + 
+				Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx +
 					part.rdata(FHD_realData::vely)*surf->lny + part.rdata(FHD_realData::velz)*surf->lnz;
 
 				if (dotprod > 0)
@@ -94,7 +94,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 			}
 		}
 	}
-	
+
 	//No z velocity
 /*	if(flag == 0)*/
 /*	{*/
@@ -132,7 +132,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 /*			}*/
 /*		}*/
 /*	}*/
-	
+
     //No y or z velocity
 /*	if(flag == 0)*/
 /*	{*/
@@ -265,10 +265,10 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 Real plankDist(Real temp, amrex::RandomEngine const& engine)
 {
     Real sample = 360*k_B*temp*1.037/(h_bar*pow(M_PI,4));//Mean value incase sampling fails
-    
+
     Real pnTotal = 0;
     Real test = amrex::Random(engine);
-    
+
     for(int n=1;n<=50;n++)
     {
         pnTotal = pnTotal + pn(n);
@@ -278,7 +278,7 @@ Real plankDist(Real temp, amrex::RandomEngine const& engine)
             break;
         }
     }
-    
+
     return sample;
 }
 
@@ -291,13 +291,13 @@ Real truncatedFluxDist(Real vel, Real trunc, Real srt, amrex::RandomEngine const
         if(amrex::Random(engine) < 0.5)
         {
             vel = sqrt(2)*srt*sqrt(-log(amrex::Random()));
-        
+
         }else
         {
             vel = -sqrt(2)*srt*sqrt(-log(amrex::Random()));
         }
     }
-    
+
     return vel;
 }
 
@@ -333,7 +333,7 @@ void zeroMassFlux(paramPlane* paramPlaneList, const int paramplanes)
 	  	    paramPlaneList[i].xMomFluxLeft[l]  = 0;
    	  	    paramPlaneList[i].yMomFluxLeft[l]  = 0;
 			paramPlaneList[i].zMomFluxLeft[l]  = 0;
-			
+
       	    paramPlaneList[i].energyFluxRight[l]  = 0;
 	    	paramPlaneList[i].energyFluxLeft[l] = 0;
 
@@ -353,13 +353,13 @@ void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int 
         *runtime = 0;
 
         part.id() = -1;
-        
-		int spec = part.idata(FHD_intData::species);	
+
+		int spec = part.idata(FHD_intData::species);
         surf->massFluxRight[spec] += part.rdata(FHD_realData::mass);
         surf->xMomFluxRight[spec] += part.rdata(FHD_realData::mass)*part.rdata(FHD_realData::velx);
         surf->yMomFluxRight[spec] += part.rdata(FHD_realData::mass)*part.rdata(FHD_realData::vely);
-        surf->zMomFluxRight[spec] += part.rdata(FHD_realData::mass)*part.rdata(FHD_realData::velz);        
-                
+        surf->zMomFluxRight[spec] += part.rdata(FHD_realData::mass)*part.rdata(FHD_realData::velz);
+
       }
       else if(amrex::Random(engine) > surf->porosityRight)
       {
@@ -380,26 +380,26 @@ void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int 
                {
                     part.idata(FHD_intData::newSpecies) = 1;
                }
-               
+
 /*               Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny*/
 /*              	+ part.rdata(FHD_realData::velz)*surf->rnz;*/
 /*                  part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);*/
 /*                  part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);*/
 /*                  part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);     */
-               
+
 /*               part.rdata(FHD_realData::mass) = mass[part.idata(FHD_intData::newSpecies)];*/
 /*               part.rdata(FHD_realData::R) = k_B/mass[part.idata(FHD_intData::newSpecies)];*/
 /*               part.rdata(FHD_realData::radius) = diameter[part.idata(FHD_intData::newSpecies)]/2.0;    */
-               
+
                Real srt = sqrt(part.rdata(FHD_realData::R)*surf->temperatureRight);
                part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.,engine);
                part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.,engine);
                part.rdata(FHD_realData::velz) = 1.414213562*srt*sqrt(-log(amrex::Random(engine)));
 
-               rotation(surf->cosThetaRight, surf->sinThetaRight,    
+               rotation(surf->cosThetaRight, surf->sinThetaRight,
                surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
-               
-               
+
+
 /*               if(part.idata(FHD_intData::newSpecies) == part.idata(FHD_intData::species))*/
 /*               {*/
 /*                  Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny*/
@@ -442,7 +442,7 @@ void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int 
 /*               */
 /*               }*/
 /*               cout << "New: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;*/
-                   
+
           }else
           {
 
@@ -450,10 +450,10 @@ void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int 
               	+ part.rdata(FHD_realData::velz)*surf->rnz;
               part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);
               part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);
-              part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);          
-          
+              part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
+
           }
-        
+
         }
         else
         {
@@ -519,13 +519,13 @@ void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int 
       {
         *runtime = 0;
         part.id() = -1;
-		int spec = part.idata(FHD_intData::species);	
-		
+		int spec = part.idata(FHD_intData::species);
+
         surf->massFluxLeft[spec] += part.rdata(FHD_realData::mass);
         surf->xMomFluxLeft[spec] += part.rdata(FHD_realData::mass)*part.rdata(FHD_realData::velx);
         surf->yMomFluxLeft[spec] += part.rdata(FHD_realData::mass)*part.rdata(FHD_realData::vely);
         surf->zMomFluxLeft[spec] += part.rdata(FHD_realData::mass)*part.rdata(FHD_realData::velz);
-                
+
       }
       else if(amrex::Random(engine) > surf->porosityLeft)
       {
@@ -545,28 +545,28 @@ void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int 
                {
                     part.idata(FHD_intData::newSpecies) = 1;
                }
-               
+
 /*               Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny*/
 /*                  	+ part.rdata(FHD_realData::velz)*surf->lnz;*/
 
 /*               part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->lnx + part.rdata(FHD_realData::velx);*/
 /*               part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->lny + part.rdata(FHD_realData::vely);*/
 /*               part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);*/
-               
+
 /*               Real massNew = mass[part.idata(FHD_intData::newSpecies)];*/
 /*               */
 /*               part.rdata(FHD_realData::mass) = mass[part.idata(FHD_intData::newSpecies)];*/
 /*               part.rdata(FHD_realData::R) = k_B/mass[part.idata(FHD_intData::newSpecies)];*/
 /*               part.rdata(FHD_realData::radius) = diameter[part.idata(FHD_intData::newSpecies)]/2.0;    */
-               
+
                Real srt = sqrt(part.rdata(FHD_realData::R)*surf->temperatureLeft);
                part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.,engine);
                part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.,engine);
                part.rdata(FHD_realData::velz) = 1.414213562*srt*sqrt(-log(amrex::Random(engine)));
 
-               rotation(surf->cosThetaLeft, surf->sinThetaLeft,    
+               rotation(surf->cosThetaLeft, surf->sinThetaLeft,
                surf->cosPhiLeft, surf->sinPhiLeft, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
-               
+
 /*               if(part.idata(FHD_intData::newSpecies) == part.idata(FHD_intData::species))*/
 /*               {*/
 /*                  Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny*/
@@ -610,9 +610,9 @@ void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int 
 /*                  part.rdata(FHD_realData::radius) = diameter[part.idata(FHD_intData::newSpecies)]/2.0;                */
 /*               */
 /*               }*/
-               
-               
-                   
+
+
+
           }else
           {
               Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny

@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -61,14 +61,14 @@ CommLattice::~CommLattice()
 /* ----------------------------------------------------------------------
    setup comm pattern
    3 kinds of patterns: all ghosts, sector ghosts, sector reverse
-   if nsector_request = 1, just ghosts for entire proc domain 
+   if nsector_request = 1, just ghosts for entire proc domain
    if nsector_request > 1, do all and sector ghosts, reverse if needed
    array = NULL = communicate iarray/darray from app
    array = non-NULL = communicate passed-in array (from diagnostic)
 ------------------------------------------------------------------------- */
 
 void CommLattice::init(int nsector_request, int delpropensity, int delevent,
-		       int *array) 
+		       int *array)
 {
   delghost = delpropensity;
   delreverse = delevent;
@@ -120,7 +120,7 @@ void CommLattice::init(int nsector_request, int delpropensity, int delevent,
   if (delreverse && nsector > 1) {
     sectorreverseswap = new Swap*[nsector];
     for (int i = 0; i < nsector; i++)
-      sectorreverseswap[i] = 
+      sectorreverseswap[i] =
 	create_swap_sector_reverse(applattice->set[i].nlocal,
 				   applattice->set[i].site2i);
   }
@@ -463,7 +463,7 @@ void CommLattice::create_send_from_recv(int nsite, int maxsite,
   tagint *id = app->id;
   int nlocal = applattice->nlocal;
 
-  Site *bufcopy = (Site *) 
+  Site *bufcopy = (Site *)
     memory->smalloc(maxsite*sizeof(Site),"comm:bufcopy");
 
   // put my entire list of owned site IDs in a hash
@@ -477,7 +477,7 @@ void CommLattice::create_send_from_recv(int nsite, int maxsite,
   // setup ring of procs
 
   int next = me + 1;
-  int prev = me -1; 
+  int prev = me -1;
   if (next == nprocs) next = 0;
   if (prev < 0) prev = nprocs - 1;
 
@@ -613,7 +613,7 @@ void CommLattice::create_send_from_list(int nsite, Site *buf, Swap *swap)
       isend = nsend;
       nsend++;
     } else isend = loc->second;
-    
+
     // add index to send list going to a particular proc
     // grow rindex array if necessary
 
@@ -666,7 +666,7 @@ void CommLattice::create_recv_from_send(int nsite, int maxsite,
   tagint *id = app->id;
   int nlocal = applattice->nlocal;
 
-  Site *bufcopy = (Site *) 
+  Site *bufcopy = (Site *)
     memory->smalloc(maxsite*sizeof(Site),"comm:bufcopy");
 
   // put my entire list of owned site IDs in a hash
@@ -680,7 +680,7 @@ void CommLattice::create_recv_from_send(int nsite, int maxsite,
   // setup ring of procs
 
   int next = me + 1;
-  int prev = me -1; 
+  int prev = me -1;
   if (next == nprocs) next = 0;
   if (prev < 0) prev = nprocs - 1;
 
@@ -738,7 +738,7 @@ void CommLattice::create_recv_from_send(int nsite, int maxsite,
 
       // add index to recv list from a particular proc
       // grow rindex array if necessary
-      
+
       irecv = nrecv - 1;
       if (rcount[irecv] == rmax[irecv]) {
 	rmax[irecv] += DELTA;
@@ -814,7 +814,7 @@ void CommLattice::create_recv_from_list(int nsite, Site *buf, Swap *swap)
   // error if any site is not filled in
 
   for (i = 0; i < nsite; i++) {
-    if (buf[i].proc == -1) 
+    if (buf[i].proc == -1)
       error->one(FLERR,"Site-site interaction was not found");
 
     // if sending proc not in rproc[], add proc to recv list and to hash
@@ -829,7 +829,7 @@ void CommLattice::create_recv_from_list(int nsite, Site *buf, Swap *swap)
       irecv = nrecv;
       nrecv++;
     } else irecv = loc->second;
-    
+
     // add index to recv list from a particular proc
     // grow rindex array if necessary
 

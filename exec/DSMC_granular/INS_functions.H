@@ -55,7 +55,7 @@
 
 //void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp);
 
-void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
 	      bool bExitOnError=true);
 
 ///////////////////////////

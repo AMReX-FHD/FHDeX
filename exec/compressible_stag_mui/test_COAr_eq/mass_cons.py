@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import math
 
-file = sys.argv[1] 
+file = sys.argv[1]
 
 Ncellx = 4
 Ncelly = 4

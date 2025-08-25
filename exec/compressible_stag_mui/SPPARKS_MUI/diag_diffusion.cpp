@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -21,7 +21,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-DiagDiffusion::DiagDiffusion(SPPARKS *spk, int narg, char **arg) : 
+DiagDiffusion::DiagDiffusion(SPPARKS *spk, int narg, char **arg) :
   Diag(spk,narg,arg)
 {
   if (strcmp(app->style,"diffusion") != 0)
@@ -44,7 +44,7 @@ void DiagDiffusion::compute()
   deposit_failed = appdiff->ndeposit_failed;
   double nfirst = appdiff->nfirst;
   double nsecond = appdiff->nsecond;
-  
+
   MPI_Allreduce(&nfirst,&nfirst_all,1,MPI_DOUBLE,MPI_SUM,world);
   MPI_Allreduce(&nsecond,&nsecond_all,1,MPI_DOUBLE,MPI_SUM,world);
 }

@@ -1,4 +1,4 @@
-# Make.sh = update Makefile.lib, Makefile.shlib, Makefile.list 
+# Make.sh = update Makefile.lib, Makefile.shlib, Makefile.list
 #           or style_*.h files
 # Syntax: sh Make.sh style
 #         sh Make.sh Makefile.lib

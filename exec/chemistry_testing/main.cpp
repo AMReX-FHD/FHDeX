@@ -27,7 +27,7 @@ void main_main(const char* argv)
     // variables defined in src_common
 
     std::string inputs_file = argv;
-    
+
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -76,12 +76,12 @@ void main_main(const char* argv)
     amrex::Print() << "\n";
 
     amrex::Print() << "(src_chemistry param) nreaction = " << nreaction << "\n";
-    
+
     amrex::Print() << "(src_chemistry param) rate_const: ";
     for (int m=0; m<nreaction; m++)
         amrex::Print() << rate_const[m] << " ";
     amrex::Print() << "\n";
-    
+
     for (int m=0; m<nreaction; m++)
     {
         amrex::Print() << "(src_chemistry param) stoich_coeffs_R_" << m+1 << ": ";
@@ -147,14 +147,14 @@ void main_main(const char* argv)
     // we allocate two rho multifabs; one will store the old state, the other the new.
     MultiFab rho_old(ba, dm, nspecies, Nghost);
     MultiFab rho_new(ba, dm, nspecies, Nghost);
-    
-    // allocate source MultiFab 
-    MultiFab source(ba, dm, nspecies, Nghost);    
-    
+
+    // allocate source MultiFab
+    MultiFab source(ba, dm, nspecies, Nghost);
+
     // time = starting time in the simulation
     amrex::Real time = 0.0;
     amrex::Real dt = fixed_dt;
-    
+
     amrex::Real dV ;
 #if AMREX_SPACEDIM==3
     dV = dx[0]*dx[1]*dx[2];
@@ -181,12 +181,12 @@ void main_main(const char* argv)
             rhoOld(i,j,k,n) = rho0*rhobar[n];
         });
     }
-    
+
     // vector to store the name of the components
     // NOTE: its size must be equal to the number of components
     Vector<std::string> var_names(nspecies);
-    for (int n=0; n<nspecies; n++) var_names[n] = "spec" + std::to_string(n+1); 
-    
+    for (int n=0; n<nspecies; n++) var_names[n] = "spec" + std::to_string(n+1);
+
     // Write a plotfile of the initial data if plot_int > 0
     if (plot_int > 0)
     {
@@ -214,7 +214,7 @@ void main_main(const char* argv)
     }
 
     amrex::Print() << "\n";
-    
+
     // **********************************
     // MAIN LOOP: Time advancement
 
@@ -222,7 +222,7 @@ void main_main(const char* argv)
     {
         // fill periodic ghost cells
         rho_old.FillBoundary(geom.periodicity());
-        
+
         if (prob_type==1)   // cell-based routines
         {
             for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
@@ -296,7 +296,7 @@ void main_main(const char* argv)
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << step << "\n";
 
-        // print out mean and variance of both species in one single line at each time step 
+        // print out mean and variance of both species in one single line at each time step
         amrex::Print()  << "Stats ";
         amrex::Print()  << dt*step << " ";
         for (int n=0; n<nspecies; n++)

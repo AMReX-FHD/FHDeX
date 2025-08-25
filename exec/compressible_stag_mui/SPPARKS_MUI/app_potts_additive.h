@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -41,7 +41,7 @@ class AppPottsAdditive : public AppPotts {
   void input_app(char *, int , char **);
   double compute_mobility(int, double);
   void app_update(double);
-	
+
  //Remove all of the variables we don't actually need
  protected:
   int NXeffective;
@@ -49,7 +49,7 @@ class AppPottsAdditive : public AppPotts {
   int NZeffective;
   int CurrLayer;
   int CurrPass;
-  
+
   double *MobilityOut;
 
  double spot_width;

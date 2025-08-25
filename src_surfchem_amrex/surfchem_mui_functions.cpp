@@ -183,7 +183,7 @@ void amrex_push(MultiFab const& cu, MultiFab const& prim, MPMD::Copier const& co
     	copier.send(dens, 0, 1);
 	copier.send(dens, 1, 1);
 	copier.send(dens, 2, 1);
-    	copier.send(prim, 4, 1);  
+    	copier.send(prim, 4, 1);
     }
 }
 

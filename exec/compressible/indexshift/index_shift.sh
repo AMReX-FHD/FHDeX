@@ -6,7 +6,7 @@ nvars=23
 
 # foobar in place of zeta - redundant with "eta" (both share nodality)
 
-declare -a varnames=("prim" "con" "fluxx" "fluxy" "fluxz" "eta" "foobar" "kappa" "chi" "Dij" 
+declare -a varnames=("prim" "con" "fluxx" "fluxy" "fluxz" "eta" "foobar" "kappa" "chi" "Dij"
     "visccorn" "cornux" "cornuy" "cornuz" "cornvx" "cornvy" "cornvz" "cornwx" "cornwy" "cornwz"
     "ranfluxx" "ranfluxy" "ranfluxz" "rancorn")
 
@@ -18,7 +18,7 @@ declare -i ndims=3
 declare -i loopcnt=0
 declare -i inloop=0
 
-d05="....." 
+d05="....."
 d06="......"
 d07="......."
 d08="........"
@@ -45,7 +45,7 @@ nodality[0,0]=0; nodality[0,1]=0; nodality[0,2]=0
 nodality[1,0]=0; nodality[1,1]=0; nodality[1,2]=0
 
 nodality[2,0]=1; nodality[2,1]=0; nodality[2,2]=0
-nodality[3,0]=0; nodality[3,1]=1; nodality[3,2]=0 
+nodality[3,0]=0; nodality[3,1]=1; nodality[3,2]=0
 nodality[4,0]=0; nodality[4,1]=0; nodality[4,2]=1
 
 nodality[5,0]=0; nodality[5,1]=0; nodality[5,2]=0
@@ -66,7 +66,7 @@ nodality[18,0]=1; nodality[18,1]=1; nodality[18,2]=1
 nodality[19,0]=1; nodality[19,1]=1; nodality[19,2]=1
 
 nodality[20,0]=1; nodality[20,1]=0; nodality[20,2]=0
-nodality[21,0]=0; nodality[21,1]=1; nodality[21,2]=0 
+nodality[21,0]=0; nodality[21,1]=1; nodality[21,2]=0
 nodality[22,0]=0; nodality[22,1]=0; nodality[22,2]=1
 
 nodality[23,0]=1; nodality[23,1]=1; nodality[23,2]=1
@@ -92,12 +92,12 @@ while IFS= read -r line || [ -n "$line" ]; do
     	loopcnt+=1
     	echo "   loop count = $loopcnt";
 
-    	if [ "$loopcnt" -eq "$ndims" ] && [ "$inloop" -eq "0" ] 
+    	if [ "$loopcnt" -eq "$ndims" ] && [ "$inloop" -eq "0" ]
     	then
     	    echo "   entering loop";
     	    inloop=1
     	fi
-	
+
     	for ((d=0;d<3;d++)) do
     	# echo "Hack: ${indxnames[$d]}";
 
@@ -112,7 +112,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     	fi
     	done
     fi
-    
+
     # Detect end of loops
     if echo "$line" | grep -q "end.*do"; then
     	echo "   endloop detected";
@@ -129,9 +129,9 @@ while IFS= read -r line || [ -n "$line" ]; do
     	    done
     	fi
     fi
-    
+
     # Replace string occurances
-    if [ "$inloop" -eq "1" ] 
+    if [ "$inloop" -eq "1" ]
     then
     	echo "   inside loop";
     	# for ((d=0;d<3;d++)) do
@@ -143,17 +143,17 @@ while IFS= read -r line || [ -n "$line" ]; do
     	for ((n=0;n<nvars;n++)) do
     	if echo "$line" | grep -q "${varnames[$n]}("; then
     	    echo "   checking nodality for ${varnames[$n]}";
-	    
+
     	    for ((d=0;d<3;d++)) do
     	    echo "   nodality: loop ${loopnode[$((d))]}, mf ${nodality[$((n)),$((d))]}";
 
     	    if [ "${loopnode[$((d))]}" -eq "1" ] && [ "${nodality[$((n)),$((d))]}" -eq "0" ]
     	    then
     	    	echo "   loop nodal, mf cell centered...";
-		
+
     	    	# Note: ordering of sed statements matters
     	    	case $d in
-		    
+
     	    	    0)
     	    		echo "   cc in x"
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-1,${regx}${regx}${regxnd})/${varnames[$n]}(i-2,\1\2\3)/g")
@@ -172,13 +172,13 @@ while IFS= read -r line || [ -n "$line" ]; do
 
     	    	    2)
     	    		echo "   cc in z"
-			
+
 			# with 4th index
     	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1,${regxnd})/${varnames[$n]}(\1\2k-2,\3)/g")
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k,${regxnd})/${varnames[$n]}(\1\2k-1,\3)/g")
     	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1,${regxnd})/${varnames[$n]}(\1\2k,\3)/g")
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+2,${regxnd})/${varnames[$n]}(\1\2k+1,\3)/g")
-			
+
 			# without 4th index
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1)/${varnames[$n]}(\1\2k-2)/g")
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k)/${varnames[$n]}(\1\2k-1)/g")
@@ -201,16 +201,16 @@ while IFS= read -r line || [ -n "$line" ]; do
     	    	#     esac
     	    	# done
     	    	# # echo "Modified line:       $line"
-		
+
     	    fi
 
     	    if [ "${loopnode[$((d))]}" -eq "0" ] && [ "${nodality[$((n)),$((d))]}" -eq "1" ]
     	    then
     	    	echo "   loop cell centered, mf nodal...";
-		
+
     	    	# Note: ordering of sed statements matters
     	    	case $d in
-		    
+
     	    	    0)
     	    		echo "   nodal in x"
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+1,${regx}${regx}${regxnd})/${varnames[$n]}(i+2,\1\2\3)/g")
@@ -229,13 +229,13 @@ while IFS= read -r line || [ -n "$line" ]; do
 
     	    	    2)
     	    		echo "   nodal in z"
-			
+
 			# with 4th index
     	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1,${regxnd})/${varnames[$n]}(\1\2k+2,\3)/g")
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k,${regxnd})/${varnames[$n]}(\1\2k+1,\3)/g")
     	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1,${regxnd})/${varnames[$n]}(\1\2k,\3)/g")
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-2,${regxnd})/${varnames[$n]}(\1\2k-1,\3)/g")
-			
+
 			# without 4th index
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1)/${varnames[$n]}(\1\2k+2)/g")
 			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k)/${varnames[$n]}(\1\2k+1)/g")

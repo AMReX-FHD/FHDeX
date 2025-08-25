@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -81,7 +81,7 @@ AppLattice::AppLattice(SPPARKS *spk, int narg, char **arg) : App(spk,narg,arg)
   dt_sweep = 0.0;
   naccept = nattempt = 0;
   nsweeps = 0;
-  
+
   app_update_only = 0;
 }
 
@@ -161,7 +161,7 @@ void AppLattice::init()
     else nsector = 8;
 
     if (dimension == 3) {
-      if (nsector == 2 && (domain->procgrid[1] != 1 || 
+      if (nsector == 2 && (domain->procgrid[1] != 1 ||
 			   domain->procgrid[2] != 1))
 	error->all(FLERR,"Invalid number of sectors");
       if (nsector == 4 && domain->procgrid[2] != 1)
@@ -237,7 +237,7 @@ void AppLattice::init()
       else create_set(m,i+1,0,NULL);
       m++;
     }
-    for (int i = 0; i < nsector; i++) 
+    for (int i = 0; i < nsector; i++)
       for (int j = 0; j < ncolors; j++) {
 	if (nset == nsetold) create_set(m,i+1,j+1,sold[m]);
         else create_set(m,i+1,j+1,NULL);
@@ -313,7 +313,7 @@ void AppLattice::init()
 
   // error checks that cannot be done until after init_app()
 
-  if (sweepflag && dt_sweep == 0.0) 
+  if (sweepflag && dt_sweep == 0.0)
     error->all(FLERR,"App did not set dt_sweep");
 
   // initialize output
@@ -412,7 +412,7 @@ void AppLattice::setup()
 	}
       }
 
-    } else if (sweepflag == RASTER || 
+    } else if (sweepflag == RASTER ||
 	       sweepflag == COLOR || sweepflag == COLOR_STRICT) {
       int n;
       if (nstop > 0.0) n = static_cast<int> (nstop);
@@ -460,7 +460,7 @@ void AppLattice::iterate()
   timer->barrier_start(TIME_LOOP);
 
   if (solve) {
-    if (sectorflag == 0) 
+    if (sectorflag == 0)
       iterate_kmc_global(stoptime);
     else if (allow_app_update && app_update_only)
       iterate_app_update_only(stoptime,dt_kmc);
@@ -484,7 +484,7 @@ void AppLattice::iterate()
 void AppLattice::iterate_kmc_global(double stoptime)
 {
   int isite;
-  
+
   // global KMC runs with one set
   // save ptr to system solver
 
@@ -551,7 +551,7 @@ void AppLattice::iterate_kmc_sector(double stoptime)
       }
 
       solve = set[iset].solve;
-      
+
       propensity = set[iset].propensity;
       i2site = set[iset].i2site;
       int *site2i = set[iset].site2i;
@@ -571,10 +571,10 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 	bsites[nsites++] = isite;
 	propensity[isite] = site_propensity(i);
       }
-      
+
       solve->update(nsites,bsites,propensity);
       timer->stamp(TIME_COMM);
-      
+
       // pmax = maximum sector propensity per site
 
       if (Ladapt) {
@@ -585,16 +585,16 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 	  pmax = MAX(ptmp,pmax);
 	}
       }
-      
+
       // execute events until sector time threshhold reached
-      
+
       done = 0;
       timesector = 0.0;
       while (!done) {
 	timer->stamp();
 	isite = solve->event(&dt);
 	timer->stamp(TIME_SOLVE);
-	
+
 	if (isite < 0) done = 1;
 	else {
 	  timesector += dt;
@@ -606,7 +606,7 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 	  timer->stamp(TIME_APP);
 	}
       }
-      
+
       if (nprocs > 1) {
 	comm->reverse_sector(iset);
 	timer->stamp(TIME_COMM);
@@ -677,7 +677,7 @@ void AppLattice::iterate_rejection(double stoptime)
 	site2i = set[iset].site2i;
 	nrange = set[iset].nlocal;
 	nselect = set[iset].nselect;
-	for (i = 0; i < nselect; i++) 
+	for (i = 0; i < nselect; i++)
 	  sitelist[i] = site2i[ranapp->irandom(nrange) - 1];
 	(this->*sweep)(nselect,sitelist);
 	nattempt += nselect;
@@ -733,7 +733,7 @@ void AppLattice::iterate_app_update_only(double stoptime,double dt)
   int done = 0;
   while (!done) {
     if (allow_app_update) app_update(dt);
-    
+
     time += dt;
     if (time >= stoptime) done = 1;
     if (done || time >= nextoutput) nextoutput = output->compute(time,done);
@@ -872,7 +872,7 @@ void AppLattice::set_temperature(int narg, char **arg)
 void AppLattice::set_app_update_only(int narg, char **arg)
 {
   if (narg != 1) error->all(FLERR,"Illegal app_update_only command");
-  if (strcmp(arg[0],"yes") == 0) app_update_only = 1;    
+  if (strcmp(arg[0],"yes") == 0) app_update_only = 1;
   else if (strcmp(arg[0],"no") == 0) app_update_only = 0;
   else error->all(FLERR,"Illegal app_update_only command");
 
@@ -953,7 +953,7 @@ void AppLattice::create_set(int iset, int isector, int icolor, Solve *oldsolve)
 
       if (isector != msector) flag = 0;
     }
-    
+
     if (icolor > 0) {
       mcolor = domain->lattice->id2color(id[i],delcolor);
       if (icolor != mcolor) flag = 0;
@@ -1001,7 +1001,7 @@ void AppLattice::create_set(int iset, int isector, int icolor, Solve *oldsolve)
   if (solve) {
     (int *) memory->create(set[iset].i2site,nlocal+nghost,"app:i2site");
     for (int i = 0; i < nlocal+nghost; i++) set[iset].i2site[i] = -1;
-    for (int i = 0; i < set[iset].nlocal; i++) 
+    for (int i = 0; i < set[iset].nlocal; i++)
       set[iset].i2site[set[iset].site2i[i]] = i;
   } else set[iset].i2site = NULL;
 
@@ -1117,7 +1117,7 @@ int AppLattice::find_border_sites(int isector)
   set[isector].border = border;
   return nborder;
 }
-  
+
 /* ----------------------------------------------------------------------
    unset all mask values of owned sites in iset whose propensity
      could change due to events on sites one neighbor outside the set
@@ -1174,7 +1174,7 @@ void AppLattice::push_connected_neighbors(int i, int* cluster_ids, int id,
    add cluster id of connected ghost sites to neighbor list of cluster
  ------------------------------------------------------------------------- */
 
-void AppLattice::connected_ghosts(int i, int* cluster_ids, 
+void AppLattice::connected_ghosts(int i, int* cluster_ids,
 				  Cluster* clustlist, int idoffset)
 {
   int iclust;
@@ -1187,7 +1187,7 @@ void AppLattice::connected_ghosts(int i, int* cluster_ids,
   if (cluster_ids[i] == 0) return;
 
   iclust = cluster_ids[i]-idoffset;
-  
+
   // add ghost cluster to neighbors of local cluster
 
   for (int j = 0; j < numneigh[i]; j++) {
@@ -1203,7 +1203,7 @@ void AppLattice::connected_ghosts(int i, int* cluster_ids,
 /* ----------------------------------------------------------------------
    grow per-site arrays
    n = 0 grows arrays by DELTA
-   n > 0 allocates arrays to size n 
+   n > 0 allocates arrays to size n
 ------------------------------------------------------------------------- */
 
 void AppLattice::grow(int n)
@@ -1403,7 +1403,7 @@ bigint AppLattice::memory_usage()
   bytes += nmax*3 * sizeof(double);         // xyz
   bytes += ninteger*nmax * sizeof(int);     // iarray
   bytes += ndouble*nmax * sizeof(double);   // darray
-  
+
   bytes += nmax * sizeof(int);              // numneigh
   bytes += nmax*maxneigh * sizeof(int);     // neighbor
 

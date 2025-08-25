@@ -39,7 +39,7 @@ extern "C"
                               int * N, void * a_coef, void * b_coef);
 
     void initialize_ib_colloid_namespace(
-            int          n_immbdy, int *        n_markers, void *       center, 
+            int          n_immbdy, int *        n_markers, void *       center,
             amrex_real * radius,   amrex_real * rho,       amrex_real * k_spring
         );
 

@@ -32,11 +32,11 @@ void main_driver(const char* argv)
 	Real dt = fixed_dt;
 	Real time = 0.;
 	int statsCount = 1;
-	
+
 	iMultiFab bCell;
-	
+
 	MultiFab cuInst, cuMeans, cuVars;
-	
+
 	if (seed > 0)
 	{
             InitRandom(seed+ParallelDescriptor::MyProc(),
@@ -56,8 +56,8 @@ void main_driver(const char* argv)
 	{
 		Abort("Must supply non-negative seed");
 	}
-	
-	
+
+
 	if (restart < 0)
 	{
 		if (seed > 0)
@@ -101,7 +101,7 @@ void main_driver(const char* argv)
 		cuInst.define(ba, dmap, ncon, 0); cuInst.setVal(0.);
 		cuMeans.define(ba, dmap, ncon, 0); cuMeans.setVal(0.);
 		cuVars.define(ba,dmap, ncon, 0); cuVars.setVal(0.);
-		
+
 
 
 	}
@@ -115,7 +115,7 @@ void main_driver(const char* argv)
 //		ba = cuInst.boxArray();
 
 	}
-		
+
 	Vector<int> is_periodic (AMREX_SPACEDIM,0);
 	for (int i=0; i<AMREX_SPACEDIM; ++i)
 	{
@@ -179,12 +179,12 @@ void main_driver(const char* argv)
 
 	Real tbegin, tend;
 	int writeStep = 0;
-		
+
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		tbegin = ParallelDescriptor::second();
-		
-		if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) 
+
+		if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) )
 		{
 			writeStep = istep;
 		}
@@ -204,14 +204,14 @@ void main_driver(const char* argv)
 		{
 			writePlotFile(cuInst,cuMeans,cuVars,particles,geom,time,istep);
 		}
-		   
+
 //        if (chk_int > 0 && istep%chk_int == 0 && istep > step)
 //		{
 //			WriteCheckPoint(istep, time, dt, statsCount,
 //				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
 //				particles, spatialCross1D, ncross);
 //		}
-		
+
 		if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
             //reset stats
             statsCount = 1;

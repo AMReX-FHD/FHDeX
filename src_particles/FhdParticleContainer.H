@@ -241,7 +241,7 @@ public:
                std::array<MultiFab, AMREX_SPACEDIM>& source,
                std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
-    
+
     void PrintParticles();
     void SetPosition(int id, Real x, Real y, Real z);
     void SetVel(int id, Real x, Real y, Real z);
@@ -286,7 +286,7 @@ public:
                     const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
     void SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, 
+                    const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 		    const std::array<MultiFab, AMREX_SPACEDIM>& coords,
 		    std::array<MultiFab, AMREX_SPACEDIM>& efield,
                     std::array<MultiFab, AMREX_SPACEDIM>& source,
@@ -297,7 +297,7 @@ public:
 		    const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                     std::array<MultiFab, AMREX_SPACEDIM>& source,
                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
-    
+
     //void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
     void RadialDistribution(long totalParticles, const int step, const species* particleInfo);
@@ -308,11 +308,11 @@ public:
     void collectFieldsGPU(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomP, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
 
     void InitCollisionCells(MultiFab& collisionPairs,
-                            MultiFab& collisionFactor, 
+                            MultiFab& collisionFactor,
                             MultiFab& cellVols, const species particleInfo, const Real delt);
 
     void CollideParticles(MultiFab& collisionPairs,
-                          MultiFab& collisionFactor, 
+                          MultiFab& collisionFactor,
                           MultiFab& cellVols, const species particleInfo, const Real delt);
 
 
@@ -324,9 +324,9 @@ public:
 
 
     void invertMatrix();
-    
+
     void TwoParticleCorrelation();
-    
+
     void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles);
 
 
@@ -363,7 +363,7 @@ public:
     Real *meanRadialDistribution_pp;
     Real *meanRadialDistribution_pm;
     Real *meanRadialDistribution_mm;
-    
+
     Real *binVolRadial;
     int radialStatsCount;
 
@@ -371,19 +371,19 @@ public:
     Real *meanXDistribution_pp;
     Real *meanXDistribution_pm;
     Real *meanXDistribution_mm;
-    
+
     Real *meanYDistribution   ;
     Real *meanYDistribution_pp;
     Real *meanYDistribution_pm;
     Real *meanYDistribution_mm;
-    
+
     Real *meanZDistribution   ;
     Real *meanZDistribution_pp;
     Real *meanZDistribution_pm;
     Real *meanZDistribution_mm;
-    
+
     Real binVolCartesian;
-    int cartesianStatsCount;   
+    int cartesianStatsCount;
 
     int  threepmBins = 50;
     int  threepmCurrentBin = 1;
@@ -392,12 +392,12 @@ public:
     Real threepmVals[50];
     Real threepmMax[50];
     Real threepmMin[50];
-    Real threepmPoints[50]; 
-    Real threepmRange = 5; 
-    
+    Real threepmPoints[50];
+    Real threepmRange = 5;
+
     int bottomListLength;
     int topListLength;
-    
+
     Triplet* bottomList;
     Triplet* topList;
 

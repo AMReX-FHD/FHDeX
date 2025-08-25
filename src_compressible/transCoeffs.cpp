@@ -4,7 +4,7 @@
 using namespace common;
 using namespace compressible;
 
-void calculateTransportCoeffs(const MultiFab& prim_in, 
+void calculateTransportCoeffs(const MultiFab& prim_in,
 			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
 			      MultiFab& chi_in, MultiFab& Dij_in)
 {
@@ -36,10 +36,10 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-        
+
             GpuArray<Real,MAX_SPECIES> Yk_fixed;
             GpuArray<Real,MAX_SPECIES> Xk_fixed;
-            
+
             Real sumYk = 0.;
             for (int n=0; n<nspecies; ++n) {
 	        if (prim(i,j,k,6+n) <= 0.0) amrex::Abort("Negative mass fraction encountered");

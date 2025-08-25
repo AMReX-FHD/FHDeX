@@ -27,7 +27,7 @@ namespace mui {
 
 /*! \brief Briefly what is uniface
  *
- *  An expanded description of uniface. 
+ *  An expanded description of uniface.
  */
 template<typename CONFIG = default_config>
 class uniface {
@@ -69,7 +69,7 @@ private:
 		}
 		void set_sending(time_type start, time_type timeout, span_t s) {
 			sending_spans.emplace(std::make_pair(start,timeout), std::move(s));
-		}	
+		}
 
 		time_type current_t() const { return latest_timestamp; }
 		time_type next_t() const { return next_timestamp; }
@@ -80,7 +80,7 @@ private:
 			auto p = std::make_pair(t,t);
 			auto end = spans.upper_bound(p);
 			bool prefetched = false;
-			
+
 			for( auto itr = spans.begin(); itr != end; ++itr )
 				if( t <= itr->first.second ){
 					prefetched = true;
@@ -140,7 +140,7 @@ public:
 		if( !n ) n = storage_t(std::vector<std::pair<point_type,TYPE> >());
 		storage_cast<std::vector<std::pair<point_type,TYPE> >&>(n).emplace_back( loc, value );
 	}
-	
+
 	template<class SAMPLER, class TIME_SAMPLER>
 	typename SAMPLER::OTYPE
 	fetch( const std::string& attr, const point_type focus, const time_type t,
@@ -178,7 +178,7 @@ public:
 
 	bool is_ready( const std::string& attr, time_type t ) const {
 		return  std::any_of(log.begin(), log.end(), [=](const bin_frame_type& a) {
-				return a.find(attr) != a.end(); }) // return false for random @attr. 
+				return a.find(attr) != a.end(); }) // return false for random @attr.
 			&& std::all_of(peers.begin(), peers.end(), [=](const peer_state& p) {
 				return (!p.is_sending(t,recv_span)) || (p.current_t() >= t || p.next_t() > t); });
 	}
@@ -186,7 +186,7 @@ public:
 		auto start = std::chrono::system_clock::now();
 		for(;;) {    // barrier must be thread-safe because it is called in fetch()
 			std::lock_guard<std::mutex> lock(mutex);
-			if( std::all_of(peers.begin(), peers.end(), [=](const peer_state& p) { 
+			if( std::all_of(peers.begin(), peers.end(), [=](const peer_state& p) {
 				return (!p.is_sending(t,recv_span)) || (p.current_t() >= t || p.next_t() > t); }) ) break;
 			acquire(); // To avoid infinite-loop when synchronous communication
 		}
@@ -218,11 +218,11 @@ public:
 	void forget( time_type first, time_type last ) {
 		log.erase(log.lower_bound(first), log.upper_bound(last));
 	}
-	// remove log between (-inf, curent-@length] automatically. 
+	// remove log between (-inf, curent-@length] automatically.
 	void set_memory( time_type length ) {
 		memory_length = length;
 	}
-	
+
 private:
 	// triggers communication
 	void acquire() {

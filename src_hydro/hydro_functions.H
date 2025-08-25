@@ -19,7 +19,7 @@ void addMomFluctuations(std::array< MultiFab, AMREX_SPACEDIM >&,
                         const MultiFab&, const MultiFab&,
                         const Real&,
                         const Geometry& geom);
-    
+
 // used to add noise to an initial momentum field
 // called by addMomFluctuations
 void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
@@ -104,17 +104,17 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
 
     GpuArray<Real, MAX_SPECIES> w;
     GpuArray<Real, MAX_SPECIES> z;
-    
+
     Real rhobar_sq, delta_eos, temp;
 
     if (proj_type == 0) {
-        
+
         // do nothing
-        
+
     } else if (proj_type == 2) { // L2 projection onto the linear EOS constraint for low Mach models
 
         Abort("Code up and test BDS_Proj proj_type=2");
-        
+
 #if 0
        ! compute mass fractions, w_i = rho_i / rho
        temp = 0.d0
@@ -142,7 +142,7 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
           sedge(comp) = sedge(comp) - w(comp)*(rhobar_sq/rhobar(comp))*delta_eos
        end do
 #endif
-        
+
     } else if (proj_type == 3) { // Ensure sum(rho)=rho0 for Boussinesq models
 
         Real sumw = 0.;
@@ -153,7 +153,7 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
         for (int n=0; n<ncomp; ++n) {
             sedge[n] = rho0* w[n] / sumw;
         }
-        
+
     } else if (proj_type == 4) { // Ensure sum(rho)=rho0
 
         Abort("Code up and test BDS_Proj proj_type=4");
@@ -170,7 +170,7 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
        sedge = rho0 * (w/sum(w))
        !write(*,*) "z^T*rho=", sum(sedge*z), " 1^T*w-1=", sum(sedge/rho0)-1.0d0
 #endif
-                                                       
+
     } else {
         Abort("BDS_Proj: invalid proj_type");
     }

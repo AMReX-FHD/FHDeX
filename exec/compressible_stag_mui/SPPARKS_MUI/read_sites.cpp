@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -70,7 +70,7 @@ void ReadSites::command(int narg, char **arg)
 
   if (domain->dimension == 2 && domain->zperiodic == 0)
     error->all(FLERR,"Cannot run 2d simulation with nonperiodic Z dimension");
-  if (domain->dimension == 1 && 
+  if (domain->dimension == 1 &&
       (domain->yperiodic == 0 || domain->zperiodic == 0))
     error->all(FLERR,
 	       "Cannot run 1d simulation with nonperiodic Y or Z dimension");
@@ -123,11 +123,11 @@ void ReadSites::command(int narg, char **arg)
       sitesflag = 1;
 
     } else if (strcmp(keyword,"Neighbors") == 0) {
-      if (app->sites_exist) 
+      if (app->sites_exist)
 	error->all(FLERR,"Cannot read Neighbors after sites already exist");
-      if (latticeflag == 0) 
+      if (latticeflag == 0)
 	error->all(FLERR,"Can only read Neighbors for on-lattice applications");
-      if (maxneigh <= 0) 
+      if (maxneigh <= 0)
 	error->all(FLERR,"Cannot read Neighbors unless max neighbors is set");
       if (sitesflag == 0) error->all(FLERR,"Must read Sites before Neighbors");
 
@@ -137,7 +137,7 @@ void ReadSites::command(int narg, char **arg)
       neighflag = 1;
 
     } else if (strcmp(keyword,"Values") == 0) {
-      if (app->sites_exist == 0 && sitesflag == 0) 
+      if (app->sites_exist == 0 && sitesflag == 0)
 	error->all(FLERR,"Cannot read Values before sites exist or are read");
       values();
       valueflag = 1;
@@ -158,7 +158,7 @@ void ReadSites::command(int narg, char **arg)
 
   if (app->sites_exist == 0) {
     if (sitesflag == 0) error->all(FLERR,"No Sites defined in site file");
-    if (latticeflag && neighflag == 0) 
+    if (latticeflag && neighflag == 0)
       error->all(FLERR,"No Neighbors defined in site file");
     app->sites_exist = 1;
   }
@@ -198,7 +198,7 @@ void ReadSites::header()
   char *ptr;
 
   const char *section_keywords[NSECTIONS] = {"Sites","Neighbors","Values"};
-  
+
   // skip 1st line of file
 
   if (me == 0) {
@@ -257,7 +257,7 @@ void ReadSites::header()
       app->nglobal = nglobal;
     } else if (strstr(line,"max neighbors")) {
       sscanf(line,"%d",&maxneigh);
-      if (!latticeflag) 
+      if (!latticeflag)
 	error->all(FLERR,"Off-lattice application data file "
 		   "cannot have maxneigh setting");
       if (app->sites_exist && maxneigh != applattice->maxneigh)
@@ -370,7 +370,7 @@ void ReadSites::sites()
       x = atof(values[1]);
       y = atof(values[2]);
       z = atof(values[3]);
-      
+
       if (x >= subxlo && x < subxhi &&
 	  y >= subylo && y < subyhi &&
 	  z >= subzlo && z < subzhi) {
@@ -394,12 +394,12 @@ void ReadSites::sites()
     if (logfile) fprintf(logfile,"  " TAGINT_FORMAT " sites\n",nglobal);
   }
 
-  if (nglobal != app->nglobal) 
+  if (nglobal != app->nglobal)
     error->all(FLERR,"Did not assign all sites correctly");
-  
+
   // check that sites IDs range from 1 to nglobal
   // not checking if site IDs are unique
-  
+
   int flag = 0;
   for (int i = 0; i < app->nlocal; i++)
     if (app->id[i] <= 0 || app->id[i] > nglobal) flag = 1;
@@ -411,7 +411,7 @@ void ReadSites::sites()
 
 /* ----------------------------------------------------------------------
    read all neighbors of sites
-   to find atoms, must build atom map if not a molecular system 
+   to find atoms, must build atom map if not a molecular system
 ------------------------------------------------------------------------- */
 
 void ReadSites::neighbors()
@@ -518,7 +518,7 @@ void ReadSites::values()
     hash.insert(std::pair<tagint,int> (id[i],i));
 
   // if values keyword not used in header:
-  //   nvalues = Ninteger + Ndouble 
+  //   nvalues = Ninteger + Ndouble
   // else:
   //   parse columns string to determine fields
   //   set nvalues, type[], which[]
@@ -531,7 +531,7 @@ void ReadSites::values()
   if (columns == NULL) nvalues = app->ninteger + app->ndouble;
   else {
     nvalues = count_words(columns) - 1;
-    if (nvalues < 1) 
+    if (nvalues < 1)
       error->all(FLERR,"Read sites Values section has no values per site");
     char *keyword = strtok(columns," \t\n\r\f");
     if (strcmp(keyword,"id") != 0)
@@ -553,7 +553,7 @@ void ReadSites::values()
         index[i] = atoi(&keyword[1]);
         if (index[i] < 1 || index[i] > app->ndouble)
           error->all(FLERR,"Invalid keyword in read sites values header");
-      } else 
+      } else
         error->all(FLERR,"Invalid keyword in read sites values header");
     }
   }
@@ -589,7 +589,7 @@ void ReadSites::values()
     int nwords = count_words(buf);
     *next = '\n';
 
-    if (nwords != nvalues+1) 
+    if (nwords != nvalues+1)
       error->all(FLERR,"Incorrect value format in data file");
 
     for (int i = 0; i < nchunk; i++) {
@@ -609,9 +609,9 @@ void ReadSites::values()
           else appoff->add_values(loc->second,sitevalues);
         } else {
           for (m = 0; m < nvalues; m++) {
-            if (latticeflag) 
+            if (latticeflag)
               applattice->add_value(loc->second,type[m],index[m],sitevalues[m]);
-            else 
+            else
               appoff->add_value(loc->second,type[m],index[m],sitevalues[m]);
           }
         }
@@ -709,7 +709,7 @@ void ReadSites::parse_keyword(int first)
 
   int start = strspn(line," \t\n\r");
   int stop = strlen(line) - 1;
-  while (line[stop] == ' ' || line[stop] == '\t' 
+  while (line[stop] == ' ' || line[stop] == '\t'
 	 || line[stop] == '\n' || line[stop] == '\r') stop--;
   line[stop+1] = '\0';
   strcpy(keyword,&line[start]);
@@ -732,7 +732,7 @@ void ReadSites::parse_coeffs(int addflag, char *line)
   while (word) {
     if (narg == maxarg) {
       maxarg += DELTA;
-      arg = (char **) 
+      arg = (char **)
 	memory->srealloc(arg,maxarg*sizeof(char *),"read_sites:arg");
     }
     arg[narg++] = word;

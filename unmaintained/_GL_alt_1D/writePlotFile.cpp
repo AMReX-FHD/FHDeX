@@ -29,8 +29,8 @@ void WritePlotFile(int step,
     std::string scalar_param_loc=plotfilename;
     scalar_param_loc=scalar_param_loc+ "/";
     scalar_param_loc=scalar_param_loc+"params.txt";
-        
-    std::ofstream file_scalar(scalar_param_loc.c_str()); 
+
+    std::ofstream file_scalar(scalar_param_loc.c_str());
     file_scalar << umbrella  << "\n" ;
     file_scalar << phi0 << "\n" << std::endl;
 

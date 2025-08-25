@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -36,7 +36,7 @@ enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,DIAMOND,
 
 /* ---------------------------------------------------------------------- */
 
-DiagCluster::DiagCluster(SPPARKS *spk, int narg, char **arg) : 
+DiagCluster::DiagCluster(SPPARKS *spk, int narg, char **arg) :
   Diag(spk,narg,arg)
 {
   if (app->appclass != App::LATTICE)
@@ -119,7 +119,7 @@ void DiagCluster::init()
 {
   applattice = (AppLattice *) app;
   Lattice *lattice = domain->lattice;
-  if (lattice == NULL) 
+  if (lattice == NULL)
     error->all(FLERR,"Cannot use diag_style cluster without a lattice defined");
 
   nlocal = applattice->nlocal;
@@ -139,7 +139,7 @@ void DiagCluster::init()
   // assume we are just continuing previous run,
   // so do nothing, otherwise allocate both
   // Important that these two be consistent
-  // else comm will fail 
+  // else comm will fail
 
   if (!cluster_ids  && !comm) {
     memory->create(cluster_ids,nlocal+nghost,"diagcluster:cluster");
@@ -257,7 +257,7 @@ void DiagCluster::generate_clusters()
   //       if (spin[m] == spin[n] and m outside domain)
   //          clustlist[id[n]-id_offset].addneigh(id[m])
 
-  // At this point, the problem is reduced to the simpler problem of 
+  // At this point, the problem is reduced to the simpler problem of
   // clustering the clusters. This can be done by the root process.
 
   int iv;
@@ -268,7 +268,7 @@ void DiagCluster::generate_clusters()
   applattice->comm->all();
 
   // set ghost site ids to -1
-  // set local site ids to zero 
+  // set local site ids to zero
 
   for (int i = nlocal; i < nlocal+nghost; i++) cluster_ids[i] = -1;
   for (int i = 0; i < nlocal; i++) cluster_ids[i] = 0;
@@ -286,7 +286,7 @@ void DiagCluster::generate_clusters()
 
   for (int i = 0; i < nlocal; i++) {
     if (cluster_ids[i] != 0) continue;
-    
+
     // ask App to push first site onto stack
     // if it does not, do nothing
 
@@ -333,7 +333,7 @@ void DiagCluster::generate_clusters()
 
   MPI_Allreduce(&nclusterme,&nclustertot,1,MPI_SPK_TAGINT,MPI_SUM,world);
 
-  if (nclustertot > MAXSMALLINT) 
+  if (nclustertot > MAXSMALLINT)
      error->all(FLERR,"Diag cluster does not work if ncluster > 2^31");
 
   MPI_Scan(&ncluster,&idoffset,1,MPI_INT,MPI_SUM,world);
@@ -365,7 +365,7 @@ void DiagCluster::generate_clusters()
   MPI_Status status;
   MPI_Request request;
   int nn;
-  
+
   me_size = 0;
   for (int i = 0; i < ncluster; i++) {
     me_size += 8+4*clustlist[i].nneigh;
@@ -392,7 +392,7 @@ void DiagCluster::generate_clusters()
       for (int j = 0; j < 3*clustlist[i].nneigh; j++)
 	dbufclust[m++] = clustlist[i].pbcflags[j];
     }
-    
+
     if (me_size != m)
       error->one(FLERR,"Mismatch in counting for dbufclust");
   }
@@ -406,7 +406,7 @@ void DiagCluster::generate_clusters()
       MPI_Send(&tmp,0,MPI_INT,iproc,0,world);
       MPI_Wait(&request,&status);
       MPI_Get_count(&status,MPI_DOUBLE,&nrecv);
-      
+
       m = 0;
       while (m < nrecv) {
 	id = static_cast<int> (dbufclust[m++]);
@@ -443,7 +443,7 @@ void DiagCluster::generate_clusters()
       // If already visited, skip
       if (clustlist[i].volume == 0.0)
 	continue;
-      
+
       // Push first cluster onto stack
       id = clustlist[i].global_id;
       if (i != id-idoffset) {
@@ -456,14 +456,14 @@ void DiagCluster::generate_clusters()
       cy = 0.0;
       cz = 0.0;
       ncluster_reduced++;
-      
+
       cluststack.push(i);
       vol+=clustlist[i].volume;
       cx+=clustlist[i].cx;
       cy+=clustlist[i].cy;
       cz+=clustlist[i].cz;
       clustlist[i].volume = 0.0;
-      
+
       while (cluststack.size()) {
 	// First top then pop
 	ii = cluststack.top();
@@ -505,7 +505,7 @@ void DiagCluster::generate_clusters()
       clustlist[i].cy = xyztmp[1];
       clustlist[i].cz = xyztmp[2];
     }
-    
+
     volsum = 0.0;
     double rsum = 0.0;
     double invdim = 1.0/domain->dimension;
@@ -541,8 +541,8 @@ void DiagCluster::generate_clusters()
 
 /* ---------------------------------------------------------------------- */
 
-void DiagCluster::add_cluster(int id, int iv, double dv, double vol, 
-			      double cx, double cy, double cz, int nn, 
+void DiagCluster::add_cluster(int id, int iv, double dv, double vol,
+			      double cx, double cy, double cz, int nn,
 			      double* neighs, double* pbcflags)
 {
   // grow cluster array
@@ -662,7 +662,7 @@ void DiagCluster::dump_clusters(double time)
 	MPI_Get_count(&status,MPI_DOUBLE,&nrecv);
 	nrecv /= size_one;
       } else nrecv = nlocal;
-      
+
       m = 0;
 
   // print lattice values
@@ -685,7 +685,7 @@ void DiagCluster::dump_clusters(double time)
 	}
       }
     }
-    
+
   } else {
     MPI_Recv(&tmp,0,MPI_INT,0,0,world,&status);
     MPI_Rsend(dbuftmp,size_one*nlocal,MPI_DOUBLE,0,0,world);
@@ -727,7 +727,7 @@ void DiagCluster::dump_clusters(double time)
 
 void DiagCluster::free_clustlist()
 {
-  // Can not call Cluster destructor, because 
+  // Can not call Cluster destructor, because
   // that would free memory twice.
   // Instead, need to delete neighlist manually.
 

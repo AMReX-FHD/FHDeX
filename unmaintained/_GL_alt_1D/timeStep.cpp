@@ -14,7 +14,7 @@
 
 using namespace amrex;
 
-void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums, 
+void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt, amrex::Real& integral, int n, amrex::Real& phi_avg,amrex::Real& energy,amrex::Real& teng,amrex::Real& H1_semi_norm)
 {
 
@@ -40,9 +40,9 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
         const Box& bx = mfi.validbox();
 
         integrate_1D(BL_TO_FORTRAN_BOX(bx),
-                phi[mfi].dataPtr(),  
+                phi[mfi].dataPtr(),
                 dx,
-                &integral);   
+                &integral);
 
     }
     ParallelDescriptor::ReduceRealSum(integral);
@@ -52,7 +52,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                 //    }
 
 
-    // iterating over the data in phi multifab to compute phi for next time step. 
+    // iterating over the data in phi multifab to compute phi for next time step.
     //The function called also computes the averages of phi and some energy quantitites
     energy =0.;
     teng =0.;
@@ -63,12 +63,12 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
         const Box& bx = mfi.validbox();
 
         rk2_stage1_1D(BL_TO_FORTRAN_BOX(bx),
-                phi[mfi].dataPtr(),  
-                phin[mfi].dataPtr(),  
+                phi[mfi].dataPtr(),
+                phin[mfi].dataPtr(),
                 rannums[mfi].dataPtr(),
                 &integral,
                 &energy, &teng,&H1_semi_norm,
-                dx, &dt,&phi_avg);   
+                dx, &dt,&phi_avg);
     }
     ParallelDescriptor::ReduceRealSum(phi_avg);
     phi_avg = phi_avg/(n_cells[0]);
@@ -91,8 +91,8 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                     //        const Box& bx = mfi.validbox();
                     //
                     //        rk2_stage2(ARLIM_2D(bx.loVect()), ARLIM_2D(bx.hiVect()),
-                    //                   phi[mfi].dataPtr(),  
-                    //                   phin[mfi].dataPtr(),  
+                    //                   phi[mfi].dataPtr(),
+                    //                   phin[mfi].dataPtr(),
                     //                   rannums[mfi].dataPtr(),
                     //                     &integral,
                     //      	           ZFILL(dx), &dt);
@@ -114,17 +114,17 @@ void Init_Phi(MultiFab& phi, const amrex::Real* dx )
 void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt,
                         amrex::Real& time, int plot_int, bool Make_PltFiles,int N_Burn,int L, amrex::Real& Expec, amrex::Real& MAD, int& Plot_Num,int& Plot_Skip, int& umbrella_number)
 {
-// This function computes all the data collected in a single umbrella by marching the explcit method forward. 
+// This function computes all the data collected in a single umbrella by marching the explcit method forward.
 
 // After some equilibration period, the data is collected, with plot files saved on occasion. The umbrella data is saved in a
-// .txt" file labled with the current umbrella number.  After this, statistics on the data are computed and set as output. 
+// .txt" file labled with the current umbrella number.  After this, statistics on the data are computed and set as output.
 
 // INPUT:
 // phi -- current time step phi field multifab
 // phin -- current time step phi field multifab
 // rannums -- random number multifab
 // geom -- amrex Geometry object
-// dx -- an array of doubles that specifies the spatial grid width 
+// dx -- an array of doubles that specifies the spatial grid width
 // dt -- a double that specifies the time step
 // time -- time quantity needed in plot file function
 // plot_int -- An integer specified during input. It is the number of steps that determines a solution "snapshot"/"sample"
@@ -132,7 +132,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
 // N_Burn -- This corresponds to  the integer "Equil" input. This is the number of time-steps taken before data collection begins
 // L -- Integer corresponding to the "Number_of_Samples" input. This is the number of samples considered in each umbrella
 // Plot_Num -- An integer keeping track of the contigous plot file number count
-// Plot_Skip -- An integer used to limit the number of plot files saved. See input file and overleaf for more information. 
+// Plot_Skip -- An integer used to limit the number of plot files saved. See input file and overleaf for more information.
 // umbrella_number -- An integer keeping track of the contigous umbrella file number count
 
 // OUTPUT:
@@ -166,8 +166,8 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     Param_Output(&umbrella,&phi0);
 
 
-    // The block below creates a "umbrellaxxxxxxx.txt" where the x's are the current umbrella number. 
-    // This is used as the name for the umbrella file 
+    // The block below creates a "umbrellaxxxxxxx.txt" where the x's are the current umbrella number.
+    // This is used as the name for the umbrella file
     std::stringstream ss;
     ss << std::setw(8) << std::setfill('0') << umbrella_number;
     std::string s = ss.str();
@@ -192,8 +192,8 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
 
 
 
- if(ParallelDescriptor::MyProc() == 0  and Make_PltFiles)                    
- { 
+ if(ParallelDescriptor::MyProc() == 0  and Make_PltFiles)
+ {
  // At the top of every "umbrella" file, the first line is the spring constant, and the second line is phi_0
     ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);
     ofs << umbrella<< "\n";
@@ -205,12 +205,12 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
 
 
 
-// The loop below runs through all steps including equilibration steps and desired sample steps 
-    for(int step=1;step<=Total_Steps+N_Burn;++step) 
+// The loop below runs through all steps including equilibration steps and desired sample steps
+    for(int step=1;step<=Total_Steps+N_Burn;++step)
     {
         // Rk2 step computes the field at the next time step and the spatial average of the field
         H1_semi_norm = 0.;
-        RK2step(phi, phin, rannums, geom, dx, dt, integral, step,Phi_Avg,energy,teng,H1_semi_norm); 
+        RK2step(phi, phin, rannums, geom, dx, dt, integral, step,Phi_Avg,energy,teng,H1_semi_norm);
 
         if(step>N_Burn) // statistics and data are taken only after equilibration period
         {
@@ -246,7 +246,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
                             WritePlotFile(Plot_Num, time, geom, phi, umbrella,phi0);
                         }
                     }
-                
+
             }
         }
         time = time + dt;
@@ -255,7 +255,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
         Expec=Expec_Temp/L; //compute average of field averages in umbrella
         std::sort(Avg_collect, Avg_collect+L); //sort field averages in umbrella
         median=Avg_collect[L/2];  //find median of field averages in umbrella
-                    // if(ParallelDescriptor::MyProc() == 0)                    
+                    // if(ParallelDescriptor::MyProc() == 0)
                     // {
                     //     ofs3 << "median of Phi in umbrella is " << median << "\n";
                     // }
@@ -268,14 +268,14 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
         MAD=Avg_collect[L/2]; //The median of all such distances is the measure of spread used--the "median absolute deviation"
         amrex::Print() << "Average of Phi in umbrella is " << Expec << "\n";
         amrex::Print() << "MAD of Umbrella is " << MAD << "\n";
-                    // if(ParallelDescriptor::MyProc() == 0)                    
+                    // if(ParallelDescriptor::MyProc() == 0)
                     // {
                     //     ofs3 << "Average of Phi in umbrella is " << Expec << "\n";
                     //     ofs3 << "MAD of Umbrella is " << MAD << "\n";
                     // }
         if(Make_PltFiles)
         {
-            umbrella_number=umbrella_number+1; // when an umbrella file is saved, increment the index used to name umbrella files 
+            umbrella_number=umbrella_number+1; // when an umbrella file is saved, increment the index used to name umbrella files
         }
                     //ofs3.close();
         delete [] Avg_collect;
@@ -283,7 +283,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
 
 
 void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step, bool& weak_umb)
-{ 
+{
 // This function is the implementation of the algorithm detailed in the overleaf notes. This function is meant for the scenario
 // where we are INCREASING values of phi_0. (i.e moving "forward")
 // This function checks the overlap of the current umbrella with the previous umbrella and adjusts spring constant kappa and phi_0 accordingly
@@ -322,7 +322,7 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
     }else
     {
         sucessful_iter_prev=0;
-    }   
+    }
 
                 // std::ofstream ofs;
                 // ofs.open("Console_output_Fortran.txt", std::ofstream::out | std::ofstream::app);
@@ -345,7 +345,7 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
 
 
     if(Expec2-r2*MAD2 < Expec + r2*MAD && Expec2+r2*MAD2 > Expec + r2*MAD)// check if there was sufficient overlap AND new umbrella does not overlap too much
-    {    
+    {
 
         sucessful_compare=true;
         sucessful_iter=1;
@@ -360,10 +360,10 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
         {
             weak_umb=true;
         }
- 
+
 
     }else if (Expec2-r2*MAD2 > Expec + r2*MAD) // Consider the case where new umbrella does not overlap enough
-    {   
+    {
         sucessful_compare=false;
         Shift_Flag=0;
         sucessful_iter=0;
@@ -376,15 +376,15 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
                     //     ofs << umbrella_size  << "\n";
                     // }
         if(umbrella_size==2)// shift phi_0 down and reset the spring constant to a low value if there was insufficient overlap when the spring constant upper limit is reached
-        {   
+        {
             r_temp=r2;
             r2=-1.25*r2;
             inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
-            r2=r_temp;  
+            r2=r_temp;
             umbrella_reset_val=65.0;
             umbrella_reset(&umbrella_reset_val);
             umbrella_size=0;
-        } 
+        }
    }
    else if (Expec2+r2*MAD2 < Expec + r2*MAD) // Consider the case where too much of the current umbrella overlaps
     {
@@ -415,7 +415,7 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
 
 
 void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step, bool& weak_umb)
-{ 
+{
 // This function is the implementation of the algorithm detailed in the overleaf notes. This function is meant for the scenario
 // where we are DECREASING values of phi_0. (i.e moving "backward")
 // This function checks the overlap of the current umbrella with the previous umbrella and adjusts spring constant kappa and phi_0 accordingly
@@ -439,7 +439,7 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
 // umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
 // Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
 // weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
-    
+
     int sucessful_iter; //integer version of sucessful_compare for passing to fortran (1=sucessful comparison, 0=NOT sucessful comparison)
     int sucessful_iter_prev; //integer version of sucessful_compare FOR PREVIOUS umbrella for passing to fortran (1=sucessful comparison, 0=NOT sucessful comparison)
     int Umbrella_Size_Prev; // umbrella_size parameter for previous umbrella
@@ -454,7 +454,7 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
     }else
     {
         sucessful_iter_prev=0;
-    }   
+    }
 
 
                 // std::ofstream ofs;
@@ -471,7 +471,7 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
 
     // print umbrella statistics to screen
     if(Expec-r2*MAD < Expec2 + r2*MAD2 && Expec2-r2*MAD2 < Expec - r2*MAD)// check if there was sufficient overlap AND new umbrella does not overlap too much
-    {    
+    {
 
         sucessful_compare=true;
         sucessful_iter=1;
@@ -486,10 +486,10 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
         {
             weak_umb=true;
         }
- 
+
 
     }else if (Expec-r2*MAD > Expec2 + r2*MAD2)// Consider the case where new umbrella does not overlap enough
-    {   
+    {
         sucessful_compare=false;
         Shift_Flag=0;
         sucessful_iter=0;
@@ -502,15 +502,15 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
                     //     ofs << umbrella_size  << "\n";
                     // }
         if(umbrella_size==2)// shift phi_0 up and reset the spring constant to a low value if there was insufficient overlap when the spring constant upper limit is reached
-        {   
+        {
             r_temp=r2;
             r2=1.25*r2;
             inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
-            r2=r_temp;  
+            r2=r_temp;
             umbrella_reset_val=65.0;
             umbrella_reset(&umbrella_reset_val);
             umbrella_size=0;
-        } 
+        }
    }
    else if (Expec2-r2*MAD2 > Expec - r2*MAD)// Consider the case where too much of the current umbrella overlaps
     {

@@ -27,9 +27,9 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
                               const int& step,
                               const int& comp);
 
-void TurbSpectrumScalar(const MultiFab& variables, 
-                              const amrex::Geometry& geom, 
-                              const int& step, 
+void TurbSpectrumScalar(const MultiFab& variables,
+                              const amrex::Geometry& geom,
+                              const int& step,
                               const amrex::Vector<amrex::Real>& var_scaling,
                               const amrex::Vector< std::string >& var_names);
 void TurbSpectrumVelDecomp(const MultiFab& vel,

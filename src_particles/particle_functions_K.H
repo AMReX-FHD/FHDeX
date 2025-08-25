@@ -9,12 +9,12 @@
 
 /**
    Check if particle is near a boundary. Assumes boundary is parallel to either xy, zx, yz, plane
-   
+
    Inputs : Particle part
             int dir: either +-1,+-2,+-3
 
-   Returns: 
-            int near_wall: 0=part's p3m_radius/2 does not overlap with wall, 1=yes  
+   Returns:
+            int near_wall: 0=part's p3m_radius/2 does not overlap with wall, 1=yes
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir, Real dist)
@@ -22,13 +22,13 @@ int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir, Re
     using namespace amrex;
     using common::prob_hi;
     using common::prob_lo;
-    
+
     const int abs_dir = std::abs(dir);
     //const Real p3m_rad = part.rdata(FHD_realData::p3m_radius);
     const int index = abs_dir - 1;
 
     int near_wall = 0;
-    
+
     if ((abs_dir == 1) or (abs_dir == 2) or (abs_dir == 3))
     {
         if (dir > 0)
@@ -50,16 +50,16 @@ int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir, Re
     {
         amrex::Abort("Incorrect function call!!!! \n");
     }
-    
+
     return near_wall;
 }
 
 /*
   calculate location of an image charge reflected across some plane--assumes boundary
   is parallel to either xy,xz,yz plane
-  inputs: particle p             : just need the particles position 
+  inputs: particle p             : just need the particles position
           int dir                : either +-1,+-2,+-3
-          real(3) im_charge_pos  : output, 0=part's p3m_radius does not overlap with wall, 1=yes   
+          real(3) im_charge_pos  : output, 0=part's p3m_radius does not overlap with wall, 1=yes
 
           abs(dir) > 0 means reflect part pos across plane of x(dir) = prob_hi(dir)
                    < 0 means reflect part pos across plane of x(dir) = prob_lo(dir)
@@ -70,9 +70,9 @@ amrex::RealVect calc_im_charge_loc (const FhdParticleContainer::ParticleType& pa
     using namespace amrex;
     using common::prob_lo;
     using common::prob_hi;
-    
+
     const int abs_dir = std::abs(dir);
-    
+
     RealVect im_charge_pos;
 
     if (abs_dir == 1)
@@ -130,7 +130,7 @@ amrex::RealVect calc_im_charge_loc (const FhdParticleContainer::ParticleType& pa
     {
         amrex::Abort("Incorrect function call!!!! \n");
     }
-    
+
     return im_charge_pos;
 }
 
@@ -195,16 +195,16 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
 
     if (pkernel_es[0] == 6)
     {
-        // do linear interpolation of force between vals(i+1) and val(i) 
+        // do linear interpolation of force between vals(i+1) and val(i)
         m = (vals6[r_cell+1]-vals6[r_cell])/(points6[r_cell+1]-points6[r_cell]);
-        
+
         mag  = m*r_cell_frac + vals6[r_cell];
     }
     else if (pkernel_es[0] == 4)
     {
-        // do linear interpolation of force between vals(i+1) and val(i) 
+        // do linear interpolation of force between vals(i+1) and val(i)
         m = (vals4[r_cell+1]-vals4[r_cell])/(points4[r_cell+1]-points4[r_cell]);
-        
+
         mag  = m*r_cell_frac + vals4[r_cell];
 
         //cout  << scientific << setprecision(15) << "MAGGPU: " << m << ", " << r_cell_frac << ", " << vals4[r_cell] << ", " << r_cell << "\n";
@@ -213,7 +213,7 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
     {
         amrex::Abort("P3M implemented only for pkernel 4 and 6! \n");
     }
-    
+
     return mag;
 }
 
@@ -225,7 +225,7 @@ void force_function2 (      FhdParticleContainer::ParticleType& part1,
     using namespace amrex;
     using common::permittivity;
     using common::images;
-    
+
     Real ee = (1.0/(permittivity*4*3.14159265));
 
     Real dx0[3];
@@ -234,14 +234,14 @@ void force_function2 (      FhdParticleContainer::ParticleType& part1,
     dx0[2] = part1.pos(2) - part2.pos(2);
 
     int imag = (images == 0) ? 1 : images;
-    
+
     Real maxdist = 0.99*amrex::min(imag * domsize[0],
                                    imag * domsize[1],
                                    imag * domsize[2]);
 
     Real q1 = part1.rdata(FHD_realData::q);
     Real q2 = part2.rdata(FHD_realData::q);
-    
+
     for (int ii = -images; ii <= images; ++ii) {
         for (int jj = -images; jj <= images; ++jj) {
             for (int kk = -images; kk <= images; ++kk) {
@@ -277,11 +277,11 @@ void repulsive_force_lj (      FhdParticleContainer::ParticleType& part1,
     const Real fac1 = std::pow(sig, 12);
     const Real fac2 = std::pow(sig, 6);
     const Real ff = eps*4*(1./(dr2*dr2*dr2*dr2))*(-12*fac1/(dr2*dr2*dr2) + 6*fac2);
-    
+
     part1.rdata(FHD_realData::forcex) -= dx*ff;
     part1.rdata(FHD_realData::forcey) -= dy*ff;
     part1.rdata(FHD_realData::forcez) -= dz*ff;
-    
+
 }
 
 
@@ -298,18 +298,18 @@ void repulsive_force_wall (      FhdParticleContainer::ParticleType& part1,
     const Real fac1 = std::pow((sig), 9);
     const Real fac2 = std::pow((sig), 3);
     const Real ff = eps*1.5*sqrt(3)*(1./(dr2A*dr2A*drA))*(-9*fac1/(dr2A*dr2A*dr2A) + 3*fac2);
-    
+
     part1.rdata(FHD_realData::forcex) -= dx*ff;
     part1.rdata(FHD_realData::forcey) -= dy*ff;
     part1.rdata(FHD_realData::forcez) -= dz*ff;
-    
+
     //cout << "force: " << part1.rdata(FHD_realData::forcex) << ", " << part1.rdata(FHD_realData::forcey) << ", " << part1.rdata(FHD_realData::forcez) << endl;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force_grid (      FhdParticleContainer::ParticleType& p1, amrex::Real rMin, amrex::Real rMax, amrex::Real sig, amrex::Real eps, Triplet* list, int length)
 {
-    
+
     for(int i=0; i<length;i++)
     {
         Real dx = p1.pos(0) - list[i].x;
@@ -318,7 +318,7 @@ void repulsive_force_grid (      FhdParticleContainer::ParticleType& p1, amrex::
 
         Real r = sqrt(dx*dx + dy*dy + dz*dz);
         //Print() << "r: " << r << endl;
-        
+
         if (r <= rMax)
         {
             const Real rMinMax = amrex::max(r, rMin);
@@ -344,15 +344,15 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                                    const amrex::Real* dxp, amrex::Real& rcount, amrex::Real& rcountI)
 {
     using namespace amrex;
-    
+
     GpuArray<Real, 3> dx = {dxp[0], dxp[1], dxp[2]};
-    
+
     Gpu::DeviceScalar<Real> rcount_d(rcount);
     Real* prcount_d = rcount_d.dataPtr();
 
     Gpu::DeviceScalar<Real> rcount_di(rcountI);
     Real* prcount_di = rcount_di.dataPtr();
-    
+
     auto nbor_data = neighbor_list.data();
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
 
@@ -362,14 +362,14 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
     // Using GpuArray now should avoid getDeviceVector
     //// clearly we don't want to do this every time...
     //Gpu::DeviceVector<int> bc_es_lo_d = getDeviceVector(bc_es_lo);
-    //Gpu::DeviceVector<int> bc_es_hi_d = getDeviceVector(bc_es_hi);    
+    //Gpu::DeviceVector<int> bc_es_hi_d = getDeviceVector(bc_es_hi);
     ////Gpu::DeviceVector<int> p_int_tog_d = getDeviceVector(p_int_tog);
 
     //auto p_bc_es_lo_d = bc_es_lo_d.data();
     //auto p_bc_es_hi_d = bc_es_hi_d.data();
     ////auto p_p_int_tog_d = p_int_tog_d.data();
 
-    AMREX_FOR_1D( Np, i, 
+    AMREX_FOR_1D( Np, i,
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
         if(p1.idata(FHD_intData::pinned) == 0)
@@ -409,7 +409,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 if ((bc_es_lo[1] == 1) and (r < p3m_radius))
                 {
                     // hom. dirichlet--image charge opposite that of particle
-                    
+
                     // coloumb
                     if(p_int_tog[p_matrix_val] != 0)
                     {
@@ -466,7 +466,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 if ((bc_es_hi[1] == 1) and (r < p3m_radius))
                 {
                     // hom. dirichlet--image charge opposite that of particle
-                    
+
                     // coloumb
                     if(p_int_tog[p_matrix_val] != 0)
                     {
@@ -582,7 +582,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             else if ((bc_es_lo[1] == 2) and (r < p3m_radius))
                             {
                                 // hom. neumann  --image charge equal that of particle
-                                
+
                                 // coloumb
                                 if(p_int_tog[p_matrix_val] != 0)
                                 {
@@ -590,7 +590,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                                     p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
                                     p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
                                 }
-                                
+
                                 // p3m
                                 Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
                                 Gpu::Atomic::Add(prcount_di, 1.0);
@@ -615,12 +615,12 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                             r2 = dr.dotProduct(dr);
                             r = std::sqrt(r2);      // separation dist
-                        
+
                             // perform coulomb and p3m interaction with image charge
                             if ((bc_es_hi[1] == 1) and (r < p3m_radius))
                             {
                                 // hom. dirichlet--image charge opposite that of particle
-                                
+
                                 // coloumb
                                 if(p_int_tog[p_matrix_val] != 0)
                                 {
@@ -659,7 +659,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                             }
                         }
-                    }                
+                    }
                 }
 
 
@@ -682,10 +682,10 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
     Real* prcount_d = rcount_d.dataPtr();
     Gpu::DeviceScalar<Real> rdcount_d(rdcount);
     Real* prdcount_d = rdcount_d.dataPtr();
-    
+
     auto nbor_data = neighbor_list.data();
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
-    
+
     // clearly we don't want to do this every time...
     //Gpu::DeviceVector<int> p_int_tog_d = getDeviceVector(p_int_tog);
    // auto pp_int_tog_d = p_int_tog_d.data();
@@ -695,16 +695,16 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
     // Using GpuArray should avoid getDeviceVector
     //// clearly we don't want to do this every time...
     //Gpu::DeviceVector<int> bc_vel_lo_d = getDeviceVector(bc_vel_lo);
-    //Gpu::DeviceVector<int> bc_vel_hi_d = getDeviceVector(bc_vel_hi);    
+    //Gpu::DeviceVector<int> bc_vel_hi_d = getDeviceVector(bc_vel_hi);
     //auto p_bc_vel_lo_d = bc_vel_lo_d.data();
     //auto p_bc_vel_hi_d = bc_vel_hi_d.data();
 
 //    Gpu::DeviceVector<Real> prob_lo_d = getDeviceVector(prob_lo);
-//    Gpu::DeviceVector<Real> prob_hi_d = getDeviceVector(prob_hi);    
+//    Gpu::DeviceVector<Real> prob_hi_d = getDeviceVector(prob_hi);
 //    auto p_prob_lo_d = prob_lo_d.data();
 //    auto p_prob_hi_d = prob_hi_d.data();
-    
-    AMREX_FOR_1D( Np, i, 
+
+    AMREX_FOR_1D( Np, i,
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
@@ -713,7 +713,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             int spec1 = p1.idata(FHD_intData::species)-1;
             //cout << "id1: " << p1.id()  << endl;
             for (const auto& p2 : nbor_data.getNeighbors(i))
-            {       
+            {
                 //cout << "id2: " << p2.id() << endl;
 
                 int spec2 = p2.idata(FHD_intData::species)-1;
@@ -728,7 +728,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     const Real r = sqrt(dx*dx + dy*dy + dz*dz);
 
                     const Real rMax = rmax[p_matrix_val]*sigma[p_matrix_val];
-                    
+
                     //cout << "id1: " << p1.id() << ", id2: " << p2.id() << ", r: " << r << ", rmax: " << rMax << endl;
 
                     if (r <= rMax)
@@ -738,8 +738,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                         repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma[p_matrix_val], eepsilon[p_matrix_val]);
                         Gpu::Atomic::Add(prcount_d, 1.0);
                     }
-                }    
-            }    
+                }
+            }
         }
     });
 
@@ -750,7 +750,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 
         if(bc_vel_lo[1] != -1)
         {
-            AMREX_FOR_1D( Np, i, 
+            AMREX_FOR_1D( Np, i,
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
                 int spec1 = p1.idata(FHD_intData::species)-1;
@@ -765,11 +765,11 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     const Real r = sqrt(dx*dx + dy*dy + dz*dz);
 
                     const Real rMax = rmax_wall[spec1]*sigma_wall[spec1];
-                    
+
                     if (r <= rMax)
                     {
                         Gpu::Atomic::Add(prdcount_d, 1.0);
-                        const Real rMin = rmin_wall[spec1]*sigma_wall[spec1];   
+                        const Real rMin = rmin_wall[spec1]*sigma_wall[spec1];
                         const Real rMinMax = amrex::max(r, rMin);
                         if(sr_tog == 2)
                         {
@@ -785,11 +785,11 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 }
             });
         }
-        
+
 
         if(bc_vel_hi[1] != -1)
         {
-            AMREX_FOR_1D( Np, i, 
+            AMREX_FOR_1D( Np, i,
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
                 int spec1 = p1.idata(FHD_intData::species)-1;
@@ -805,7 +805,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 
                     const Real rMax = rmax_wall[spec1]*sigma_wall[spec1];
 
-                    
+
                     if (r <= rMax)
                     {
                         Gpu::Atomic::Add(prdcount_d, 1.0);
@@ -820,7 +820,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                             repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
                         }else if(sr_tog == 4)
                         {
-                            repulsive_force_grid(p1, rMin, rMax, sigma_wall[spec1], eepsilon_wall[spec1], topList, topLength);                        
+                            repulsive_force_grid(p1, rMin, rMax, sigma_wall[spec1], eepsilon_wall[spec1], topList, topLength);
                         }
                     }
                 }
@@ -837,7 +837,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void get_weights (const FhdParticleContainer::ParticleType& p, F f,
-                  const IntVect& nodal_flag, 
+                  const IntVect& nodal_flag,
                   amrex::Real weights[3][2*F::ks], int indices[3][2*F::ks],
                   const amrex::GpuArray<amrex::Real, 3>& plo,
                   const amrex::GpuArray<amrex::Real, 3>& dx,
@@ -854,7 +854,7 @@ void get_weights (const FhdParticleContainer::ParticleType& p, F f,
         Real fd = fr - fi[idim];
         fn[idim] = (fd < 0.5) ? -1 : 0;
     }
-        
+
     for (int idim = 0; idim < 3; ++idim) {
         for (int i = 0 ; i < 2*ks; ++i) {
             int index = fi[idim] + i -(ks-1) + (1 - nodal_flag[idim]) * fn[idim];
@@ -867,7 +867,7 @@ void get_weights (const FhdParticleContainer::ParticleType& p, F f,
 
 template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void spread_op (amrex::Array4<amrex::Real> const& arr, F f, 
+void spread_op (amrex::Array4<amrex::Real> const& arr, F f,
                 amrex::Real w[3][2*F::ks], int indices[3][2*F::ks],
                 amrex::Real value)
 {
@@ -880,7 +880,7 @@ void spread_op (amrex::Array4<amrex::Real> const& arr, F f,
                                          w[0][i]*w[1][j]*w[2][k]*value);
             }
         }
-    }    
+    }
 }
 
 template <typename F>
@@ -903,7 +903,7 @@ Real inter_op (amrex::Array4<amrex::Real> const& arr, F f,
         }
     }
 
-    return output; 
+    return output;
 }
 
 //template <typename F>
@@ -912,26 +912,26 @@ Real inter_op (amrex::Array4<amrex::Real> const& arr, F f,
 //{
 //    using namespace amrex;
 //    constexpr int ks = F::ks;
-//    
+//
 //    GpuArray<Real, 3> plo = {plo_in[0], plo_in[1], plo_in[2]};
-//    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };    
+//    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };
 //    GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };
 
 //    Real volinv = 1.0/(dx_in[0]*dx_in[1]*dx_in[2]);
 //    Real permittivity = common::permittivity;
-//    
+//
 //    const auto Np = aos.numParticles();
 //    const auto pstruct = aos().dataPtr();
 
 //    auto arrEx = charge.array();
 //    const IntVect nodal_flag = charge.box().type();
-//    
+//
 //    amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
 //    {
 //        FhdParticleContainer::ParticleType& p = pstruct[ip];
 
 //        Real qm = p.rdata(FHD_realData::q)/permittivity;
-//        
+//
 //        Real w[3][2*ks];
 //        int indices[3][2*ks];
 
@@ -945,22 +945,22 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge, F f,
                      const amrex::Real* plo_in, const amrex::Real* dx_in)
 {
     using namespace amrex;
-    
+
     constexpr int twoks = 2*F::ks;
-    
+
     GpuArray<Real, 3> plo = {plo_in[0], plo_in[1], plo_in[2]};
-    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };    
+    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };
     GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };
 
     Real volinv = 1.0/(dx_in[0]*dx_in[1]*dx_in[2]);
     Real permittivity = common::permittivity;
-    
+
     const auto Np = aos.numParticles();
     const auto pstruct = aos().dataPtr();
 
     auto arr = charge.array();
     const IntVect nodal_flag = charge.box().type();
-    
+
     amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
@@ -999,7 +999,7 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
 {
     GpuArray<Real, 3> plo = {plo_in[0], plo_in[1], plo_in[2]};
     GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };
-    GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };    
+    GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };
 
     const auto Np = aos.numParticles();
     const auto pstruct = aos().dataPtr();
@@ -1013,12 +1013,12 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
     const IntVect Ezflag = Ez.box().type();
 
     constexpr int twoks = 2*F::ks;
-       
+
     amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
         //Print() << p.idata(FHD_intData::species) << "\n";
-                
+
         if(p.idata(FHD_intData::pinned) == 0)
         {
             Real w[3][twoks];
@@ -1034,9 +1034,9 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
             //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
             p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
         }
-       
+
     });
-    
+
 }
 
 void emf_gpu(FhdParticleContainer::AoS& aos,
@@ -1067,7 +1067,7 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
     GpuArray<Real, 3> plo = {plo_in[0], plo_in[1], plo_in[2]};
 
 
-    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };    
+    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };
     GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };
 
     Real volinv = 1.0/(dx_in[0]*dx_in[1]*dx_in[2]);
@@ -1085,7 +1085,7 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
     const IntVect sourcezflag = sourcez.box().type();
 
     constexpr int twoks = 2*F::ks;
-       
+
     amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
@@ -1093,10 +1093,10 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
         Real forcex = p.rdata(FHD_realData::forcex)*volinv;
         Real forcey = p.rdata(FHD_realData::forcey)*volinv;
         Real forcez = p.rdata(FHD_realData::forcez)*volinv;
-        
+
         Real w[3][twoks];
         int indices[3][twoks];
-        
+
         get_weights(p, f, sourcexflag, w, indices, plo, dx, dxi);
         spread_op(sourcexarr, f, w, indices, forcex);
 
@@ -1106,7 +1106,7 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
         get_weights(p, f, sourcezflag, w, indices, plo, dx, dxi);
         spread_op(sourcezarr, f, w, indices, forcez);
     });
-    
+
 }
 
 void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
@@ -1134,7 +1134,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
 
     *tmob = 1;
     *nmob = 1;
-    
+
     if(wall_mob==1)
     {
         //Single plane approximation
@@ -1192,7 +1192,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
 
     }else if(wall_mob==8)
     {
-    
+
     //  3nm  channel with 50% wet option
          Real h = (z)/(a);
          if(sw==1)
@@ -1205,7 +1205,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
             Real p5t=0.566849;
             Real p6t=0.37648402;
             Real p7t=1.30984565;
-            
+
             Real p1n=8.74245824e-01;
             Real p2n=4.43143801e+02;
             Real p3n=2.89678306e+00;
@@ -1213,7 +1213,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
             Real p5n=2.52401393e+00;
             Real p6n=1.98445562e-03;
             Real p7n=8.66798162e-02;
-                        
+
             *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
             *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
          }else
@@ -1226,7 +1226,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
             Real p5t=4.58467711e+00;
             Real p6t=7.51583164e+00;
             Real p7t=5.11764804e-01;
-            
+
             Real p1n=-3.11038612e+01;
             Real p2n=7.24698118e+02;
             Real p3n=2.59720646e+00;
@@ -1234,15 +1234,15 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
             Real p5n=1.79959078e+00;
             Real p6n=-3.20502020e+04;
             Real p7n=9.99299583e+02;
-                        
+
             *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
             *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
-         
+
          }
-         
+
      }else if(wall_mob==9)
      {
-    
+
     //  3nm  channel with 50% wet option
          Real h = (z)/a;
          if(sw==1)
@@ -1255,7 +1255,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
             Real p5t=0.566849;
             Real p6t=0.37648402;
             Real p7t=1.30984565;
-            
+
             Real p1n=8.74245824e-01;
             Real p2n=4.43143801e+02;
             Real p3n=2.89678306e+00;
@@ -1263,19 +1263,19 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
             Real p5n=2.52401393e+00;
             Real p6n=1.98445562e-03;
             Real p7n=8.66798162e-02;
-                        
+
             *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
             *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
          }else
          {
-                        
+
             *tmob = 0;
             *nmob = 0;
-         
+
          }
      }else if(wall_mob==10)
      {
-    
+
     //  6nm  channel with 50% wet option
          Real h = (z)/(a);
          if(sw==1)
@@ -1290,8 +1290,8 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5t=0.55248937;
                 Real p6t=0.94046469;
                 Real p7t=2.13396244;
-                
-                
+
+
                 Real p1n=0.93624854;
                 Real p2n=18.56989716;
                 Real p3n=1.83878153;
@@ -1299,7 +1299,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5n=3.83248387;
                 Real p6n=0.19086623;
                 Real p7n=0.36106751;
-        
+
                 *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
                 *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
             }else
@@ -1309,14 +1309,14 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5t=2.45101875;
                 Real p6t=-0.08659374;
                 Real p7t=0.16468328;
- 
+
                 Real p1n=1.00000348e+00;
                 Real p4n=1.99022307e+02;
                 Real p5n=5.25037502e+00;
                 Real p6n=-1.41215135e-01;
                 Real p7n=3.75160663e-01;
-                
-        
+
+
                 *tmob = std::max(p1t - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
                 *nmob = std::max(p1n - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
             }
@@ -1332,8 +1332,8 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5t=0.62029914;
                 Real p6t=0.8064739;
                 Real p7t=1.44457686;
-                
-                
+
+
                 Real p1n=-2.44256179e+01;
                 Real p2n=5.80060594e+02;
                 Real p3n=2.46993712e+00;
@@ -1341,7 +1341,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5n=1.69135487e+00;
                 Real p6n=-1.17490383e+05;
                 Real p7n=4.64120869e+03;
-     
+
                 *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
                 *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
             }else
@@ -1352,22 +1352,22 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p6t=-0.35438;
                 Real p7t=0.33194164;
 
-                
+
                 Real p1n=1.05183652;
                 Real p4n=-1.24519531;
                 Real p5n=0.75563082;
                 Real p6n=1.3110816;
                 Real p7n=0.33281854;
- 
+
                 *tmob = std::max(p1t - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
                 *nmob = std::max(p1n - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
             }
-         
+
          }
-         
+
      }else if(wall_mob==11)
      {
-    
+
     //  6nm  channel with 85% wet option
          Real h = (z)/(a);
          if(sw==1)
@@ -1382,8 +1382,8 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5t=0.55248937;
                 Real p6t=0.94046469;
                 Real p7t=2.13396244;
-                
-                
+
+
                 Real p1n=0.93624854;
                 Real p2n=18.56989716;
                 Real p3n=1.83878153;
@@ -1391,7 +1391,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5n=3.83248387;
                 Real p6n=0.19086623;
                 Real p7n=0.36106751;
-        
+
                 *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
                 *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
             }else
@@ -1401,13 +1401,13 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5t=2.45101875;
                 Real p6t=-0.08659374;
                 Real p7t=0.16468328;
- 
+
                 Real p1n=1.00000348e+00;
                 Real p4n=1.99022307e+02;
                 Real p5n=5.25037502e+00;
                 Real p6n=-1.41215135e-01;
-                Real p7n=3.75160663e-01;                
-        
+                Real p7n=3.75160663e-01;
+
                 *tmob = std::max(p1t - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
                 *nmob = std::max(p1n - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
             }
@@ -1441,7 +1441,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 Real p5t=2.54064061;
                 Real p6t=-0.07337932;
                 Real p7t=0.1577006;
-              
+
                 Real p1n=1.07407713;
                 Real p4n=-1.21935753;
                 Real p5n=0.71246117;
@@ -1451,11 +1451,11 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw, int spec)
                 *tmob = std::max(p1t - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
                 *nmob = std::max(p1n - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
             }
-         
+
          }
-         
+
      }
-         
+
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1521,7 +1521,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
     {
         //3nm channel with 50% wet option
         Real h = (z)/(a);
-        
+
          if(sw==1)
          {
             //3nm channel
@@ -1532,7 +1532,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
             Real p5t=0.566849;
             Real p6t=0.37648402;
             Real p7t=1.30984565;
-            
+
             Real p1n=8.74245824e-01;
             Real p2n=4.43143801e+02;
             Real p3n=2.89678306e+00;
@@ -1540,10 +1540,10 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
             Real p5n=2.52401393e+00;
             Real p6n=1.98445562e-03;
             Real p7n=8.66798162e-02;
-                        
+
             *tmobDer = std::max(-5*p2t/(a*pow(p3t + h , 6)) + 3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
             *nmobDer = std::max(-5*p2n/(a*pow(p3n + h , 6)) + 3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
-            
+
          }else
          {
             //  1.5nm
@@ -1570,7 +1570,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
             Real p5t=4.58467711e+00;
             Real p6t=7.51583164e+00;
             Real p7t=5.11764804e-01;
-            
+
             Real p1n=-3.11038612e+01;
             Real p2n=7.24698118e+02;
             Real p3n=2.59720646e+00;
@@ -1578,16 +1578,16 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
             Real p5n=1.79959078e+00;
             Real p6n=-3.20502020e+04;
             Real p7n=9.99299583e+02;
-                        
+
             *tmobDer = std::max(-5*p2t/(a*pow(p3t + h , 6)) + 3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
             *nmobDer = std::max(-5*p2n/(a*pow(p3n + h , 6)) + 3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
-         
+
          }
     }else if(wall_mob==9)
     {
         //3nm channel with 50% wet option
         Real h = (z)/a;
-        
+
          if(sw==1)
          {
             //3nm channel
@@ -1598,7 +1598,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
             Real p5t=0.566849;
             Real p6t=0.37648402;
             Real p7t=1.30984565;
-            
+
             Real p1n=8.74245824e-01;
             Real p2n=4.43143801e+02;
             Real p3n=2.89678306e+00;
@@ -1606,23 +1606,23 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
             Real p5n=2.52401393e+00;
             Real p6n=1.98445562e-03;
             Real p7n=8.66798162e-02;
-                        
+
             *tmobDer = std::max(-5*p2t/(a*pow(p3t + h , 6)) + 3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
             *nmobDer = std::max(-5*p2n/(a*pow(p3n + h , 6)) + 3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
-            
+
          }else
          {
 
-                        
+
             *tmobDer = 0;
             *nmobDer = 0;
-         
+
          }
     }else if(wall_mob==10)
     {
         //6nm channel with 50% wet option
         Real h = (z)/(a);
-        
+
          if(sw==1)
          {
             //100%
@@ -1634,8 +1634,8 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5t=0.55248937;
                 Real p6t=0.94046469;
                 Real p7t=2.13396244;
-                
-                
+
+
                 Real p1n=0.93624854;
                 Real p2n=18.56989716;
                 Real p3n=1.83878153;
@@ -1643,7 +1643,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5n=3.83248387;
                 Real p6n=0.19086623;
                 Real p7n=0.36106751;
-                            
+
                 *tmobDer = std::max(-5*p2t/(a*pow(p3t + h , 6)) + 3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
                 *nmobDer = std::max(-5*p2n/(a*pow(p3n + h , 6)) + 3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
             }else
@@ -1653,18 +1653,18 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5t=2.45101875;
                 Real p6t=-0.08659374;
                 Real p7t=0.16468328;
- 
+
                 Real p1n=1.00000348e+00;
                 Real p4n=1.99022307e+02;
                 Real p5n=5.25037502e+00;
                 Real p6n=-1.41215135e-01;
                 Real p7n=3.75160663e-01;
-            
+
                 *tmobDer = std::max( 3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
                 *nmobDer = std::max( 3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
-            
+
             }
-            
+
          }else
          {
             //  50%
@@ -1677,8 +1677,8 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5t=0.62029914;
                 Real p6t=0.8064739;
                 Real p7t=1.44457686;
-                
-                
+
+
                 Real p1n=-2.44256179e+01;
                 Real p2n=5.80060594e+02;
                 Real p3n=2.46993712e+00;
@@ -1686,7 +1686,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5n=1.69135487e+00;
                 Real p6n=-1.17490383e+05;
                 Real p7n=4.64120869e+03;
-                            
+
                 *tmobDer = std::max(-5*p2t/(a*pow(p3t + h , 6)) + 3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
                 *nmobDer = std::max(-5*p2n/(a*pow(p3n + h , 6)) + 3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
             }else
@@ -1697,21 +1697,21 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p6t=-0.35438;
                 Real p7t=0.33194164;
 
-                
+
                 Real p1n=1.05183652;
                 Real p4n=-1.24519531;
                 Real p5n=0.75563082;
                 Real p6n=1.3110816;
                 Real p7n=0.33281854;
-                
+
                 *tmobDer = std::max(3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
                 *nmobDer = std::max(3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
             }
-         
+
          }
     }else if(wall_mob==11)
      {
-    
+
     //  6nm  channel with 85% wet option
          Real h = (z)/(a);
          if(sw==1)
@@ -1726,8 +1726,8 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5t=0.55248937;
                 Real p6t=0.94046469;
                 Real p7t=2.13396244;
-                
-                
+
+
                 Real p1n=0.93624854;
                 Real p2n=18.56989716;
                 Real p3n=1.83878153;
@@ -1735,7 +1735,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5n=3.83248387;
                 Real p6n=0.19086623;
                 Real p7n=0.36106751;
-        
+
                 *tmobDer = std::max(-5*p2t/(a*pow(p3t + h , 6)) + 3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
                 *nmobDer = std::max(-5*p2n/(a*pow(p3n + h , 6)) + 3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
             }else
@@ -1745,13 +1745,13 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5t=2.45101875;
                 Real p6t=-0.08659374;
                 Real p7t=0.16468328;
- 
+
                 Real p1n=1.00000348e+00;
                 Real p4n=1.99022307e+02;
                 Real p5n=5.25037502e+00;
                 Real p6n=-1.41215135e-01;
-                Real p7n=3.75160663e-01;                
-        
+                Real p7n=3.75160663e-01;
+
                 *tmobDer = std::max( 3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
                 *nmobDer = std::max( 3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
             }
@@ -1785,7 +1785,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 Real p5t=2.54064061;
                 Real p6t=-0.07337932;
                 Real p7t=0.1577006;
-              
+
                 Real p1n=1.07407713;
                 Real p4n=-1.21935753;
                 Real p5n=0.71246117;
@@ -1795,9 +1795,9 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw, in
                 *tmobDer = std::max(3*p4t/(a*pow(p5t + h , 4)) + p6t/(a*pow(p7t + h , 2)),0.0);
                 *nmobDer = std::max(3*p4n/(a*pow(p5n + h , 4)) + p6n/(a*pow(p7n + h , 2)),0.0);
             }
-         
+
          }
-         
+
      }
 }
 
@@ -1836,7 +1836,7 @@ void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer,
 
     *nmobDer = (nmobtotalDer*part.rdata(FHD_realData::totalDiff) - nmobwetDer*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff);
     *tmobDer = (tmobtotalDer*part.rdata(FHD_realData::totalDiff) - tmobwetDer*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff);
-    
+
     //cout << "mobs: " << tmobtotal << ", " << tmobwet << endl;
     //cout << "diffs: " << tmobtotal << ", " << tmobwet << endl;
 }
@@ -1844,7 +1844,7 @@ void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Real, 3>& mobDer, FhdParticleContainer::ParticleType& part, const amrex::GpuArray<Real, 3>& plo, const amrex::GpuArray<Real, 3>& phi)
-{                           
+{
 
     Real nmob;
     Real tmob;
@@ -1874,11 +1874,11 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        get_mobility_diff_gpu(&nmob, &tmob, &nmobDer, &tmobDer, part, z);
 
        mob[0] = nmob;
-       mob[1] = tmob;               
+       mob[1] = tmob;
        mob[2] = tmob;
 
        mobDer[0] = nmobDer;
-       mobDer[1] = 0;               
+       mobDer[1] = 0;
        mobDer[2] = 0;
 
        z = part.pos(0);
@@ -1902,11 +1902,11 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        get_mobility_diff_gpu(&nmob, &tmob, &nmobDer, &tmobDer, part, z);
 
        mob[0] = tmob;
-       mob[1] = nmob;               
+       mob[1] = nmob;
        mob[2] = tmob;
 
        mobDer[0] = 0;
-       mobDer[1] = nmobDer;               
+       mobDer[1] = nmobDer;
        mobDer[2] = 0;
 
        z = part.pos(1);
@@ -1917,7 +1917,7 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
            mobDer[2] = -mobDer[2];
        }
 
-        
+
 
     }
 
@@ -1934,11 +1934,11 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        get_mobility_diff_gpu(&nmob, &tmob, &nmobDer, &tmobDer, part, z);
 
        mob[0] = tmob;
-       mob[1] = tmob;               
+       mob[1] = tmob;
        mob[2] = nmob;
 
        mobDer[0] = 0;
-       mobDer[1] = 0;               
+       mobDer[1] = 0;
        mobDer[2] = nmobDer;
 
        z = part.pos(2);

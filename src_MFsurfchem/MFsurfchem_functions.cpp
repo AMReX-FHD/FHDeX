@@ -36,13 +36,13 @@ void InitializeMFSurfchemNamespace()
 
     // load default values to surfcov0 array
     for (int m=0;m<n_ads_spec;m++) surfcov0[m] = 0.;
-    
+
     std::vector<amrex::Real> surfcov0_tmp(MAX_SPECIES);
     // get initial surface coverage
     if (pp.queryarr("surfcov0",surfcov0_tmp,0,n_ads_spec)){
         for (int m=0;m<n_ads_spec;m++) surfcov0[m] = surfcov0_tmp[m];
     }
-    
+
     surf_site_num_dens = 0.;
     // get number density of adsorption sites on the lattice
     pp.query("surf_site_num_dens",surf_site_num_dens);
@@ -51,11 +51,11 @@ void InitializeMFSurfchemNamespace()
     for (int m=0;m<n_ads_spec;m++) ads_rate_const[m] = 0.;
 
     std::vector<amrex::Real> ads_rate_const_tmp(MAX_SPECIES);
-    // get adsorption rate const 
+    // get adsorption rate const
     if (pp.queryarr("ads_rate_const",ads_rate_const_tmp,0,n_ads_spec)){
         for (int m=0;m<n_ads_spec;m++) ads_rate_const[m] = ads_rate_const_tmp[m];
     }
-    
+
     // load default values to des_rate array
     for (int m=0;m<n_ads_spec;m++) des_rate[m] = 0.;
 
@@ -93,7 +93,7 @@ void InitializeMFSurfchemNamespace()
 void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 {
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    
+
     GpuArray<Real,MAX_SPECIES> sum_surfcov0;
     if (stoch_surfcov0==1) {
         sum_surfcov0[0] = surfcov0[0];
@@ -112,7 +112,7 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
                 if (stoch_surfcov0==1) {
                     amrex::Real Ntot = rint(surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3]);  // total number of reactive sites
                     GpuArray<int,MAX_SPECIES> Nocc;
-               
+
                     for (int m=0;m<n_ads_spec;m++) Nocc[m] = 0;
 
                     for (int n=0;n<Ntot;n++) {
@@ -141,9 +141,9 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes,
                        const amrex::Geometry& geom, const amrex::Real dt)
 {
-    
+
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    
+
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();

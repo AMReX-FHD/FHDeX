@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -31,7 +31,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-DiagSinterFreeEnergyPore::DiagSinterFreeEnergyPore(SPPARKS *spk, int narg, char **arg) : 
+DiagSinterFreeEnergyPore::DiagSinterFreeEnergyPore(SPPARKS *spk, int narg, char **arg) :
   Diag(spk,narg,arg)
 {
   if (app->appclass != App::LATTICE)
@@ -52,31 +52,31 @@ void DiagSinterFreeEnergyPore::init()
 
 void DiagSinterFreeEnergyPore::compute()
 {
-	
+
 	if ( !init_flag ) {
 		initialize_parameters_calculation();
 		init_flag = true;
 	}
-	
+
 	const int VACANT ( AppSinter::VACANT );
 	double total_sites = 0;
 	int xgrid, ygrid, zgrid;
-	
+
 	int *spin = appsinter->spin;
 	tagint *id = appsinter->id;
 	int *numneigh = appsinter->numneigh;
 	int **neighbor = appsinter->neighbor;
-	
-	
+
+
 	double interfacialFEtmp = 0.0;
 	for (int i = 0; i < nlocal; i++) {
 		appsinter->global_to_grid( id[i], xgrid, ygrid, zgrid );
 		if ((xgrid > xstart_) && (xgrid < xend_) &&
 			(ygrid > ystart_) && (ygrid < yend_) &&
 			(zgrid > zstart_) && (zgrid < zend_) ) {
-		  
+
 			total_sites++;
-		  
+
 			int ispin = spin[i];
 			double surface = 0;
 			if ( ispin > VACANT ) { // If I am a grain site add the number of neighbors that are pore sites
@@ -86,20 +86,20 @@ void DiagSinterFreeEnergyPore::compute()
 			interfacialFEtmp += surface;
 		}
 	}
-	
+
 	vector<double> local_info( 2 );
 	local_info[0] = interfacialFEtmp;
 	local_info[1] = total_sites;
-	
+
 	vector<double> info_all( 2, 0 );
-	
+
 	MPI_Allreduce(&local_info[0], &info_all[0], 2, MPI_DOUBLE, MPI_SUM, world);
-	
-	interfacialFE = info_all[0] / info_all[1];	
-	
-	
+
+	interfacialFE = info_all[0] / info_all[1];
+
+
 //	MPI_Allreduce(&interfacialFEtmp,&interfacialFE,1,MPI_LONG_DOUBLE,MPI_SUM,world);
-//  density = appsinter->calculate_density();	
+//  density = appsinter->calculate_density();
 }
 
 /* ---------------------------------------------------------------------- */
@@ -125,7 +125,7 @@ void DiagSinterFreeEnergyPore::initialize_parameters_calculation()
    int nx = domain->nx;
    int ny = domain->ny;
    int nz = domain->nz;
-/*	
+/*
 	// Determine the central parallelepiped for calculating pore surface
 	double gs = appsinter->count_grain_sites();
 	double occupied_fraction = (double) gs / (double)( nx * ny * nz );
@@ -133,7 +133,7 @@ void DiagSinterFreeEnergyPore::initialize_parameters_calculation()
 	int nx_density = (int)floor( nx * rcube_fraction );
 	int ny_density = (int)floor( ny * rcube_fraction );
 	int nz_density = (int)floor( nz * rcube_fraction );
-	
+
 	// Open interval: x > xstart_density and x < xend_density ...
 	xstart_ = (nx - nx_density) / 2;
 	xend_ = xstart_ + nx_density;
@@ -141,16 +141,16 @@ void DiagSinterFreeEnergyPore::initialize_parameters_calculation()
 	yend_ = ystart_ + ny_density;
 	zstart_ = (nz - nz_density) / 2;
 	zend_ = zstart_ + nz_density;
-*/	
+*/
   int xsize = nx / 3;
   int ysize = ny / 3;
   int zsize = nz / 3;
-  
+
   xstart_ = nx*0.33;
   xend_ = xstart_ + xsize;
   ystart_ = ny*0.33;
   yend_ = ystart_ + ysize;
   zstart_ = nz*0.33;
-  zend_ = zstart_ + zsize; 
+  zend_ = zstart_ + zsize;
 }
 

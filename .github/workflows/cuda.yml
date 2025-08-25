@@ -44,7 +44,7 @@ jobs:
       run: .github/workflows/dependencies/dependencies_nvcc11.sh
     - name: Clone AMReX
       uses: actions/checkout@v2
-      with: 
+      with:
         repository: AMReX-Codes/amrex
         ref: development
         path: amrex
@@ -56,7 +56,7 @@ jobs:
         cd exec/multispec
         which nvcc || echo "nvcc not in PATH!"
         make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=FALSE
-      env: 
+      env:
         AMREX_HOME: $(GITHUB_WORKSPACE)/amrex
 
 

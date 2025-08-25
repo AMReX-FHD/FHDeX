@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-## load necessary modules 
+## load necessary modules
 module load craype-accel-amd-gfx90a
 module load amd-mixed
 #module load rocm/5.2.0  # waiting for 5.6 for next bump

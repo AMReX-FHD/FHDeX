@@ -43,7 +43,7 @@ struct count_iterator : std::iterator<std::random_access_iterator_tag,INT,INT,IN
 	count_iterator  operator-(INT n) const { return count_iterator(cur_-n); }
 	count_iterator& operator-(INT n) { cur_ -= n; return *this; }
 	INT operator-(count_iterator&rhs) const { return cur_-rhs.cur_; }
-	
+
 	INT& operator*() { return cur_; }
 	const INT& operator*() const { return cur_; }
 
@@ -91,15 +91,15 @@ struct bin_iterator : std::iterator<std::forward_iterator_tag,std::pair<typename
 		this->operator++();
 		return other;
 	}
-	
+
 	inline void invalidate();
 	inline void validate();
 	inline bool operator!=( const bin_iterator& rhs ) const { return index != rhs.index; }
 	inline bool operator==( const bin_iterator& rhs ) const { return !(this->operator!=(rhs)); }
-	
+
 	inline const P& operator*() const;
 	inline const P* operator->() const;
-	
+
 	const bin_range<T,CONFIG>& range;
 	int count[D-1];
 	std::size_t high;
@@ -113,7 +113,7 @@ struct bin_range {
 	using iterator = bin_iterator<T,CONFIG>;
 	iterator begin() const { return iterator(*this); }
 	iterator end() const { return iterator(*this,0); }
-	
+
 	bin_range( int lda_[], int lh_[][2], const std::vector<std::size_t>& d_, const std::vector<P>& v_ )
 		: displs(d_), value(v_) {
 		for( int i=0; i<D; ++i ){
@@ -138,7 +138,7 @@ bin_iterator<T,CONFIG>::bin_iterator( const bin_range<T,CONFIG>& range_ ): range
 	validate();
 }
 template<typename T, typename CONFIG>
-bin_iterator<T,CONFIG>& bin_iterator<T,CONFIG>::operator++() 
+bin_iterator<T,CONFIG>& bin_iterator<T,CONFIG>::operator++()
 {
 	if( ++index == high ){
 		int i=0;
@@ -154,7 +154,7 @@ bin_iterator<T,CONFIG>& bin_iterator<T,CONFIG>::operator++()
 }
 template<typename T, typename CONFIG>
 void bin_iterator<T,CONFIG>::invalidate()
-{ 
+{
 	std::size_t offset = 0;
 	for( int i=0; i<D-1; ++i ) offset += range.lda[i+1]*(range.lh[i+1][1]-1);
 	index = high  = range.displs[offset+range.lh[0][1]];
@@ -168,7 +168,7 @@ inline void bin_iterator<T,CONFIG>::validate()
 	index = range.displs[offset+range.lh[0][0]];
 	high  = range.displs[offset+range.lh[0][1]];
 }
-	
+
 template<typename T, typename CONFIG>
 inline const typename bin_iterator<T,CONFIG>::P& bin_iterator<T,CONFIG>::operator*() const { return range.value[index]; }
 template<typename T, typename CONFIG>
@@ -226,7 +226,7 @@ public:
 		}
 		displs.resize(nn+1,0); // add 1 for sentinel
 		std::partial_sum(counts.begin(),counts.end(), displs.begin()+1);
-		
+
 		counts = displs;
 		std::vector<std::pair<point_type,T> > v(val.size());
 		for( std::size_t i=0; i<val.size(); ++i ) v[counts[index[i]]++] = val[i];

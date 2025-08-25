@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -53,11 +53,11 @@ CreateSites::CreateSites(SPPARKS *spk) : Pointers(spk) {}
 
 void CreateSites::command(int narg, char **arg)
 {
-  if (app == NULL) 
+  if (app == NULL)
     error->all(FLERR,"Create_sites command before app_style set");
-  if (domain->box_exist == 0) 
+  if (domain->box_exist == 0)
     error->all(FLERR,"Create_sites command before simulation box is defined");
-  if (app->sites_exist == 1) 
+  if (app->sites_exist == 1)
     error->all(FLERR,"Cannot create sites after sites already exist");
   if (domain->lattice == NULL)
     error->all(FLERR,"Cannot create sites with undefined lattice");
@@ -72,7 +72,7 @@ void CreateSites::command(int narg, char **arg)
     style = REGION;
     if (narg < 2) error->all(FLERR,"Illegal create_sites command");
     nregion = domain->find_region(arg[1]);
-    if (nregion == -1) 
+    if (nregion == -1)
       error->all(FLERR,"Create_sites region ID does not exist");
     iarg = 2;
   } else error->all(FLERR,"Illegal create_sites command");
@@ -114,11 +114,11 @@ void CreateSites::command(int narg, char **arg)
       iarg += 3;
     } else if (strcmp(arg[iarg],"basis") == 0) {
       if (iarg+3 > narg) error->all(FLERR,"Illegal create_sites command");
-      if (valueflag == DUMMY) 
+      if (valueflag == DUMMY)
 	error->all(FLERR,"Must use value option before basis option "
 		   "in create_sites command");
       int ilo,ihi;
-      if (nbasis == 0) 
+      if (nbasis == 0)
 	error->all(FLERR,"Cannot use create_sites basis with random lattice");
       potential->bounds(arg[iarg+1],nbasis,ilo,ihi);
       int count = 0;
@@ -156,8 +156,8 @@ void CreateSites::command(int narg, char **arg)
   if (latstyle == ZIGZAG) error->all(FLERR,"Cannot use create_sites with zigzag lattice");
 
   if (latstyle == LINE_2N ||
-      latstyle == SQ_4N || latstyle == SQ_8N || latstyle == TRI || 
-      latstyle == SC_6N || latstyle == SC_26N || 
+      latstyle == SQ_4N || latstyle == SQ_8N || latstyle == TRI ||
+      latstyle == SC_6N || latstyle == SC_26N ||
       latstyle == FCC || latstyle == BCC || latstyle == DIAMOND ||
       latstyle == FCC_OCTA_TETRA) {
 
@@ -221,20 +221,20 @@ void CreateSites::structured_lattice()
 
   // in periodic dims:
   // check that simulation box is integer multiple of lattice spacing
-  
+
   nx = static_cast<int> (round(domain->xprd / xlattice));
   if (dimension >= 2) ny = static_cast<int> (round(domain->yprd / ylattice));
   else ny = 1;
   if (dimension == 3) nz = static_cast<int> (round(domain->zprd / zlattice));
   else nz = 1;
 
-  if (xperiodic && 
+  if (xperiodic &&
       fabs(nx*xlattice - domain->xprd) > EPSILON)
     error->all(FLERR,"Periodic box is not a multiple of lattice spacing");
   if (dimension > 1 && yperiodic &&
       fabs(ny*ylattice - domain->yprd) > EPSILON)
     error->all(FLERR,"Periodic box is not a multiple of lattice spacing");
-  if (dimension > 2 && zperiodic && 
+  if (dimension > 2 && zperiodic &&
       fabs(nz*zlattice - domain->zprd) > EPSILON)
     error->all(FLERR,"Periodic box is not a multiple of lattice spacing");
 
@@ -295,7 +295,7 @@ void CreateSites::structured_lattice()
     while (zhi*zlattice <= boxzhi) zhi++;
     zhi--;
   }
-  
+
   // generate xyz coords and store them with site ID
   // tile the simulation box from origin, respecting PBC
   // site IDs should be contiguous if style = BOX and fully periodic
@@ -327,8 +327,8 @@ void CreateSites::structured_lattice()
 	  if (style == REGION &&
 	      domain->regions[nregion]->match(x,y,z) == 0) continue;
 
-	  if (x < subxlo || x >= subxhi || 
-	      y < subylo || y >= subyhi || 
+	  if (x < subxlo || x >= subxhi ||
+	      y < subylo || y >= subyhi ||
 	      z < subzlo || z >= subzhi) continue;
 
 	  if (latticeflag) applattice->add_site(n,x,y,z);
@@ -350,7 +350,7 @@ void CreateSites::structured_lattice()
 	      iarray[valueindex][nlocal-1] = basis_ivalue[m+1];
 	    else iarray[valueindex][nlocal-1] = ivalue;
 	  } else if (valueflag == DARRAY) {
-	    if (basisflag[m+1]) 
+	    if (basisflag[m+1])
 	      darray[valueindex][nlocal-1] = basis_dvalue[m+1];
 	    else darray[valueindex][nlocal-1] = dvalue;
 	  }
@@ -445,7 +445,7 @@ void CreateSites::structured_connectivity()
       if ((id[i]-1) % 16 < 8) max = maxneigh;
       else max = 14;
     } else max = maxneigh;
-    
+
     for (j = 0; j < max; j++) {
 
       // ijkm neigh = indices of neighbor site
@@ -515,8 +515,8 @@ void CreateSites::structured_connectivity()
 
       tagint one = 1;   // use this to avoid int overflow in calc of gid
 
-      gid = one*(kneigh-zlo)*(yhi-ylo+1)*(xhi-xlo+1)*nbasis + 
-	one*(jneigh-ylo)*(xhi-xlo+1)*nbasis + one*(ineigh-xlo)*nbasis + 
+      gid = one*(kneigh-zlo)*(yhi-ylo+1)*(xhi-xlo+1)*nbasis +
+	one*(jneigh-ylo)*(xhi-xlo+1)*nbasis + one*(ineigh-xlo)*nbasis +
         mneigh + 1;
 
       if (style == BOX && nonperiodic == 0 && (gid <= 0 || gid > nglobal))
@@ -584,10 +584,10 @@ void CreateSites::random_sites()
       } else break;
     }
 
-    if (x < subxlo || x >= subxhi || 
-	y < subylo || y >= subyhi || 
+    if (x < subxlo || x >= subxhi ||
+	y < subylo || y >= subyhi ||
 	z < subzlo || z >= subzhi) continue;
-    
+
     if (latticeflag) applattice->add_site(n,x,y,z);
     else appoff->add_site(n,x,y,z);
 
@@ -664,7 +664,7 @@ void CreateSites::random_connectivity()
 	xyz[i][2] - subzlo <= cutoff || subzhi - xyz[i][2] <= cutoff) {
       if (nsend == maxbuf) {
 	maxbuf += DELTABUF;
-	bufsend = (Site *) 
+	bufsend = (Site *)
 	  memory->srealloc(bufsend,maxbuf*sizeof(Site),"create:bufsend");
       }
       bufsend[nsend].id = id[i];
@@ -679,7 +679,7 @@ void CreateSites::random_connectivity()
   // setup ring of procs
 
   int next = me + 1;
-  int prev = me -1; 
+  int prev = me -1;
   if (next == nprocs) next = 0;
   if (prev < 0) prev = nprocs - 1;
 
@@ -688,9 +688,9 @@ void CreateSites::random_connectivity()
   int maxsize;
   MPI_Allreduce(&nsend,&maxsize,1,MPI_INT,MPI_MAX,world);
 
-  bufsend = (Site *) 
+  bufsend = (Site *)
     memory->srealloc(bufsend,maxsize*sizeof(Site),"create:bufsend");
-  Site *bufcopy = (Site *) 
+  Site *bufcopy = (Site *)
     memory->smalloc(maxsize*sizeof(Site),"create:bufcopy");
 
   // cycle send list around ring of procs back to self
@@ -952,7 +952,7 @@ void CreateSites::ghosts_from_connectivity(AppLattice *apl, int delpropensity)
   // setup ring of procs
 
   int next = me + 1;
-  int prev = me -1; 
+  int prev = me -1;
   if (next == nprocs) next = 0;
   if (prev < 0) prev = nprocs - 1;
 
@@ -1013,7 +1013,7 @@ void CreateSites::ghosts_from_connectivity(AppLattice *apl, int delpropensity)
     // cycle site list around ring of procs back to self
     // when receive it, fill in info for any sites I own
     // info = proc, local index, xyz, numneigh, list of global neighbor IDs
-    
+
     MPI_Request request;
     MPI_Status status;
 
@@ -1179,7 +1179,7 @@ void CreateSites::offsets(double **basis)
 
 /* ---------------------------------------------------------------------- */
 
-void CreateSites::offsets_2d(int ibasis, double **basis, 
+void CreateSites::offsets_2d(int ibasis, double **basis,
 			    double cutlo, double cuthi,
 			    int ntarget, int **cmapone)
 {
@@ -1212,8 +1212,8 @@ void CreateSites::offsets_2d(int ibasis, double **basis,
 
 /* ---------------------------------------------------------------------- */
 
-void CreateSites::offsets_3d(int ibasis, double **basis, 
-			    double cutlo, double cuthi, 
+void CreateSites::offsets_3d(int ibasis, double **basis,
+			    double cutlo, double cuthi,
 			    int ntarget, int **cmapone)
 {
   int i,j,k,m,n;

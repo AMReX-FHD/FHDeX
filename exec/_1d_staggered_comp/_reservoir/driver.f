@@ -66,7 +66,7 @@ c    1            vmsqt(1:ndim,4,4)
      2      icor,nstat
      1   ,pleft,pright,rholeft,rhoright
 
-c   
+c
        mass1 = 6.63d-23
        mass0 = mass1*1.d0
        d0=3.66d-8
@@ -96,7 +96,7 @@ c
        rgas0 = kboltz/mass0
 
        pi = 4.d0*atan2(1.d0,1.d0)
- 
+
        cv0 = 1.5d0*rgas0
        cv1 = 1.5d0*rgas1
 c      cv1 = 2.5d0*rgas1
@@ -104,7 +104,7 @@ c      cv1 = 2.5d0*rgas1
        rmix =  (rgas1*camb+(1.d0-camb)*rgas0)
        cvmix = (cv1*camb+(1.d0-camb)*cv0)
 
- 
+
        pamb = rhoamb*T0*(rgas1*camb+rgas0*(1.d0-camb))
 
        if(Tleft .lt.0)then
@@ -119,7 +119,7 @@ c      cv1 = 2.5d0*rgas1
        endif
        write(6,*)cleft,Tleft,rholeft
        write(6,*)cright,Tright,rhoright
- 
+
        etaC0 = 5.d0/(16.d0*d0**2)*sqrt(mass0*kboltz/pi)
        kappaC0 = 15.d0*kboltz/(4.d0*mass0)*etaC0
        etaC1 = 5.d0/(16.d0*d1**2)*sqrt(mass1*kboltz/pi)
@@ -168,7 +168,7 @@ c   set up stuff to gather statistics
       nstep = nstep + ntherm
       istat = 0
 
-        
+
            do  i=1,npts
 c            rho = rhoamb + .1d0*rhoamb*sin(2.d0*pi*x(i)/xlen)
 c            con(i,1) = rho
@@ -179,7 +179,7 @@ c            con(i,1) = rho
            enddo
              con(npts+1,2) = 0.d0
 
-      
+
 
       call output(x,xl,con,npts,0,0.d0,ndim)
 
@@ -192,7 +192,7 @@ c     if(n.gt.ntherm)dorand = 0.d0
          else
             jstart = 1
          endif
-	     
+
          time = dfloat(n)*dt
 
          do j=-1,npts+3
@@ -289,7 +289,7 @@ c            con(1,2) = 0.d0
           else
              con(npts+1,2) = con(1,2)
           endif
-         
+
          if(mod(n,nout).eq.0)then
 
          totmass = 0.d0
@@ -518,7 +518,7 @@ c    1            - vmeant(j,4)*rhostar
       character*10 step
 
       write(6,*)" ndim", ndim
-    
+
       write(step,'(i10.10)') n
       rhofile = "rho_" // step
       tempfile = "temp_" // step
@@ -566,7 +566,7 @@ c        write(6,101)xl(j),con(j,2)
         write(24,102)xl(j),con(j,2)
       enddo
       close(24)
-     
+
   101 format(1p8e15.7)
   102 format(1p6e20.12)
       return

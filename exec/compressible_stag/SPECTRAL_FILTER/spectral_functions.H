@@ -75,8 +75,8 @@ void SpectralWritePlotFile(const int step,
                            const amrex::MultiFab& vel_total,
                            const amrex::MultiFab& scalar_total);
 
-void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, 
-                             const std::string& checkpointname, 
+void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name,
+                             const std::string& checkpointname,
                              BoxArray& ba_old, DistributionMapping& dmap_old,
                              int NVARS, int NGC, const amrex::IntVect ngc,
                              int nodal_flag=-1);

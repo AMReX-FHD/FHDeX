@@ -3,13 +3,13 @@
 #include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
     // these are interfaces to fortran subroutines
 
-    void initdata(const int* level, const amrex_real* time, 
+    void initdata(const int* level, const amrex_real* time,
 		  const int* lo, const int* hi,
 		  BL_FORT_FAB_ARG_3D(state),
 		  const amrex_real* dx, const amrex_real* problo);
@@ -58,8 +58,8 @@ extern "C"
                 AMREX_D_DECL(BL_FORT_FAB_ARG_3D(fx2),
                        BL_FORT_FAB_ARG_3D(fy2),
                        BL_FORT_FAB_ARG_3D(fz2)),
-                const amrex_real* dx, const amrex_real* dt, 
-                const amrex_real* diffcoeff, const int* correct); 
+                const amrex_real* dx, const amrex_real* dt,
+                const amrex_real* diffcoeff, const int* correct);
 
     void get_congrad_3d( const int* lo, const int* hi,
                 const BL_FORT_FAB_ARG_3D(con),
@@ -71,7 +71,7 @@ extern "C"
                 BL_FORT_FAB_ARG_3D(zface),
                 int* iface, const int* if_lo, const int* if_hi,
                 const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
-                const amrex_real* ib_cen_z, 
+                const amrex_real* ib_cen_z,
                 const amrex_real* dx, const amrex_real* prob_lo);
 
     void get_surfgrad_3d( const int* lo, const int* hi,
@@ -83,24 +83,24 @@ extern "C"
                 const BL_FORT_FAB_ARG_3D(ls),
                 int* iface, const int* if_lo, const int* if_hi,
                 const amrex_real* dx, const amrex_real* prob_lo);
-   
-   
+
+
    void get_ptsource_2d( const int* lo, const int* hi,
                int* ctag, const int* c_lo, const int* c_hi,
                 BL_FORT_FAB_ARG_3D(ptS),
                 const amrex_real* strength,const amrex_real* dx,
                 const amrex_real* prob_lo, int* Num_Source);
- 
+
     void get_ptsource_3d( const int* lo, const int* hi,
                 int * ctag,const int* c_lo, const int* c_hi,
                 BL_FORT_FAB_ARG_3D(ptS),
                 const amrex_real* strength, const amrex_real* dx,
  	        const amrex_real* prob_lo, int* Num_source);
-   
+
 
      void confill (BL_FORT_FAB_ARG_3D(state),
 		  const int* dlo, const int* dhi,
-		  const amrex_real* dx, const amrex_real* glo, 
+		  const amrex_real* dx, const amrex_real* glo,
 		  const amrex_real* time, const int* bc);
 
 
