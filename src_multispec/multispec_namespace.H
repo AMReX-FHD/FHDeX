@@ -64,5 +64,6 @@ namespace multispec {
     extern AMREX_GPU_MANAGED amrex::Real 	GradEnCoef;
     extern AMREX_GPU_MANAGED amrex::Real 	PotWellDepr;
     extern AMREX_GPU_MANAGED amrex::Real 	M_phi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 4> LeesEdwardsPull;
 }
 

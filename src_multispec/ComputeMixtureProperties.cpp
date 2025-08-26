@@ -92,20 +92,21 @@ void ComputeEta(const MultiFab& rho_in,
                 eta(i,j,k) = std::min(visc_coef,eta(i,j,k));
             });
         }
-        
         if (enhance_ice_visc == 1) {
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Real c = rho(i,j,k,0);
                 c = (c-c_init_1[1])/(c_init_1[0]-c_init_1[1]);
+                
+                // Linear viscosity variation
                 eta(i,j,k) = 1+(visc_scale-1.0)*c;
                 eta(i,j,k) = std::max(1.0,eta(i,j,k));
                 eta(i,j,k) = std::min(visc_scale,eta(i,j,k));
                 eta(i,j,k) *= visc_coef;
                 
-                //Real cMid = 1.0;
-                // If changing from 0.5, change cMid in src_hydro/StochMomFlux().cpp. cMid ideally = 0.5*(c_init_1[0]+c_init_1[1]), but src_hydro cannot access c_init.
-                //eta(i,j,k) = (1+(visc_scale-1.0)*0.5*(1+std::tanh((c-1.0)/0.1)))*visc_coef;
+                // tanh viscosity variation
+                // see icePhi condition to turn off ice_fluctuations in src_hydro/StochMomFlux().cpp.
+                // eta(i,j,k) = (1+(visc_scale-1.0)*0.5*(1+std::tanh((c-ice_phi)/0.01)))*visc_coef;
                 // If changing the above function form ((1+(visc_scale-1.0)*0.5*(1+std::tanh((c-cMid)/0.1)))*visc_coef), reflect this in src_hydro/StochMomFlux().cpp;
             });
         }

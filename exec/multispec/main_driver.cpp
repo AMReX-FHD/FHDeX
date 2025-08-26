@@ -132,14 +132,14 @@ void main_driver(const char* argv)
     /***/
     MultiFab phi_old;
     MultiFab phitot_old;
-    
+    MultiFab LeesEdwardsX;
+ 
     if (restart > 0) {
         ReadCheckPoint(init_step,time,dt,
                        rho_old,rhotot_old,phi_old,phitot_old,pi,umac,Epot,grad_Epot_old,
                        ba,dmap);
     }
     else {
-
         init_step = 1;
         time = start_time;
         if (fixed_dt <= 0.) {
@@ -180,6 +180,8 @@ void main_driver(const char* argv)
         phi_old.define 		(ba, dmap, nspecies, ng_s);
         phitot_old.define	(ba, dmap, 1       , ng_s);
     }
+    LeesEdwardsX.define(convert(ba,nodal_flag_dir[0]), dmap, 1, 1);	// just like umac definition above
+    //LeesEdwardsX.define(ba, dmap, 1		 , ng_s);
 
     // moved this to here so can change dt from value in checkpoint
     dt = fixed_dt;
@@ -189,17 +191,12 @@ void main_driver(const char* argv)
     //
     //
 
-    // get grid spacing
-    const Real* dx = geom.CellSize();
-
     // build layouts for staggered multigrid solver and macproject within preconditioner
     //
     //
     //
 
-    if (restart < 0) {
-    
-    	  /***/
+    if (restart < 0) {        
         // initialize rho and umac in valid region only
         InitRhoUmac(umac,rho_old,phi_old,geom);
 
@@ -234,13 +231,37 @@ void main_driver(const char* argv)
     	  /***/
     MultiFab phi_new       	(ba, dmap, nspecies, ng_s);
     MultiFab phitot_new       (ba, dmap, 1       , ng_s);
-    amrex::Print() << "===============================\n";
-    amrex::Print() << "Temperature:\t" << T_init[0] <<" K\n";
-    amrex::Print() << "M_phi:\t\t" << M_phi <<" cm^2/(dyne.s)\n";
-    amrex::Print() << "===============================\n";
+    amrex::Print() << "\n===============================\n";
+    amrex::Print() << "Temperature:\t\t" << T_init[0] <<" K\n";
+    amrex::Print() << "M_phi:\t\t\t" << M_phi <<" cm^2/(dyne.s)\n";
+    amrex::Print() << "visc_scale:\t\t" << visc_scale <<"\n";
 		
-    //MultiFab local_MobScale   (ba, dmap, 1		 , 0);
-    //local_MobScale.setVal(1.0);	// Change this near to wall BC
+    // get grid spacing; originally at line 196
+    const Real* dx = geom.CellSize();
+    
+    LeesEdwardsX.setVal(0.);
+    if (LeesEdwardsPull[0] != 0) {
+    	amrex::Print() << "Lees-Edwards_x(y):\t" << LeesEdwardsPull[0] <<" dyne/cm^3\n";
+	   for (MFIter mfi(LeesEdwardsX); mfi.isValid(); ++mfi )
+	   {
+	   	Box bx = mfi.tilebox();
+	      const Array4<Real>& LeesEdx = LeesEdwardsX.array(mfi);
+	      Real Ly = prob_hi[1] - prob_lo[1];
+		   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	      {
+	      	Real y = prob_lo[1] + (j+0.5)*dx[1];
+	                      
+         	if (y > prob_lo[1]+LeesEdwardsPull[2]*Ly-LeesEdwardsPull[3]*Ly && y < prob_lo[1]+LeesEdwardsPull[2]*Ly+LeesEdwardsPull[3]*Ly){
+         		LeesEdx(i,j,k) = 1.0*LeesEdwardsPull[0];
+         	} else if (y > prob_lo[1]+LeesEdwardsPull[1]*Ly-LeesEdwardsPull[3]*Ly && y < prob_lo[1]+LeesEdwardsPull[1]*Ly+LeesEdwardsPull[3]*Ly){
+         		LeesEdx(i,j,k) = -1.0*LeesEdwardsPull[0];         	
+         	}
+	      });
+	   }
+    }
+    LeesEdwardsX.FillBoundary(geom.periodicity());
+    amrex::Print() << "===============================\n\n";
+    
     /////////////////////////////////////////
 
     // eta and Temp on nodes (2d) or edges (3d)
@@ -314,8 +335,7 @@ void main_driver(const char* argv)
         else {
             Abort("main_driver.cpp: dielectric_type != 0 not supported");
         }
-    }
-    
+    }    
     
     // allocate and build MultiFabs that will contain random numbers
     // by declaring StochMassFlux and StochMomFlux objects
@@ -498,6 +518,7 @@ void main_driver(const char* argv)
       From this perspective it may be useful to keep initial_projection even in overdamped
       because different gmres tolerances may be needed in the first step than in the rest
     */
+    
     if (algorithm_type != 2) {
         InitialProjection(umac,rho_old,rhotot_old,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                           stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom,
@@ -527,8 +548,9 @@ void main_driver(const char* argv)
         }
         
         // write initial plotfile and structure factor
+        
         if (plot_int > 0) {
-            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot,phitot_old,phi_old,eta);
+            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot,phi_old);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
@@ -577,7 +599,7 @@ void main_driver(const char* argv)
                                  grad_Epot_old,grad_Epot_new,
                                  charge_old,charge_new,Epot,permittivity,
                                  sMassFlux,sMomFlux,
-                                 phi_old,phi_new,phitot_old,phitot_new,
+                                 phi_old,phi_new,phitot_old,phitot_new,LeesEdwardsX,
                                  dt,time,istep,geom);
         }
         else {
@@ -615,7 +637,7 @@ void main_driver(const char* argv)
 
         // write plotfile at specific intervals
         if (plot_int > 0 && istep%plot_int == 0) {
-            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot,phitot_new,phi_new,eta);
+            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot,phi_new);
             if (istep > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(istep,time,geom,"plt_SF");
             }

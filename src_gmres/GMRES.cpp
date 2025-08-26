@@ -492,7 +492,14 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         Print() << "  residual/(norm_b,initial) = " << norm_resid/norm_b << "  "
                 << norm_resid/norm_init_resid << std::endl;
     }
-
+    
+    if (geom.isAllPeriodic()){
+	    Vector<Real> sum(AMREX_SPACEDIM);
+	    SumStag(x_u, sum, true);
+	    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	    	x_u[d].plus(-sum[d],0,1,x_u[d].nGrow());
+	    }    	
+    }
 }
 
 void UpdateSol(std::array<MultiFab, AMREX_SPACEDIM>& x_u,

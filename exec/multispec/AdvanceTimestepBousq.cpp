@@ -37,6 +37,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                           MultiFab& phi_new,
                           MultiFab& phitot_old,
                           MultiFab& phitot_new,
+                          MultiFab& LeesEdwardsX,
                           const Real& dt,
                           const Real& time,
                           const int& istep,
@@ -277,7 +278,7 @@ if (use_ice_nucleation ==0) {
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Subtract(gmres_rhs_v[d],gradpi[d],0,0,1,0);
     }
-
+    
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
     //
     //
@@ -310,6 +311,11 @@ if (use_ice_nucleation ==0) {
     // add (1/2)*diff_mom_fluxdiv_new to gmres_rhs_v
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Saxpy(gmres_rhs_v[d],0.5,diff_mom_fluxdiv_new[d],0,0,1,0);
+    }
+    
+    // add Lees-Edwards force to gmres_rhs_v
+    if (LeesEdwardsPull[0] != 0) {
+    	MultiFab::Add(gmres_rhs_v[0],LeesEdwardsX,0,0,1,0);
     }
 
     // compute div(vbar^n) and store in gmres_rhs_p
@@ -737,6 +743,8 @@ if (use_ice_nucleation ==0){
 			      phiNew(i,j,k,n+1) = 1.0-phiNew(i,j,k,n);
 	       });
 	   }
+	   phi_new.FillBoundary(geom.periodicity());
+      MultiFabPhysBC(phi_new,geom,0,1,SPEC_BC_COMP);
     	ComputeRhotot(phi_new,phitot_new,1);
     	
       // compute reversible stress tensor ---added term
@@ -876,6 +884,11 @@ if (use_ice_nucleation ==0){
     // add (1/2)*diff_mom_fluxdiv_new to gmres_rhs_v
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Saxpy(gmres_rhs_v[d],0.5,diff_mom_fluxdiv_new[d],0,0,1,0);
+    }
+    
+    // add Lees-Edwards force to gmres_rhs_v
+    if (LeesEdwardsPull[0] != 0) {
+    	MultiFab::Add(gmres_rhs_v[0],LeesEdwardsX,0,0,1,0);
     }
 
     // compute div(vbar^{n+1,*}) and store in gmres_rhs_p

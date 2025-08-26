@@ -64,6 +64,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                           MultiFab& phi_new,
                           MultiFab& phitot_old,
                           MultiFab& phitot_new,
+                          MultiFab& LeesEdwardsX,
                           const Real& dt,
                           const Real& time,
                           const int& istep,
@@ -121,9 +122,9 @@ void WritePlotFile(const int step,
                    const MultiFab& pres,
                    const MultiFab& charge,
                    const MultiFab& Epot,
-                   const MultiFab& phitot,
-		   			 const MultiFab& phi,
-		   			 const MultiFab& eta);
+		   			 const MultiFab& phi);//,
+		   			 //const MultiFab& eta,
+		   			 //const MultiFab& LeesEdX);
 
 ///////////////////////////
 

@@ -7,7 +7,7 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
-DIM       = 3
+DIM       = 2
 DSMC      = FALSE
 MAX_SPEC      = 8
 # MAX_ELEM needs to be MAX_SPEC*(MAX_SPEC-1)/2

@@ -12,14 +12,14 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& rhotot,
-		   const MultiFab& rho,
-		   const MultiFab& pres,
-                   const MultiFab& charge,
-                   const MultiFab& Epot,
-		   const MultiFab& phitot,
-		   const MultiFab& phi,
-		   const MultiFab& visc)
+					    const MultiFab& rhotot,
+					    const MultiFab& rho,
+					    const MultiFab& pres,
+			          const MultiFab& charge,
+			          const MultiFab& Epot,
+					    const MultiFab& phi)//,
+					    //const MultiFab& visc,
+			          //const MultiFab& LeesEdX)
 {
     
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -29,15 +29,14 @@ void WritePlotFile(int step,
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
-    // rhotot        1
-    // rho           nspecies
-    // phitot        1
+    // rhotot        1. Not required.
+    // rho           nspecies. Not required.
     // phi           nspecies
-    // c             nspecies
+    // c             nspecies. Not required.
     // averaged vel  AMREX_SPACEDIM
-    // shifted  vel  AMREX_SPACEDIM
+    // shifted  vel  AMREX_SPACEDIM. Not required.
     // pres          1
-    int nPlot = 2*AMREX_SPACEDIM + 3*nspecies + 4;
+    int nPlot = 1*AMREX_SPACEDIM + 0*nspecies + 2;
 
     if (use_charged_fluid) {
         // charge
@@ -51,7 +50,8 @@ void WritePlotFile(int step,
 
     // keep a counter for plotfile variables
     int cnt = 0;
-
+    
+/*
     varNames[cnt++] = "rho";
 
     for (int i=0; i<nspecies; ++i) {
@@ -61,42 +61,52 @@ void WritePlotFile(int step,
     }
     
     varNames[cnt++] = "phi";
+*/
 
-    for (int i=0; i<nspecies; ++i) {
+    for (int i=0; i<nspecies-1; ++i) {
         std::string x = "phi";
         x += (49+i);
         varNames[cnt++] = x;
     }
     
-    for (int i=0; i<nspecies; ++i) {
+/*  
+	 for (int i=0; i<nspecies; ++i) {
         std::string x = "c";
         x += (49+i);
         varNames[cnt++] = x;
     }
+*/
     
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         std::string x = "averaged_vel";
         x += (120+i);
         varNames[cnt++] = x;
     }
-
+    
+/*
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         std::string x = "shifted_vel";
         x += (120+i);
         varNames[cnt++] = x;
     }
-
+*/   
+ 
     varNames[cnt++] = "pres";
+
+/*
     varNames[cnt++] = "visc";
+    varNames[cnt++] = "LeesEdwardsX";
 
     if (use_charged_fluid) {
         varNames[cnt++] = "charge";
         varNames[cnt++] = "Epot";
     }
+*/
 
     // reset plotfile variable counter
     cnt = 0;
-
+    
+/*
     // copy rhotot into plotfile
     MultiFab::Copy(plotfile, rhotot, 0, cnt, 1, 0);
     cnt++;
@@ -110,36 +120,46 @@ void WritePlotFile(int step,
     // copy phitot into plotfile
     MultiFab::Copy(plotfile, phitot, 0, cnt, 1, 0);
     cnt++;
-    
+*/    
+
     // copy phi's into plotfile
-    for (int i=0; i<nspecies; ++i) {
+    for (int i=0; i<nspecies-1; ++i) {
         MultiFab::Copy(plotfile, phi, i, cnt, 1, 0);
         cnt++;
     }
-    
+
+/*    
     // copy densities and convert to concentrations
     for (int i=0; i<nspecies; ++i) {
         MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
         MultiFab::Divide(plotfile, rhotot, 0, cnt, 1, 0);
         cnt++;
     }
+*/
 
     // average staggered velocities to cell-centers and copy into plotfile
     AverageFaceToCC(umac,plotfile,cnt);
     cnt+=AMREX_SPACEDIM;
-
+    
+/*
     // shift staggered velocities to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         ShiftFaceToCC(umac[i],0,plotfile,cnt,1);
         cnt++;
     }
+*/    
 
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
     cnt++;
-    
+
+/*    
     // copy viscosity into plotfile
     MultiFab::Copy(plotfile, visc, 0, cnt, 1, 0);
+    cnt++;
+    
+    // copy LeesEdX into plotfile
+    MultiFab::Copy(plotfile, LeesEdX, 0, cnt, 1, 0);
     cnt++;
 
     // copy charge and Epot into plotfile
@@ -149,6 +169,7 @@ void WritePlotFile(int step,
         MultiFab::Copy(plotfile, Epot, 0, cnt, 1, 0);
         cnt++;
     }
+*/
 
     // write a plotfile
     // timer

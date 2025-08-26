@@ -23,6 +23,7 @@ AMREX_GPU_MANAGED amrex::Real                               multispec::EnScale;
 AMREX_GPU_MANAGED amrex::Real                               multispec::GradEnCoef;
 AMREX_GPU_MANAGED amrex::Real                               multispec::PotWellDepr;
 AMREX_GPU_MANAGED amrex::Real                               multispec::M_phi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 4> 				multispec::LeesEdwardsPull;	//force_magnitude, location_1, location_2, width_of_forcing_region_for_both_locations
 AMREX_GPU_MANAGED amrex::Real                               multispec::kc_tension;
 AMREX_GPU_MANAGED amrex::Real                               multispec::alpha_gex;
 AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_kappa;
@@ -118,6 +119,9 @@ void InitializeMultispecNamespace() {
     for (int i=0; i<MAX_ELEMENT; ++i) {
         Dbar[i] = 1.;      // Maxwell-Stefan diffusion constant
         H_offdiag[i] = 0.;
+    }  
+    for (int i=0; i<4; ++i) {
+        LeesEdwardsPull[i] = 0.;
     }  
 
     // Algorithm control
@@ -265,6 +269,12 @@ void InitializeMultispecNamespace() {
             H_offdiag[i] = temp[i];
         } 
     }   
+    if(pp.queryarr("LeesEdwardsPull",temp)) {
+        for (int i=0; i<4; ++i) {
+            LeesEdwardsPull[i] = temp[i];
+        }
+    }
+    
     pp.query("midpoint_stoch_mass_flux_type",midpoint_stoch_mass_flux_type);
     pp.query("avg_type",avg_type);
     pp.query("mixture_type",mixture_type);
