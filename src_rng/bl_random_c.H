@@ -21,10 +21,10 @@ BLRng_restore (T& rng, const char* name)
 {
     std::ifstream ifs(name);
     if (ifs.good()) {
-	ifs >> rng;
+        ifs >> rng;
     } else {
-	std::cerr << "bl_rng: faied to open " << name << std::endl;
-//	backtrace_handler(6);
+        std::cerr << "bl_rng: faied to open " << name << std::endl;
+        //    backtrace_handler(6);
     }
 }
 

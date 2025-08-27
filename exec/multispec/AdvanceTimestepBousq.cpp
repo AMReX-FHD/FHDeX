@@ -1,4 +1,3 @@
-
 #include "hydro_functions.H"
 #include "common_functions.H"
 #include "gmres_functions.H"
@@ -379,20 +378,20 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       }
 
       for (int d=0; d<AMREX_SPACEDIM; ++d ) {
-	// create average of umac^n and umac^{n+1,*}
-	umac_tmp[d].setVal(0.,0,1,1);
-	MultiFab::Saxpy(umac_tmp[d],0.5,umac_old[d],0,0,1,1);
-	MultiFab::Saxpy(umac_tmp[d],0.5,umac    [d],0,0,1,1);
+        // create average of umac^n and umac^{n+1,*}
+        umac_tmp[d].setVal(0.,0,1,1);
+        MultiFab::Saxpy(umac_tmp[d],0.5,umac_old[d],0,0,1,1);
+        MultiFab::Saxpy(umac_tmp[d],0.5,umac    [d],0,0,1,1);
       }
 
       // add the diff/stoch/react terms to rho_update
       MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
       if (variance_coef_mass != 0.){
-	MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+        MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
       }
       /*
       if (nreactions > 0) {
-	// call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
+        // call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
       }
       */
 
@@ -525,7 +524,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     } else if (use_flory_huggins ==1){
 
         // compute reversible stress tensor ---added term
-          ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
+        ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
 
     }
 
@@ -548,11 +547,11 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       // add the diff/stoch/react terms to rho_update
       MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
       if (variance_coef_mass != 0.) {
-	MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+        MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
       }
       /*
       if (nreactions > 0) {
-	call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
+        call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
       }
       */
 

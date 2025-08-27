@@ -185,16 +185,16 @@ void AppTestGroup::iterate()
 
     if (dep_graph) {
       for (m = 0; m < ndepends[ievent]; m++)
-	propensity[depends[ievent][m]] =
-	  compute_propensity(depends[ievent][m]);
+        propensity[depends[ievent][m]] =
+          compute_propensity(depends[ievent][m]);
       solve->update(ndepends[ievent],depends[ievent],propensity);
 
     } else {
       n = static_cast<int>(ndep*random->uniform()) + 1;
       for (m = 0; m < n; m++) {
-	i = static_cast<int> (nevents*random->uniform());
+        i = static_cast<int> (nevents*random->uniform());
         ran_dep[m] = i;
-	propensity[i] = compute_propensity(i);
+        propensity[i] = compute_propensity(i);
       }
       solve->update(n,ran_dep,propensity);
     }
@@ -215,9 +215,9 @@ void AppTestGroup::iterate()
   timer->barrier_stop(TIME_LOOP);
 
   if (screen) fprintf(screen,"\nNumber of reactions, events = %d %d\n",
-		      nevents,ncount);
+          nevents,ncount);
   if (logfile) fprintf(logfile,"\nNumber of reactions, events = %d %d\n",
-		       nevents,ncount);
+           nevents,ncount);
 }
 
 /* ----------------------------------------------------------------------
@@ -267,7 +267,7 @@ void AppTestGroup::build_dependency_graph()
     for (int e = 0; e < ndepends[m]; e++) {
       depends[m][e] = m;
       while (depends[m][e] == m)
-	depends[m][e] = static_cast<int> (nevents*random->uniform());
+        depends[m][e] = static_cast<int> (nevents*random->uniform());
     }
 }
 

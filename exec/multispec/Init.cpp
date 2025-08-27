@@ -44,7 +44,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               can be discontinous or smooth depending on smoothing_width
             */
             Real rad = L[0] / 4.;
-	    rad = radius_cyl;
+            rad = radius_cyl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -78,7 +78,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             });
 
-	} else if (prob_type == 5) {
+        } else if (prob_type == 5) {
 
             /*
               bubble with radius = 1/4 of domain in x
@@ -95,29 +95,21 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
                 if (smoothing_width == 0.) {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) = 0.01;
-                        }
+                    for (int n=0; n<nspecies; ++n) {
+                        c(i,j,k,n) = 0.01;
+                    }
 
                     // discontinuous interface
                     if (x< 0. && y < 0.) {
-		           c(i,j,k,0) = 0.97;
+                        c(i,j,k,0) = 0.97;
                     } else if ( x > 0. && y < 0.){
-                           c(i,j,k,1) = 0.97;
+                        c(i,j,k,1) = 0.97;
                     } else if ( x < 0. && y > 0.){
-                           c(i,j,k,2) = 0.97;
-		    } else {
-                           c(i,j,k,3) = 0.97;
-	            }
+                        c(i,j,k,2) = 0.97;
+                    } else {
+                        c(i,j,k,3) = 0.97;
+                    }
 
-
-//
-//                } else {
-//                    // smooth interface
-//                    for (int n=0; n<nspecies; ++n) {
-//                        c(i,j,k,n) = c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-//                            0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
-//                    }
                 }
 
             });
@@ -129,8 +121,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               can be discontinous or smooth depending on smoothing_width
             */
             //Real rad = L[0] / 8.;
-	    Real rad = L[1]/8.;
-	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
+            Real rad = L[1]/8.;
+            amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -158,14 +150,14 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     // smooth interface
                     //    c(i,j,k,1) = c_init_1[0] + (c_init_2[0]-c_init_1[0]) *
                     //        0.5*(1. - std::tanh((r-rad)/(smoothing_width*dx[0])));
-                        c(i,j,k,0) = c_init_1[0] + (c_init_2[0]-c_init_1[0]) *
-                            (1.- std::tanh(y/(smoothing_width*dx[0])))
-                          * 0.25*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
-                        c(i,j,k,2) = c_init_1[0] + (c_init_2[0]-c_init_1[0]) *
-                            (1.+ std::tanh(y/(smoothing_width*dx[0])))
-                          * 0.25*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
+                    c(i,j,k,0) = c_init_1[0] + (c_init_2[0]-c_init_1[0]) *
+                        (1.- std::tanh(y/(smoothing_width*dx[0])))
+                      * 0.25*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
+                    c(i,j,k,2) = c_init_1[0] + (c_init_2[0]-c_init_1[0]) *
+                        (1.+ std::tanh(y/(smoothing_width*dx[0])))
+                      * 0.25*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
                     //    c(i,j,k,2) = 1.-c(i,j,k,0)-c(i,j,k,1);
-                        c(i,j,k,1) = 1.-c(i,j,k,0)-c(i,j,k,2);
+                    c(i,j,k,1) = 1.-c(i,j,k,0)-c(i,j,k,2);
 
                 }
 
@@ -178,8 +170,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               can be discontinous or smooth depending on smoothing_width
             */
             //Real rad = L[0] / 8.;
-	    Real rad = radius_cyl;
-	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
+            Real rad = radius_cyl;
+            amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -220,52 +212,52 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               can be discontinous or smooth depending on smoothing_width
             */
             //Real rad = L[0] / 8.;
-	    Real rad = radius_cyl;
-	    int nsub = 10;
-	    Real factor = nsub;
-	    Real dxsub = dx[0]/factor;
-	    Real dysub = dx[1]/factor;
+            Real rad = radius_cyl;
+            int nsub = 10;
+            Real factor = nsub;
+            Real dxsub = dx[0]/factor;
+            Real dysub = dx[1]/factor;
             Real x,y,z;
-	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
+            amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = 0.;
                }
-            Real x,y,z;
+               Real x,y,z;
 
-            for(int i1=0; i1<nsub; ++i1) {
-            for(int j1=0; j1<nsub; ++j1) {
+               for(int i1=0; i1<nsub; ++i1) {
+               for(int j1=0; j1<nsub; ++j1) {
 
-                AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
-                             y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
-                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+                   AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
+                                y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
+                                z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
 
-                Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y);
+                   Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y);
 
-                if (smoothing_width == 0.) {
+                   if (smoothing_width == 0.) {
 
-                    // discontinuous interface
-                    if (r < rad) {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) += c_init_1[n];
-                        }
-                    } else {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) += c_init_2[n];
-                        }
-                    }
+                       // discontinuous interface
+                       if (r < rad) {
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_1[n];
+                           }
+                       } else {
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_2[n];
+                           }
+                       }
 
-                } else {
-                    // smooth interface
-                    for (int n=0; n<nspecies; ++n) {
-                        c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                            0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
-                    }
+                   } else {
+                       // smooth interface
+                       for (int n=0; n<nspecies; ++n) {
+                           c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                               0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
+                       }
+                   }
                 }
-             }
-             }
+                }
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/(factor*factor);
                }
@@ -277,8 +269,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             const Array4<Real> & wmac = (umac[2]).array(mfi);
             Box bx_wmac = mfi.tilebox(nodal_flag_z);
 
-	   //  Real veljet = 4082.e0;
-	    Real veljet = 0.e0;
+           //  Real veljet = 4082.e0;
+            Real veljet = 0.e0;
 
             amrex::ParallelFor(bx_wmac, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -318,60 +310,60 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         } else if (prob_type == 9) {
 
             /*
-	       torus
+               torus
             */
             //Real rad = L[0] / 8.;
-	    Real router = 1.5*5.73e-6;
-	    Real rad = radius_cyl;
-	    int nsub = 10;
-	    Real factor = nsub;
-	    Real dxsub = dx[0]/factor;
-	    Real dysub = dx[1]/factor;
-	    Real dzsub = dx[2]/factor;
+            Real router = 1.5*5.73e-6;
+            Real rad = radius_cyl;
+            int nsub = 10;
+            Real factor = nsub;
+            Real dxsub = dx[0]/factor;
+            Real dysub = dx[1]/factor;
+            Real dzsub = dx[2]/factor;
             Real x,y,z;
-	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
+            amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = 0.;
                }
-            Real x,y,z;
+               Real x,y,z;
 
-            for(int i1=0; i1<nsub; ++i1) {
-            for(int j1=0; j1<nsub; ++j1) {
-            for(int k1=0; k1<nsub; ++k1) {
+               for(int i1=0; i1<nsub; ++i1) {
+               for(int j1=0; j1<nsub; ++j1) {
+               for(int k1=0; k1<nsub; ++k1) {
 
-                AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
-                             y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
-                             z = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - center[2];);
+                   AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
+                                y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
+                                z = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - center[2];);
 
-                Real r_ring = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y);
-		Real r = std::sqrt((r_ring-router)*(r_ring-router)+ z*z);
+                   Real r_ring = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y);
+                   Real r = std::sqrt((r_ring-router)*(r_ring-router)+ z*z);
 
-                if (smoothing_width == 0.) {
+                   if (smoothing_width == 0.) {
 
-                    // discontinuous interface
-                    if (r < rad) {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) += c_init_1[n];
-                        }
-                    } else {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) += c_init_2[n];
-                        }
-                    }
+                       // discontinuous interface
+                       if (r < rad) {
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_1[n];
+                           }
+                       } else {
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_2[n];
+                           }
+                       }
 
-                } else {
-                    // smooth interface
-                    for (int n=0; n<nspecies; ++n) {
-                        c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                            0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
-                    }
+                   } else {
+                       // smooth interface
+                       for (int n=0; n<nspecies; ++n) {
+                           c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                               0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
+                       }
+                   }
                 }
-             }
-             }
-             }
+                }
+                }
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/(factor*factor*factor);
                }
@@ -380,50 +372,50 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         } else if (prob_type == 16) {
 
             /*
-	       thin film
+               thin film
             */
             //Real rad = L[0] / 8.;
-	    int nsub = 10;
-	    Real factor = nsub;
-	    Real dxsub = dx[0]/factor;
-	    Real dysub = dx[1]/factor;
-	    Real dzsub = dx[2]/factor;
+            int nsub = 10;
+            Real factor = nsub;
+            Real dxsub = dx[0]/factor;
+            Real dysub = dx[1]/factor;
+            Real dzsub = dx[2]/factor;
             Real x,y,z;
-	    amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
+            amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = 0.;
                }
-            Real x,y,z;
+               Real x,y,z;
 
-            for(int j1=0; j1<nsub; ++j1) {
+               for(int j1=0; j1<nsub; ++j1) {
 
-                             y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;
+                               y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;
 
 
-                if (smoothing_width == 0.) {
+                   if (smoothing_width == 0.) {
 
-                    // discontinuous interface
-                    if (y < film_thickness) {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) += c_init_1[n];
-                        }
-                    } else {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) += c_init_2[n];
-                        }
-                    }
+                       // discontinuous interface
+                       if (y < film_thickness) {
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_1[n];
+                           }
+                       } else {
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_2[n];
+                           }
+                       }
 
-                } else {
-                    // smooth interface
-                    for (int n=0; n<nspecies; ++n) {
-                        c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                            0.5*(1. + std::tanh((y-film_thickness)/(smoothing_width*dx[0])));
-                    }
+                   } else {
+                       // smooth interface
+                       for (int n=0; n<nspecies; ++n) {
+                           c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                               0.5*(1. + std::tanh((y-film_thickness)/(smoothing_width*dx[0])));
+                       }
+                   }
                 }
-             }
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/factor;
                }
@@ -438,56 +430,56 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               can be discontinous or smooth depending on smoothing_width
             */
             //Real rad = L[0] / 8.;
-	    int nsub = 100;
-	    Real factor = nsub;
-	    Real dxsub = dx[0]/factor;
-	    Real dysub = dx[1]/factor;
+            int nsub = 100;
+            Real factor = nsub;
+            Real dxsub = dx[0]/factor;
+            Real dysub = dx[1]/factor;
             Real x,y,z;
-	    amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
+            amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = 0.;
                }
-            Real x,y,z;
+               Real x,y,z;
 
-            for(int i1=0; i1<nsub; ++i1) {
-            for(int j1=0; j1<nsub; ++j1) {
+               for(int i1=0; i1<nsub; ++i1) {
+               for(int j1=0; j1<nsub; ++j1) {
 
-                AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub ;,
-                             y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;,
-                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+                   AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub ;,
+                                y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;,
+                                z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
 
-                Real height = film_thickness + 0.4*film_thickness*amrex::Math::cospi(2.*x/L[0]);
-                //height = film_thickness ;
+                   Real height = film_thickness + 0.4*film_thickness*amrex::Math::cospi(2.*x/L[0]);
+                   //height = film_thickness ;
 
-//		amrex::Print{} << "x,thickness,height " << x << " " << film_thickness << " " << height << std::endl;
+   //               amrex::Print{} << "x,thickness,height " << x << " " << film_thickness << " " << height << std::endl;
 
-                if (smoothing_width == 0.) {
+                   if (smoothing_width == 0.) {
 
-                    // discontinuous interface
-                    if (y < height) {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) += c_init_1[n];
-                        }
-                    } else {
-                        for (int n=0; n<nspecies; ++n) {
-                            c(i,j,k,n) += c_init_2[n];
-                        }
-                    }
+                       // discontinuous interface
+                       if (y < height) {
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_1[n];
+                           }
+                       } else {
+                           for (int n=0; n<nspecies; ++n) {
+                               c(i,j,k,n) += c_init_2[n];
+                           }
+                       }
 
-                } else {
-                    // smooth interface
-                    for (int n=0; n<nspecies; ++n) {
-                        c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                            0.5*(1. + std::tanh((y-height)/4.64475e-8));
-                            //0.5*(1. + std::tanh((y-height)/9.2895e-8));
-                            //0.5*(1. + std::tanh((y-height)/(smoothing_width*dx[0])));
-                    }
+                   } else {
+                       // smooth interface
+                       for (int n=0; n<nspecies; ++n) {
+                           c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                               0.5*(1. + std::tanh((y-height)/4.64475e-8));
+                               //0.5*(1. + std::tanh((y-height)/9.2895e-8));
+                               //0.5*(1. + std::tanh((y-height)/(smoothing_width*dx[0])));
+                       }
+                   }
                 }
-             }
-             }
+                }
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/(factor*factor);
                }
@@ -575,11 +567,11 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 } else {
                     // smooth interface
                     // not coded for this
-                        c(i,j,k,0) = bub1[0] + (1.-bub2[0]-2.*bub1[0]) *
-                            0.5*(1. + std::tanh((r1-rad1)/(smoothing_width*dx[0])));
-                        c(i,j,k,1) = bub2[1] + (1.-bub1[1]-2.*bub2[1]) *
-                            0.5*(1. + std::tanh((r2-rad2)/(smoothing_width*dx[0])));
-                        c(i,j,k,2) = 1.-c(i,j,k,0)-c(i,j,k,1);
+                    c(i,j,k,0) = bub1[0] + (1.-bub2[0]-2.*bub1[0]) *
+                        0.5*(1. + std::tanh((r1-rad1)/(smoothing_width*dx[0])));
+                    c(i,j,k,1) = bub2[1] + (1.-bub1[1]-2.*bub2[1]) *
+                        0.5*(1. + std::tanh((r2-rad2)/(smoothing_width*dx[0])));
+                    c(i,j,k,2) = 1.-c(i,j,k,0)-c(i,j,k,1);
                    // for (int n=0; n<nspecies; ++n) {
                    //     c(i,j,k,n) = c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
                    //        0.5*(1. + std::tanh((r1-rad1)/smoothing_width*dx[0]));

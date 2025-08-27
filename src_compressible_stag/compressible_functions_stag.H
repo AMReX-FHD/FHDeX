@@ -32,7 +32,7 @@ void WritePlotFileStag(int step,
                        const MultiFab& surfcov,
                        const MultiFab& surfcovMeans,
                        const MultiFab& surfcovVars,
-		       const MultiFab& surfcovcoVars,
+                       const MultiFab& surfcovcoVars,
                        const MultiFab& eta,
                        const MultiFab& kappa,
                        const MultiFab& zeta);
@@ -138,8 +138,8 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                        std::array< MultiFab, 2 >& stochedge_z_in,
                        std::array< MultiFab, AMREX_SPACEDIM>& stochcen_in,
                        const amrex::Geometry& geom,
-		                   const amrex::Vector< amrex::Real >& stoch_weights,
-		                   const amrex::Real dt);
+                       const amrex::Vector< amrex::Real >& stoch_weights,
+                       const amrex::Real dt);
 
 void doMembraneStag(MultiFab& cons,
                     std::array< MultiFab, AMREX_SPACEDIM >& cumom,

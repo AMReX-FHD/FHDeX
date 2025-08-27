@@ -10,9 +10,9 @@
 #include "common_namespace.H"
 
 void WriteCheckPoint(int step,
-										 const Real time,
-										 const Real dt,
-										 int statsCount,
+    const Real time,
+    const Real dt,
+    int statsCount,
                      const amrex::MultiFab& cuInst,
                      const amrex::MultiFab& cuMeans,
                      const amrex::MultiFab& cuVars,
@@ -25,9 +25,9 @@ void WriteCheckPoint(int step,
                      const int ncross);
 
 void ReadCheckPoint(int& step,
-										 Real& time,
-										 Real& dt,
-										 int& statsCount,
+    Real& time,
+    Real& dt,
+    int& statsCount,
                      amrex::MultiFab& cuInst,
                      amrex::MultiFab& cuMeans,
                      amrex::MultiFab& cuVars,

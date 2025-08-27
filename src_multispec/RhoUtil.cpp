@@ -46,7 +46,7 @@ void RhototBCInit() {
 
 // compute rhotot from rho in VALID REGION
 void ComputeRhotot(const MultiFab& rho,
-		   MultiFab& rhotot,
+                   MultiFab& rhotot,
                    int include_ghost) // include_ghost=0 by default
 {
     BL_PROFILE_VAR("ComputeRhotot()",ComputeRhotot);

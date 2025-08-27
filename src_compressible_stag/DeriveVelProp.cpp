@@ -78,15 +78,15 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //   StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
     {
         auto mask = cumom[0].OwnerMask(geom.periodicity());
-	rhouu[0] = MultiFab::Dot(cumom[0],0,vel[0],0,1,0);
+        rhouu[0] = MultiFab::Dot(cumom[0],0,vel[0],0,1,0);
     }
     {
         auto mask = cumom[1].OwnerMask(geom.periodicity());
-	rhouu[1] = MultiFab::Dot(cumom[1],0,vel[1],0,1,0);
+        rhouu[1] = MultiFab::Dot(cumom[1],0,vel[1],0,1,0);
     }
     {
         auto mask = cumom[2].OwnerMask(geom.periodicity());
-	rhouu[2] = MultiFab::Dot(cumom[2],0,vel[2],0,1,0);
+        rhouu[2] = MultiFab::Dot(cumom[2],0,vel[2],0,1,0);
     }
     rhouu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
     rhouu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
@@ -97,15 +97,15 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //    StagInnerProd(vel,0,vel,0,macTemp,uu);
     {
         auto mask = vel[0].OwnerMask(geom.periodicity());
-	uu[0] = MultiFab::Dot(vel[0],0,vel[0],0,1,0);
+        uu[0] = MultiFab::Dot(vel[0],0,vel[0],0,1,0);
     }
     {
         auto mask = vel[1].OwnerMask(geom.periodicity());
-	uu[1] = MultiFab::Dot(vel[1],0,vel[1],0,1,0);
+        uu[1] = MultiFab::Dot(vel[1],0,vel[1],0,1,0);
     }
     {
         auto mask = vel[2].OwnerMask(geom.periodicity());
-	uu[2] = MultiFab::Dot(vel[2],0,vel[2],0,1,0);
+        uu[2] = MultiFab::Dot(vel[2],0,vel[2],0,1,0);
     }
     uu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
     uu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
@@ -185,15 +185,15 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //    EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
     {
         auto mask = curlUtemp[0].OwnerMask(geom.periodicity());
-	eps_s_vec[0] = MultiFab::Dot(curlUtemp[0],0,eta_edge[0],0,1,0);
+        eps_s_vec[0] = MultiFab::Dot(curlUtemp[0],0,eta_edge[0],0,1,0);
     }
     {
         auto mask = curlUtemp[1].OwnerMask(geom.periodicity());
-	eps_s_vec[1] = MultiFab::Dot(curlUtemp[1],0,eta_edge[1],0,1,0);
+        eps_s_vec[1] = MultiFab::Dot(curlUtemp[1],0,eta_edge[1],0,1,0);
     }
     {
         auto mask = curlUtemp[2].OwnerMask(geom.periodicity());
-	eps_s_vec[2] = MultiFab::Dot(curlUtemp[2],0,eta_edge[2],0,1,0);
+        eps_s_vec[2] = MultiFab::Dot(curlUtemp[2],0,eta_edge[2],0,1,0);
     }
     eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
     eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
@@ -203,16 +203,16 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     // Dilational dissipation (4/3)*<eta (\sum_i du_i/dx_i)^2>
 //    CCInnerProd(ccTempDiv,0,eta,0,ccTemp,eps_d);
     if (visc_type == 3) {
-      // get eta_bulk_diss = kappa + 4/3 eta
-      MultiFab::LinComb(eta_bulk_diss, 1.0, zeta, 0,
-                        1.3333333333, eta, 0,
-                        0, 1, 0);
-      eps_d = MultiFab::Dot(eta_bulk_diss, 0, ccTempDiv, 0, 1, 0);
-      eps_d *= dProb;
+        // get eta_bulk_diss = kappa + 4/3 eta
+        MultiFab::LinComb(eta_bulk_diss, 1.0, zeta, 0,
+                          1.3333333333, eta, 0,
+                          0, 1, 0);
+        eps_d = MultiFab::Dot(eta_bulk_diss, 0, ccTempDiv, 0, 1, 0);
+        eps_d *= dProb;
     }
     else {
-      eps_d = MultiFab::Dot(eta, 0, ccTempDiv, 0, 1, 0);
-      eps_d *= dProb*(4.0/3.0);
+        eps_d = MultiFab::Dot(eta, 0, ccTempDiv, 0, 1, 0);
+        eps_d *= dProb*(4.0/3.0);
     }
 
     // Ratio of Dilational to Solenoidal dissipation
@@ -337,7 +337,7 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     gradU3_d[1] = dProb[1]*(faceTemp[1].sum_unique(0,false,geom.periodicity()));
     gradU3_d[2] = dProb[2]*(faceTemp[2].sum_unique(0,false,geom.periodicity()));
 
-    // Compute Velocity gradient moment sum
+    // Compute Velocity gradient sum
     // 4th moment (solenoidal)
     FCMoments(gradU,comps_s,faceTemp,4,gradU2_temp);
     gradU4_s[0] = dProb[0]*(faceTemp[0].sum_unique(0,false,geom.periodicity()));
@@ -368,9 +368,9 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
 
 
 void EvaluateWritePlotFileVelGrad(int step,
-                                  const amrex::Real time,
-                                  const amrex::Geometry& geom,
-                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel)
+                                 const amrex::Real time,
+                                 const amrex::Geometry& geom,
+                                 const std::array<MultiFab, AMREX_SPACEDIM>& vel)
 {
     BL_PROFILE_VAR("EvaluateWritePlotFileVelGrad()",EvaluateWritePlotFileVelGrad);
 
@@ -489,10 +489,10 @@ void EvaluateWritePlotFileVelGrad(int step,
 
 #if defined(TURB)
 void EvaluateWritePlotFileVelGrad(int step,
-                                  const amrex::Real time,
-                                  const amrex::Geometry& geom,
-                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel,
-                                  const amrex::MultiFab& vel_decomp_in)
+                                 const amrex::Real time,
+                                 const amrex::Geometry& geom,
+                                 const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                                 const amrex::MultiFab& vel_decomp_in)
 {
     BL_PROFILE_VAR("EvaluateWritePlotFileVelGrad()",EvaluateWritePlotFileVelGrad);
 
@@ -616,10 +616,10 @@ void EvaluateWritePlotFileVelGrad(int step,
 
 #if defined(TURB)
 void EvaluateWritePlotFileVelGradTiny(int step,
-                                  const amrex::Real time,
-                                  const amrex::Geometry& geom,
-                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel,
-                                  const amrex::MultiFab& vel_decomp_in)
+                                 const amrex::Real time,
+                                 const amrex::Geometry& geom,
+                                 const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                                 const amrex::MultiFab& vel_decomp_in)
 {
     BL_PROFILE_VAR("EvaluateWritePlotFileVelGradTiny()",EvaluateWritePlotFileVelGradTiny);
 
@@ -732,5 +732,3 @@ void EvaluateWritePlotFileVelGradTiny(int step,
     WriteSingleLevelPlotfile(plotfilename,output,varNames,geom,time,step);
 }
 #endif
-
-

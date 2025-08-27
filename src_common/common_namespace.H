@@ -241,7 +241,7 @@ namespace common {
     extern amrex::Vector<int>         shift_cc_to_boundary;
 
     extern int                        particle_placement;
-    extern int								  particle_input;
+    extern int                        particle_input;
     extern amrex::Vector<int>         particle_count;
     extern amrex::Vector<int>         p_move_tog;
     extern amrex::Vector<int>         p_force_tog;

@@ -138,44 +138,44 @@ void Set::command(int narg, char **arg)
     } else if (strcmp(arg[iarg],"if") == 0) {
       if (iarg+4 > narg) error->all(FLERR,"Illegal set command");
       cond = (Condition *) memory->srealloc(cond,
-					    (ncondition+1)*sizeof(Condition),
-					    "set:cond");
+                                            (ncondition+1)*sizeof(Condition),
+                                            "set:cond");
       if (strcmp(arg[iarg+1],"id") == 0) {
-	cond[ncondition].lhs = ID;
-	cond[ncondition].type = TAGINT;
-	cond[ncondition].stride = 1;
+        cond[ncondition].lhs = ID;
+        cond[ncondition].type = TAGINT;
+        cond[ncondition].stride = 1;
       } else if (strcmp(arg[iarg+1],"x") == 0) {
-	cond[ncondition].lhs = X;
-	cond[ncondition].type = DOUBLE;
-	cond[ncondition].stride = 3;
+        cond[ncondition].lhs = X;
+        cond[ncondition].type = DOUBLE;
+        cond[ncondition].stride = 3;
       } else if (strcmp(arg[iarg+1],"y") == 0) {
-	cond[ncondition].lhs = Y;
-	cond[ncondition].type = DOUBLE;
-	cond[ncondition].stride = 3;
+        cond[ncondition].lhs = Y;
+        cond[ncondition].type = DOUBLE;
+        cond[ncondition].stride = 3;
       } else if (strcmp(arg[iarg+1],"z") == 0) {
-	cond[ncondition].lhs = Z;
-	cond[ncondition].type = DOUBLE;
-	cond[ncondition].stride = 3;
+        cond[ncondition].lhs = Z;
+        cond[ncondition].type = DOUBLE;
+        cond[ncondition].stride = 3;
       } else if (arg[iarg+1][0] == 'i') {
-	int index = atoi(&arg[iarg+1][1]);
-	if (index < 1 || index > app->ninteger)
-	  error->all(FLERR,
+        int index = atoi(&arg[iarg+1][1]);
+        if (index < 1 || index > app->ninteger)
+          error->all(FLERR,
                      "Set if test on quantity application does not support");
-	index--;
-	cond[ncondition].lhs = IARRAY;
-	cond[ncondition].type = INT;
-	cond[ncondition].index = index;
-	cond[ncondition].stride = 1;
+        index--;
+        cond[ncondition].lhs = IARRAY;
+        cond[ncondition].type = INT;
+        cond[ncondition].index = index;
+        cond[ncondition].stride = 1;
       } else if (arg[iarg+1][0] == 'd') {
-	int index = atoi(&arg[iarg+1][1]);
-	if (index < 1 || index > app->ndouble)
-	  error->all(FLERR,
+        int index = atoi(&arg[iarg+1][1]);
+        if (index < 1 || index > app->ndouble)
+          error->all(FLERR,
                      "Set if test on quantity application does not support");
-	index--;
-	cond[ncondition].lhs = DARRAY;
-	cond[ncondition].type = DOUBLE;
-	cond[ncondition].index = index;
-	cond[ncondition].stride = 1;
+        index--;
+        cond[ncondition].lhs = DARRAY;
+        cond[ncondition].type = DOUBLE;
+        cond[ncondition].index = index;
+        cond[ncondition].stride = 1;
       } else error->all(FLERR,"Illegal set command");
 
       if (strcmp(arg[iarg+2],"<") == 0) cond[ncondition].op = LT;
@@ -187,7 +187,7 @@ void Set::command(int narg, char **arg)
       else error->all(FLERR,"Illegal set command");
 
       if (cond[ncondition].type == INT || cond[ncondition].type == TAGINT)
-	cond[ncondition].irhs = atoi(arg[iarg+3]);
+        cond[ncondition].irhs = atoi(arg[iarg+3]);
       else cond[ncondition].drhs = atof(arg[iarg+3]);
 
       ncondition++;
@@ -211,9 +211,9 @@ void Set::command(int narg, char **arg)
 
   if (domain->me == 0) {
     if (screen) fprintf(screen,"  " TAGINT_FORMAT " settings made for %s\n",
-			allcount,arg[0]);
+                        allcount,arg[0]);
     if (logfile) fprintf(logfile,"  " TAGINT_FORMAT " settings made for %s\n",
-			 allcount,arg[0]);
+                         allcount,arg[0]);
   }
 
   memory->sfree(cond);
@@ -257,158 +257,158 @@ void Set::set_single(int lhs, int rhs)
 
     if (lhs == IARRAY) {
       if (regionflag == 0 && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (ncondition && condition(i)) continue;
-	  if (rhs == VALUE) iarray[siteindex][i] = ivalue;
-	  else iarray[siteindex][i] = id[i] % MAXSMALLINT;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (ncondition && condition(i)) continue;
+          if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+          else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+          count++;
+        }
       } else if (regionflag && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    if (rhs == VALUE) iarray[siteindex][i] = ivalue;
-	    else iarray[siteindex][i] = id[i] % MAXSMALLINT;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+            else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+            count++;
+          }
       } else if (regionflag == 0 && fraction < 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  if (random->uniform() >= fraction) continue;
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (ncondition && condition(i)) continue;
-	  if (rhs == VALUE) iarray[siteindex][i] = ivalue;
-	  else iarray[siteindex][i] = id[i] % MAXSMALLINT;
-	  count++;
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          if (random->uniform() >= fraction) continue;
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (ncondition && condition(i)) continue;
+          if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+          else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+          count++;
+        }
       } else if (regionflag && fraction < 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  if (random->uniform() >= fraction) continue;
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    if (rhs == VALUE) iarray[siteindex][i] = ivalue;
-	    else iarray[siteindex][i] = id[i] % MAXSMALLINT;
-	    count++;
-	  }
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          if (random->uniform() >= fraction) continue;
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+            else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+            count++;
+          }
+        }
       }
 
     } else if (lhs == DARRAY) {
       if (regionflag == 0 && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (ncondition && condition(i)) continue;
-	  if (rhs == VALUE) darray[siteindex][i] = dvalue;
-	  else darray[siteindex][i] = id[i] % MAXSMALLINT;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (ncondition && condition(i)) continue;
+          if (rhs == VALUE) darray[siteindex][i] = dvalue;
+          else darray[siteindex][i] = id[i] % MAXSMALLINT;
+          count++;
+        }
       } else if (regionflag && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    if (rhs == VALUE) darray[siteindex][i] = dvalue;
-	    else darray[siteindex][i] = id[i] % MAXSMALLINT;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            if (rhs == VALUE) darray[siteindex][i] = dvalue;
+            else darray[siteindex][i] = id[i] % MAXSMALLINT;
+            count++;
+          }
       } else if (regionflag == 0 && fraction < 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  if (random->uniform() >= fraction) continue;
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (ncondition && condition(i)) continue;
-	  if (rhs == VALUE) darray[siteindex][i] = dvalue;
-	  else darray[siteindex][i] = id[i] % MAXSMALLINT;
-	  count++;
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          if (random->uniform() >= fraction) continue;
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (ncondition && condition(i)) continue;
+          if (rhs == VALUE) darray[siteindex][i] = dvalue;
+          else darray[siteindex][i] = id[i] % MAXSMALLINT;
+          count++;
+        }
       } else if (regionflag && fraction < 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  if (random->uniform() >= fraction) continue;
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    if (rhs == VALUE) darray[siteindex][i] = dvalue;
-	    else darray[siteindex][i] = id[i] % MAXSMALLINT;
-	    count++;
-	  }
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          if (random->uniform() >= fraction) continue;
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            if (rhs == VALUE) darray[siteindex][i] = dvalue;
+            else darray[siteindex][i] = id[i] % MAXSMALLINT;
+            count++;
+          }
+        }
       }
     }
 
   } else {
     if (lhs == IARRAY) {
       if (regionflag == 0 && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (ncondition && condition(i)) continue;
-	  if (rhs == VALUE) iarray[siteindex][i] = ivalue;
-	  else iarray[siteindex][i] = id[i] % MAXSMALLINT;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (ncondition && condition(i)) continue;
+          if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+          else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+          count++;
+        }
       } else if (regionflag && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    if (rhs == VALUE) iarray[siteindex][i] = ivalue;
-	    else iarray[siteindex][i] = id[i] % MAXSMALLINT;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+            else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+            count++;
+          }
       } else if (regionflag == 0 && fraction < 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (random->uniform() >= fraction) continue;
-	  if (ncondition && condition(i)) continue;
-	  if (rhs == VALUE) iarray[siteindex][i] = ivalue;
-	  else iarray[siteindex][i] = id[i] % MAXSMALLINT;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (random->uniform() >= fraction) continue;
+          if (ncondition && condition(i)) continue;
+          if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+          else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+          count++;
+        }
       } else if (regionflag && fraction < 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (random->uniform() >= fraction) continue;
-	    if (ncondition && condition(i)) continue;
-	    if (rhs == VALUE) iarray[siteindex][i] = ivalue;
-	    else iarray[siteindex][i] = id[i] % MAXSMALLINT;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (random->uniform() >= fraction) continue;
+            if (ncondition && condition(i)) continue;
+            if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+            else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+            count++;
+          }
       }
 
     } else if (lhs == DARRAY) {
       if (regionflag == 0 && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (ncondition && condition(i)) continue;
-	  if (rhs == VALUE) darray[siteindex][i] = ivalue;
-	  else darray[siteindex][i] = id[i] % MAXSMALLINT;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (ncondition && condition(i)) continue;
+          if (rhs == VALUE) darray[siteindex][i] = ivalue;
+          else darray[siteindex][i] = id[i] % MAXSMALLINT;
+          count++;
+        }
       } else if (regionflag && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    if (rhs == VALUE) darray[siteindex][i] = ivalue;
-	    else darray[siteindex][i] = id[i] % MAXSMALLINT;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            if (rhs == VALUE) darray[siteindex][i] = ivalue;
+            else darray[siteindex][i] = id[i] % MAXSMALLINT;
+            count++;
+          }
       } else if (regionflag == 0 && fraction < 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (random->uniform() < fraction) continue;
-	  if (ncondition && condition(i)) continue;
-	  if (rhs == VALUE) darray[siteindex][i] = ivalue;
-	  else darray[siteindex][i] = id[i] % MAXSMALLINT;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (random->uniform() < fraction) continue;
+          if (ncondition && condition(i)) continue;
+          if (rhs == VALUE) darray[siteindex][i] = ivalue;
+          else darray[siteindex][i] = id[i] % MAXSMALLINT;
+          count++;
+        }
       } else if (regionflag && fraction < 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (random->uniform() < fraction) continue;
-	    if (ncondition && condition(i)) continue;
-	    if (rhs == VALUE) darray[siteindex][i] = ivalue;
-	    else darray[siteindex][i] = id[i] % MAXSMALLINT;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (random->uniform() < fraction) continue;
+            if (ncondition && condition(i)) continue;
+            if (rhs == VALUE) darray[siteindex][i] = ivalue;
+            else darray[siteindex][i] = id[i] % MAXSMALLINT;
+            count++;
+          }
       }
     }
   }
@@ -455,102 +455,102 @@ void Set::set_range(int lhs, int rhs)
       int range = ivaluehi - ivaluelo + 1;
 
       if (regionflag == 0 && fraction == 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  ivalue = random->irandom(range);
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (ncondition && condition(i)) continue;
-	  iarray[siteindex][i] = ivalue-1 + ivaluelo;
-	  count++;
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          ivalue = random->irandom(range);
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (ncondition && condition(i)) continue;
+          iarray[siteindex][i] = ivalue-1 + ivaluelo;
+          count++;
+        }
       } else if (regionflag && fraction == 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  ivalue = random->irandom(range);
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    iarray[siteindex][i] = ivalue-1 + ivaluelo;
-	    count++;
-	  }
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          ivalue = random->irandom(range);
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            iarray[siteindex][i] = ivalue-1 + ivaluelo;
+            count++;
+          }
+        }
       } else if (regionflag == 0 && fraction < 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  if (random->uniform() >= fraction) continue;
-	  ivalue = random->irandom(range);
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (ncondition && condition(i)) continue;
-	  iarray[siteindex][i] = ivalue-1 + ivaluelo;
-	  count++;
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          if (random->uniform() >= fraction) continue;
+          ivalue = random->irandom(range);
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (ncondition && condition(i)) continue;
+          iarray[siteindex][i] = ivalue-1 + ivaluelo;
+          count++;
+        }
       } else if (regionflag && fraction < 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  if (random->uniform() >= fraction) continue;
-	  ivalue = random->irandom(range);
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    iarray[siteindex][i] = ivalue-1 + ivaluelo;
-	    count++;
-	  }
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          if (random->uniform() >= fraction) continue;
+          ivalue = random->irandom(range);
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            iarray[siteindex][i] = ivalue-1 + ivaluelo;
+            count++;
+          }
+        }
       }
 
     } else if (lhs == DARRAY) {
       double range = dvaluehi - dvaluelo;
 
       if (regionflag == 0 && fraction == 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  dvalue = random->uniform();
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (ncondition && condition(i)) continue;
-	  darray[siteindex][i] = range*dvalue + dvaluelo;
-	  count++;
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          dvalue = random->uniform();
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (ncondition && condition(i)) continue;
+          darray[siteindex][i] = range*dvalue + dvaluelo;
+          count++;
+        }
       } else if (regionflag && fraction == 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  dvalue = random->uniform();
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    darray[siteindex][i] = range*dvalue + dvaluelo;
-	    count++;
-	  }
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          dvalue = random->uniform();
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            darray[siteindex][i] = range*dvalue + dvaluelo;
+            count++;
+          }
+        }
       } else if (regionflag == 0 && fraction < 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  if (random->uniform() >= fraction) continue;
-	  dvalue = random->uniform();
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (ncondition && condition(i)) continue;
-	  darray[siteindex][i] = range*dvalue + dvaluelo;
-	  count++;
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          if (random->uniform() >= fraction) continue;
+          dvalue = random->uniform();
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (ncondition && condition(i)) continue;
+          darray[siteindex][i] = range*dvalue + dvaluelo;
+          count++;
+        }
       } else if (regionflag && fraction < 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
-	  if (random->uniform() >= fraction) continue;
-	  dvalue = random->uniform();
-	  loc = hash.find(iglobal);
-	  if (loc == hash.end()) continue;
-	  i = loc->second;
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    darray[siteindex][i] = range*dvalue + dvaluelo;
-	    count++;
-	  }
-	}
+        for (iglobal = minID; iglobal <= maxID; iglobal++) {
+          if (random->uniform() >= fraction) continue;
+          dvalue = random->uniform();
+          loc = hash.find(iglobal);
+          if (loc == hash.end()) continue;
+          i = loc->second;
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            darray[siteindex][i] = range*dvalue + dvaluelo;
+            count++;
+          }
+        }
       }
     }
 
@@ -559,66 +559,66 @@ void Set::set_range(int lhs, int rhs)
       int range = ivaluehi - ivaluelo + 1;
 
       if (regionflag == 0 && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (ncondition && condition(i)) continue;
-	  iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (ncondition && condition(i)) continue;
+          iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
+          count++;
+        }
       } else if (regionflag && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
+            count++;
+          }
       } else if (regionflag == 0 && fraction < 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (random->uniform() >= fraction) continue;
-	  if (ncondition && condition(i)) continue;
-	  iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (random->uniform() >= fraction) continue;
+          if (ncondition && condition(i)) continue;
+          iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
+          count++;
+        }
       } else if (regionflag && fraction < 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (random->uniform() >= fraction) continue;
-	    if (ncondition && condition(i)) continue;
-	    iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (random->uniform() >= fraction) continue;
+            if (ncondition && condition(i)) continue;
+            iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
+            count++;
+          }
       }
 
     } else if (lhs == DARRAY) {
       double range = dvaluehi - dvaluelo;
 
       if (regionflag == 0 && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (ncondition && condition(i)) continue;
-	  darray[siteindex][i] = range*random->uniform() + dvaluelo;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (ncondition && condition(i)) continue;
+          darray[siteindex][i] = range*random->uniform() + dvaluelo;
+          count++;
+        }
       } else if (regionflag && fraction == 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (ncondition && condition(i)) continue;
-	    darray[siteindex][i] = range*random->uniform() + dvaluelo;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (ncondition && condition(i)) continue;
+            darray[siteindex][i] = range*random->uniform() + dvaluelo;
+            count++;
+          }
       } else if (regionflag == 0 && fraction < 1.0) {
-	for (i = 0; i < nlocal; i++) {
-	  if (random->uniform() < fraction) continue;
-	  if (ncondition && condition(i)) continue;
-	  darray[siteindex][i] = range*random->uniform() + dvaluelo;
-	  count++;
-	}
+        for (i = 0; i < nlocal; i++) {
+          if (random->uniform() < fraction) continue;
+          if (ncondition && condition(i)) continue;
+          darray[siteindex][i] = range*random->uniform() + dvaluelo;
+          count++;
+        }
       } else if (regionflag && fraction < 1.0) {
-	for (i = 0; i < nlocal; i++)
-	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
-	    if (random->uniform() < fraction) continue;
-	    if (ncondition && condition(i)) continue;
-	    darray[siteindex][i] = range*random->uniform() + dvaluelo;
-	    count++;
-	  }
+        for (i = 0; i < nlocal; i++)
+          if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+            if (random->uniform() < fraction) continue;
+            if (ncondition && condition(i)) continue;
+            darray[siteindex][i] = range*random->uniform() + dvaluelo;
+            count++;
+          }
       }
     }
   }
@@ -658,51 +658,51 @@ int Set::condition(int i)
 
     if (cond[m].op == LT) {
       if (cond[m].type == INT) {
-	if (intarray[offset] >= cond[m].irhs) return 1;
+        if (intarray[offset] >= cond[m].irhs) return 1;
       } else if (cond[m].type == TAGINT) {
-	if (tagintarray[offset] >= cond[m].irhs) return 1;
+        if (tagintarray[offset] >= cond[m].irhs) return 1;
       } else {
-	if (doublearray[offset] >= cond[m].drhs) return 1;
+        if (doublearray[offset] >= cond[m].drhs) return 1;
       }
     } else if (cond[m].op == LE) {
       if (cond[m].type == INT) {
-	if (intarray[offset] > cond[m].irhs) return 1;
+        if (intarray[offset] > cond[m].irhs) return 1;
       } else if (cond[m].type == TAGINT) {
-	if (tagintarray[offset] > cond[m].irhs) return 1;
+        if (tagintarray[offset] > cond[m].irhs) return 1;
       } else {
-	if (doublearray[offset] > cond[m].drhs) return 1;
+        if (doublearray[offset] > cond[m].drhs) return 1;
       }
     } else if (cond[m].op == GT) {
       if (cond[m].type == INT) {
-	if (intarray[offset] <= cond[m].irhs) return 1;
+        if (intarray[offset] <= cond[m].irhs) return 1;
       } else if (cond[m].type == TAGINT) {
-	if (tagintarray[offset] <= cond[m].irhs) return 1;
+        if (tagintarray[offset] <= cond[m].irhs) return 1;
       } else {
-	if (doublearray[offset] <= cond[m].drhs) return 1;
+        if (doublearray[offset] <= cond[m].drhs) return 1;
       }
     } else if (cond[m].op == GE) {
       if (cond[m].type == INT) {
-	if (intarray[offset] < cond[m].irhs) return 1;
+        if (intarray[offset] < cond[m].irhs) return 1;
       } else if (cond[m].type == TAGINT) {
-	if (tagintarray[offset] < cond[m].irhs) return 1;
+        if (tagintarray[offset] < cond[m].irhs) return 1;
       } else {
-	if (doublearray[offset] < cond[m].drhs) return 1;
+        if (doublearray[offset] < cond[m].drhs) return 1;
       }
     } else if (cond[m].op == EQ) {
       if (cond[m].type == INT) {
-	if (intarray[offset] != cond[m].irhs) return 1;
+        if (intarray[offset] != cond[m].irhs) return 1;
       } else if (cond[m].type == TAGINT) {
-	if (tagintarray[offset] != cond[m].irhs) return 1;
+        if (tagintarray[offset] != cond[m].irhs) return 1;
       } else {
-	if (doublearray[offset] != cond[m].drhs) return 1;
+        if (doublearray[offset] != cond[m].drhs) return 1;
       }
     } else if (cond[m].op == NEQ) {
       if (cond[m].type == INT) {
-	if (intarray[offset] == cond[m].irhs) return 1;
+        if (intarray[offset] == cond[m].irhs) return 1;
       } else if (cond[m].type == TAGINT) {
-	if (tagintarray[offset] == cond[m].irhs) return 1;
+        if (tagintarray[offset] == cond[m].irhs) return 1;
       } else {
-	if (doublearray[offset] == cond[m].drhs) return 1;
+        if (doublearray[offset] == cond[m].drhs) return 1;
       }
     }
   }

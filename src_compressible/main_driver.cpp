@@ -101,7 +101,7 @@ void main_driver(const char* argv)
         // note we are converting "Vector<int> max_grid_size" to an IntVect
         ba.maxSize(IntVect(max_grid_size));
 
-       // This defines the physical box, [-1,1] in each direction.
+        // This defines the physical box, [-1,1] in each direction.
         RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                          {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
@@ -373,9 +373,9 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "vel";
-      x += (120+d);
-      prim_var_names[cnt++] = x;
+        x = "vel";
+        x += (120+d);
+        prim_var_names[cnt++] = x;
     }
 
     // Temp
@@ -386,9 +386,9 @@ void main_driver(const char* argv)
 
     // Yk
     for (int d=0; d<nspecies; d++) {
-      x = "Y";
-      x += (49+d);
-      prim_var_names[cnt++] = x;
+        x = "Y";
+        x += (49+d);
+        prim_var_names[cnt++] = x;
     }
 
     MultiFab structFactPrimMF;
@@ -431,9 +431,9 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "j";
-      x += (120+d);
-      cons_var_names[cnt++] = x;
+        x = "j";
+        x += (120+d);
+        cons_var_names[cnt++] = x;
     }
 
     // rho*E
@@ -441,9 +441,9 @@ void main_driver(const char* argv)
 
     // rho*Yk
     for (int d=0; d<nspecies; d++) {
-      x = "rhoY";
-      x += (49+d);
-      cons_var_names[cnt++] = x;
+        x = "rhoY";
+        x += (49+d);
+        cons_var_names[cnt++] = x;
     }
 
     // Temp
@@ -472,21 +472,21 @@ void main_driver(const char* argv)
     //////////////////////////////////////////////
 
     if(project_dir >= 0){
-      MultiFab Flattened;  // flattened multifab defined below
+        MultiFab Flattened;  // flattened multifab defined below
 
-      // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
-      // a built version of primFlattened so can obtain what we need to build the
-      // structure factor and geometry objects for flattened data
-      if (slicepoint < 0) {
-          ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, 1);
-      } else {
-          ExtractSlice(structFactPrimMF, Flattened, project_dir, slicepoint, 0, 1);
-      }
-      BoxArray ba_flat = Flattened.boxArray();
-      const DistributionMapping& dmap_flat = Flattened.DistributionMap();
+        // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
+        // a built version of primFlattened so can obtain what we need to build the
+        // structure factor and geometry objects for flattened data
+        if (slicepoint < 0) {
+            ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, 1);
+        } else {
+            ExtractSlice(structFactPrimMF, Flattened, project_dir, slicepoint, 0, 1);
+        }
+        BoxArray ba_flat = Flattened.boxArray();
+        const DistributionMapping& dmap_flat = Flattened.DistributionMap();
 
-      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-      structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+        structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+        structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
     }
 
     ///////////////////////////////////////////
@@ -601,7 +601,7 @@ void main_driver(const char* argv)
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
         if (step%100 == 0) {
-    	      amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+            amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
         }
 
         // compute mean and variances
@@ -637,41 +637,41 @@ void main_driver(const char* argv)
               WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
                             prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
             */
-           WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
+            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
                          prim, primMeans, primVars, spatialCross, eta, kappa);
 
 #ifdef MUI
-           // also horizontal average
-           WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
+            // also horizontal average
+            WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 #endif
-           if (n_ads_spec>0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
+            if (n_ads_spec>0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 
-           // timer
-           Real t2 = ParallelDescriptor::second() - t1;
-           ParallelDescriptor::ReduceRealMax(t2);
-           amrex::Print() << "WritePlotFile time " << t2 << " seconds\n";
+            // timer
+            Real t2 = ParallelDescriptor::second() - t1;
+            ParallelDescriptor::ReduceRealMax(t2);
+            amrex::Print() << "WritePlotFile time " << t2 << " seconds\n";
 
-           // snapshot of instantaneous energy spectra
-           if (turbForcing == 1) {
+            // snapshot of instantaneous energy spectra
+            if (turbForcing == 1) {
 
-               // timer
-               t1 = ParallelDescriptor::second();
+                // timer
+                t1 = ParallelDescriptor::second();
 
-               // copy velocities into structFactMF
-               MultiFab::Copy(structFactMF, prim, 1, 0, AMREX_SPACEDIM, 0);
+                // copy velocities into structFactMF
+                MultiFab::Copy(structFactMF, prim, 1, 0, AMREX_SPACEDIM, 0);
 
-               // reset and compute structure factor
-               turbStructFact.FortStructure(structFactMF,1);
-               turbStructFact.CallFinalize();
+                // reset and compute structure factor
+                turbStructFact.FortStructure(structFactMF,1);
+                turbStructFact.CallFinalize();
 
-               // integrate cov_mag over shells in k and write to file
-               turbStructFact.IntegratekShells(step);
+                // integrate cov_mag over shells in k and write to file
+                turbStructFact.IntegratekShells(step);
 
-               // timer
-               t2 = ParallelDescriptor::second() - t1;
-               ParallelDescriptor::ReduceRealMax(t2);
-               amrex::Print() << "Ek time " << t2 << " seconds\n";
-           }
+                // timer
+                t2 = ParallelDescriptor::second() - t1;
+                ParallelDescriptor::ReduceRealMax(t2);
+                amrex::Print() << "Ek time " << t2 << " seconds\n";
+            }
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0) {
@@ -688,8 +688,8 @@ void main_driver(const char* argv)
             amrex::Print() << "WriteCheckPoint time " << t2 << " seconds\n";
         }
 
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+        // collect a snapshot for structure factor
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
             // timer
             Real t1 = ParallelDescriptor::second();
@@ -725,11 +725,11 @@ void main_driver(const char* argv)
             // timer
             Real t1 = ParallelDescriptor::second();
 
-	    Print() << "HERE1\n";
+            Print() << "HERE1\n";
 
             structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
 
-	    Print() << "HERE2\n";
+            Print() << "HERE2\n";
             structFactCons.WritePlotFile(step,time,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimFlattened.WritePlotFile(step,time,"plt_SF_prim_Flattened");

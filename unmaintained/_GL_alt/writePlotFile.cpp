@@ -1,13 +1,11 @@
 #include "AMReX_PlotFileUtil.H"
 
 void WritePlotFile(int step,
-                   const amrex::Real time,
-                   const amrex::Geometry geom,
-	           const amrex::MultiFab& phi,
-               amrex::Real& umbrella, amrex::Real& phi0)
+    const amrex::Real time,
+    const amrex::Geometry geom,
+    const amrex::MultiFab& phi,
+    amrex::Real& umbrella, amrex::Real& phi0)
 {
-
-
 
     amrex::BoxArray ba = phi.boxArray();
     amrex::DistributionMapping dmap = phi.DistributionMap();

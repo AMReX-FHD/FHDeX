@@ -1,4 +1,3 @@
-
 #include "common_functions.H"
 #include "chemistry_functions.H"
 #include "reactDiff_functions.H"
@@ -19,7 +18,6 @@ using namespace chemistry;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-
     BL_PROFILE_VAR("main_driver()",main_driver);
 
     // store the current time so we can later compute total run time.
@@ -36,7 +34,6 @@ void main_driver(const char* argv)
     // Initialize seeds for random number generator
     /////////////////////////////////////////
     if (restart < 0) {
-
         int mySeed;
 
         if (seed > 0) {
@@ -56,7 +53,6 @@ void main_driver(const char* argv)
         InitRandom(mySeed+ParallelDescriptor::MyProc(),
                    ParallelDescriptor::NProcs(),
                    mySeed+ParallelDescriptor::MyProc());
-
     }
 
     if (nreaction > 0 && use_mole_frac_LMA) {
@@ -111,9 +107,9 @@ void main_driver(const char* argv)
 
     // n0, n1, ...
     for (int d=0; d<nspecies; d++) {
-      x = "n";
-      x += (49+d);
-      var_names[cnt++] = x;
+        x = "n";
+        x += (49+d);
+        var_names[cnt++] = x;
     }
 
     // need to use dv for scaling
@@ -133,7 +129,6 @@ void main_driver(const char* argv)
     StructFact structFact;
 
     if (restart < 0) {
-
         step_start = 1;
         time = 0.;
 
@@ -181,12 +176,9 @@ void main_driver(const char* argv)
 
             structFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
         }
-
     } else {
-
         // checkpoint restart
         Abort("checkpoint read not implemented yet");
-
     }
 
     Real dt;
@@ -237,7 +229,6 @@ void main_driver(const char* argv)
 
     // time step loop
     for(int step=step_start;step<=max_step;++step) {
-
         // store the current time so we can later compute total run time.
         Real step_strt_time = ParallelDescriptor::second();
 
@@ -251,7 +242,6 @@ void main_driver(const char* argv)
 
         // Compute average n for each species, print to file?
         for (int comp = 0; comp < nspecies; ++comp) {
-
             amrex::Real n_sum = n_old.sum(comp);
             amrex::Real n_avg = n_sum / cell_count;
             amrex::Print() << n_avg << " ";
@@ -267,15 +257,12 @@ void main_driver(const char* argv)
         amrex::Print() << "Time step " << step << " complted in " << step_stop_time << " seconds\n";
 
         // add a snapshot to the structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             // add this snapshot to the average in the structure factor
             structFact.FortStructure(n_new);
-
         }
 
         if (plot_int > 0 && step%plot_int == 0) {
-
             WritePlotFile(step,time,geom,n_new);
 
             // write out structure factor to plotfile
@@ -308,7 +295,6 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-
     }
 
     outputFile.close();
@@ -318,5 +304,4 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
-
 }

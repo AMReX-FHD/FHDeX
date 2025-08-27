@@ -239,8 +239,8 @@ void WriteCheckPoint(int step,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovMeans"));
         VisMF::Write(surfcovVars,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovVars"));
-	VisMF::Write(surfcovcoVars,
-		     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovcoVars"));
+        VisMF::Write(surfcovcoVars,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovcoVars"));
     }
 
     if (do_1D || do_2D) {
@@ -398,7 +398,7 @@ void ReadCheckPoint(int& step,
             surfcov.define(ba,dmap,n_ads_spec,0);
             surfcovMeans.define(ba,dmap,n_ads_spec,0);
             surfcovVars.define(ba,dmap,n_ads_spec,0);
-	        surfcovcoVars.define(ba,dmap,n_ads_spec*6,0);
+            surfcovcoVars.define(ba,dmap,n_ads_spec*6,0);
         }
 
         // spatialCrossMF
@@ -503,7 +503,7 @@ void ReadCheckPoint(int& step,
             for (int m=0;m<n_ads_spec;m++) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
-		        surfcovcoVars.setVal(0.0);
+                surfcovcoVars.setVal(0.0);
             }
         }
         if (plot_mom3) mom3.setVal(0.0);
@@ -540,7 +540,7 @@ void ReadCheckPoint(int& step,
         if (n_ads_spec>0) {
             Read_Copy_MF_Checkpoint(surfcovMeans,"surfcovMeans",checkpointname,ba_old,dmap_old,n_ads_spec,0);
             Read_Copy_MF_Checkpoint(surfcovVars,"surfcovVars",checkpointname,ba_old,dmap_old,n_ads_spec,0);
-	        Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
+            Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
         }
         if (plot_mom3) Read_Copy_MF_Checkpoint(mom3,"mom3",checkpointname,ba_old,dmap_old,nvars+1,0);
     }

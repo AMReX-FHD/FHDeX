@@ -66,44 +66,44 @@ do
     for grid in 0 1 2
     do
 
-	# Replace variable values in inputs file
+        # Replace variable values in inputs file
         sed -i "s/fixed_dt = .*/fixed_dt = ${Dt[$grid]}/" ./$input_file
-	sed -i "s/max_step = .*/max_step = ${Nsteps[$grid]}/" ./$input_file
+        sed -i "s/max_step = .*/max_step = ${Nsteps[$grid]}/" ./$input_file
         sed -i "s/plot_int = .*/plot_int = ${Nsteps[$grid]}/" ./$input_file
-	# sed -i "s/plot_int = .*/plot_int = 1/" ./$input_file
+        # sed -i "s/plot_int = .*/plot_int = 1/" ./$input_file
 
         if [ $dim = "2" ]
-	then
-	    sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
+        then
+            sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
             sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
-	fi
+        fi
 
-	if [ $dim = "3" ]
-	then
+        if [ $dim = "3" ]
+        then
             sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
             sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
-	fi
-	###########################################################################
+        fi
+        ###########################################################################
 
-    	folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"
-    	dir=$dir_top/$folder
+        folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"
+        dir=$dir_top/$folder
 
-    	# Cleanup
-    	mkdir $dir
-    	rm -r $dir/stag* $dir/plt*
+        # Cleanup
+        mkdir $dir
+        rm -r $dir/stag* $dir/plt*
 
-	# If wish to remove/cleanup previous directory:
-	# rm -r $dir
+        # If wish to remove/cleanup previous directory:
+        # rm -r $dir
 
-    	# Run various inputs files & store plot files in directory
+        # Run various inputs files & store plot files in directory
         mpiexec -n ${nprocs} ./main${dim}d.gnu.MPI.ex ${input_file}
-    	# ./main${dim}d.gnu.MPI.ex ${input_file}
+        # ./main${dim}d.gnu.MPI.ex ${input_file}
 
-	# Plot result after each run
-	# amrvis${dim}d -a plt*
+        # Plot result after each run
+        # amrvis${dim}d -a plt*
 
-	# Move plot files to specified directory
-    	mv plt* stag* $dir
+        # Move plot files to specified directory
+        mv plt* stag* $dir
 
     done
 done

@@ -57,10 +57,10 @@ void main_driver(const char* argv)
     Real dVol = dx[0]*dx[1];
     int tot_n_cells = n_cells[0]*n_cells[1];
     if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
+        dVol *= cell_depth;
     } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
+        dVol *= dx[2];
+        tot_n_cells = n_cells[2]*tot_n_cells;
     }
 
     // how boxes are distrubuted among MPI processes

@@ -330,22 +330,22 @@ void Groups::sanity_check(double *p)
     double glo,ghi;
     if (g < ngroups) {
       if (ngroups_flag) {
-	if (g == 0) glo = lo;
-	else glo = ghibound[g-1];
-	ghi = ghibound[g];
+        if (g == 0) glo = lo;
+        else glo = ghibound[g-1];
+        ghi = ghibound[g];
       } else {
-	if (g < ngroups-1) glo = ghibound[g+1];
-	else glo = lo;
-	ghi = ghibound[g];
+        if (g < ngroups-1) glo = ghibound[g+1];
+        else glo = lo;
+        ghi = ghibound[g];
       }
     } else glo = ghi = 0.0;
 
     for (int i = 0; i < gcount[g]; i++) {
       double pone = p[g2p[g][i]];
       if (pone < glo || pone > ghi) {
-	printf("Group mismatch: %d %d %d: %g %g %g\n",
-	       g,i,g2p[g][i],glo,pone,ghi);
-	flag++;
+        printf("Group mismatch: %d %d %d: %g %g %g\n",
+               g,i,g2p[g][i],glo,pone,ghi);
+        flag++;
       }
     }
   }

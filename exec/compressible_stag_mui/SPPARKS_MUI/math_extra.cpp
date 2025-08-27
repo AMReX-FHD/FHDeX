@@ -116,7 +116,7 @@ int jacobi(double matrix[3][3], double *evalues, double evectors[3][3])
     sm = 0.0;
     for (i = 0; i < 2; i++)
       for (j = i+1; j < 3; j++)
-	sm += fabs(matrix[i][j]);
+        sm += fabs(matrix[i][j]);
     if (sm == 0.0) return 0;
 
     if (iter < 4) tresh = 0.2*sm/(3*3);
@@ -124,32 +124,32 @@ int jacobi(double matrix[3][3], double *evalues, double evectors[3][3])
 
     for (i = 0; i < 2; i++) {
       for (j = i+1; j < 3; j++) {
-	g = 100.0*fabs(matrix[i][j]);
-	if (iter > 4 && fabs(evalues[i])+g == fabs(evalues[i])
-	    && fabs(evalues[j])+g == fabs(evalues[j]))
-	  matrix[i][j] = 0.0;
-	else if (fabs(matrix[i][j]) > tresh) {
-	  h = evalues[j]-evalues[i];
-	  if (fabs(h)+g == fabs(h)) t = (matrix[i][j])/h;
-	  else {
-	    theta = 0.5*h/(matrix[i][j]);
-	    t = 1.0/(fabs(theta)+sqrt(1.0+theta*theta));
-	    if (theta < 0.0) t = -t;
-	  }
-	  c = 1.0/sqrt(1.0+t*t);
-	  s = t*c;
-	  tau = s/(1.0+c);
-	  h = t*matrix[i][j];
-	  z[i] -= h;
-	  z[j] += h;
-	  evalues[i] -= h;
-	  evalues[j] += h;
-	  matrix[i][j] = 0.0;
-	  for (k = 0; k < i; k++) rotate(matrix,k,i,k,j,s,tau);
-	  for (k = i+1; k < j; k++) rotate(matrix,i,k,k,j,s,tau);
-	  for (k = j+1; k < 3; k++) rotate(matrix,i,k,j,k,s,tau);
-	  for (k = 0; k < 3; k++) rotate(evectors,k,i,k,j,s,tau);
-	}
+        g = 100.0*fabs(matrix[i][j]);
+        if (iter > 4 && fabs(evalues[i])+g == fabs(evalues[i])
+            && fabs(evalues[j])+g == fabs(evalues[j]))
+          matrix[i][j] = 0.0;
+        else if (fabs(matrix[i][j]) > tresh) {
+          h = evalues[j]-evalues[i];
+          if (fabs(h)+g == fabs(h)) t = (matrix[i][j])/h;
+          else {
+            theta = 0.5*h/(matrix[i][j]);
+            t = 1.0/(fabs(theta)+sqrt(1.0+theta*theta));
+            if (theta < 0.0) t = -t;
+          }
+          c = 1.0/sqrt(1.0+t*t);
+          s = t*c;
+          tau = s/(1.0+c);
+          h = t*matrix[i][j];
+          z[i] -= h;
+          z[j] += h;
+          evalues[i] -= h;
+          evalues[j] += h;
+          matrix[i][j] = 0.0;
+          for (k = 0; k < i; k++) rotate(matrix,k,i,k,j,s,tau);
+          for (k = i+1; k < j; k++) rotate(matrix,i,k,k,j,s,tau);
+          for (k = j+1; k < 3; k++) rotate(matrix,i,k,j,k,s,tau);
+          for (k = 0; k < 3; k++) rotate(evectors,k,i,k,j,s,tau);
+        }
       }
     }
 
@@ -166,7 +166,7 @@ int jacobi(double matrix[3][3], double *evalues, double evectors[3][3])
 ------------------------------------------------------------------------- */
 
 void rotate(double matrix[3][3], int i, int j, int k, int l,
-	    double s, double tau)
+            double s, double tau)
 {
   double g = matrix[i][j];
   double h = matrix[k][l];
@@ -238,7 +238,7 @@ void richardson(double *q, double *m, double *w, double *moments, double dtq)
 ------------------------------------------------------------------------- */
 
 void angmom_to_omega(double *m, double *ex, double *ey, double *ez,
-		     double *idiag, double *w)
+                     double *idiag, double *w)
 {
   double wbody[3];
 
@@ -288,7 +288,7 @@ void mq_to_omega(double *m, double *q, double *moments, double *w)
 ------------------------------------------------------------------------- */
 
 void omega_to_angmom(double *w, double *ex, double *ey, double *ez,
-		     double *idiag, double *m)
+                     double *idiag, double *m)
 {
   double mbody[3];
 
@@ -434,7 +434,7 @@ void quat_to_mat_trans(const double *quat, double mat[3][3])
 ------------------------------------------------------------------------- */
 
 void inertia_ellipsoid(double *radii, double *quat, double mass,
-		       double *inertia)
+                       double *inertia)
 {
   double p[3][3],ptrans[3][3],itemp[3][3],tensor[3][3];
   double idiag[3];
@@ -500,7 +500,7 @@ void inertia_line(double length, double theta, double mass, double *inertia)
 ------------------------------------------------------------------------- */
 
 void inertia_triangle(double *v0, double *v1, double *v2,
-		      double mass, double *inertia)
+                      double mass, double *inertia)
 {
   double s[3][3] = {{2.0, 1.0, 1.0}, {1.0, 2.0, 1.0}, {1.0, 1.0, 2.0}};
   double v[3][3],sv[3][3],vtsv[3][3];
@@ -541,7 +541,7 @@ void inertia_triangle(double *v0, double *v1, double *v2,
 ------------------------------------------------------------------------- */
 
 void inertia_triangle(double *idiag, double *quat, double mass,
-		      double *inertia)
+                      double *inertia)
 {
   double p[3][3],ptrans[3][3],itemp[3][3],tensor[3][3];
 

@@ -464,7 +464,7 @@ void main_driver(const char * argv) {
     // Find the optimal number of ghost cells for the IBMarkerContainer
     Real min_dx = dx[0];
     for (int d=1; d<AMREX_SPACEDIM; ++d)
-	    min_dx = amrex::min(min_dx, dx[d]);
+        min_dx = amrex::min(min_dx, dx[d]);
 
     // min of 4 is a HACK: something large enough but not too large
     int ib_nghost = 4;
@@ -507,7 +507,7 @@ void main_driver(const char * argv) {
         // using fourier modes => first two nodes reserved as "anchor"
         int N_markers = immbdy::contains_fourier ? N+1 : N;
 
-	Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom, x_anchor_0, e_anchor_0);
+        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom, x_anchor_0, e_anchor_0);
 
         // Vector<RealVect> marker_positions(N_markers);
         // if (immbdy::contains_fourier) {
@@ -772,7 +772,7 @@ void main_driver(const char * argv) {
         // advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
         //            alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
         advance_stokes(umac, umacNew, pres, ib_mc, bond_map, bond_neighbors,
-		       mfluxdiv_predict, mfluxdiv_correct,
+                       mfluxdiv_predict, mfluxdiv_correct,
                        alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
 
         //exit(0);

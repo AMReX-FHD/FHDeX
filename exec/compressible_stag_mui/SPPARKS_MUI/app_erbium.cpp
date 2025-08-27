@@ -345,11 +345,11 @@ double AppErbium::site_propensity(int i)
       if (jj == kk) continue;
       k = neighbor[i][kk];
       for (m = 0; m < nthree; m++) {
-	if (type[i] != ttype[m][0] || element[i] != tinput[m][0]) continue;
-	if (type[j] != ttype[m][1] || element[j] != tinput[m][1]) continue;
-	if (type[k] != ttype[m][2] || element[k] != tinput[m][2]) continue;
-	add_event(i,3,m,tpropensity[m],j,k);
-	proball += tpropensity[m];
+        if (type[i] != ttype[m][0] || element[i] != tinput[m][0]) continue;
+        if (type[j] != ttype[m][1] || element[j] != tinput[m][1]) continue;
+        if (type[k] != ttype[m][2] || element[k] != tinput[m][2]) continue;
+        add_event(i,3,m,tpropensity[m],j,k);
+        proball += tpropensity[m];
       }
     }
   }
@@ -430,9 +430,9 @@ void AppErbium::site_event(int i, class RandomPark *random)
       m = neighbor[j][n];
       isite = i2site[m];
       if (isite >= 0 && echeck[isite] == 0) {
-	propensity[isite] = site_propensity(m);
-	esites[nsites++] = isite;
-	echeck[isite] = 1;
+        propensity[isite] = site_propensity(m);
+        esites[nsites++] = isite;
+        echeck[isite] = 1;
       }
     }
   }
@@ -442,9 +442,9 @@ void AppErbium::site_event(int i, class RandomPark *random)
       m = neighbor[k][n];
       isite = i2site[m];
       if (isite >= 0 && echeck[isite] == 0) {
-	propensity[isite] = site_propensity(m);
-	esites[nsites++] = isite;
-	echeck[isite] = 1;
+        propensity[isite] = site_propensity(m);
+        esites[nsites++] = isite;
+        echeck[isite] = 1;
       }
     }
   }
@@ -481,7 +481,7 @@ void AppErbium::clear_events(int i)
 ------------------------------------------------------------------------- */
 
 void AppErbium::add_event(int i, int rstyle, int which, double propensity,
-			  int jpartner, int kpartner)
+                          int jpartner, int kpartner)
 {
   // grow event list and setup free list
 

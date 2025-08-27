@@ -18,8 +18,8 @@
 using namespace SPPARKS_NS;
 
 Cluster::Cluster(int id, int iv, double dv, double vol,
-		 double cx_in, double cy_in, double cz_in,
-		 int nn, double* neighs, double* pbcs) {
+  double cx_in, double cy_in, double cz_in,
+  int nn, double* neighs, double* pbcs) {
   global_id = id;
   ivalue = iv;
   dvalue = dv;
@@ -162,4 +162,3 @@ void Cluster::print(FILE* fp) {
   }
   fprintf(fp,"\n");
 }
-

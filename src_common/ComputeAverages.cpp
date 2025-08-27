@@ -34,20 +34,20 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
         for (auto n=0; n<ncomp; ++n) {
             comp = incomp+n;
             for (auto k = lo.z; k <= hi.z; ++k) {
-            for (auto j = lo.y; j <= hi.y; ++j) {
-            for (auto i = lo.x; i <= hi.x; ++i) {
-                if (dir == 0) {
-                    r=i;
-                } else if (dir == 1) {
-                    r=j;
-                } else if (dir == 2) {
-                    r=k;
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                    for (auto i = lo.x; i <= hi.x; ++i) {
+                        if (dir == 0) {
+                            r=i;
+                        } else if (dir == 1) {
+                            r=j;
+                        } else if (dir == 2) {
+                            r=k;
+                        }
+                        // sum up the data
+                        // the "+1" is because the first column will store the physical coordinate
+                        average[ r*(ncomp+1) + n + 1 ] += mf(i,j,k,comp);
+                    }
                 }
-                // sum up the data
-                // the "+1" is because the first column will store the physical coordinate
-                average[ r*(ncomp+1) + n + 1 ] += mf(i,j,k,comp);
-            }
-            }
             }
         }
 
@@ -123,19 +123,19 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
         for (auto n=0; n<ncomp; ++n) {
             comp = incomp+n;
             for (auto k = lo.z; k <= hi.z; ++k) {
-            for (auto j = lo.y; j <= hi.y; ++j) {
-            for (auto i = lo.x; i <= hi.x; ++i) {
-                if (dir == 0) {
-                    r=i;
-                } else if (dir == 1) {
-                    r=j;
-                } else if (dir == 2) {
-                    r=k;
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                    for (auto i = lo.x; i <= hi.x; ++i) {
+                        if (dir == 0) {
+                            r=i;
+                        } else if (dir == 1) {
+                            r=j;
+                        } else if (dir == 2) {
+                            r=k;
+                        }
+                        // sum up the data
+                        average[ r*(ncomp) + n] += mf(i,j,k,comp);
+                    }
                 }
-                // sum up the data
-                average[ r*(ncomp) + n] += mf(i,j,k,comp);
-            }
-            }
             }
         }
 
@@ -172,19 +172,19 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
         for (auto n=0; n<ncomp; ++n) {
             comp = outcomp+n;
             for (auto k = lo.z; k <= hi.z; ++k) {
-            for (auto j = lo.y; j <= hi.y; ++j) {
-            for (auto i = lo.x; i <= hi.x; ++i) {
-                if (dir == 0) {
-                    r=i;
-                } else if (dir == 1) {
-                    r=j;
-                } else if (dir == 2) {
-                    r=k;
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                    for (auto i = lo.x; i <= hi.x; ++i) {
+                        if (dir == 0) {
+                            r=i;
+                        } else if (dir == 1) {
+                            r=j;
+                        } else if (dir == 2) {
+                            r=k;
+                        }
+                        // sum up the data
+                        mf(i,j,k,comp) = average[ r*(ncomp) + n];
+                    }
                 }
-                // sum up the data
-                mf(i,j,k,comp) = average[ r*(ncomp) + n];
-            }
-            }
             }
         }
 
@@ -193,8 +193,8 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
 
 
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
-			    const int& dir,
-			    const int& incomp, const int& ncomp,
+                            const int& dir,
+                            const int& incomp, const int& ncomp,
                             const int& slablo, const int& slabhi)
 {
     BL_PROFILE_VAR("ComputVerticalAverage()",ComputeVerticalAverage);

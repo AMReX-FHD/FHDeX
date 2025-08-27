@@ -77,16 +77,16 @@ void main_driver(const char* argv)
             tempang = 4;
         }
         else if (eskernel_fluid[i] == 4) {
-	        tempang = 3;
+            tempang = 3;
         }
         else if (eskernel_fluid[i] == 5) {
-	        tempang = 3;
+            tempang = 3;
         }
         else if (eskernel_fluid[i] == 6) {
-	        tempang = 4;
+            tempang = 4;
         }
         else {
-	        tempang = floor(eskernel_fluid[i]/2)+1;
+            tempang = floor(eskernel_fluid[i]/2)+1;
         }
 
         if(tempang > ang)
@@ -263,7 +263,7 @@ void main_driver(const char* argv)
         ReadCheckPoint(step,time,statsCount,umac,umacM,pres,
                        particleMeans,particleVars,chargeM,
                        potential,potentialM,
-		       struct_cc_numdens0_real,struct_cc_numdens0_imag);
+                       struct_cc_numdens0_real,struct_cc_numdens0_imag);
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
@@ -368,92 +368,92 @@ void main_driver(const char* argv)
            wetRad[j] = 1.481*dxAv;
        }
        else if (pkernel_fluid[j] == 1) {
-	   wetRad[j] = 1.255*dxAv;
+           wetRad[j] = 1.255*dxAv;
        }
        else if (eskernel_fluid[j] == 4) {
-	   if (eskernel_beta[j] < 4 || eskernel_beta[j] > 12) {
-	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
-	   }
+           if (eskernel_beta[j] < 4 || eskernel_beta[j] > 12) {
+              Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+           }
 
-       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
-	   std::ifstream wetRad_w4("wetRad_w4.dat");
-	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
-	       wetRad_w4.ignore(100000, '\n');
-	   }
-	   wetRad_w4 >> wetRad[j];
-	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
-	   wetRad[j] *= dxAv;
-	   wetRad_w4.close();
-	   //wetRad[j] = 1.300*dxAv; // With beta = 5.22
+           int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
+           std::ifstream wetRad_w4("wetRad_w4.dat");
+           for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+               wetRad_w4.ignore(100000, '\n');
+           }
+           wetRad_w4 >> wetRad[j];
+           Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+           wetRad[j] *= dxAv;
+           wetRad_w4.close();
+           //wetRad[j] = 1.300*dxAv; // With beta = 5.22
        }
        else if (eskernel_fluid[j] == 5) {
-	   if (eskernel_beta[j] < 5 || eskernel_beta[j] > 15) {
-	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
-	   }
+           if (eskernel_beta[j] < 5 || eskernel_beta[j] > 15) {
+              Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+           }
 
-       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
-	   //Print() << targetLine << std::endl;
-	   std::ifstream wetRad_w5("wetRad_w5.dat");
-	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
-	       wetRad_w5.ignore(100000, '\n');
-	   }
-	   wetRad_w5 >> wetRad[j];
-	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
-	   wetRad[j] *= dxAv;
-	   wetRad_w5.close();
+           int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
+           //Print() << targetLine << std::endl;
+           std::ifstream wetRad_w5("wetRad_w5.dat");
+           for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+               wetRad_w5.ignore(100000, '\n');
+           }
+           wetRad_w5 >> wetRad[j];
+           Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+           wetRad[j] *= dxAv;
+           wetRad_w5.close();
        }
        else if (eskernel_fluid[j] == 6) {
-	   if (eskernel_beta[j] < 6 || eskernel_beta[j] > 18) {
-	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
-	   }
+           if (eskernel_beta[j] < 6 || eskernel_beta[j] > 18) {
+              Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+           }
 
-       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
-	   //Print() << targetLine << std::endl;
-	   std::ifstream wetRad_w6("wetRad_w6.dat");
-	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
-	       wetRad_w6.ignore(100000, '\n');
-	   }
-	   wetRad_w6 >> wetRad[j];
-	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
-	   wetRad[j] *= dxAv;
-	   wetRad_w6.close();
+           int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
+           //Print() << targetLine << std::endl;
+           std::ifstream wetRad_w6("wetRad_w6.dat");
+           for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+               wetRad_w6.ignore(100000, '\n');
+           }
+           wetRad_w6 >> wetRad[j];
+           Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+           wetRad[j] *= dxAv;
+           wetRad_w6.close();
            //wetRad[j] = 1.478*dxAv; // With beta = 8.64
        }
        else if (eskernel_fluid[j] == 3) {
-	   if (eskernel_beta[j] < 3 || eskernel_beta[j] > 9) {
-	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
-	   }
+           if (eskernel_beta[j] < 3 || eskernel_beta[j] > 9) {
+              Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+           }
 
-       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
-	   //Print() << targetLine << std::endl;
-	   std::ifstream wetRad_w3("wetRad_w3.dat");
-	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
-	       wetRad_w3.ignore(100000, '\n');
-	   }
-	   wetRad_w3 >> wetRad[j];
-	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
-	   wetRad[j] *= dxAv;
-	   wetRad_w3.close();
+           int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
+           //Print() << targetLine << std::endl;
+           std::ifstream wetRad_w3("wetRad_w3.dat");
+           for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+               wetRad_w3.ignore(100000, '\n');
+           }
+           wetRad_w3 >> wetRad[j];
+           Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+           wetRad[j] *= dxAv;
+           wetRad_w3.close();
        }
        else if (eskernel_fluid[j] == 7) {
-	   if (eskernel_beta[j] < 7 || eskernel_beta[j] > 21) {
-	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
-	   }
+           if (eskernel_beta[j] < 7 || eskernel_beta[j] > 21) {
+              Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+           }
 
-       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
-	   Print() << "TARGET: " << targetLine << std::endl;
-	   std::ifstream wetRad_w7("wetRad_w7.dat");
-	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
-	       wetRad_w7.ignore(100000, '\n');
-	   }
-	   wetRad_w7 >> wetRad[j];
-	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
-	   wetRad[j] *= dxAv;
-	   wetRad_w7.close();
+           int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
+           Print() << "TARGET: " << targetLine << std::endl;
+           std::ifstream wetRad_w7("wetRad_w7.dat");
+           for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+               wetRad_w7.ignore(100000, '\n');
+           }
+           wetRad_w7 >> wetRad[j];
+           Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+           wetRad[j] *= dxAv;
+           wetRad_w7.close();
        }
        else {
            Abort("Currently the code only supports pkernel_fluid = 1,3,4,6 or eskernel_fluid = 3,4,5,6,7.");
-	   //wetRad[j] = 1.255*dxAv;
+           //wetRad[j] = 1.255*dxAv;
        }
     }
 
@@ -854,14 +854,14 @@ void main_driver(const char* argv)
     //}
     Print() << "Pinned particles y location is " << particles.getPinnedY() << std::endl;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	// record actual shear speed, used to update particle velocity due to shear
+        // record actual shear speed, used to update particle velocity due to shear
         particles.wallspeed_x_lo_real[d] = wallspeed_x_lo[d];
         particles.wallspeed_y_lo_real[d] = wallspeed_y_lo[d];
         particles.wallspeed_z_lo_real[d] = wallspeed_z_lo[d];
         particles.wallspeed_x_hi_real[d] = wallspeed_x_hi[d];
         particles.wallspeed_y_hi_real[d] = wallspeed_y_hi[d];
         particles.wallspeed_z_hi_real[d] = wallspeed_z_hi[d];
-	// reset shear speed to 0 before GMRES solver
+        // reset shear speed to 0 before GMRES solver
         wallspeed_x_lo[d] = 0.;
         wallspeed_y_lo[d] = 0.;
         wallspeed_z_lo[d] = 0.;
@@ -1055,7 +1055,7 @@ void main_driver(const char* argv)
     int init_step = step;
     if(ramp_step==2){
         dt = dt*1e-7;
-	if(step < 100 && step > 50) dt = dt*2;
+        if(step < 100 && step > 50) dt = dt*2;
         if(step < 150 && step > 100) dt = dt*4;
         if(step < 200 && step > 150) dt = dt*8;
         if(step < 250 && step > 200) dt = dt*16;
@@ -1079,7 +1079,7 @@ void main_driver(const char* argv)
 
     }else if(ramp_step==1){
         dt = dt*1e-6;
-	if(step < 40 && step > 20) dt = dt*2;
+        if(step < 40 && step > 20) dt = dt*2;
         if(step < 80 && step > 40) dt = dt*10;
         if(step < 160 && step > 80) dt = dt*50;
         if(step < 240 && step > 160) dt = dt*100;
@@ -1094,7 +1094,7 @@ void main_driver(const char* argv)
 
     }else{
         dt = dt*1e-5;
-	if(step < 40 && step > 20) dt = dt*10;
+        if(step < 40 && step > 20) dt = dt*10;
         if(step < 60 && step > 40) dt = dt*100;
         if(step < 80 && step > 60) dt = dt*1000;
         if(step < 100 && step > 80) dt = dt*10000;
@@ -1118,247 +1118,247 @@ void main_driver(const char* argv)
         {
             if(istep == 50)
             {
-                    dt = dt*2;
+                dt = dt*2;
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 100)
             {
-                    dt = dt*2;
+                dt = dt*2;
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 150)
             {
-                    dt = dt*2;
+                dt = dt*2;
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
 
             if(istep == 200)
             {
-                    dt = dt*2;
+                dt = dt*2;
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 250)
             {
-                    dt = dt*2;
+                dt = dt*2;
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 300)
             {
-                    dt = dt*2;
+                dt = dt*2;
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
             if(istep == 350)
             {
-                    dt = dt*2;
+                dt = dt*2;
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 400)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
 
             if(istep == 500)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
 
             if(istep == 600)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
 
             if(istep == 700)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
 
             if(istep == 800)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 900)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
             if(istep == 1000)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
             if(istep == 1100)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 1200)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }if(istep == 1300)
             {
-                    dt = dt*sqrt(5);
+                dt = dt*sqrt(5);
 
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }if(istep == 1400)
             {
-                    dt = dt*sqrt(5);
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*sqrt(5);
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }if(istep == 1500)
             {
-                    dt = dt*sqrt(5);
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*sqrt(5);
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }if(istep == 1600)
             {
-                    dt = dt*sqrt(5);
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*sqrt(5);
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }if(istep == 1700)
             {
-                    dt = dt*sqrt(5);
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*sqrt(5);
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
         }else if(ramp_step==1)
         {
             if(istep == 20)
             {
-                    dt = dt*2;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 40)
             {
-                    dt = dt*5;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 80)
             {
-                    dt = dt*5;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
 
             if(istep == 160)
             {
-                    dt = dt*2;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 240)
             {
-                    dt = dt*5;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 320)
             {
-                    dt = dt*2;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 400)
             {
-                    dt = dt*5;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
 
             if(istep == 480)
             {
-                    dt = dt*2;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
 
 
             if(istep == 560)
             {
-                    dt = dt*5;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
 
             if(istep == 640)
             {
-                    dt = dt*2;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 
             }
 
             if(istep == 720)
             {
-                    dt = dt*5;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 800)
             {
-                    dt = dt*2;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
           }else
         {
 
             if(istep == 20)
             {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
             if(istep == 40)
             {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 60)
             {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 80)
             {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
 
             if(istep == 100)
             {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
         }
 
@@ -1373,13 +1373,13 @@ void main_driver(const char* argv)
 //            Real x1 = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
 //            Real y1 = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
 //            Real z1 = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
-////
+//
 ////            Real seprad = ionParticle[0].d/2.0;
 ////
 ////            Real x2 = x1 + 0.0*ionParticle[0].d/2.0;
 ////            Real y2 = y1;
 ////            Real z2 = z1;
-//////
+////
 //            particles.SetPosition(kk,x1 ,y1, z1);
 ////            particles.SetPosition(kk+1,x2 ,y2, z2);
 //
@@ -1387,7 +1387,7 @@ void main_driver(const char* argv)
 //
 //            kk = kk+2;
 //
-
+////
 //          }
 
 //          kk =1;
@@ -1418,7 +1418,7 @@ void main_driver(const char* argv)
 //
 //            kk = kk+2;
 //
-
+////
 //          }
 //
 //            x1 = 0.5*prob_hi[0] + (amrex::Random()-0.5)*(prob_hi[0]-prob_lo[0])*0.25;
@@ -1451,15 +1451,15 @@ void main_driver(const char* argv)
             sourceTemp[d].setVal(0.0);      // reset source terms
             sourceRFD[d].setVal(0.0);      // reset source terms
             particles.ResetMarkers(0);
-	    umac[d].setVal(0.0);
+            umac[d].setVal(0.0);
         }
 
-	//// subtract shear velocity to previous umac
-	//if (istep > 1) {
-	//   MultiFab::Subtract(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
-	//   MultiFab::Subtract(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
-	//   MultiFab::Subtract(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
-	//}
+        //// subtract shear velocity to previous umac
+        //if (istep > 1) {
+        //   MultiFab::Subtract(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
+        //   MultiFab::Subtract(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
+        //   MultiFab::Subtract(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
+        //}
 
         //particles.BuildCorrectionTable(dxp,0);
 
@@ -1467,8 +1467,8 @@ void main_driver(const char* argv)
             // Apply RFD force to fluid
             particles.RFD(0, dx, sourceRFD, RealFaceCoords);
             particles.ResetMarkers(0);
-//            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
-//                            source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
+        //            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
+        //                            source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero
@@ -1641,7 +1641,7 @@ void main_driver(const char* argv)
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 		//MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
 		//MultiFab::Add(umac[1],externalV[1],0,0,externalV[0].nComp(),externalV[1].nGrow());
-		//MultiFab::Add(umac[2],externalV[2],0,0,externalV[0].nComp(),externalV[2].nGrow());
+		//MultiFab::Add(umac[2],externalV[2],0,0,externalV[0].nComp(),externalV[2].nComp());
 
             }
 
@@ -1850,7 +1850,7 @@ void main_driver(const char* argv)
             WriteCheckPoint(istep, time, statsCount, umac, umacM, pres,
                             particles, particleMeans, particleVars, chargeM,
                             potential, potentialM,
-			    struct_cc_numdens0_real, struct_cc_numdens0_imag);
+                            struct_cc_numdens0_real, struct_cc_numdens0_imag);
         }
 
 //        particles.PrintParticles();

@@ -84,12 +84,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
         rk3_stage1(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                    cu[mfi].dataPtr(),
                    cup[mfi].dataPtr(),
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
-      	           ZFILL(dx), &dt);
+                   ZFILL(dx), &dt);
     }
 
     cup.FillBoundary(geom.periodicity());
@@ -104,12 +104,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                    cu[mfi].dataPtr(),
                    cup[mfi].dataPtr(),
                    cup2[mfi].dataPtr(),
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
-      	           ZFILL(dx), &dt);
+                   ZFILL(dx), &dt);
     }
 
     cup2.FillBoundary(geom.periodicity());
@@ -124,14 +124,13 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                    cu[mfi].dataPtr(),
                    cup[mfi].dataPtr(),
                    cup2[mfi].dataPtr(),
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
-      	           ZFILL(dx), &dt);
+                   ZFILL(dx), &dt);
 
     }
 
 }
-

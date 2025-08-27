@@ -128,7 +128,7 @@ void Variable::set(int narg, char **arg)
     if (narg != 3) error->all(FLERR,"Illegal variable command");
     if (find(arg[0]) >= 0) {
       if (style[find(arg[0])] != EQUAL)
-	error->all(FLERR,"Cannot redefine variable as a different style");
+        error->all(FLERR,"Cannot redefine variable as a different style");
       remove(find(arg[0]));
     }
     style[nvar] = EQUAL;
@@ -184,18 +184,18 @@ void Variable::set(int narg, char **arg)
 
     for (int jvar = 0; jvar < nvar; jvar++)
       if (num[jvar] && (style[jvar] == UNIVERSE || style[jvar] == ULOOP) &&
-	  num[nvar] != num[jvar])
-	error->all(FLERR,"All universe/uloop variables must have same # of values");
+          num[nvar] != num[jvar])
+        error->all(FLERR,"All universe/uloop variables must have same # of values");
 
     if (me == 0) {
       if (universe->uscreen)
-	fprintf(universe->uscreen,
-		"Initial ${%s} setting: value %d on partition %d\n",
-		arg[0],index[nvar]+1,universe->iworld);
+        fprintf(universe->uscreen,
+                "Initial ${%s} setting: value %d on partition %d\n",
+                arg[0],index[nvar]+1,universe->iworld);
       if (universe->ulogfile)
-	fprintf(universe->ulogfile,
-		"Initial ${%s} setting: value %d on partition %d\n",
-		arg[0],index[nvar]+1,universe->iworld);
+        fprintf(universe->ulogfile,
+                "Initial ${%s} setting: value %d on partition %d\n",
+                arg[0],index[nvar]+1,universe->iworld);
     }
 
   } else error->all(FLERR,"Illegal variable command");
@@ -269,8 +269,8 @@ int Variable::next(int narg, char **arg)
       ivar = find(arg[iarg]);
       index[ivar]++;
       if (index[ivar] >= num[ivar]) {
-	flag = 1;
-	remove(ivar);
+        flag = 1;
+        remove(ivar);
       }
     }
 
@@ -283,8 +283,8 @@ int Variable::next(int narg, char **arg)
     int nextindex;
     if (me == 0) {
       while (1) {
-	if (!rename("tmp.spparks.variable","tmp.spparks.variable.lock")) break;
-	usleep(100000);
+        if (!rename("tmp.spparks.variable","tmp.spparks.variable.lock")) break;
+        usleep(100000);
       }
       FILE *fp = fopen("tmp.spparks.variable.lock","r");
       fscanf(fp,"%d",&nextindex);
@@ -294,13 +294,13 @@ int Variable::next(int narg, char **arg)
       fclose(fp);
       rename("tmp.spparks.variable.lock","tmp.spparks.variable");
       if (universe->uscreen)
-	fprintf(universe->uscreen,
-		"Increment via next: value %d on partition %d\n",
-		nextindex+1,universe->iworld);
+        fprintf(universe->uscreen,
+                "Increment via next: value %d on partition %d\n",
+                nextindex+1,universe->iworld);
       if (universe->ulogfile)
-	fprintf(universe->ulogfile,
-		"Increment via next: value %d on partition %d\n",
-		nextindex+1,universe->iworld);
+        fprintf(universe->ulogfile,
+                "Increment via next: value %d on partition %d\n",
+                nextindex+1,universe->iworld);
     }
     MPI_Bcast(&nextindex,1,MPI_INT,0,world);
 
@@ -308,8 +308,8 @@ int Variable::next(int narg, char **arg)
       ivar = find(arg[iarg]);
       index[ivar] = nextindex;
       if (index[ivar] >= num[ivar]) {
-	flag = 1;
-	remove(ivar);
+        flag = 1;
+        remove(ivar);
       }
     }
   }
@@ -486,9 +486,9 @@ double Variable::evaluate(char *str)
       int istart = i;
       while (isdigit(str[i]) || str[i] == '.') i++;
       if (str[i] == 'e' || str[i] == 'E') {
-	i++;
-	if (str[i] == '+' || str[i] == '-') i++;
-	while (isdigit(str[i])) i++;
+        i++;
+        if (str[i] == '+' || str[i] == '-') i++;
+        while (isdigit(str[i])) i++;
       }
       int istop = i - 1;
 
@@ -525,19 +525,19 @@ double Variable::evaluate(char *str)
       // ----------------
 
       if (strncmp(word,"v_",2) == 0) {
-	n = strlen(word) - 2 + 1;
-	char *id = new char[n];
-	strcpy(id,&word[2]);
+        n = strlen(word) - 2 + 1;
+        char *id = new char[n];
+        strcpy(id,&word[2]);
 
-	int ivar = find(id);
-	if (ivar < 0) error->all(FLERR,"Invalid variable name in variable formula");
+        int ivar = find(id);
+        if (ivar < 0) error->all(FLERR,"Invalid variable name in variable formula");
 
-	char *var = retrieve(id);
-	if (var == NULL)
-	  error->all(FLERR,"Invalid variable evaluation in variable formula");
-	argstack[nargstack++] = atof(var);
+        char *var = retrieve(id);
+        if (var == NULL)
+          error->all(FLERR,"Invalid variable evaluation in variable formula");
+        argstack[nargstack++] = atof(var);
 
-	delete [] id;
+        delete [] id;
 
       // ----------------
       // math function or constant or keyword
@@ -545,31 +545,31 @@ double Variable::evaluate(char *str)
 
       } else {
 
-	// math function
+        // math function
 
-	if (str[i] == '(') {
-	  char *contents;
-	  i = find_matching_paren(str,i,contents);
-	  i++;
+        if (str[i] == '(') {
+          char *contents;
+          i = find_matching_paren(str,i,contents);
+          i++;
 
-	  if (math_function(word,contents,argstack,nargstack));
-	  else error->all(FLERR,"Invalid math function in variable formula");
+          if (math_function(word,contents,argstack,nargstack));
+          else error->all(FLERR,"Invalid math function in variable formula");
 
-	  delete [] contents;
+          delete [] contents;
 
-	// constant
+        // constant
 
-	} else if (is_constant(word)) {
-	  value1 = constant(word);
-	  argstack[nargstack++] = value1;
+        } else if (is_constant(word)) {
+          value1 = constant(word);
+          argstack[nargstack++] = value1;
 
-	// keyword
+        // keyword
 
-	} else {
-	  int flag = keyword(word,value1);
-	  if (flag) error->all(FLERR,"Invalid keyword in variable formula");
-	  argstack[nargstack++] = value1;
-	}
+        } else {
+          int flag = keyword(word,value1);
+          if (flag) error->all(FLERR,"Invalid keyword in variable formula");
+          argstack[nargstack++] = value1;
+        }
       }
 
       delete [] word;
@@ -588,8 +588,8 @@ double Variable::evaluate(char *str)
       i++;
 
       if (op == SUBTRACT && expect == ARG) {
-	opstack[nopstack++] = UNARY;
-	continue;
+        opstack[nopstack++] = UNARY;
+        continue;
       }
 
       if (expect == ARG) error->all(FLERR,"Invalid syntax in variable formula");
@@ -599,24 +599,24 @@ double Variable::evaluate(char *str)
       // before pushing current op onto stack
 
       while (nopstack && precedence[opstack[nopstack-1]] >= precedence[op]) {
-	opprevious = opstack[--nopstack];
-	value2 = argstack[--nargstack];
-	if (opprevious != UNARY) value1 = argstack[--nargstack];
+        opprevious = opstack[--nopstack];
+        value2 = argstack[--nargstack];
+        if (opprevious != UNARY) value1 = argstack[--nargstack];
 
-	if (opprevious == ADD)
-	  argstack[nargstack++] = value1 + value2;
-	else if (opprevious == SUBTRACT)
-	  argstack[nargstack++] = value1 - value2;
-	else if (opprevious == MULTIPLY)
-	  argstack[nargstack++] = value1 * value2;
-	else if (opprevious == DIVIDE) {
-	  if (value2 == 0.0) error->all(FLERR,"Divide by 0 in variable formula");
-	  argstack[nargstack++] = value1 / value2;
-	} else if (opprevious == CARAT) {
-	  if (value2 == 0.0) error->all(FLERR,"Power by 0 in variable formula");
-	  argstack[nargstack++] = pow(value1,value2);
-	} else if (opprevious == UNARY)
-	  argstack[nargstack++] = -value2;
+        if (opprevious == ADD)
+          argstack[nargstack++] = value1 + value2;
+        else if (opprevious == SUBTRACT)
+          argstack[nargstack++] = value1 - value2;
+        else if (opprevious == MULTIPLY)
+          argstack[nargstack++] = value1 * value2;
+        else if (opprevious == DIVIDE) {
+          if (value2 == 0.0) error->all(FLERR,"Divide by 0 in variable formula");
+          argstack[nargstack++] = value1 / value2;
+        } else if (opprevious == CARAT) {
+          if (value2 == 0.0) error->all(FLERR,"Power by 0 in variable formula");
+          argstack[nargstack++] = pow(value1,value2);
+        } else if (opprevious == UNARY)
+          argstack[nargstack++] = -value2;
       }
 
       // if end-of-string, break out of entire formula evaluation loop
@@ -680,7 +680,7 @@ int Variable::find_matching_paren(char *str, int i,char *&contents)
 ------------------------------------------------------------------------- */
 
 int Variable::math_function(char *word, char *contents,
-			    double *argstack, int &nargstack)
+                            double *argstack, int &nargstack)
 {
   // word not a match to any math function
 
@@ -776,4 +776,3 @@ int Variable::keyword(char *word, double &value)
 
   return 0;
 }
-

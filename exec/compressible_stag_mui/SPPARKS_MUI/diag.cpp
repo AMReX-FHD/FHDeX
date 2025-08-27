@@ -48,15 +48,15 @@ Diag::Diag(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
     if (strcmp(arg[iarg],"stats") == 0) {
       iarg++;
       if (iarg < narg) {
-	if (strcmp(arg[iarg],"yes") == 0) stats_flag = 1;
-	else if (strcmp(arg[iarg],"no") == 0) stats_flag = 0;
-	else error->all(FLERR,"Illegal diag_style command");
+        if (strcmp(arg[iarg],"yes") == 0) stats_flag = 1;
+        else if (strcmp(arg[iarg],"no") == 0) stats_flag = 0;
+        else error->all(FLERR,"Illegal diag_style command");
       } else error->all(FLERR,"Illegal diag_style command");
     } else if (strcmp(arg[iarg],"delt") == 0) {
       iarg++;
       if (iarg < narg) {
-	delta = atof(arg[iarg]);
-	if (delta <= 0.0) error->all(FLERR,"Illegal diag_style command");
+        delta = atof(arg[iarg]);
+        if (delta <= 0.0) error->all(FLERR,"Illegal diag_style command");
       } else error->all(FLERR,"Illegal diag_style command");
     } else if (strcmp(arg[iarg],"logfreq") == 0) {
       if (iarg+3 > narg) error->all(FLERR,"Illegal diag_style command");
@@ -79,7 +79,7 @@ Diag::Diag(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
     } else if (strcmp(arg[iarg],"delay") == 0) {
       iarg++;
       if (iarg < narg) {
-	delay = atof(arg[iarg]);
+        delay = atof(arg[iarg]);
       } else error->all(FLERR,"Illegal diag_style command");
     } else break;
     iarg++;

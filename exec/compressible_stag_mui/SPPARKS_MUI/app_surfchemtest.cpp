@@ -97,9 +97,9 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       for (int k = 0; k < 6; k++) {
-	for (int l = 0; l < 6; l++) {
-		V_neighbor[i][j][k][l] = 0.0;
-	}
+        for (int l = 0; l < 6; l++) {
+          V_neighbor[i][j][k][l] = 0.0;
+        }
       }
     }
   }
@@ -258,11 +258,11 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     } else if (rstyle == 2) {
       if (narg < 8 || narg > 9) error->all(FLERR,"Illegal event command");
       if (narg == 9) {
-	if (strcmp(arg[8],"neighbor") == 0) neighboring_diff[ntwo] = true;
-	else error->all(FLERR,"Illegal event command");
+        if (strcmp(arg[8],"neighbor") == 0) neighboring_diff[ntwo] = true;
+        else error->all(FLERR,"Illegal event command");
       }
       else {
-	neighboring_diff[ntwo] = false;
+        neighboring_diff[ntwo] = false;
       }
       if (strcmp(arg[1],"siteA") == 0) dtype[ntwo][0] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) dtype[ntwo][0] = SITEB;
@@ -415,11 +415,11 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     } else if (rstyle == 5) {   // desorption
       if (narg < 5 || narg > 6) error->all(FLERR,"Illegal event command");
       if (narg == 6) {
-	if (strcmp(arg[5],"neighbor") == 0) neighboring_des[ndes] = true;
-	else error->all(FLERR,"Illegal event command");
+        if (strcmp(arg[5],"neighbor") == 0) neighboring_des[ndes] = true;
+        else error->all(FLERR,"Illegal event command");
       }
       else {
-	neighboring_des[ndes] = false;
+        neighboring_des[ndes] = false;
       }
       if (strcmp(arg[1],"siteA") == 0) destype[ndes] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) destype[ndes] = SITEB;
@@ -529,11 +529,11 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     } else if (rstyle == 7) { // associative desorption
       if (narg < 9 || narg > 10) error->all(FLERR,"Illegal event command");
       if (narg == 10) {
-	if (strcmp(arg[9],"neighbor") == 0) neighboring_ades[nassocdes] = true;
-	else error->all(FLERR,"Illegal event command");
+        if (strcmp(arg[9],"neighbor") == 0) neighboring_ades[nassocdes] = true;
+        else error->all(FLERR,"Illegal event command");
       }
       else {
-	neighboring_ades[nassocdes] = false;
+        neighboring_ades[nassocdes] = false;
       }
       if (strcmp(arg[1],"siteA") == 0) adestype[nassocdes][0] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) adestype[nassocdes][0] = SITEB;
@@ -549,7 +549,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[3],"spec4") == 0) adesinput[nassocdes][0] = SPEC4;
       else if (strcmp(arg[3],"spec5") == 0) adesinput[nassocdes][0] = SPEC5;
       else if (strcmp(arg[3],"vac") == 0)
-    error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
       else error->all(FLERR,"Illegal event command");
       if (strcmp(arg[4],"spec1") == 0) adesinput[nassocdes][1] = SPEC1;
       else if (strcmp(arg[4],"spec2") == 0) adesinput[nassocdes][1] = SPEC2;
@@ -557,7 +557,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[4],"spec4") == 0) adesinput[nassocdes][1] = SPEC4;
       else if (strcmp(arg[4],"spec5") == 0) adesinput[nassocdes][1] = SPEC5;
       else if (strcmp(arg[4],"vac") == 0)
-    error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
       else error->all(FLERR,"Illegal event command");
 
       adesrate[nassocdes] = atof(arg[5]);
@@ -600,11 +600,11 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     } else if (rstyle == 8) { // (reaction) associative desorption
       if (narg < 9 || narg > 10) error->all(FLERR,"Illegal event command");
       if (narg == 10) {
-	if (strcmp(arg[9],"neighbor") == 0) neighboring_rxn[nreaction] = true;
-	else error->all(FLERR,"Illegal event command");
+        if (strcmp(arg[9],"neighbor") == 0) neighboring_rxn[nreaction] = true;
+        else error->all(FLERR,"Illegal event command");
       }
       else {
-	neighboring_rxn[nreaction] = false;
+        neighboring_rxn[nreaction] = false;
       }
       if (strcmp(arg[1],"siteA") == 0) rxntype[nreaction][0] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) rxntype[nreaction][0] = SITEB;
@@ -620,7 +620,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[3],"spec4") == 0) rxninput[nreaction][0] = SPEC4;
       else if (strcmp(arg[3],"spec5") == 0) rxninput[nreaction][0] = SPEC5;
       else if (strcmp(arg[3],"vac") == 0)
-    error->all(FLERR,"rstyle=8 only allows spec1/2/3/4/5->vac");
+        error->all(FLERR,"rstyle=8 only allows spec1/2/3/4/5->vac");
       else error->all(FLERR,"Illegal event command");
       if (strcmp(arg[4],"spec1") == 0) rxninput[nreaction][1] = SPEC1;
       else if (strcmp(arg[4],"spec2") == 0) rxninput[nreaction][1] = SPEC2;
@@ -628,7 +628,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[4],"spec4") == 0) rxninput[nreaction][1] = SPEC4;
       else if (strcmp(arg[4],"spec5") == 0) rxninput[nreaction][1] = SPEC5;
       else if (strcmp(arg[4],"vac") == 0)
-    error->all(FLERR,"rstyle=8 only allows spec1/2/3/4/5->vac");
+        error->all(FLERR,"rstyle=8 only allows spec1/2/3/4/5->vac");
       else error->all(FLERR,"Illegal event command");
 
       rxnrate[nreaction] = atof(arg[5]);
@@ -949,23 +949,23 @@ double AppSurfchemtest::site_propensity(int i)
       if (type[j] != dtype[m][1] || element[j] != dinput[m][1]) continue;
 
       if (neighboring_diff[m]) { // diffusion
-	V_int = 0.0;
-	for (int x = 0; x < numneigh[i]; x++) {
-	  k = neighbor[i][x];
-	  V_int += -2*V_neighbor[type[i]][type[k]][element[i]][element[k]];
-	}
-	for (int y = 0; y < numneigh[j]; y++) {
-	  l = neighbor[j][y];
-	  V_int += 2*V_neighbor[type[j]][type[l]][element[i]][element[l]];
-	}
-	if (V_int > 0) {
-	  add_event(i,2,m,dpropensity[m]*exp(-V_int/(kB*temperature)),j,-1);
-	  proball += dpropensity[m]*exp(-V_int/(kB*temperature));
-	}
-	else {
-	  add_event(i,2,m,dpropensity[m],j,-1);
-	  proball += dpropensity[m];
-	}
+        V_int = 0.0;
+        for (int x = 0; x < numneigh[i]; x++) {
+          k = neighbor[i][x];
+          V_int += -2*V_neighbor[type[i]][type[k]][element[i]][element[k]];
+        }
+        for (int y = 0; y < numneigh[j]; y++) {
+          l = neighbor[j][y];
+          V_int += 2*V_neighbor[type[j]][type[l]][element[i]][element[l]];
+        }
+        if (V_int > 0) {
+          add_event(i,2,m,dpropensity[m]*exp(-V_int/(kB*temperature)),j,-1);
+          proball += dpropensity[m]*exp(-V_int/(kB*temperature));
+        }
+        else {
+          add_event(i,2,m,dpropensity[m],j,-1);
+          proball += dpropensity[m];
+        }
       }
       else {
         add_event(i,2,m,dpropensity[m],j,-1);
@@ -982,11 +982,11 @@ double AppSurfchemtest::site_propensity(int i)
       if (jj == kk) continue;
       k = neighbor[i][kk];
       for (m = 0; m < nthree; m++) {
-    if (type[i] != ttype[m][0] || element[i] != tinput[m][0]) continue;
-    if (type[j] != ttype[m][1] || element[j] != tinput[m][1]) continue;
-    if (type[k] != ttype[m][2] || element[k] != tinput[m][2]) continue;
-    add_event(i,3,m,tpropensity[m],j,k);
-    proball += tpropensity[m];
+        if (type[i] != ttype[m][0] || element[i] != tinput[m][0]) continue;
+        if (type[j] != ttype[m][1] || element[j] != tinput[m][1]) continue;
+        if (type[k] != ttype[m][2] || element[k] != tinput[m][2]) continue;
+        add_event(i,3,m,tpropensity[m],j,k);
+        proball += tpropensity[m];
       }
     }
   }
@@ -1025,8 +1025,8 @@ double AppSurfchemtest::site_propensity(int i)
     if (neighboring_des[m]) {
       V_int = 0.0;
       for (int k = 0; k < numneigh[i]; k++) {
-	j = neighbor[i][k];
-	V_int += 2*V_neighbor[type[i]][type[j]][element[i]][element[j]];
+        j = neighbor[i][k];
+        V_int += 2*V_neighbor[type[i]][type[j]][element[i]][element[j]];
       }
       despropensity = desrate[m]*exp(V_int/(kB*temperature));
     }
@@ -1064,25 +1064,25 @@ double AppSurfchemtest::site_propensity(int i)
       if (type[i] != adestype[m][0] || element[i] != adesinput[m][0]) continue;
       if (type[j] != adestype[m][1] || element[j] != adesinput[m][1]) continue;
       if (neighboring_ades[m]) {
-	V_int = 0.0;
-	for (int x = 0; x < numneigh[i]; x++) {
-	  k = neighbor[i][x];
-	  V_int += V_neighbor[type[i]][type[k]][element[i]][element[k]];
-	  V_int += V_neighbor[type[k]][type[i]][element[k]][element[i]];
-	}
-	for (int y = 0; y < numneigh[j]; y++) {
-	  l = neighbor[j][y];
-	  V_int += V_neighbor[type[j]][type[l]][element[j]][element[l]];
-	  V_int += V_neighbor[type[l]][type[j]][element[l]][element[j]];
-	}
-	V_int -= 2*V_neighbor[type[i]][type[j]][element[i]][element[j]];
-	V_int -= 2*V_neighbor[type[j]][type[i]][element[j]][element[i]];
-	add_event(i,7,m,adespropensity[m]*exp(V_int/(kB*temperature)),j,-1);
-	proball += adespropensity[m]*exp(V_int/(kB*temperature));
+        V_int = 0.0;
+        for (int x = 0; x < numneigh[i]; x++) {
+          k = neighbor[i][x];
+          V_int += V_neighbor[type[i]][type[k]][element[i]][element[k]];
+          V_int += V_neighbor[type[k]][type[i]][element[k]][element[i]];
+        }
+        for (int y = 0; y < numneigh[j]; y++) {
+          l = neighbor[j][y];
+          V_int += V_neighbor[type[j]][type[l]][element[j]][element[l]];
+          V_int += V_neighbor[type[l]][type[j]][element[l]][element[j]];
+        }
+        V_int -= 2*V_neighbor[type[i]][type[j]][element[i]][element[j]];
+        V_int -= 2*V_neighbor[type[j]][type[i]][element[j]][element[i]];
+        add_event(i,7,m,adespropensity[m]*exp(V_int/(kB*temperature)),j,-1);
+        proball += adespropensity[m]*exp(V_int/(kB*temperature));
       }
       else {
-	add_event(i,7,m,adespropensity[m],j,-1);
-  	proball += adespropensity[m];
+        add_event(i,7,m,adespropensity[m],j,-1);
+        proball += adespropensity[m];
       }
     }
   }
@@ -1095,25 +1095,25 @@ double AppSurfchemtest::site_propensity(int i)
       if (type[i] != rxntype[m][0] || element[i] != rxninput[m][0]) continue;
       if (type[j] != rxntype[m][1] || element[j] != rxninput[m][1]) continue;
       if (neighboring_rxn[m]) {
-	V_int = 0.0;
-	for (int x = 0; x < numneigh[i]; x++) {
-	  k = neighbor[i][x];
-	  V_int += V_neighbor[type[i]][type[k]][element[i]][element[k]];
-	  V_int += V_neighbor[type[k]][type[i]][element[k]][element[i]];
-	}
-	for (int y = 0; y < numneigh[j]; y++) {
-	  l = neighbor[j][y];
-	  V_int += V_neighbor[type[j]][type[l]][element[j]][element[l]];
-	  V_int += V_neighbor[type[l]][type[j]][element[l]][element[j]];
-	}
-	V_int -= 2*V_neighbor[type[i]][type[j]][element[i]][element[j]];
-	V_int -= 2*V_neighbor[type[j]][type[i]][element[j]][element[i]];
-	add_event(i,8,m,rxnpropensity[m]*exp(V_int/(kB*temperature)),j,-1);
-	proball += rxnpropensity[m]*exp(V_int/(kB*temperature));
+        V_int = 0.0;
+        for (int x = 0; x < numneigh[i]; x++) {
+          k = neighbor[i][x];
+          V_int += V_neighbor[type[i]][type[k]][element[i]][element[k]];
+          V_int += V_neighbor[type[k]][type[i]][element[k]][element[i]];
+        }
+        for (int y = 0; y < numneigh[j]; y++) {
+          l = neighbor[j][y];
+          V_int += V_neighbor[type[j]][type[l]][element[j]][element[l]];
+          V_int += V_neighbor[type[l]][type[j]][element[l]][element[j]];
+        }
+        V_int -= 2*V_neighbor[type[i]][type[j]][element[i]][element[j]];
+        V_int -= 2*V_neighbor[type[j]][type[i]][element[j]][element[i]];
+        add_event(i,8,m,rxnpropensity[m]*exp(V_int/(kB*temperature)),j,-1);
+        proball += rxnpropensity[m]*exp(V_int/(kB*temperature));
       }
       else {
-	add_event(i,8,m,rxnpropensity[m],j,-1);
-  	proball += rxnpropensity[m];
+        add_event(i,8,m,rxnpropensity[m],j,-1);
+        proball += rxnpropensity[m];
       }
     }
   }
@@ -1420,6 +1420,10 @@ void AppSurfchemtest::mui_init_agg()
     tmp[1] = domain->subyhi;
     point<double,2> send_span_hi(tmp);
 
+    point<double,2> send_span_lo(tmp);
+
+    point<double,2> send_span_hi(tmp);
+
     mui::geometry::box<config_2d> send_span(send_span_lo,send_span_hi);
 
     spk->uniface->announce_send_span(0.,1.e10,send_span);
@@ -1455,18 +1459,17 @@ void AppSurfchemtest::mui_init_agg()
     vector<vector<double>> sum2(nFHDcellx,vector<double>(nFHDcelly,0.));
 
     for (int i = 0; i < nlocal; i++) {
-      int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
-      int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
-      assert(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
-      cntKMCsite[nx][ny]++;
-      sum1[nx][ny] += xyz[i][0]+mui_kmc_lattice_offset_x;
-      sum2[nx][ny] += xyz[i][1]+mui_kmc_lattice_offset_y;
+        int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
+        int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
+        cntKMCsite[nx][ny]++;
+        sum1[nx][ny] += xyz[i][0]+mui_kmc_lattice_offset_x;
+        sum2[nx][ny] += xyz[i][1]+mui_kmc_lattice_offset_y;
     }
 
     int cntFHDcell = 0;
     for (int nx = 0; nx < nFHDcellx; nx++)
-      for (int ny = 0; ny < nFHDcelly; ny++)
-        if (cntKMCsite[nx][ny] > 0) cntFHDcell++;
+        for (int ny = 0; ny < nFHDcelly; ny++)
+            if (cntKMCsite[nx][ny] > 0) cntFHDcell++;
     nlocalFHDcell = cntFHDcell;
 
     if (domain->me == 0) nlocalFHDcell_world = new int[domain->nprocs];
@@ -1488,14 +1491,14 @@ void AppSurfchemtest::mui_init_agg()
 
     cntFHDcell = 0;
     for (int nx = 0; nx < nFHDcellx; nx++) {
-      for (int ny = 0; ny < nFHDcelly; ny++) {
-        if (cntKMCsite[nx][ny] > 0) {
-          FHDcell[nx][ny] = cntFHDcell;
-          xFHD[cntFHDcell] = sum1[nx][ny]/cntKMCsite[nx][ny];
-          yFHD[cntFHDcell] = sum2[nx][ny]/cntKMCsite[nx][ny];
-          cntFHDcell++;
+        for (int ny = 0; ny < nFHDcelly; ny++) {
+            if (cntKMCsite[nx][ny] > 0) {
+                FHDcell[nx][ny] = cntFHDcell;
+                xFHD[cntFHDcell] = sum1[nx][ny]/cntKMCsite[nx][ny];
+                yFHD[cntFHDcell] = sum2[nx][ny]/cntKMCsite[nx][ny];
+                cntFHDcell++;
+            }
         }
-      }
     }
     assert(cntFHDcell==nlocalFHDcell);
 
@@ -1511,7 +1514,7 @@ void AppSurfchemtest::mui_init_agg()
             double * data2 = new double[nlocalFHDcell_world[i]];
 
             MPI_Recv(data1,nlocalFHDcell_world[i],MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
-            MPI_Recv(data2,nlocalFHDcell_world[i],MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
+            MPI_Recv(data2,nlocalFHDcell_world[i],MPI_DOUBLE,i,1,world,MPI_STATUS_IGNORE);
 
             fprintf(logfile,"** rank %d **\n",i);
             for (int j=0;j<nlocalFHDcell_world[i];j++) {
@@ -1524,7 +1527,7 @@ void AppSurfchemtest::mui_init_agg()
     }
     else {
         MPI_Send(xFHD,nlocalFHDcell,MPI_DOUBLE,0,0,world);
-        MPI_Send(yFHD,nlocalFHDcell,MPI_DOUBLE,0,0,world);
+        MPI_Send(yFHD,nlocalFHDcell,MPI_DOUBLE,0,1,world);
     }
 
     // 3. localFHDcell, MUIintval, MUIdblval
@@ -1532,10 +1535,10 @@ void AppSurfchemtest::mui_init_agg()
     localFHDcell = new int [nlocal];
 
     for (int i = 0; i < nlocal; i++) {
-      int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
-      int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
-      assert(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
-      localFHDcell[i] = FHDcell[nx][ny];
+        int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
+        int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
+        assert(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
+        localFHDcell[i] = FHDcell[nx][ny];
     }
 
     vector<int> cntKMCsite2(nlocalFHDcell,0);
@@ -1562,8 +1565,7 @@ void AppSurfchemtest::mui_init_agg()
         }
     }
     else {
-        int * data = &cntKMCsite2[0];
-        MPI_Send(data,nlocalFHDcell,MPI_INT,0,0,world);
+        MPI_Send(cntKMCsite2.data(),nlocalFHDcell,MPI_INT,0,0,world);
     }
 
     MUIintval = new int[nlocalFHDcell];
@@ -1833,6 +1835,16 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_ac1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"ac2") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += ac2[i];
+        ac2[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_ac2",{xFHD[n],yFHD[n]},MUIintval[n]);
     } else if (strcmp(arg[k],"dc1") == 0) {
       // compute the sum over each FHD domain
       for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
@@ -1843,6 +1855,106 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_dc1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"dc2") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += dc2[i];
+        dc2[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_dc2",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"dac1") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += dac1[i];
+        dac1[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_dac1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"dac2") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += dac2[i];
+        dac2[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_dac2",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"dac3") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += dac3[i];
+        dac3[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_dac3",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"dac4") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += dac4[i];
+        dac4[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_dac4",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"dac5") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += dac5[i];
+        dac5[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_dac5",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"adc1") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += adc1[i];
+        adc1[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_adc1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"adc2") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += adc2[i];
+        adc2[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_adc2",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"adc3") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += adc3[i];
+        adc3[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_adc3",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"adc4") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += adc4[i];
+        adc4[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_adc4",{xFHD[n],yFHD[n]},MUIintval[n]);
     } else if (strcmp(arg[k],"occ1") == 0) {
       // compute the sum over each FHD domain
       for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
@@ -1969,24 +2081,21 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         density1[i] = MUIdblval[localFHDcell[i]];
-    }
-    else if (strcmp(arg[k],"temp") == 0) {
+    } else if (strcmp(arg[k],"temp") == 0) {
       // get info for each FHD cell
       for (int n=0;n<nlocalFHDcell;n++)
         MUIdblval[n] = spk->uniface->fetch("CH_temp",{xFHD[n],yFHD[n]},timestamp,s,t);
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         temp[i] = MUIdblval[localFHDcell[i]];
-    }
-    else if (strcmp(arg[k],"Vz") == 0) {
+    } else if (strcmp(arg[k],"Vz") == 0) {
       // get info for each FHD cell
       for (int n=0;n<nlocalFHDcell;n++)
         MUIdblval[n] = spk->uniface->fetch("CH_Vz",{xFHD[n],yFHD[n]},timestamp,s,t);
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         Vz[i] = MUIdblval[localFHDcell[i]];
-    }
-    else {
+    } else {
       error->all(FLERR,"Illegal mui_fetch_agg command");
     }
 

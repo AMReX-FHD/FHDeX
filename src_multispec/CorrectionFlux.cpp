@@ -1,12 +1,12 @@
 #include "multispec_functions.H"
 
 void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
-		    std::array< MultiFab, AMREX_SPACEDIM >& flux)
+    std::array< MultiFab, AMREX_SPACEDIM >& flux)
 {
 
-  BL_PROFILE_VAR("CorrectionFlux()",CorrectionFlux);
+    BL_PROFILE_VAR("CorrectionFlux()",CorrectionFlux);
 
-      // Loop over boxes
+    // Loop over boxes
     for (MFIter mfi(rho); mfi.isValid(); ++mfi) {
 
 

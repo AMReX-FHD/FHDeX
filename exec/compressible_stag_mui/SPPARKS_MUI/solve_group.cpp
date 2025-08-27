@@ -118,14 +118,14 @@ void SolveGroup::init(int n, double *propensity)
       num_active++;
       p[i] = propensity[i];
       if (p[i] < lo) {
-	nroundlo++;
-	lomax = MIN(lomax,p[i]);
-	p[i] = lo;
+        nroundlo++;
+        lomax = MIN(lomax,p[i]);
+        p[i] = lo;
       }
       if (p[i] > hi) {
-	nroundhi++;
-	himax = MAX(himax,p[i]);
-	p[i] = hi;
+        nroundhi++;
+        himax = MAX(himax,p[i]);
+        p[i] = hi;
       }
       sum += p[i];
     } else p[i] = 0.0;
@@ -155,16 +155,16 @@ void SolveGroup::update(int n, int *indices, double *propensity)
       if (p[j] == 0.0) num_active++;
       if (pt == 0.0) num_active--;
       else {
-	if (pt < lo) {
-	  nroundlo++;
-	  lomax = MIN(lomax,pt);
-	  pt = lo;
-	}
-	if (pt > hi) {
-	  nroundhi++;
-	  himax = MIN(himax,pt);
-	  pt = hi;
-	}
+        if (pt < lo) {
+          nroundlo++;
+          lomax = MIN(lomax,pt);
+          pt = lo;
+        }
+        if (pt > hi) {
+          nroundhi++;
+          himax = MIN(himax,pt);
+          pt = hi;
+        }
       }
       sum -= p[j];
       groups->alter_element(j,p,pt);
@@ -189,14 +189,14 @@ void SolveGroup::update(int n, double *propensity)
     if (pt == 0.0) num_active--;
     else {
       if (pt < lo) {
-	nroundlo++;
-	lomax = MIN(lomax,pt);
-	pt = lo;
+        nroundlo++;
+        lomax = MIN(lomax,pt);
+        pt = lo;
       }
       if (pt > hi) {
-	nroundhi++;
-	himax = MIN(himax,pt);
-	pt = hi;
+        nroundhi++;
+        himax = MIN(himax,pt);
+        pt = hi;
       }
     }
     sum -= p[n];
@@ -244,10 +244,10 @@ void SolveGroup::round_check()
   if ((nlo || nhi) && me == 0) {
     char str[128];
     sprintf(str,"%d propensities were reset to lo value, max lo = %g",
-	    nlo,lomaxall);
+            nlo,lomaxall);
     error->warning(FLERR,str);
     sprintf(str,"%d propensities were reset to hi value, max hi = %g",
-	    nhi,himaxall);
+            nhi,himaxall);
     error->warning(FLERR,str);
   }
 }

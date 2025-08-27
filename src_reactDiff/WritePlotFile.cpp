@@ -2,9 +2,9 @@
 #include "reactDiff_functions.H"
 
 void WritePlotFile(int step,
-                   const amrex::Real time,
-                   const amrex::Geometry& geom,
-		   const MultiFab& n_in)
+    const amrex::Real time,
+    const amrex::Geometry& geom,
+    const MultiFab& n_in)
 {
 
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);

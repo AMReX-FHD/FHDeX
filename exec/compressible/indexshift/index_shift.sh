@@ -38,7 +38,7 @@ regxnd="\(\|.\|...\|....\|$d05\|$d06\|$d07\|$d08\|$d09\|$d10\|$d11\|$d12\)"
 # done
 
 for ((d=0;d<3;d++)) do
-loopnode[$d]=0
+    loopnode[$d]=0
 done
 
 nodality[0,0]=0; nodality[0,1]=0; nodality[0,2]=0
@@ -88,174 +88,147 @@ while IFS= read -r line || [ -n "$line" ]; do
 
     # Detect beginning of loops
     if echo "$line" | grep -q "do .*="; then
-    	echo "   loop detected";
-    	loopcnt+=1
-    	echo "   loop count = $loopcnt";
+        echo "   loop detected"
+        loopcnt+=1
+        echo "   loop count = $loopcnt"
 
-    	if [ "$loopcnt" -eq "$ndims" ] && [ "$inloop" -eq "0" ]
-    	then
-    	    echo "   entering loop";
-    	    inloop=1
-    	fi
+        if [ "$loopcnt" -eq "$ndims" ] && [ "$inloop" -eq "0" ]; then
+            echo "   entering loop"
+            inloop=1
+        fi
 
-    	for ((d=0;d<3;d++)) do
-    	# echo "Hack: ${indxnames[$d]}";
+        for ((d=0;d<3;d++)) do
+            # echo "Hack: ${indxnames[$d]}";
 
-    	if echo "$line" | grep -q "${indxnames[$d]}.*="; then
-    	    echo "   beginning of ${indxnames[$d]} loop detected";
+            if echo "$line" | grep -q "${indxnames[$d]}.*="; then
+                echo "   beginning of ${indxnames[$d]} loop detected"
 
-    	    if echo "$line" | grep -q -- "-1"; then
-    		echo "   nodal in ${indxnames[$d]} direction";
-
-    	    	loopnode[$d]=1
-    	    fi
-    	fi
-    	done
+                if echo "$line" | grep -q -- "-1"; then
+                    echo "   nodal in ${indxnames[$d]} direction"
+                    loopnode[$d]=1
+                fi
+            fi
+        done
     fi
 
     # Detect end of loops
     if echo "$line" | grep -q "end.*do"; then
-    	echo "   endloop detected";
-    	loopcnt+=-1
-    	echo "   loop count = $loopcnt";
+        echo "   endloop detected"
+        loopcnt+=-1
+        echo "   loop count = $loopcnt"
 
-    	if [ "$loopcnt" -eq "0" ]
-    	then
-    	    echo "  end of spatial loop detected";
+        if [ "$loopcnt" -eq "0" ]; then
+            echo "  end of spatial loop detected"
             inloop=0
 
-    	    for ((d=0;d<3;d++)) do
-    	    loopnode[$d]=0
-    	    done
-    	fi
+            for ((d=0;d<3;d++)) do
+                loopnode[$d]=0
+            done
+        fi
     fi
 
     # Replace string occurances
-    if [ "$inloop" -eq "1" ]
-    then
-    	echo "   inside loop";
-    	# for ((d=0;d<3;d++)) do
-    	# echo "   nodality in ${indxnames[$d]} = ${loopnode[$d]}";
-    	# done
+    if [ "$inloop" -eq "1" ]; then
+        echo "   inside loop"
+        # for ((d=0;d<3;d++)) do
+        # echo "   nodality in ${indxnames[$d]} = ${loopnode[$d]}";
+        # done
 
-    	linetemp="$line"
+        linetemp="$line"
 
-    	for ((n=0;n<nvars;n++)) do
-    	if echo "$line" | grep -q "${varnames[$n]}("; then
-    	    echo "   checking nodality for ${varnames[$n]}";
+        for ((n=0;n<nvars;n++)) do
+            if echo "$line" | grep -q "${varnames[$n]}("; then
+                echo "   checking nodality for ${varnames[$n]}"
 
-    	    for ((d=0;d<3;d++)) do
-    	    echo "   nodality: loop ${loopnode[$((d))]}, mf ${nodality[$((n)),$((d))]}";
+                for ((d=0;d<3;d++)) do
+                    echo "   nodality: loop ${loopnode[$((d))]}, mf ${nodality[$((n)),$((d))]}"
 
-    	    if [ "${loopnode[$((d))]}" -eq "1" ] && [ "${nodality[$((n)),$((d))]}" -eq "0" ]
-    	    then
-    	    	echo "   loop nodal, mf cell centered...";
+                    if [ "${loopnode[$((d))]}" -eq "1" ] && [ "${nodality[$((n)),$((d))]}" -eq "0" ]; then
+                        echo "   loop nodal, mf cell centered..."
 
-    	    	# Note: ordering of sed statements matters
-    	    	case $d in
+                        # Note: ordering of sed statements matters
+                        case $d in
+                            0)
+                                echo "   cc in x"
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-1,${regx}${regx}${regxnd})/${varnames[$n]}(i-2,\1\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i,${regx}${regx}${regxnd})/${varnames[$n]}(i-1,\1\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+1,${regx}${regx}${regxnd})/${varnames[$n]}(i,\1\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+2,${regx}${regx}${regxnd})/${varnames[$n]}(i+1,\1\2\3)/g")
+                                ;;
+                            1)
+                                echo "   cc in y"
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-1,${regx}${regxnd})/${varnames[$n]}(\1j-2,\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j,${regx}${regxnd})/${varnames[$n]}(\1j-1,\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+1,${regx}${regxnd})/${varnames[$n]}(\1j,\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+2,${regx}${regxnd})/${varnames[$n]}(\1j+1,\2\3)/g")
+                                ;;
+                            2)
+                                echo "   cc in z"
 
-    	    	    0)
-    	    		echo "   cc in x"
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-1,${regx}${regx}${regxnd})/${varnames[$n]}(i-2,\1\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i,${regx}${regx}${regxnd})/${varnames[$n]}(i-1,\1\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+1,${regx}${regx}${regxnd})/${varnames[$n]}(i,\1\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+2,${regx}${regx}${regxnd})/${varnames[$n]}(i+1,\1\2\3)/g")
-    	    		;;
+                                # with 4th index
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1,${regxnd})/${varnames[$n]}(\1\2k-2,\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k,${regxnd})/${varnames[$n]}(\1\2k-1,\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1,${regxnd})/${varnames[$n]}(\1\2k,\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+2,${regxnd})/${varnames[$n]}(\1\2k+1,\3)/g")
 
-    	    	    1)
-    	    		echo "   cc in y"
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-1,${regx}${regxnd})/${varnames[$n]}(\1j-2,\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j,${regx}${regxnd})/${varnames[$n]}(\1j-1,\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+1,${regx}${regxnd})/${varnames[$n]}(\1j,\2\3)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+2,${regx}${regxnd})/${varnames[$n]}(\1j+1,\2\3)/g")
-    	    		;;
+                                # without 4th index
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1)/${varnames[$n]}(\1\2k-2)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k)/${varnames[$n]}(\1\2k-1)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1)/${varnames[$n]}(\1\2k)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+2)/${varnames[$n]}(\1\2k+1)/g")
+                                ;;
+                        esac
 
-    	    	    2)
-    	    		echo "   cc in z"
+                        echo "Original line:       $line"
+                        line="$linetemp"
+                        echo "Modified line:       $line"
+                    fi
 
-			# with 4th index
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1,${regxnd})/${varnames[$n]}(\1\2k-2,\3)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k,${regxnd})/${varnames[$n]}(\1\2k-1,\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1,${regxnd})/${varnames[$n]}(\1\2k,\3)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+2,${regxnd})/${varnames[$n]}(\1\2k+1,\3)/g")
+                    if [ "${loopnode[$((d))]}" -eq "0" ] && [ "${nodality[$((n)),$((d))]}" -eq "1" ]; then
+                        echo "   loop cell centered, mf nodal..."
 
-			# without 4th index
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1)/${varnames[$n]}(\1\2k-2)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k)/${varnames[$n]}(\1\2k-1)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1)/${varnames[$n]}(\1\2k)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+2)/${varnames[$n]}(\1\2k+1)/g")
-			;;
+                        # Note: ordering of sed statements matters
+                        case $d in
+                            0)
+                                echo "   nodal in x"
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+1,${regx}${regx}${regxnd})/${varnames[$n]}(i+2,\1\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i,${regx}${regx}${regxnd})/${varnames[$n]}(i+1,\1\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-1,${regx}${regx}${regxnd})/${varnames[$n]}(i,\1\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-2,${regx}${regx}${regxnd})/${varnames[$n]}(i-1,\1\2\3)/g")
+                                ;;
+                            1)
+                                echo "   nodal in y"
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+1,${regx}${regxnd})/${varnames[$n]}(\1j+2,\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j,${regx}${regxnd})/${varnames[$n]}(\1j+1,\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-1,${regx}${regxnd})/${varnames[$n]}(\1j,\2\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-2,${regx}${regxnd})/${varnames[$n]}(\1j-1,\2\3)/g")
+                                ;;
+                            2)
+                                echo "   nodal in z"
 
-    	    	esac
+                                # with 4th index
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1,${regxnd})/${varnames[$n]}(\1\2k+2,\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k,${regxnd})/${varnames[$n]}(\1\2k+1,\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1,${regxnd})/${varnames[$n]}(\1\2k,\3)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-2,${regxnd})/${varnames[$n]}(\1\2k-1,\3)/g")
 
-    	    	echo "Original line:       $line"
-    	    	line="$linetemp"
-    	    	echo "Modified line:       $line"
+                                # without 4th index
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1)/${varnames[$n]}(\1\2k+2)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k)/${varnames[$n]}(\1\2k+1)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1)/${varnames[$n]}(\1\2k)/g")
+                                linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-2)/${varnames[$n]}(\1\2k-1)/g")
+                                ;;
+                        esac
 
-    	    	# echo "Suggested update:    $linetemp"
-    	    	# echo "do you wish to change line?"
-    	    	# select modchoice in "yes" "no"; do
-    	    	#     case $modchoice in
-    	    	# 	yes ) line="$linetemp"; break;;
-    	    	# 	no ) echo "Line not changed:    $line"; exit;;
-    	    	#     esac
-    	    	# done
-    	    	# # echo "Modified line:       $line"
-
-    	    fi
-
-    	    if [ "${loopnode[$((d))]}" -eq "0" ] && [ "${nodality[$((n)),$((d))]}" -eq "1" ]
-    	    then
-    	    	echo "   loop cell centered, mf nodal...";
-
-    	    	# Note: ordering of sed statements matters
-    	    	case $d in
-
-    	    	    0)
-    	    		echo "   nodal in x"
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+1,${regx}${regx}${regxnd})/${varnames[$n]}(i+2,\1\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i,${regx}${regx}${regxnd})/${varnames[$n]}(i+1,\1\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-1,${regx}${regx}${regxnd})/${varnames[$n]}(i,\1\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-2,${regx}${regx}${regxnd})/${varnames[$n]}(i-1,\1\2\3)/g")
-    	    		;;
-
-    	    	    1)
-    	    		echo "   nodal in y"
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+1,${regx}${regxnd})/${varnames[$n]}(\1j+2,\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j,${regx}${regxnd})/${varnames[$n]}(\1j+1,\2\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-1,${regx}${regxnd})/${varnames[$n]}(\1j,\2\3)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-2,${regx}${regxnd})/${varnames[$n]}(\1j-1,\2\3)/g")
-    	    		;;
-
-    	    	    2)
-    	    		echo "   nodal in z"
-
-			# with 4th index
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1,${regxnd})/${varnames[$n]}(\1\2k+2,\3)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k,${regxnd})/${varnames[$n]}(\1\2k+1,\3)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1,${regxnd})/${varnames[$n]}(\1\2k,\3)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-2,${regxnd})/${varnames[$n]}(\1\2k-1,\3)/g")
-
-			# without 4th index
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1)/${varnames[$n]}(\1\2k+2)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k)/${varnames[$n]}(\1\2k+1)/g")
-    	    		linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1)/${varnames[$n]}(\1\2k)/g")
-			linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-2)/${varnames[$n]}(\1\2k-1)/g")
-			;;
-
-    	    	esac
-
-    	    	echo "Original line:       $line"
-    	    	line="$linetemp"
-    	    	echo "Modified line:       $line"
-
-    	    fi
-    	    done
-    	fi
-    	done
+                        echo "Original line:       $line"
+                        line="$linetemp"
+                        echo "Modified line:       $line"
+                    fi
+                done
+            fi
+        done
     fi
 
     # Write output to file
     echo "$line" >> ${outputFilename}
-
 done < "$1"

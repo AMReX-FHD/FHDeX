@@ -123,7 +123,7 @@ void AppSOS::init_app()
     if (instyle == XSIN) create_height(xwl,zwl,amp);
     else if (instyle == STRING)
       for (int i = 0; i < nlocal; i++)
-	height[i] = (int) invalues[i];
+        height[i] = (int) invalues[i];
 
     check = new int[nlocal+nghost];
     firstevent = (int *) memory->smalloc(nlocal*sizeof(int),"app:firstevent");

@@ -24,12 +24,12 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
                     std::array<MultiFab, AMREX_SPACEDIM >& umacNew,
                     MultiFab& pres,
                     IBMarkerContainer & ib_mc,
-		    const std::map<std::tuple<int, int>, double> & bond_map,
+                    const std::map<std::tuple<int, int>, double> & bond_map,
                     const std::map<int, std::vector<int>> & bond_neighbors,
                     const std::array<MultiFab, AMREX_SPACEDIM>& mfluxdiv_predict,
                     const std::array<MultiFab, AMREX_SPACEDIM>& mfluxdiv_correct,
-                          std::array<MultiFab, AMREX_SPACEDIM>& alpha_fc,
-                          std::array<MultiFab, AMREX_SPACEDIM>& force_ib,
+                    std::array<MultiFab, AMREX_SPACEDIM>& alpha_fc,
+                    std::array<MultiFab, AMREX_SPACEDIM>& force_ib,
                     const MultiFab& beta, const MultiFab& gamma,
                     const std::array<MultiFab, NUM_EDGE> & beta_ed,
                     const Geometry geom, const Real& dt, Real time)
@@ -134,7 +134,6 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
      *                                                                          *
      ***************************************************************************/
 
-
     //___________________________________________________________________________
     // Interpolate immersed boundary: J(u^(n+1/2))
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
@@ -180,8 +179,8 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
                       geom);
 
     update_bdy_marker(bond_map, bond_neighbors, time, ib_mc, ib_lev,
-		      IBMReal::forcex, false,
-		      geom);
+                      IBMReal::forcex, false,
+                      geom);
 
     // Constrain it to move in the z = constant plane only
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);

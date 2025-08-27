@@ -365,27 +365,27 @@ void Domain::pbcshift(double* xyz1, double* xyz2)
 
   if (xperiodic) {
     while ((xyz2[0] - xyz1[0])*2.0 < xprd)
-	 xyz2[0] += xprd;
+      xyz2[0] += xprd;
     while ((xyz2[0] - xyz1[0])*2.0 > xprd)
-	 xyz2[0] -= xprd;
+      xyz2[0] -= xprd;
   }
 
   // y coord
 
   if (yperiodic) {
     while ((xyz2[1] - xyz1[1])*2.0 < yprd)
-	 xyz2[1] += yprd;
+      xyz2[1] += yprd;
     while ((xyz2[1] - xyz1[1])*2.0 > yprd)
-	 xyz2[1] -= yprd;
+      xyz2[1] -= yprd;
   }
 
   // z coord
 
   if (zperiodic) {
     while ((xyz2[2] - xyz1[2])*2.0 < zprd)
-	 xyz2[2] += zprd;
+      xyz2[2] += zprd;
     while ((xyz2[2] - xyz1[2])*2.0 > zprd)
-	 xyz2[2] -= zprd;
+      xyz2[2] -= zprd;
   }
 
 }
@@ -406,27 +406,26 @@ void Domain::set_pbcflags(double* xyz1, double* xyz2, int* pbcflags)
 
   if (xperiodic) {
     if ((xyz2[0] - xyz1[0])*2.0 < -xprd)
-	 pbcflags[0] = 1;
+      pbcflags[0] = 1;
     else if ((xyz2[0] - xyz1[0])*2.0 > xprd)
-	 pbcflags[0] = -1;
+      pbcflags[0] = -1;
   }
 
   // y coord
 
   if (yperiodic) {
     if ((xyz2[1] - xyz1[1])*2.0 < -yprd)
-	 pbcflags[1] = 1;
+      pbcflags[1] = 1;
     else if ((xyz2[1] - xyz1[1])*2.0 > yprd)
-	 pbcflags[1] = -1;
+      pbcflags[1] = -1;
   }
 
   // z coord
 
   if (zperiodic) {
     if ((xyz2[2] - xyz1[2])*2.0 < -zprd)
-	 pbcflags[2] = 1;
+      pbcflags[2] = 1;
     else if ((xyz2[2] - xyz1[2])*2.0 > zprd)
-	 pbcflags[2] = -1;
+      pbcflags[2] = -1;
   }
 }
-

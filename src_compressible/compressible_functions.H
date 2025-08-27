@@ -22,7 +22,7 @@ void InitConsVar(MultiFab& cons,
 
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
-		   const MultiFab& chi, const MultiFab& D,
+                   const MultiFab& chi, const MultiFab& D,
                    std::array<MultiFab, AMREX_SPACEDIM>& flux,
                    std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornx,
@@ -31,12 +31,12 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    MultiFab& visccorn,
                    MultiFab& rancorn,
                    const Geometry& geom,
-		   const Vector< Real >& stoch_weights,
-	           const Real dt);
+                   const Vector< Real >& stoch_weights,
+                   const Real dt);
 
 void calculateTransportCoeffs(const MultiFab& prim_in,
-			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
-			      MultiFab& chi_in, MultiFab& Dij_in);
+                              MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
+                              MultiFab& chi_in, MultiFab& Dij_in);
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& prim, MultiFab& source,
@@ -84,15 +84,15 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
 void WritePlotFile(int step,
                    const Real time,
                    const Geometry& geom,
-	           const MultiFab& cu,
-	           const MultiFab& cuMeans,
-	           const MultiFab& cuVars,
-	           const MultiFab& prim,
-	           const MultiFab& primMeans,
-	           const MultiFab& primVars,
+                   const MultiFab& cu,
+                   const MultiFab& cuMeans,
+                   const MultiFab& cuVars,
+                   const MultiFab& prim,
+                   const MultiFab& primMeans,
+                   const MultiFab& primVars,
                    const MultiFab& spatialCross,
                    const MultiFab& eta,
-		   const MultiFab& kappa);
+                   const MultiFab& kappa);
 
 void yzAverage(const MultiFab& consMean,
                const MultiFab& consVar,
@@ -648,7 +648,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
              const GpuArray<Real,MAX_SPECIES>& Ykp,
              const GpuArray<Real,MAX_SPECIES>& Xkp,
-             const Array4<Real>& D_tilde,
+             const Array4<Real>& diff_ij,
              const int nspecies,
              const int iloc,
              const int jloc,
@@ -771,7 +771,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
        for (j=0; j<nspecies; ++j) {
            // indicies on LHS are switched due to C++/F90 memory layout
            // this is the only location this needs to happen I believe
-           D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
+           diff_ij(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
        }
     }
 

@@ -80,7 +80,7 @@ def compute_thermochem_N2O4(temp):
 # Author: Atkinson, R.; Baulch, D.L.; Cox, R.A.; Crowley, J.N.; Hampson, R.F.; Hynes, R.G.; Jenkin, M.E.; Rossi, M.J.; Troe, J.
 # Title: Evaluated kinetic and photochemical data for atmospheric chemistry: Volume I - gas phase reactions of Ox, HOx, NOx and SOx species
 # Journal: Atmos. Chem. Phys. 4, 1461-1738 (2004)
-# Temp 	rate (s^-1)
+# Temp \trate (s^-1)
 # 250	6.89e4
 # 275	7.22e5
 # 300	5.12e6

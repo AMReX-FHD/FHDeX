@@ -35,12 +35,12 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
         const Array4<Real> & cu_fab = cu.array(mfi);
         const Array4<Real> & prim_fab = prim.array(mfi);
 
-	if (lox>lo.x) Abort("ERROR: lox>lo.x");
-	if (loy>lo.y) Abort("ERROR: loy>lo.y");
-	if (loz>lo.z) Abort("ERROR: loz>lo.z");
-	if (hix<hi.x) Abort("ERROR: hix<hi.x");
-	if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
-	if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
+        if (lox>lo.x) Abort("ERROR: lox>lo.x");
+        if (loy>lo.y) Abort("ERROR: loy>lo.y");
+        if (loz>lo.z) Abort("ERROR: loz>lo.z");
+        if (hix<hi.x) Abort("ERROR: hix<hi.x");
+        if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
+        if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
 
         // unless bx contains cells at the interface, skip
         int k = 0;
@@ -97,12 +97,12 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
         const Array4<Real> & cu_fab = cu.array(mfi);
         const Array4<Real> & prim_fab = prim.array(mfi);
 
-	if (lox>lo.x) Abort("ERROR: lox>lo.x");
-	if (loy>lo.y) Abort("ERROR: loy>lo.y");
-	if (loz>lo.z) Abort("ERROR: loz>lo.z");
-	if (hix<hi.x) Abort("ERROR: hix<hi.x");
-	if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
-	if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
+        if (lox>lo.x) Abort("ERROR: lox>lo.x");
+        if (loy>lo.y) Abort("ERROR: loy>lo.y");
+        if (loz>lo.z) Abort("ERROR: loz>lo.z");
+        if (hix<hi.x) Abort("ERROR: hix<hi.x");
+        if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
+        if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
 
         // unless bx contains cells at the interface, skip
         // ad-hoc fix to avoid memory leakage
@@ -146,9 +146,9 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     double vx,vy,vz;
                     double dmomx,dmomy,dmomz,derg;
 
-		    double kBTI = k_B*temp/MOMOFINERCO;
-		    double sqrtkBTI = sqrt(kBTI);
-		    double omegax,omegay;
+                    double kBTI = k_B*temp/MOMOFINERCO;
+                    double sqrtkBTI = sqrt(kBTI);
+                    double omegax,omegay;
 
                     dmomx = dmomy = dmomz = derg = 0.;
 
@@ -164,10 +164,10 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                         dmomz += mass*vz;
                         derg  -= 0.5*mass*(vx*vx+vy*vy+vz*vz);
 
-			// angular velocity (diatomic)
-			omegax = RandomNormal(0.,sqrtkBTI);
-			omegay = RandomNormal(0.,sqrtkBTI);
-			derg -= 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
+                        // angular velocity (diatomic)
+                        omegax = RandomNormal(0.,sqrtkBTI);
+                        omegay = RandomNormal(0.,sqrtkBTI);
+                        derg -= 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
                     }
 
                     for (int l=0;l<dc;l++)
@@ -182,10 +182,10 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                         dmomz += mass*vz;
                         derg  += 0.5*mass*(vx*vx+vy*vy+vz*vz);
 
-			// angular velocity (diatomic)
-			omegax = RandomNormal(0.,sqrtkBTI);
-			omegay = RandomNormal(0.,sqrtkBTI);
-			derg += 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
+                        // angular velocity (diatomic)
+                        omegax = RandomNormal(0.,sqrtkBTI);
+                        omegay = RandomNormal(0.,sqrtkBTI);
+                        derg += 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
                     }
 
                     cu_fab(i,j,k,0) += (dc-ac)*mass/dV;
@@ -722,8 +722,8 @@ void main_driver(const char* argv)
             hiy = hi.y;
             hiz = hi.z;
 
-	    isfirst = false;
-	}
+            isfirst = false;
+        }
         else
         {
             lox = (lox<lo.x) ? lox : lo.x;
@@ -814,7 +814,7 @@ void main_driver(const char* argv)
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();
@@ -847,8 +847,8 @@ void main_driver(const char* argv)
                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+        // collect a snapshot for structure factor
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too

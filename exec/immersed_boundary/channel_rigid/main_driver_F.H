@@ -12,9 +12,9 @@ extern "C"
 // in init_s_vel.F90
 
 void init_s_vel(const int* lo, const int* hi,
-		const amrex_real* vel, const int* vello, const int* velhi,
-		const amrex_real* dx,
-		const amrex_real* reallo, const amrex_real* realhi);
+    const amrex_real* vel, const int* vello, const int* velhi,
+    const amrex_real* dx,
+    const amrex_real* reallo, const amrex_real* realhi);
 
 ///////////////////////////
 

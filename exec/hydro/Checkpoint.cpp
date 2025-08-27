@@ -74,12 +74,12 @@ void WriteCheckPoint(int step,
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
 
-	if (turbForcing == 1) {
-	  // write turbulent forcing U's
-	  for (int i=0; i<132; ++i) {
-            HeaderFile << turbforce.getU(i) << '\n';
-	  }
-	}
+        if (turbForcing == 1) {
+            // write turbulent forcing U's
+            for (int i=0; i<132; ++i) {
+                HeaderFile << turbforce.getU(i) << '\n';
+            }
+        }
     }
 
     int comm_rank = 0;
@@ -175,18 +175,18 @@ void ReadCheckPoint(int& step,
         // create a distribution mapping
         dmap.define(ba, ParallelDescriptor::NProcs());
 
-	if (turbForcing == 1) {
-	  turbforce.define(ba,dmap,turb_a,turb_b);
-	}
+        if (turbForcing == 1) {
+            turbforce.define(ba,dmap,turb_a,turb_b);
+        }
 
-	if (turbForcing == 1) {
-	  // read in turbulent forcing U's
-	  Real utemp;
-	  for (int i=0; i<132; ++i) {
-            is >> utemp;
-            turbforce.setU(i,utemp);
-	  }
-	}
+        if (turbForcing == 1) {
+            // read in turbulent forcing U's
+            Real utemp;
+            for (int i=0; i<132; ++i) {
+                is >> utemp;
+                turbforce.setU(i,utemp);
+            }
+        }
 
         // build MultiFab data
         umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
@@ -300,11 +300,11 @@ ReadFile (const std::string& filename, Vector<char>& charBuf,
     }
 
     if(fileLength == -1) {
-      return;
+        return;
     }
 
     fileLengthPadded = fileLength + 1;
-//    fileLengthPadded += fileLengthPadded % 8;
+    //    fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);
 
     iss.read(charBuf.dataPtr(), fileLength);

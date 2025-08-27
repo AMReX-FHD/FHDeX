@@ -790,7 +790,7 @@ void AppLattice::sweep_mask_strict(int n, int *list)
 
 /* ---------------------------------------------------------------------- */
 
-void AppLattice::input_app(char *command, int narg, char **arg)
+void AppLattice::input_app(char *command, char **arg)
 {
   error->all(FLERR,"Unrecognized command");
 }

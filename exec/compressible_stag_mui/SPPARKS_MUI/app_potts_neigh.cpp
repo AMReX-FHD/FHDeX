@@ -107,6 +107,6 @@ void AppPottsNeigh::site_event_rejection(int i, RandomPark *random)
     if (einitial < 0.5*numneigh[i]) mask[i] = 1;
     if (spin[i] != oldstate)
       for (int j = 0; j < numneigh[i]; j++)
-	mask[neighbor[i][j]] = 0;
+        mask[neighbor[i][j]] = 0;
   }
 }

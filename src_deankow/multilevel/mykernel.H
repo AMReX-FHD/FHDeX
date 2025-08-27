@@ -440,16 +440,16 @@ void update_phi (int i, int j, int k,
                               amrex::Real dzinv),
                  int Ncomp)
 {
-  for (int n = 0; n < Ncomp; n++){
-    phinew(i,j,k,n) = phiold(i,j,k,n)
-        +  dt * dxinv * (fluxx(i+1,j  ,k,n  ) - fluxx(i,j,k,n))
-        +  dt * dyinv * (fluxy(i  ,j+1,k,n  ) - fluxy(i,j,k,n))
+    for (int n = 0; n < Ncomp; n++){
+        phinew(i,j,k,n) = phiold(i,j,k,n)
+            +  dt * dxinv * (fluxx(i+1,j  ,k,n  ) - fluxx(i,j,k,n))
+            +  dt * dyinv * (fluxy(i  ,j+1,k,n  ) - fluxy(i,j,k,n))
 #if (AMREX_SPACEDIM > 2)
-        +  dt * dzinv * (fluxz(i  ,j  ,k+1,n) - fluxz(i,j,k,n));
+            +  dt * dzinv * (fluxz(i  ,j  ,k+1,n) - fluxz(i,j,k,n));
 #else
-        ;
+            ;
 #endif
-  }
+    }
 }
 
 #endif

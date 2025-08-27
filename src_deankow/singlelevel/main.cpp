@@ -59,14 +59,14 @@ void main_main ()
         nsteps = 10;
         pp.query("nsteps",nsteps);
 
-	npts_scale = 1.;
-	pp.query ("npts_scale",npts_scale);
+        npts_scale = 1.;
+        pp.query ("npts_scale",npts_scale);
 
-	alg_type = 0;
-	pp.query ("alg_type",alg_type);
+        alg_type = 0;
+        pp.query ("alg_type",alg_type);
 
-	cfl=.9;
-	pp.query ("cfl",cfl);
+        cfl=.9;
+        pp.query ("cfl",cfl);
 
 
         // By default, the boundary conditions will be set to periodic, or bc_lo = bc_hi = 0.
@@ -249,7 +249,7 @@ void main_main ()
 
 //	    amrex::Real Ephi=0.;
 //	    amrex::Real Ephi2=0.;
-	    Vector<Real> Ephi(3,0.);
+            Vector<Real> Ephi(3,0.);
             Real Ephimin = npts_scale;
 	    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
             {

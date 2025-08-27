@@ -32,14 +32,14 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
 // in BDS.cpp
 
 void BDS(MultiFab& s_update,
-	 const int ncomp,
-	 const int bccomp,
-	 MultiFab const& state,
-	 std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	 MultiFab const& fq,
-	 Geometry const& geom,
-	 const Real dt,
-         const int proj_type = 0);
+    const int ncomp,
+    const int bccomp,
+    MultiFab const& state,
+    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+    MultiFab const& fq,
+    Geometry const& geom,
+    const Real dt,
+    const int proj_type = 0);
 
 void BDS_ComputeEdgeState(Box const& bx,
                           int ncomp,
@@ -88,18 +88,18 @@ void BDS_ComputeConc(Box const& bx,
 
 // project edge states to satisfy EOS
 void BDS_Proj(const Box& bx,
-	      const int ncomp,
-	      Array4<Real> const& sedgex,
-	      Array4<Real> const& sedgey,
+    const int ncomp,
+    Array4<Real> const& sedgex,
+    Array4<Real> const& sedgey,
 #if (AMREX_SPACEDIM == 3)
-	      Array4<Real> const& sedgez,
+    Array4<Real> const& sedgez,
 #endif
-	      const int proj_type);
+    const int proj_type);
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
-		     const int& ncomp,
-                     const int& proj_type)
+    const int& ncomp,
+    const int& proj_type)
 {
 
     GpuArray<Real, MAX_SPECIES> w;
@@ -189,10 +189,10 @@ void ConvertMToUmac(const std::array< MultiFab, AMREX_SPACEDIM >& s_fc,
 // in MkAdvMFluxdiv.cpp
 
 void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac,
-		   const std::array<MultiFab, AMREX_SPACEDIM> & m,
-		   std::array<MultiFab, AMREX_SPACEDIM> & m_update,
-		   const Real * dx,
-		   const int & increment=0);
+    const std::array<MultiFab, AMREX_SPACEDIM> & m,
+    std::array<MultiFab, AMREX_SPACEDIM> & m_update,
+    const Real * dx,
+    const int & increment=0);
 
 void MkAdvSFluxdiv_cc(const std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
                       const MultiFab & s_in,
@@ -222,9 +222,9 @@ void MacProj_hydro(std::array<MultiFab, AMREX_SPACEDIM> & umac,
                    const bool & full_solve=true);
 
 void ComputeMACSolverRHS(MultiFab & solverrhs,
-			 const MultiFab & macrhs,
-			 const std::array<MultiFab, AMREX_SPACEDIM> & umac,
-			 const Geometry & geom);
+             const MultiFab & macrhs,
+             const std::array<MultiFab, AMREX_SPACEDIM> & umac,
+             const Geometry & geom);
 
 void SetMacSolverBCs(MLABecLaplacian & mlabec);
 
@@ -234,24 +234,24 @@ void SetMacSolverBCs(MLABecLaplacian & mlabec);
 // in advance.cpp
 
 void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       MultiFab& pres,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
-	       std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,
-	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       MultiFab& beta,
+       MultiFab& pres,
+       const std::array< MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
+       std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,
+       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+       MultiFab& beta,
                MultiFab& gamma,
-	       std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt);
+       std::array< MultiFab, NUM_EDGE >& beta_ed,
+       const Geometry geom, const Real& dt);
 
 void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-	       MultiFab& pres, MultiFab& tracer,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
-	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       const MultiFab& beta, const MultiFab& gamma,
-	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt);
+       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
+       MultiFab& pres, MultiFab& tracer,
+       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
+       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
+       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+       const MultiFab& beta, const MultiFab& gamma,
+       const std::array< MultiFab, NUM_EDGE >& beta_ed,
+       const Geometry geom, const Real& dt);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in Vorticity.cpp

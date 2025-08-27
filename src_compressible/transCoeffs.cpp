@@ -5,8 +5,8 @@ using namespace common;
 using namespace compressible;
 
 void calculateTransportCoeffs(const MultiFab& prim_in,
-			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
-			      MultiFab& chi_in, MultiFab& Dij_in)
+                              MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
+                              MultiFab& chi_in, MultiFab& Dij_in)
 {
     BL_PROFILE_VAR("calculateTransportCoeffs()",calculateTransportCoeffs);
 
@@ -42,8 +42,8 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
 
             Real sumYk = 0.;
             for (int n=0; n<nspecies; ++n) {
-	        if (prim(i,j,k,6+n) <= 0.0) amrex::Abort("Negative mass fraction encountered");
-   	        if (prim(i,j,k,6+n) >= 1.0) amrex::Abort("Greater than unity mass fraction encountered");
+                if (prim(i,j,k,6+n) <= 0.0) amrex::Abort("Negative mass fraction encountered");
+                if (prim(i,j,k,6+n) >= 1.0) amrex::Abort("Greater than unity mass fraction encountered");
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+n)));
                 sumYk += Yk_fixed[n];
             }

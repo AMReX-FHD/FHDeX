@@ -1,5 +1,3 @@
-
-
 #include "GL_functions.H"
 #include "GL_functions_F.H"
 
@@ -41,7 +39,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
 
         integrate(BL_TO_FORTRAN_BOX(bx),
                    phi[mfi].dataPtr(),
-      	           dx,
+                   dx,
                    &integral);
 
     }
@@ -66,7 +64,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                    rannums[mfi].dataPtr(),
                    &integral,
                    &energy, &teng,&H1_semi_norm,
-      	           dx, &dt,&phi_avg);
+                   dx, &dt,&phi_avg);
     }
     ParallelDescriptor::ReduceRealSum(phi_avg);
     phi_avg = phi_avg/(n_cells[0]*n_cells[1]);
@@ -83,7 +81,8 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                 //    phin.FillBoundary(geom.periodicity());
                 //
                 //
-                //    for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
+                //    for ( MFIter c
+
                 //    {
                 //        const Box& bx = mfi.validbox();
                 //
@@ -97,7 +96,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
 }
 
 void Init_Phi(MultiFab& phi, const amrex::Real* dx )
-  {
+{
 
     // iterating over multifab and fill with initial condition
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
@@ -109,7 +108,7 @@ void Init_Phi(MultiFab& phi, const amrex::Real* dx )
                    dx);
     }
 
-   }
+}
 
 void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt,
                         amrex::Real& time, int plot_int, bool Make_PltFiles,int N_Burn,int L, amrex::Real& Expec, amrex::Real& MAD, int& Plot_Num,int& Plot_Skip, int& umbrella_number)
@@ -284,8 +283,6 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
 
 
 
-
-
 void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step, bool& weak_umb)
 {
 // This function is the implementation of the algorithm detailed in the overleaf notes. This function is meant for the scenario
@@ -341,12 +338,6 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
     amrex::Print() << "E2-r2*S2 "  << Expec2-r2*MAD2 << "\n";
     amrex::Print() << "E2+r2*S2 "  << Expec2+r2*MAD2 << "\n";
     amrex::Print() << "E1+r2*S1 "  << Expec + r2*MAD <<  "\n";
-
-
-
-
-
-
 
     if(Expec2-r2*MAD2 < Expec + r2*MAD && Expec2+r2*MAD2 > Expec + r2*MAD)// check if there was sufficient overlap AND new umbrella does not overlap too much
     {

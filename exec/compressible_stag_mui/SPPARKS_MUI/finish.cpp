@@ -46,10 +46,10 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   if (me == 0) {
     if (screen)
       fprintf(screen,
-	      "Loop time of %g on %d procs\n",time_loop,nprocs);
+              "Loop time of %g on %d procs\n",time_loop,nprocs);
     if (logfile)
       fprintf(logfile,
-	      "Loop time of %g on %d procs\n",time_loop,nprocs);
+              "Loop time of %g on %d procs\n",time_loop,nprocs);
   }
 
   if (flag == 0) return;
@@ -127,8 +127,8 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
 /* ---------------------------------------------------------------------- */
 
 void Finish::stats(int n, double *data,
-		   double *pave, double *pmax, double *pmin,
-		   int nhisto, int *histo)
+                   double *pave, double *pmax, double *pmin,
+                   int nhisto, int *histo)
 {
   int i,m;
   int *histotmp;
@@ -163,7 +163,7 @@ void Finish::stats(int n, double *data,
   }
 
   histotmp = (int *) memory->smalloc(nhisto*sizeof(int),
-					  "finish:histotmp");
+                                          "finish:histotmp");
   MPI_Allreduce(histo,histotmp,nhisto,MPI_INT,MPI_SUM,world);
   for (i = 0; i < nhisto; i++) histo[i] = histotmp[i];
   memory->sfree(histotmp);

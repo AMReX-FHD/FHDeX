@@ -10,84 +10,84 @@ using namespace std;
 using namespace common;
 
 struct FHD_realData {
-	enum {
-		velx = 0,
-		vely,
-		velz,
-		boostx,
-		boosty,
-		boostz,
-		R,
-		timeFrac,
-		omega,
-		lambda,
-		radius,
-		mass,
-		travelTime,
-		count
-	};
+    enum {
+        velx = 0,
+        vely,
+        velz,
+        boostx,
+        boosty,
+        boostz,
+        R,
+        timeFrac,
+        omega,
+        lambda,
+        radius,
+        mass,
+        travelTime,
+        count
+    };
 
-	static Vector<std::string> names() {
-		return Vector<std::string> {
-			"velx",
-			"vely",
-			"velz",
-			"boostx",
-			"boosty",
-			"boostz",
-			"R",
-			"timeFrac",
-			"omega",
-			"lambda",
-			"radius",
-			"mass",
-			"travelTime"
-		};
-	};
+    static Vector<std::string> names() {
+        return Vector<std::string> {
+            "velx",
+            "vely",
+            "velz",
+            "boostx",
+            "boosty",
+            "boostz",
+            "R",
+            "timeFrac",
+            "omega",
+            "lambda",
+            "radius",
+            "mass",
+            "travelTime"
+        };
+    };
 };
 
 
 
 struct FHD_intData {
-	enum {
-		sorted,
-		i,
-		j,
-		k,
-		species,
-		newSpecies,
-		fluxRec,
-		count
-	};
+    enum {
+        sorted,
+        i,
+        j,
+        k,
+        species,
+        newSpecies,
+        fluxRec,
+        count
+    };
 
-	static Vector<std::string> names() {
-			return Vector<std::string> {
-			"sorted",
-			"i",
-			"j",
-			"k",
-			"species",
-			"newSpecies",
-			"fluxRec"
-		};
-	};
+    static Vector<std::string> names() {
+        return Vector<std::string> {
+            "sorted",
+            "i",
+            "j",
+            "k",
+            "species",
+            "newSpecies",
+            "fluxRec"
+        };
+    };
 };
 
 typedef struct {
-	int type;
-	long total;
-	double mass;
-	double radius;
-	double n0;
-	double R;
-	double Neff;
-	double partVol;
-	double part2cellVol;
+    int type;
+    long total;
+    double mass;
+    double radius;
+    double n0;
+    double R;
+    double Neff;
+    double partVol;
+    double part2cellVol;
 } dsmcSpecies;
 
 typedef struct {
-	double alpha;
-	double csx;
+    double alpha;
+    double csx;
 } dsmcInterSpecies;
 
 template <typename P>
@@ -161,8 +161,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int mapBin(IntVect iv, int spec, Box domain)
 {
     auto cellLo = domain.smallEnd();
-	auto cellHi = domain.bigEnd();
-	int ncells = (cellHi[0]-cellLo[0]+1)*(cellHi[1]-cellLo[1]+1)*(cellHi[2]-cellLo[2]+1);
+    auto cellHi = domain.bigEnd();
+    int ncells = (cellHi[0]-cellLo[0]+1)*(cellHi[1]-cellLo[1]+1)*(cellHi[2]-cellLo[2]+1);
 
     long imap = domain.index(iv);
     int map = imap;
@@ -193,72 +193,72 @@ unsigned int* getCellList(unsigned int* permArray, unsigned int* offArray, IntVe
 
 
 class FhdParticleContainer
-	: public amrex::NeighborParticleContainer<FHD_realData::count, FHD_intData::count>
+    : public amrex::NeighborParticleContainer<FHD_realData::count, FHD_intData::count>
 {
 public:
 
-	using FhdParIter = ParIter<FHD_realData::count, FHD_intData::count>;
+    using FhdParIter = ParIter<FHD_realData::count, FHD_intData::count>;
 
-	FhdParticleContainer(const Geometry & geom,
-		const DistributionMapping & dmap,
-		const BoxArray & ba,
-		int ncells);
+    FhdParticleContainer(const Geometry & geom,
+        const DistributionMapping & dmap,
+        const BoxArray & ba,
+        int ncells);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // DSMC Routines
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	void InitParticles(Real & dt);
-	void ReInitParticles();
-	void InitCollisionCells();
+    void InitParticles(Real & dt);
+    void ReInitParticles();
+    void InitCollisionCells();
 
-	void Source(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, MultiFab& mfcuInst);
+    void Source(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, MultiFab& mfcuInst);
     void SourcePhonons(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Main DSMC routines
-	void SortParticles();
-	void SortParticlesDB();
+    // Main DSMC routines
+    void SortParticles();
+    void SortParticlesDB();
 
-	void CalcSelections(Real dt);
-	void CollideParticles(Real dt);
-	void CollideParticles2(Real dt);
+    void CalcSelections(Real dt);
+    void CollideParticles(Real dt);
+    void CollideParticles2(Real dt);
 
-	void MoveParticlesCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount);
+    void MoveParticlesCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount);
     void MovePhononsCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep, iMultiFab& bCell);
-	void externalForce(const Real dt);
-	void updateTimeStep(const Geometry& geom, Real& dt);
+    void externalForce(const Real dt);
+    void updateTimeStep(const Geometry& geom, Real& dt);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	MultiFab mfselect;
-	MultiFab mfvrmax;
-	MultiFab mfphi;
+    MultiFab mfselect;
+    MultiFab mfvrmax;
+    MultiFab mfphi;
 
-	MultiFab mfCollisions;
-	int expectedCollisions[MAX_SPECIES], countedCollisions[MAX_SPECIES];
+    MultiFab mfCollisions;
+    int expectedCollisions[MAX_SPECIES], countedCollisions[MAX_SPECIES];
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Outputs
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	void EvaluateStats(MultiFab& cuInst,
-		MultiFab& cuMeans,
-		MultiFab& cuVars,
-		MultiFab& primInst,
-		MultiFab& primMeans,
-		MultiFab& primVars,
-		MultiFab& mfcvlInst,
-		MultiFab& mfcvlMeans,
-		MultiFab& mfQMeans,
-		MultiFab& coVars,
-		MultiFab& spatialCross1D,
-		const int steps,
-		Real time);
+    void EvaluateStats(MultiFab& cuInst,
+        MultiFab& cuMeans,
+        MultiFab& cuVars,
+        MultiFab& primInst,
+        MultiFab& primMeans,
+        MultiFab& primVars,
+        MultiFab& mfcvlInst,
+        MultiFab& mfcvlMeans,
+        MultiFab& mfQMeans,
+        MultiFab& coVars,
+        MultiFab& spatialCross1D,
+        const int steps,
+        Real time);
 
    void EvaluateStatsPhonon(MultiFab& cuInst,
-		MultiFab& cuMeans,
-		MultiFab& cuVars,
-		const int steps,
-		Real time);
+        MultiFab& cuMeans,
+        MultiFab& cuVars,
+        const int steps,
+        Real time);
 
-	void OutputParticles();
+    void OutputParticles();
 
-	void zeroCells();
+    void zeroCells();
 
 
   //Real Tg0[MAX_SPECIES];
@@ -266,29 +266,29 @@ public:
 // Scalars
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	GpuArray<dsmcSpecies, MAX_SPECIES> properties;
-	GpuArray<dsmcInterSpecies, MAX_SPECIES*MAX_SPECIES> interproperties;
+    GpuArray<dsmcSpecies, MAX_SPECIES> properties;
+    GpuArray<dsmcInterSpecies, MAX_SPECIES*MAX_SPECIES> interproperties;
 
-	long realParticles;
-	long simParticles;
+    long realParticles;
+    long simParticles;
 
-	long totalCollisionCells; // might only be helpful for statistics
-	Real collisionCellVol; // assumed constant for all collision cells
-	Real ocollisionCellVol;
-	Real domainVol;
-	Real domSize[3];
-	//Real dx[3];
+    long totalCollisionCells; // might only be helpful for statistics
+    Real collisionCellVol; // assumed constant for all collision cells
+    Real ocollisionCellVol;
+    Real domainVol;
+    Real domSize[3];
+    //Real dx[3];
 
-	int getSpeciesIndex(int species1, int species2);
+    int getSpeciesIndex(int species1, int species2);
 
-	// Evaluating radial distribution function
-	Real g0_Ma_Ahmadi(int species1, int species2, Real phi1, Real phi2);
-	const Real chi_max = 500.0; // value is arbitrary (change as needed or maybe as input?)
-	const Real phi_max = 0.643;
+    // Evaluating radial distribution function
+    Real g0_Ma_Ahmadi(int species1, int species2, Real phi1, Real phi2);
+    const Real chi_max = 500.0; // value is arbitrary (change as needed or maybe as input?)
+    const Real phi_max = 0.643;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Constants
-	Real pi_usr = 4.0*atan(1.0);
+    // Constants
+    Real pi_usr = 4.0*atan(1.0);
 
 protected:
     // used to store vectors of particle indices on a cell-by-cell basis

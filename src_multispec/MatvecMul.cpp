@@ -11,7 +11,7 @@
  */
 
 void MatvecMul(MultiFab& x_in,
-	       const MultiFab& A_in)
+    const MultiFab& A_in)
 {
 
     BL_PROFILE_VAR("MatvecMul()",MatvecMul);
@@ -28,7 +28,6 @@ void MatvecMul(MultiFab& x_in,
 
         amrex::ParallelFor(validBox, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-
             GpuArray<Real,MAX_SPECIES> x_temp;
             Real sum;
 

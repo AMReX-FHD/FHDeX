@@ -65,11 +65,11 @@ void CreateBox::command(int narg, char **arg)
   if (domain->me == 0)
     if (screen) {
       if (screen) fprintf(screen,"Created box = (%g %g %g) to (%g %g %g)\n",
-			  domain->boxxlo,domain->boxylo,domain->boxzlo,
-			  domain->boxxhi,domain->boxyhi,domain->boxzhi);
+        domain->boxxlo,domain->boxylo,domain->boxzlo,
+        domain->boxxhi,domain->boxyhi,domain->boxzhi);
       if (logfile) fprintf(logfile,"Created box = (%g %g %g) to (%g %g %g)\n",
-			   domain->boxxlo,domain->boxylo,domain->boxzlo,
-			   domain->boxxhi,domain->boxyhi,domain->boxzhi);
+        domain->boxxlo,domain->boxylo,domain->boxzlo,
+        domain->boxxhi,domain->boxyhi,domain->boxzhi);
     }
 
   if (domain->dimension == 1) domain->procs2domain_1d();
@@ -79,10 +79,10 @@ void CreateBox::command(int narg, char **arg)
   if (domain->me == 0)
     if (screen) {
       if (screen) fprintf(screen,"  %d by %d by %d processor grid\n",
-			  domain->procgrid[0],domain->procgrid[1],
-			  domain->procgrid[2]);
+        domain->procgrid[0],domain->procgrid[1],
+        domain->procgrid[2]);
       if (logfile) fprintf(logfile,"  %d by %d by %d processor grid\n",
-			   domain->procgrid[0],domain->procgrid[1],
-			   domain->procgrid[2]);
+        domain->procgrid[0],domain->procgrid[1],
+        domain->procgrid[2]);
     }
 }

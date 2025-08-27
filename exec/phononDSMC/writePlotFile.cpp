@@ -8,12 +8,12 @@ using namespace amrex;
 using namespace std;
 
 void writePlotFile(const MultiFab& mfcuInst,
-						const MultiFab& mfcuMeans,
-						const MultiFab& mfcuVars,
-                        FhdParticleContainer& particles,
-						const Geometry& geom,
-						Real time,
-						int step) {
+    const MultiFab& mfcuMeans,
+    const MultiFab& mfcuVars,
+    FhdParticleContainer& particles,
+    const Geometry& geom,
+    Real time,
+    int step) {
     BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
     int ncon    = 5;
@@ -50,7 +50,7 @@ void writePlotFile(const MultiFab& mfcuInst,
 
 
 
-        // particle in cplt file
+    // particle in cplt file
     Vector<std::string> real_comp_names = FHD_realData::names();
     Vector<std::string>  int_comp_names = FHD_intData::names();
 

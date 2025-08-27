@@ -87,7 +87,7 @@ double Output::setup(double time, int memflag)
       dumplist[i]->write(time);
     dumplist[i]->next_time =
       next_time(time,dumplist[i]->logfreq,dumplist[i]->delta,
-		dumplist[i]->nrepeat,dumplist[i]->scale,dumplist[i]->delay);
+                dumplist[i]->nrepeat,dumplist[i]->scale,dumplist[i]->delay);
     dump_time = MIN(dump_time,dumplist[i]->next_time);
   }
 
@@ -99,7 +99,7 @@ double Output::setup(double time, int memflag)
     if  (diaglist[i]->stats_flag) diaglist[i]->compute();
     diaglist[i]->next_time =
       next_time(time,diaglist[i]->logfreq,diaglist[i]->delta,
-		diaglist[i]->nrepeat,diaglist[i]->scale,diaglist[i]->delay);
+                diaglist[i]->nrepeat,diaglist[i]->scale,diaglist[i]->delay);
     diag_time = MIN(diag_time,diaglist[i]->next_time);
   }
 
@@ -115,7 +115,7 @@ double Output::setup(double time, int memflag)
   stats_time = app->stoptime;
   if (stats_delta > 0.0)
     stats_time = next_time(time,stats_logfreq,stats_delta,
-			   stats_nrepeat,stats_scale,stats_delay);
+                           stats_nrepeat,stats_scale,stats_delay);
 
   // tnext = next output time for anything
 
@@ -141,8 +141,8 @@ double Output::compute(double time, int done)
     if (time >= dumplist[i]->next_time) {
       dumplist[i]->write(time);
       dumplist[i]->next_time =
-	next_time(time,dumplist[i]->logfreq,dumplist[i]->delta,
-		  dumplist[i]->nrepeat,dumplist[i]->scale,dumplist[i]->delay);
+        next_time(time,dumplist[i]->logfreq,dumplist[i]->delta,
+                  dumplist[i]->nrepeat,dumplist[i]->scale,dumplist[i]->delay);
       dump_time = MIN(dump_time,dumplist[i]->next_time);
     } else dump_time = MIN(dump_time,dumplist[i]->next_time);
   }
@@ -161,8 +161,8 @@ double Output::compute(double time, int done)
     } else if (time >= diaglist[i]->next_time) {
       diaglist[i]->compute();
       diaglist[i]->next_time =
-	next_time(time,diaglist[i]->logfreq,diaglist[i]->delta,
-		  diaglist[i]->nrepeat,diaglist[i]->scale,diaglist[i]->delay);
+        next_time(time,diaglist[i]->logfreq,diaglist[i]->delta,
+                  diaglist[i]->nrepeat,diaglist[i]->scale,diaglist[i]->delay);
       diag_time = MIN(diag_time,diaglist[i]->next_time);
     } else diag_time = MIN(diag_time,diaglist[i]->next_time);
   }
@@ -174,7 +174,7 @@ double Output::compute(double time, int done)
     stats_time = app->stoptime;
     if (stats_delta)
       stats_time = next_time(time,stats_logfreq,stats_delta,
-			     stats_nrepeat,stats_scale,stats_delay);
+                             stats_nrepeat,stats_scale,stats_delay);
   }
 
   // tnext = next output time for anything
@@ -316,7 +316,7 @@ void Output::add_diag(Diag *diag)
 {
   ndiag++;
   diaglist = (Diag **) memory->srealloc(diaglist,ndiag*sizeof(Diag *),
-					"output:diaglist");
+                                        "output:diaglist");
   diaglist[ndiag-1] = diag;
 }
 
@@ -393,7 +393,7 @@ void Output::stats_header()
 ------------------------------------------------------------------------- */
 
 double Output::next_time(double tcurrent, int logfreq, double delta,
-			 int nrepeat, double scale, double delay)
+                         int nrepeat, double scale, double delay)
 {
   double tnew;
 

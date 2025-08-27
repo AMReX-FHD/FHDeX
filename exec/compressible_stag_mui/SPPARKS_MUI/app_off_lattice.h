@@ -53,7 +53,7 @@ class AppOffLattice : public App {
   virtual void *extract_app(char *) {return NULL;}
 
   enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,DIAMOND,
-	 FCC_OCTA_TETRA,RANDOM_1D,RANDOM_2D,RANDOM_3D,FILENAME};
+    FCC_OCTA_TETRA,RANDOM_1D,RANDOM_2D,RANDOM_3D,FILENAME};
 
  protected:
   int me,nprocs;

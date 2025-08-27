@@ -172,7 +172,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
-  		    amrex::Real meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
+                    amrex::Real meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
                     amrex::Real meanNdes = des_rate[m]*theta*Ntot*dt;
 
                     amrex::Real Nads;
@@ -187,13 +187,13 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                         Ndes = RandomPoisson(meanNdes,engine);
                     }
 
-		    if (conversion_MFsurfchem > 0) {
-		        dNads_arr(i,j,k,m) = Nads;
-			dNdes_arr(i,j,k,m) = Ndes;
-		    }
-		    else {
-		        dNadsdes_arr(i,j,k,m) = Nads-Ndes;
-		    }
+                    if (conversion_MFsurfchem > 0) {
+                        dNads_arr(i,j,k,m) = Nads;
+                        dNdes_arr(i,j,k,m) = Ndes;
+                    }
+                    else {
+                        dNadsdes_arr(i,j,k,m) = Nads-Ndes;
+                    }
                 }
             }
         });
@@ -225,7 +225,7 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 amrex::Real T_inst = prim_arr(i,j,k,4);
 
                 for (int m=0;m<n_ads_spec;m++) {
-		    if (conversion_MFsurfchem > 0) {
+                    if (conversion_MFsurfchem > 0) {
                         amrex::Real mconv = m + conversion_MFsurfchem;
                         amrex::Real dNads = dNads_arr(i,j,k,m);
                         amrex::Real dNdes = dNdes_arr(i,j,k,m);
@@ -238,8 +238,8 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                         cu_arr(i,j,k,5+m) -= factor1*dNads;
                         cu_arr(i,j,k,5+mconv) += factor1conv*dNdes;
                         cu_arr(i,j,k,4) -= factor2*dNads - factor2conv*dNdes;
-		    }
-		    else {
+                    }
+                    else {
                         amrex::Real dN = dNadsdes_arr(i,j,k,m);
                         amrex::Real factor1 = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
                         amrex::Real factor2 = (e_beta*k_B*T_inst+(e0[m]+hcv[m]*T_inst)*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
@@ -247,7 +247,7 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                         cu_arr(i,j,k,0) -= factor1*dN;
                         cu_arr(i,j,k,5+m) -= factor1*dN;
                         cu_arr(i,j,k,4) -= factor2*dN;
-		    }
+                    }
                 }
             }
         });

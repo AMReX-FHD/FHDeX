@@ -1,5 +1,3 @@
-
-
 #include "GL_functions.H"
 #include "GL_functions_F.H"
 
@@ -100,7 +98,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
 }
 
 void Init_Phi(MultiFab& phi, const amrex::Real* dx )
-  {
+{
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -109,35 +107,35 @@ void Init_Phi(MultiFab& phi, const amrex::Real* dx )
                 phi[mfi].dataPtr(),
                 dx);
     }
-  }
+}
 
 void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt,
                         amrex::Real& time, int plot_int, bool Make_PltFiles,int N_Burn,int L, amrex::Real& Expec, amrex::Real& MAD, int& Plot_Num,int& Plot_Skip, int& umbrella_number)
 {
-// This function computes all the data collected in a single umbrella by marching the explcit method forward.
+    // This function computes all the data collected in a single umbrella by marching the explcit method forward.
 
-// After some equilibration period, the data is collected, with plot files saved on occasion. The umbrella data is saved in a
-// .txt" file labled with the current umbrella number.  After this, statistics on the data are computed and set as output.
+    // After some equilibration period, the data is collected, with plot files saved on occasion. The umbrella data is saved in a
+    // .txt" file labled with the current umbrella number.  After this, statistics on the data are computed and set as output.
 
-// INPUT:
-// phi -- current time step phi field multifab
-// phin -- current time step phi field multifab
-// rannums -- random number multifab
-// geom -- amrex Geometry object
-// dx -- an array of doubles that specifies the spatial grid width
-// dt -- a double that specifies the time step
-// time -- time quantity needed in plot file function
-// plot_int -- An integer specified during input. It is the number of steps that determines a solution "snapshot"/"sample"
-// Make_PltFiles -- A boolean that specifies when plot files are to be saved
-// N_Burn -- This corresponds to  the integer "Equil" input. This is the number of time-steps taken before data collection begins
-// L -- Integer corresponding to the "Number_of_Samples" input. This is the number of samples considered in each umbrella
-// Plot_Num -- An integer keeping track of the contigous plot file number count
-// Plot_Skip -- An integer used to limit the number of plot files saved. See input file and overleaf for more information.
-// umbrella_number -- An integer keeping track of the contigous umbrella file number count
+    // INPUT:
+    // phi -- current time step phi field multifab
+    // phin -- current time step phi field multifab
+    // rannums -- random number multifab
+    // geom -- amrex Geometry object
+    // dx -- an array of doubles that specifies the spatial grid width
+    // dt -- a double that specifies the time step
+    // time -- time quantity needed in plot file function
+    // plot_int -- An integer specified during input. It is the number of steps that determines a solution "snapshot"/"sample"
+    // Make_PltFiles -- A boolean that specifies when plot files are to be saved
+    // N_Burn -- This corresponds to  the integer "Equil" input. This is the number of time-steps taken before data collection begins
+    // L -- Integer corresponding to the "Number_of_Samples" input. This is the number of samples considered in each umbrella
+    // Plot_Num -- An integer keeping track of the contigous plot file number count
+    // Plot_Skip -- An integer used to limit the number of plot files saved. See input file and overleaf for more information.
+    // umbrella_number -- An integer keeping track of the contigous umbrella file number count
 
-// OUTPUT:
-// Expec -- The average of samples collected in umbrella
-// MAD -- The median absolute deviation of the data in umbrella (i.e a measure of spread, see overleaf for more info.)
+    // OUTPUT:
+    // Expec -- The average of samples collected in umbrella
+    // MAD -- The median absolute deviation of the data in umbrella (i.e a measure of spread, see overleaf for more info.)
 
 
 
@@ -192,20 +190,20 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
 
 
 
- if(ParallelDescriptor::MyProc() == 0  and Make_PltFiles)
- {
- // At the top of every "umbrella" file, the first line is the spring constant, and the second line is phi_0
-    ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);
-    ofs << umbrella<< "\n";
-    ofs << phi0<< "\n";
-    ofs.close();
- }
+    if(ParallelDescriptor::MyProc() == 0  and Make_PltFiles)
+    {
+        // At the top of every "umbrella" file, the first line is the spring constant, and the second line is phi_0
+        ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);
+        ofs << umbrella<< "\n";
+        ofs << phi0<< "\n";
+        ofs.close();
+    }
 
 
 
 
 
-// The loop below runs through all steps including equilibration steps and desired sample steps
+    // The loop below runs through all steps including equilibration steps and desired sample steps
     for(int step=1;step<=Total_Steps+N_Burn;++step)
     {
         // Rk2 step computes the field at the next time step and the spatial average of the field
@@ -216,10 +214,11 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
         {
             Steps_Counted=step-N_Burn;
             if(step%500 == 0)
-            {// supressed output of older version
+            {
+                // supressed output of older version
 
-                    //amrex::Print() << "Integral " << integral << "\n";
-                    //amrex::Print() << "Advanced step " << step << "\n";
+                //amrex::Print() << "Integral " << integral << "\n";
+                //amrex::Print() << "Advanced step " << step << "\n";
             }
             if (plot_int > 0 && Steps_Counted%plot_int == 0) // collect data every "plot_int" steps
             {
@@ -229,84 +228,84 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
                 amrex::Print() << "The average of phi is " << Phi_Avg<< "\n";
 
                 if(Make_PltFiles)
+                {
+                    if(ParallelDescriptor::MyProc() == 0 )
                     {
-                        if(ParallelDescriptor::MyProc() == 0 )
-                        {
-                            ofs2.open("AVG_DATA.txt", std::ofstream::out | std::ofstream::app);// write a file that holds all output of every umbrella
-                            ofs2 << Phi_Avg << " " << energy << " " << teng  << " " << H1_semi_norm << "\n";
-                            ofs2.close();
+                        ofs2.open("AVG_DATA.txt", std::ofstream::out | std::ofstream::app);// write a file that holds all output of every umbrella
+                        ofs2 << Phi_Avg << " " << energy << " " << teng  << " " << H1_semi_norm << "\n";
+                        ofs2.close();
 
-                            ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);// write data to an "umbrella" file
-                            ofs << Phi_Avg << " " << energy << " " << teng  << " " << H1_semi_norm << "\n";
-                            ofs.close();
-                        }
-                        if((j+1)%Plot_Skip==0) // only save plot file at multiples of "Plot_Skip" parameter
-                        {
-                            Plot_Num+=1; //increment index used in plot file name
-                            WritePlotFile(Plot_Num, time, geom, phi, umbrella,phi0);
-                        }
+                        ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);// write data to an "umbrella" file
+                        ofs << Phi_Avg << " " << energy << " " << teng  << " " << H1_semi_norm << "\n";
+                        ofs.close();
                     }
+                    if((j+1)%Plot_Skip==0) // only save plot file at multiples of "Plot_Skip" parameter
+                    {
+                        Plot_Num+=1; //increment index used in plot file name
+                        WritePlotFile(Plot_Num, time, geom, phi, umbrella,phi0);
+                    }
+                }
 
             }
         }
         time = time + dt;
     }
 
-        Expec=Expec_Temp/L; //compute average of field averages in umbrella
-        std::sort(Avg_collect, Avg_collect+L); //sort field averages in umbrella
-        median=Avg_collect[L/2];  //find median of field averages in umbrella
+    Expec=Expec_Temp/L; //compute average of field averages in umbrella
+    std::sort(Avg_collect, Avg_collect+L); //sort field averages in umbrella
+    median=Avg_collect[L/2];  //find median of field averages in umbrella
                     // if(ParallelDescriptor::MyProc() == 0)
                     // {
                     //     ofs3 << "median of Phi in umbrella is " << median << "\n";
                     // }
-        amrex::Print() << "median of Phi in umbrella is " << median << "\n";
-        for(j=0;j<L;j++)
-        {
-            Avg_collect[j]=amrex::Math::abs(Avg_collect[j]-median) ;// compute the distance from the median for each data point
-        }
-        std::sort(Avg_collect, Avg_collect+L); // Sort the distances from the median--the "median absolute deviation"
-        MAD=Avg_collect[L/2]; //The median of all such distances is the measure of spread used--the "median absolute deviation"
-        amrex::Print() << "Average of Phi in umbrella is " << Expec << "\n";
-        amrex::Print() << "MAD of Umbrella is " << MAD << "\n";
+    amrex::Print() << "median of Phi in umbrella is " << median << "\n";
+    for(j=0;j<L;j++)
+    {
+        Avg_collect[j]=amrex::Math::abs(Avg_collect[j]-median) ;// compute the distance from the median for each data point
+    }
+    std::sort(Avg_collect, Avg_collect+L); // Sort the distances from the median--the "median absolute deviation"
+    MAD=Avg_collect[L/2]; //The median of all such distances is the measure of spread used--the "median absolute deviation"
+    amrex::Print() << "Average of Phi in umbrella is " << Expec << "\n";
+    amrex::Print() << "MAD of Umbrella is " << MAD << "\n";
                     // if(ParallelDescriptor::MyProc() == 0)
                     // {
                     //     ofs3 << "Average of Phi in umbrella is " << Expec << "\n";
                     //     ofs3 << "MAD of Umbrella is " << MAD << "\n";
                     // }
-        if(Make_PltFiles)
-        {
-            umbrella_number=umbrella_number+1; // when an umbrella file is saved, increment the index used to name umbrella files
-        }
+    if(Make_PltFiles)
+    {
+        umbrella_number=umbrella_number+1; // when an umbrella file is saved, increment the index used to name umbrella files
+    }
                     //ofs3.close();
-        delete [] Avg_collect;
+    delete [] Avg_collect;
 }
 
 
 void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step, bool& weak_umb)
 {
-// This function is the implementation of the algorithm detailed in the overleaf notes. This function is meant for the scenario
-// where we are INCREASING values of phi_0. (i.e moving "forward")
-// This function checks the overlap of the current umbrella with the previous umbrella and adjusts spring constant kappa and phi_0 accordingly
+    // This function is the implementation of the algorithm detailed in the overleaf notes. This function is meant for the scenario
+    // where we are INCREASING values of phi_0. (i.e moving "forward")
+    // This function checks the overlap of the current umbrella with the previous umbrella and adjusts spring constant kappa and phi_0 accordingly
 
-// INPUT:
-// Expec -- The average of samples collected in PREVIOUS umbrella
-// MAD -- The median absolute deviation of the data in PREVIOUS umbrella
-// Expec2 -- The average of samples collected in CURRENT umbrella
-// MAD2 -- The median absolute deviation of the data in CURRENT umbrella
-// r2 -- double that tweaks the overlap condition
-// alpha -- double that scales the spring constant
-// sucessful_compare -- boolean that states whether there was sufficient overlap with PREVIOUS umbrella
-// umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
-// Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
-// while_loop_comp -- boolean that is used to break the while loop under certain conditions. ( set to false to break the loop)
-// First_Loop_Step -- boolean that is used to differentiate the situation when entering the while loop after a previous sucessful umbrella comparison. (true= in first step, false=NOT in first step)
-// weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
+    // INPUT:
+    // Expec -- The average of samples collected in PREVIOUS umbrella
+    // MAD -- The median absolute deviation of the data in PREVIOUS umbrella
+    // Expec2 -- The average of samples collected in CURRENT umbrella
+    // MAD2 -- The median absolute deviation of the data in CURRENT umbrella
+    // r2 -- double that tweaks the overlap condition
+    // alpha -- double that scales the spring constant
+    // sucessful_compare -- boolean that states whether there was sufficient overlap with PREVIOUS umbrella
+    // umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
+    // Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
+    // while_loop_comp -- boolean that is used to break the while loop under certain conditions. ( set to false to break the loop)
+    // First_Loop_Step -- boolean that is used to differentiate the situation when entering the while loop after a previous sucessful umbrella comparison. (true= in first step, false=NOT in first step)
+    // weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
 
-// OUTPUT:
-// sucessful_compare -- boolean that states whether there was sufficient overlap with CURRENT umbrella
-// umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
-// Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
-// weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
+    // OUTPUT:
+    // sucessful_compare -- boolean that states whether there was sufficient overlap with CURRENT umbrella
+    // umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
+    // Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
+    // weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
 
     int sucessful_iter; //integer version of sucessful_compare for passing to fortran (1=sucessful comparison, 0=NOT sucessful comparison)
     int sucessful_iter_prev; //integer version of sucessful_compare FOR PREVIOUS umbrella for passing to fortran (1=sucessful comparison, 0=NOT sucessful comparison)
@@ -337,10 +336,6 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
     amrex::Print() << "E2-r2*S2 "  << Expec2-r2*MAD2 << "\n";
     amrex::Print() << "E2+r2*S2 "  << Expec2+r2*MAD2 << "\n";
     amrex::Print() << "E1+r2*S1 "  << Expec + r2*MAD <<  "\n";
-
-
-
-
 
 
 
@@ -416,29 +411,29 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
 
 void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step, bool& weak_umb)
 {
-// This function is the implementation of the algorithm detailed in the overleaf notes. This function is meant for the scenario
-// where we are DECREASING values of phi_0. (i.e moving "backward")
-// This function checks the overlap of the current umbrella with the previous umbrella and adjusts spring constant kappa and phi_0 accordingly
+    // This function is the implementation of the algorithm detailed in the overleaf notes. This function is meant for the scenario
+    // where we are DECREASING values of phi_0. (i.e moving "backward")
+    // This function checks the overlap of the current umbrella with the previous umbrella and adjusts spring constant kappa and phi_0 accordingly
 
-// INPUT:
-// Expec -- The average of samples collected in PREVIOUS umbrella
-// MAD -- The median absolute deviation of the data in PREVIOUS umbrella
-// Expec2 -- The average of samples collected in CURRENT umbrella
-// MAD2 -- The median absolute deviation of the data in CURRENT umbrella
-// r2 -- double that tweaks the overlap condition
-// alpha -- double that scales the spring constant
-// sucessful_compare -- boolean that states whether there was sufficient overlap with PREVIOUS umbrella
-// umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
-// Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
-// while_loop_comp -- boolean that is used to break the while loop under certain conditions. ( set to false to break the loop)
-// First_Loop_Step -- boolean that is used to differentiate the situation when entering the while loop after a previous sucessful umbrella comparison. (true= in first step, false=NOT in first step)
-// weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
+    // INPUT:
+    // Expec -- The average of samples collected in PREVIOUS umbrella
+    // MAD -- The median absolute deviation of the data in PREVIOUS umbrella
+    // Expec2 -- The average of samples collected in CURRENT umbrella
+    // MAD2 -- The median absolute deviation of the data in CURRENT umbrella
+    // r2 -- double that tweaks the overlap condition
+    // alpha -- double that scales the spring constant
+    // sucessful_compare -- boolean that states whether there was sufficient overlap with PREVIOUS umbrella
+    // umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
+    // Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
+    // while_loop_comp -- boolean that is used to break the while loop under certain conditions. ( set to false to break the loop)
+    // First_Loop_Step -- boolean that is used to differentiate the situation when entering the while loop after a previous sucessful umbrella comparison. (true= in first step, false=NOT in first step)
+    // weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
 
-// OUTPUT:
-// sucessful_compare -- boolean that states whether there was sufficient overlap with CURRENT umbrella
-// umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
-// Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
-// weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
+    // OUTPUT:
+    // sucessful_compare -- boolean that states whether there was sufficient overlap with CURRENT umbrella
+    // umbrella_size -- integer that is set to 0,1,or 2. Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
+    // Shift_Flag --Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
+    // weak_umb -- boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
 
     int sucessful_iter; //integer version of sucessful_compare for passing to fortran (1=sucessful comparison, 0=NOT sucessful comparison)
     int sucessful_iter_prev; //integer version of sucessful_compare FOR PREVIOUS umbrella for passing to fortran (1=sucessful comparison, 0=NOT sucessful comparison)

@@ -1,4 +1,3 @@
-
 #include "multispec_test_functions.H"
 
 #include "StochMomFlux.H"
@@ -45,7 +44,7 @@ void main_driver(const char* argv)
     InitializeGmresNamespace();
 
     if (visc_type > 0 && mixture_type != 0) {
-      Abort("positive visc_type and non-zero mixture_type not compatible");
+        Abort("positive visc_type and non-zero mixture_type not compatible");
     }
 
     if (algorithm_type == 6) {
@@ -162,7 +161,7 @@ void main_driver(const char* argv)
             }
         }
 
-//      added by JBB to allow reset of dt on restart
+        //      added by JBB to allow reset of dt on restart
         if (fixed_dt >0) dt=fixed_dt;
 
         rho_old.define   (ba, dmap, nspecies, ng_s);
@@ -239,7 +238,7 @@ void main_driver(const char* argv)
     MultiFab stoch_mass_fluxdiv(ba,dmap,nspecies,0);
     std::array< MultiFab, AMREX_SPACEDIM > stoch_mass_flux;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+        stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
 
     std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_new;
@@ -414,16 +413,16 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "vel";
-      x += (120+d);
-      var_names[cnt++] = x;
+        x = "vel";
+        x += (120+d);
+        var_names[cnt++] = x;
     }
 
     // c1, c2, etc.
     for (int d=0; d<nspecies; d++) {
-      x = "c";
-      x += (49+d);
-      var_names[cnt++] = x;
+        x = "c";
+        x += (49+d);
+        var_names[cnt++] = x;
     }
 
     MultiFab structFactMF(ba, dmap, structVars, 0);
@@ -431,9 +430,9 @@ void main_driver(const char* argv)
     // need to use dVol for scaling
     Real dVol = dx[0]*dx[1];
     if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
+        dVol *= cell_depth;
     } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
+        dVol *= dx[2];
     }
 
     Vector<Real> var_scaling(structVars*(structVars+1)/2);
@@ -561,8 +560,8 @@ void main_driver(const char* argv)
             Abort("algorithm_type not supported");
         }
 
-	//////////////////////////////////////////////////
-	if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
+        //////////////////////////////////////////////////
+        if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
 
@@ -580,7 +579,6 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF);
         }
-
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);

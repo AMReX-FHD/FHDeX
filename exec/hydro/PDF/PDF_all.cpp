@@ -1,4 +1,3 @@
-
 #include <fstream>
 #include <iostream>
 
@@ -35,7 +34,6 @@ main (int   argc,
 {
     amrex::Initialize(argc,argv);
 {
-
     if (argc == 1) {
         PrintUsage(argv[0]);
     }
@@ -150,23 +148,61 @@ main (int   argc,
 
     for (int nderivs = 0 ; nderivs <5; nderivs++){
 
+        if(nderivs == 0){
+            Copy(laplacian,mf,AMREX_SPACEDIM,0,AMREX_SPACEDIM,0);
+        } else {
 
-    if(nderivs == 0){
-	    Copy(laplacian,mf,AMREX_SPACEDIM,0,AMREX_SPACEDIM,0);
-    } else {
+            // fill ghost cells of mf_grown
+            mf_grown.FillBoundary(geom.periodicity());
 
-    // fill ghost cells of mf_grown
-    mf_grown.FillBoundary(geom.periodicity());
+            //    for (int m=0; m<nderivs; ++m) {
 
-//    for (int m=0; m<nderivs; ++m) {
+            for ( MFIter mfi(mf_grown,false); mfi.isValid(); ++mfi ) {
 
-        for ( MFIter mfi(mf_grown,false); mfi.isValid(); ++mfi ) {
+                const Box& bx = mfi.validbox();
+                const auto lo = amrex::lbound(bx);
+                const auto hi = amrex::ubound(bx);
+
+                const Array4<Real>& vel = mf_grown.array(mfi);
+                const Array4<Real>& lap = laplacian.array(mfi);
+
+                for (auto n=0; n<AMREX_SPACEDIM; ++n) {
+                for (auto k = lo.z; k <= hi.z; ++k) {
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+
+                    lap(i,j,k,n) = -(vel(i+1,j,k,n) - 2.*vel(i,j,k,n) + vel(i-1,j,k,n)) / (dx[0]*dx[0])
+                                   -(vel(i,j+1,k,n) - 2.*vel(i,j,k,n) + vel(i,j-1,k,n)) / (dx[1]*dx[1])
+#if (AMREX_SPACEDIM == 3)
+                                   -(vel(i,j,k+1,n) - 2.*vel(i,j,k,n) + vel(i,j,k+1,n)) / (dx[2]*dx[2])
+#endif
+                        ;
+                }
+                }
+                }
+                }
+
+            } // end MFIter
+
+
+            // copy lap into mf_grown
+            Copy(mf_grown,laplacian,0,0,AMREX_SPACEDIM,0);
+
+            // fill ghost cells of mf_grown
+            mf_grown.FillBoundary(geom.periodicity());
+
+        } // end loop over nderivs
+
+        Vector<Real> L2(AMREX_SPACEDIM,0.);
+        for (int i=0; i<AMREX_SPACEDIM; i++)
+            L2[i]=0.;
+
+        for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
 
             const Box& bx = mfi.validbox();
             const auto lo = amrex::lbound(bx);
             const auto hi = amrex::ubound(bx);
 
-            const Array4<Real>& vel = mf_grown.array(mfi);
             const Array4<Real>& lap = laplacian.array(mfi);
 
             for (auto n=0; n<AMREX_SPACEDIM; ++n) {
@@ -174,12 +210,8 @@ main (int   argc,
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
 
-                lap(i,j,k,n) = -(vel(i+1,j,k,n) - 2.*vel(i,j,k,n) + vel(i-1,j,k,n)) / (dx[0]*dx[0])
-                               -(vel(i,j+1,k,n) - 2.*vel(i,j,k,n) + vel(i,j-1,k,n)) / (dx[1]*dx[1])
-#if (AMREX_SPACEDIM == 3)
-                               -(vel(i,j,k+1,n) - 2.*vel(i,j,k,n) + vel(i,j,k+1,n)) / (dx[2]*dx[2])
-#endif
-                    ;
+                L2[n] += lap(i,j,k,n)*lap(i,j,k,n);
+
             }
             }
             }
@@ -187,47 +219,12 @@ main (int   argc,
 
         } // end MFIter
 
-
-        // copy lap into mf_grown
-        Copy(mf_grown,laplacian,0,0,AMREX_SPACEDIM,0);
-
-        // fill ghost cells of mf_grown
-        mf_grown.FillBoundary(geom.periodicity());
-
-    } // end loop over nderivs
-
-    Vector<Real> L2(AMREX_SPACEDIM,0.);
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-	    L2[i]=0.;
-
-    for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
-
-        const Box& bx = mfi.validbox();
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-
-        const Array4<Real>& lap = laplacian.array(mfi);
-
-        for (auto n=0; n<AMREX_SPACEDIM; ++n) {
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
-        for (auto i = lo.x; i <= hi.x; ++i) {
-
-            L2[n] += lap(i,j,k,n)*lap(i,j,k,n);
-
-        }
-        }
-        }
-        }
-
-    } // end MFIter
-
-    ParallelDescriptor::ReduceRealSum(L2.dataPtr(),AMREX_SPACEDIM);
-    amrex::Long totpts =  domain.numPts();
-    L2[0] = sqrt(L2[0]/totpts);
-    L2[1] = sqrt(L2[1]/totpts);
-    L2[2] = sqrt(L2[2]/totpts);
-    Print() << "L2 norm of Laplacian to power " << nderivs << " is " << L2[0] << " "  << L2[1] << " "  << L2[2] << " " << std::endl;
+        ParallelDescriptor::ReduceRealSum(L2.dataPtr(),AMREX_SPACEDIM);
+        amrex::Long totpts =  domain.numPts();
+        L2[0] = sqrt(L2[0]/totpts);
+        L2[1] = sqrt(L2[1]/totpts);
+        L2[2] = sqrt(L2[2]/totpts);
+        Print() << "L2 norm of Laplacian to power " << nderivs << " is " << L2[0] << " "  << L2[1] << " "  << L2[2] << " " << std::endl;
 
         for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
 
@@ -251,69 +248,69 @@ main (int   argc,
 
         } // end MFIter
 
-    Vector<Real> bins(nbins+1,0.);
+        Vector<Real> bins(nbins+1,0.);
 
-    int halfbin = nbins/2;
-    Real hbinwidth = range/nbins;
-    Real binwidth = 2.*range/nbins;
-    amrex::Long count=0;
-    amrex::Long totbin=0;
-    for (int ind=0 ; ind < nbins+1; ind++)
-	    bins[ind]=0;
+        int halfbin = nbins/2;
+        Real hbinwidth = range/nbins;
+        Real binwidth = 2.*range/nbins;
+        amrex::Long count=0;
+        amrex::Long totbin=0;
+        for (int ind=0 ; ind < nbins+1; ind++)
+            bins[ind]=0;
 
-    for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
+        for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
 
-        const Box& bx = mfi.validbox();
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
+            const Box& bx = mfi.validbox();
+            const auto lo = amrex::lbound(bx);
+            const auto hi = amrex::ubound(bx);
 
-        const Array4<Real>& lap = laplacian.array(mfi);
+            const Array4<Real>& lap = laplacian.array(mfi);
 
-        for (auto n=0; n<AMREX_SPACEDIM; ++n) {
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
-        for (auto i = lo.x; i <= hi.x; ++i) {
+            for (auto n=0; n<AMREX_SPACEDIM; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
 
-            int index = floor((lap(i,j,k,n) + hbinwidth)/binwidth);
-            index += halfbin;
+                int index = floor((lap(i,j,k,n) + hbinwidth)/binwidth);
+                index += halfbin;
 
-            if( index >=0 && index <= nbins) {
-                bins[index] += 1;
-                totbin++;
+                if( index >=0 && index <= nbins) {
+                    bins[index] += 1;
+                    totbin++;
+                }
+
+                count++;
+
+            }
+            }
+            }
             }
 
-            count++;
+        } // end MFIter
 
-        }
-        }
-        }
-        }
+        ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins+1);
+        ParallelDescriptor::ReduceLongSum(count);
+        ParallelDescriptor::ReduceLongSum(totbin);
+        Print() << "Points outside of range "<< count - totbin << " " << (double)(count-totbin)/count << std::endl;
 
-    } // end MFIter
-
-    ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins+1);
-    ParallelDescriptor::ReduceLongSum(count);
-    ParallelDescriptor::ReduceLongSum(totbin);
-    Print() << "Points outside of range "<< count - totbin << " " << (double)(count-totbin)/count << std::endl;
-
-    // print out contents of bins to the screen
-    for (int i=0; i<nbins+1; ++i) {
-        Print() << "For  m="<< nderivs<< " " <<  (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
-    }
-    if (ParallelDescriptor::IOProcessor()) {
-        std::ofstream outfile;
-	oFile = oFile_save;
-        oFile +="_";
-        oFile += std::to_string(nderivs);
-        oFile += ".dat";
-
-        outfile.open(oFile);
+        // print out contents of bins to the screen
         for (int i=0; i<nbins+1; ++i) {
-            outfile << (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
+            Print() << "For  m="<< nderivs<< " " <<  (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
         }
-    }
+        if (ParallelDescriptor::IOProcessor()) {
+            std::ofstream outfile;
+            oFile = oFile_save;
+            oFile +="_";
+            oFile += std::to_string(nderivs);
+            oFile += ".dat";
 
-}
+            outfile.open(oFile);
+            for (int i=0; i<nbins+1; ++i) {
+                outfile << (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
+            }
+        }
+
+    }
 
 }
     amrex::Finalize();

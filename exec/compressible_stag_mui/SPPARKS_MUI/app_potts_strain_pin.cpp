@@ -94,7 +94,7 @@ void AppPottsStrainPin::init_app()
 
   int flag = 0;
   for (int i = 0; i < nlocal; i++) {
-     // Allow for 'pinned' spin values of 'Q'
+    // Allow for 'pinned' spin values of 'Q'
     if (spin[i] < 1 || spin[i] > nspins+1) flag = 1;
     if (strain[i] < 0.0) flag = 1;
   }
@@ -257,23 +257,23 @@ void AppPottsStrainPin::pin_create()
     while (npin < ndesired) {
       nattempt = ndesired - npin;
       for (i = 0; i < nattempt; i++) {
-	iglobal = random->tagrandom(nglobal);
-	loc = hash.find(iglobal);
-	if (loc != hash.end()) {
-	  if (nthresh == 0) spin[loc->second] = nspins+1;
-	  else {
-	    m = loc->second;
-	    ndiff = 0;
-	    for (j = 0; j < numneigh[m]; j++)
-	      if (spin[m] != spin[neighbor[m][j]]) ndiff++;
-	    if (ndiff >= nthresh) spin[m] = nspins+1;
-	  }
-	}
+        iglobal = random->tagrandom(nglobal);
+        loc = hash.find(iglobal);
+        if (loc != hash.end()) {
+          if (nthresh == 0) spin[loc->second] = nspins+1;
+          else {
+            m = loc->second;
+            ndiff = 0;
+            for (j = 0; j < numneigh[m]; j++)
+              if (spin[m] != spin[neighbor[m][j]]) ndiff++;
+            if (ndiff >= nthresh) spin[m] = nspins+1;
+          }
+        }
       }
 
       nme = 0;
       for (i = 0; i < nlocal; i++)
-	if (spin[i] > nspins) nme++;
+        if (spin[i] > nspins) nme++;
       MPI_Allreduce(&nme,&npin,1,MPI_INT,MPI_SUM,world);
     }
 
@@ -295,43 +295,43 @@ void AppPottsStrainPin::pin_create()
       iglobal = random->tagrandom(nglobal);
       loc = hash.find(iglobal);
       if (loc != hash.end() && loc->second < nlocal) {
-	flag = 1;
-	i = loc->second;
-	if (spin[i] > nspins) flag = 0;
-	for (j = 0; j < numneigh[i]; j++)
-	  if (spin[neighbor[i][j]] > nspins) flag = 0;
-	if (nthresh) {
-	  ndiff = 0;
-	  for (j = 0; j < numneigh[i]; j++)
-	    if (spin[i] != spin[neighbor[i][j]]) ndiff++;
-	  if (ndiff < nthresh) flag = 0;
-	}
+        flag = 1;
+        i = loc->second;
+        if (spin[i] > nspins) flag = 0;
+        for (j = 0; j < numneigh[i]; j++)
+          if (spin[neighbor[i][j]] > nspins) flag = 0;
+        if (nthresh) {
+          ndiff = 0;
+          for (j = 0; j < numneigh[i]; j++)
+            if (spin[i] != spin[neighbor[i][j]]) ndiff++;
+          if (ndiff < nthresh) flag = 0;
+        }
 
-	if (flag) {
-	  flags[0] = me+1;
-	  flags[1] = numneigh[i] + 1;
-	  spin[i] = nspins+1;
-	  for (j = 0; j < numneigh[i]; j++) {
-	    spin[neighbor[i][j]] = nspins+1;
-	    list[j] = id[neighbor[i][j]];
-	  }
-	  list[j++] = id[i];
-	} else flags[0] = flags[1] = 0;
+        if (flag) {
+          flags[0] = me+1;
+          flags[1] = numneigh[i] + 1;
+          spin[i] = nspins+1;
+          for (j = 0; j < numneigh[i]; j++) {
+            spin[neighbor[i][j]] = nspins+1;
+            list[j] = id[neighbor[i][j]];
+          }
+          list[j++] = id[i];
+        } else flags[0] = flags[1] = 0;
       } else flags[0] = flags[1] = 0;
 
       MPI_Allreduce(&flags,&flagall,2,MPI_INT,MPI_SUM,world);
 
       if (flagall[0]) {
-	MPI_Bcast(list,flagall[1],MPI_INT,flagall[0]-1,world);
-	for (i = 0; i < flagall[1]; i++) {
-	  loc = hash.find(list[i]);
-	  if (loc != hash.end()) spin[loc->second] = nspins+1;
-	}
+        MPI_Bcast(list,flagall[1],MPI_INT,flagall[0]-1,world);
+        for (i = 0; i < flagall[1]; i++) {
+          loc = hash.find(list[i]);
+          if (loc != hash.end()) spin[loc->second] = nspins+1;
+        }
 
-	nme = 0;
-	for (i = 0; i < nlocal; i++)
-	  if (spin[i] > nspins) nme++;
-	MPI_Allreduce(&nme,&npin,1,MPI_INT,MPI_SUM,world);
+        nme = 0;
+        for (i = 0; i < nlocal; i++)
+          if (spin[i] > nspins) nme++;
+        MPI_Allreduce(&nme,&npin,1,MPI_INT,MPI_SUM,world);
       }
     }
 

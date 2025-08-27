@@ -871,8 +871,8 @@ void main_driver(const char* argv)
         structFactPrimMF.define(ba,dmap,structVarsPrim,0);
 
         if ((do_1D==0) and (do_2D==0)) {
-            structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
-            structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
+            structFactPrim.FortStructure(structFactPrimMF);
+            structFactCons.FortStructure(structFactConsMF);
 
             // planar extractions
             if (project_dir >= 0) {
@@ -899,20 +899,15 @@ void main_driver(const char* argv)
                 }
             }
 
+            // surface coverage
             if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
-
                 MultiFab Flattened;  // flattened multifab defined below
-
                 // we are only calling ExtractSlice here to obtain
                 // a built version of Flattened so can obtain what we need to build the
                 // structure factor and geometry objects for flattened data
                 // assume surface covered is stored in the "k" direction in the k=0 coordinate.
                 ExtractSlice(surfcov, Flattened, ads_wall_dir, 0, 0, 1);
-                BoxArray ba_surfcov = Flattened.boxArray();
-                const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
-
-                structFactSurfCov.define(ba_surfcov,dmap_surfcov,surfcov_var_names,surfcov_var_scaling);
-
+                structFactSurfCov.define(Flattened.boxArray(),Flattened.DistributionMap(),surfcov_var_names,surfcov_var_scaling);
             }
         } // 3D case
 
@@ -931,7 +926,7 @@ void main_driver(const char* argv)
             structFactPrimVec.resize(n_cells[project_dir]);
             structFactConsVec.resize(n_cells[project_dir]);
 
-            for (int i = 0; i < n_cells[project_dir]; ++i) {
+            for (int i=0; i<n_cells[project_dir]; ++i) {
                 structFactPrimVec[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
                 structFactConsVec[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
@@ -951,18 +946,19 @@ void main_driver(const char* argv)
                 structFactPrimFlattenedVec.resize(n_cells[2]);
                 structFactConsFlattenedVec.resize(n_cells[2]);
 
-                for (int i = 0; i < n_cells[2];  ++i) {
+                for (int i=0; i<n_cells[2];  ++i) {
                     structFactPrimFlattenedVec[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
                     structFactConsFlattenedVec[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
                 }
             }
 
+            // surface coverage
             if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
 
                 // each plane in z will have an x-pencil on the low-y face
                 structFactSurfCovVec.resize(n_cells[2]);
 
-                for (int i = 0; i < n_cells[2];  ++i) {
+                for (int i=0; i<n_cells[2];  ++i) {
                     structFactSurfCovVec[i].define(ba_pencil,dmap_pencil,surfcov_var_names,surfcov_var_scaling);
                 }
             }
@@ -983,7 +979,7 @@ void main_driver(const char* argv)
             structFactPrimArray.resize(n_cells[1]*n_cells[2]);
             structFactConsArray.resize(n_cells[1]*n_cells[2]);
 
-            for (int i = 0; i < n_cells[1]*n_cells[2];  ++i) {
+            for (int i=0; i<n_cells[1]*n_cells[2];  ++i) {
                 structFactPrimArray[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
                 structFactConsArray[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
             }

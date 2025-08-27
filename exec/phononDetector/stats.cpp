@@ -1,16 +1,16 @@
 #include "DsmcParticleContainer.H"
 using namespace std;
 void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
-						MultiFab& mfcuMeans,
-						MultiFab& mfcuVars,
-						const int steps,
-						Real time) {
+    MultiFab& mfcuMeans,
+    MultiFab& mfcuVars,
+    const int steps,
+    Real time) {
     BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
     const Real osteps = 1.0/steps;
     const Real stepsMinusOne = steps-1.;
 
-		// Zero out instantaneous values
-	mfcuInst.setVal(0.);
+    // Zero out instantaneous values
+    mfcuInst.setVal(0.);
     const int lev = 0;
 
     int ncon  = 5;
@@ -26,7 +26,7 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& aos = particle_tile.GetArrayOfStructs();
-	    ParticleType* particles = aos().dataPtr();
+        ParticleType* particles = aos().dataPtr();
 
         IntVect smallEnd = tile_box.smallEnd();
         IntVect bigEnd = tile_box.bigEnd();
@@ -36,19 +36,19 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
         Array4<Real> cuMeans  = mfcuMeans[pti].array();
         Array4<Real> cuVars  = mfcuVars[pti].array();
 
-		//dsmcSpecies* propertiesPtr = properties;
-		GpuArray<dsmcSpecies, MAX_SPECIES> propertiesTmp;
-		for(int i=0;i<nspecies;i++)
-		{
-		    propertiesTmp[i].mass = properties[i].mass;
-   		    propertiesTmp[i].Neff = properties[i].Neff;
-   		    propertiesTmp[i].R = properties[i].R;
-		    //Print() << "in: " << properties[i].mass << ", out: " << propertiesTmp[i].mass << endl;
-		}
+        //dsmcSpecies* propertiesPtr = properties;
+        GpuArray<dsmcSpecies, MAX_SPECIES> propertiesTmp;
+        for(int i=0;i<nspecies;i++)
+        {
+            propertiesTmp[i].mass = properties[i].mass;
+            propertiesTmp[i].Neff = properties[i].Neff;
+            propertiesTmp[i].R = properties[i].R;
+            //Print() << "in: " << properties[i].mass << ", out: " << propertiesTmp[i].mass << endl;
+        }
 
-		Real ocollisionCellVolTmp = ocollisionCellVol;
+        Real ocollisionCellVolTmp = ocollisionCellVol;
 
-    	auto inds = m_bins.permutationPtr();
+        auto inds = m_bins.permutationPtr();
         auto offs = m_bins.offsetsPtr();
 
 

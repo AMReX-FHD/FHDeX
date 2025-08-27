@@ -656,7 +656,7 @@ void Dump::modify_params(int narg, char **arg)
     } else if (strcmp(arg[iarg],"fileper") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal dump_modify command");
       if (!multiproc)
-	error->all(FLERR,"Cannot use dump_modify fileper "
+        error->all(FLERR,"Cannot use dump_modify fileper "
                    "without % in dump file name");
       int nper = atoi(arg[iarg+1]);
       if (nper <= 0) error->all(FLERR,"Illegal dump_modify command");
@@ -713,7 +713,7 @@ void Dump::modify_params(int narg, char **arg)
     } else if (strcmp(arg[iarg],"nfile") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal dump_modify command");
       if (!multiproc)
-	error->all(FLERR,"Cannot use dump_modify nfile "
+        error->all(FLERR,"Cannot use dump_modify nfile "
                    "without % in dump file name");
       int nfile = atoi(arg[iarg+1]);
       if (nfile <= 0) error->all(FLERR,"Illegal dump_modify command");

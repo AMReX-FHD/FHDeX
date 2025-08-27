@@ -24,35 +24,35 @@ using namespace SPPARKS_NS;
 /* ---------------------------------------------------------------------- */
 
 AppPottsWeldJOM::AppPottsWeldJOM(SPPARKS *spk, int narg, char **arg) :
-  AppPotts(spk,narg,arg)
+    AppPotts(spk,narg,arg)
 {
-  // only error check for this class, not derived classes
+    // only error check for this class, not derived classes
 
-  if (strcmp(arg[0],"potts/weld_jom") == 0 && narg != 10 )
-    error->all(FLERR,"Illegal app_style command");
-  nspins = atof(arg[1]);
-  Wwidth = atoi(arg[2]);
-  Wlength = atoi(arg[3]);
-  Wcap = atoi(arg[4]);
-  Haz = atoi(arg[5]);
-  StartWeld = atoi(arg[6]);
-  vel = atof(arg[7]);
-  weld_type = atoi(arg[8]);
-  exp_factor = atof(arg[9]);
+    if (strcmp(arg[0],"potts/weld_jom") == 0 && narg != 10 )
+        error->all(FLERR,"Illegal app_style command");
+    nspins = atof(arg[1]);
+    Wwidth = atoi(arg[2]);
+    Wlength = atoi(arg[3]);
+    Wcap = atoi(arg[4]);
+    Haz = atoi(arg[5]);
+    StartWeld = atoi(arg[6]);
+    vel = atof(arg[7]);
+    weld_type = atoi(arg[8]);
+    exp_factor = atof(arg[9]);
 
-  if(weld_type < 1 || weld_type > 5)
-    error->all(FLERR,"Illegal app_style command weld_type is not correctly designated");
+    if(weld_type < 1 || weld_type > 5)
+        error->all(FLERR,"Illegal app_style command weld_type is not correctly designated");
 
-  //Lets specify some defaults for the ellipsoid parameters
-  ellipsoid_depth = 0; //0.33 * domain->boxzhi/domain->lattice->zlattice;
-  deep_width = 0; //0.25 * domain->boxxhi/domain->lattice->xlattice;
-  deep_length = 0; //0.25 * domain->boxyhi/domain->lattice->ylattice;
+    //Lets specify some defaults for the ellipsoid parameters
+    ellipsoid_depth = 0; //0.33 * domain->boxzhi/domain->lattice->zlattice;
+    deep_width = 0; //0.25 * domain->boxxhi/domain->lattice->xlattice;
+    deep_length = 0; //0.25 * domain->boxyhi/domain->lattice->ylattice;
 
-  allow_kmc = 0;
+    allow_kmc = 0;
 
-  //Add the mobility array
-  ndouble = 1;
-  recreate_arrays();
+    //Add the mobility array
+    ndouble = 1;
+    recreate_arrays();
 }
 
 /* ----------------------------------------------------------------------
@@ -60,8 +60,8 @@ AppPottsWeldJOM::AppPottsWeldJOM(SPPARKS *spk, int narg, char **arg) :
 ------------------------------------------------------------------------- */
 void AppPottsWeldJOM::grow_app()
 {
-  spin = iarray[0];
-  MobilityOut = darray[0];
+    spin = iarray[0];
+    MobilityOut = darray[0];
 }
 
 /* ----------------------------------------------------------------------
@@ -70,25 +70,25 @@ void AppPottsWeldJOM::grow_app()
 void AppPottsWeldJOM::input_app(char *command, int narg, char **arg)
 {
 
-  if (strcmp(command,"deep_width") == 0) {
-  	if (narg != 1) error->all(FLERR, "Illegal deep_width command (provide one positive number)");
-  	deep_width = atoi( arg[0]);
-  	if(deep_width < 0) error->all(FLERR, "Illegal deep_width command (cannot be negative)");
-  }
+    if (strcmp(command,"deep_width") == 0) {
+        if (narg != 1) error->all(FLERR, "Illegal deep_width command (provide one positive number)");
+        deep_width = atoi( arg[0]);
+        if(deep_width < 0) error->all(FLERR, "Illegal deep_width command (cannot be negative)");
+    }
 
-  else if (strcmp(command, "deep_length") == 0 ){
-  	if (narg != 1) error->all(FLERR, "Illegal deep_length command (provide one positive number)");
-  	deep_length = atoi( arg[0]);
-  	if(deep_length < 0) error->all(FLERR, "Illegal deep_length command (cannot be negative)");
-  }
+    else if (strcmp(command, "deep_length") == 0 ){
+        if (narg != 1) error->all(FLERR, "Illegal deep_length command (provide one positive number)");
+        deep_length = atoi( arg[0]);
+        if(deep_length < 0) error->all(FLERR, "Illegal deep_length command (cannot be negative)");
+    }
 
-  else if (strcmp(command, "ellipsoid_depth") == 0) {
-  	if (narg != 1) error->all(FLERR, "Illegal ellipsoid_depth command (provide one positive number)");
-  	ellipsoid_depth = atoi(arg[0]);
-  	if(ellipsoid_depth < 0) error->all(FLERR, "Illegal ellipsoid_depth command (cannot be negative)");
-  }
+    else if (strcmp(command, "ellipsoid_depth") == 0) {
+        if (narg != 1) error->all(FLERR, "Illegal ellipsoid_depth command (provide one positive number)");
+        ellipsoid_depth = atoi(arg[0]);
+        if(ellipsoid_depth < 0) error->all(FLERR, "Illegal ellipsoid_depth command (cannot be negative)");
+    }
 
-  else error->all(FLERR,"Unrecognized command");
+    else error->all(FLERR,"Unrecognized command");
 
 }
 
@@ -100,29 +100,29 @@ void AppPottsWeldJOM::input_app(char *command, int narg, char **arg)
 
 void AppPottsWeldJOM::init_app()
 {
-  delete [] sites;
-  delete [] unique;
-  sites = new int[1 + maxneigh];
-  unique = new int[1 + maxneigh];
+    delete [] sites;
+    delete [] unique;
+    sites = new int[1 + maxneigh];
+    unique = new int[1 + maxneigh];
 
-  dt_sweep = 1.0/maxneigh;
+    dt_sweep = 1.0/maxneigh;
 
-  int flag = 0;
-  for (int i = 0; i < nlocal; i++)
-    if (spin[i] < 1 || spin[i] > nspins) flag = 1;
-  int flagall;
-  MPI_Allreduce(&flag,&flagall,1,MPI_INT,MPI_SUM,world);
-  if (flagall) error->all(FLERR,"One or more sites have invalid values");
+    int flag = 0;
+    for (int i = 0; i < nlocal; i++)
+        if (spin[i] < 1 || spin[i] > nspins) flag = 1;
+    int flagall;
+    MPI_Allreduce(&flag,&flagall,1,MPI_INT,MPI_SUM,world);
+    if (flagall) error->all(FLERR,"One or more sites have invalid values");
 
-  if(ellipsoid_depth == 0) {
-  	ellipsoid_depth = 0.33 * domain->boxzhi/domain->lattice->zlattice;
-  }
-  if(deep_width == 0) {
-  	deep_width = 0.25 * domain->boxxhi/domain->lattice->xlattice;
-  }
-  if(deep_length == 0) {
-  	deep_length = 0.25 * domain->boxzhi/domain->lattice->zlattice;
-  }
+    if(ellipsoid_depth == 0) {
+        ellipsoid_depth = 0.33 * domain->boxzhi/domain->lattice->zlattice;
+    }
+    if(deep_width == 0) {
+        deep_width = 0.25 * domain->boxxhi/domain->lattice->xlattice;
+    }
+    if(deep_length == 0) {
+        deep_length = 0.25 * domain->boxzhi/domain->lattice->zlattice;
+    }
 }
 
 /* ----------------------------------------------------------------------
@@ -134,60 +134,60 @@ void AppPottsWeldJOM::init_app()
 
 void AppPottsWeldJOM::site_event_rejection(int i, RandomPark *random)
 {
-  int oldstate = spin[i];
-  double einitial = site_energy(i);
-  int y_weld;
-  double Weld_width;
-  double n = log10(Wwidth)/log10(Wcap);
-  double n2 = log10(Wwidth)/log10(Wlength-Wcap);
-  double k = pow((double)(Wlength-Wcap),0.5)/Wwidth;
-  double Mobility = 1.0;
-  double MobilityShallow = 0.0;
-  double MobilityDeep = 0.0;
+    int oldstate = spin[i];
+    double einitial = site_energy(i);
+    int y_weld;
+    double Weld_width;
+    double n = log10(Wwidth)/log10(Wcap);
+    double n2 = log10(Wwidth)/log10(Wlength-Wcap);
+    double k = pow((double)(Wlength-Wcap),0.5)/Wwidth;
+    double Mobility = 1.0;
+    double MobilityShallow = 0.0;
+    double MobilityDeep = 0.0;
 
 
-  // Check if weld spot is one of the traditional shapes
+    // Check if weld spot is one of the traditional shapes
     if(weld_type > 2 && weld_type < 6 ) {
 
-      if(time > StartWeld){
-         Mobility = 0.0;
-         y_weld = (int) (vel * (time - StartWeld));
-         int y = xyz[i][1];
-         if(y >= y_weld && y <= y_weld+Wlength){
+        if(time > StartWeld){
+            Mobility = 0.0;
+            y_weld = (int) (vel * (time - StartWeld));
+            int y = xyz[i][1];
+            if(y >= y_weld && y <= y_weld+Wlength){
 
-            if(y >= y_weld + Wlength - Wcap)
+                if(y >= y_weld + Wlength - Wcap)
 
-               Weld_width = Wwidth - pow(y-y_weld-Wlength+Wcap, n);
+                    Weld_width = Wwidth - pow(y-y_weld-Wlength+Wcap, n);
 
-            else {// if y >= y_weld and y < y_weld + Wlength
+                else {// if y >= y_weld and y < y_weld + Wlength
 
-               if(weld_type == 3) Weld_width = Wwidth/(Wlength - Wcap)*(y-y_weld);
-               else if(weld_type == 4) Weld_width = Wwidth - pow(Wlength - Wcap - y + y_weld, n2);
-               else if(weld_type == 5) Weld_width = pow((y-y_weld),0.5)/k;
+                    if(weld_type == 3) Weld_width = Wwidth/(Wlength - Wcap)*(y-y_weld);
+                    else if(weld_type == 4) Weld_width = Wwidth - pow(Wlength - Wcap - y + y_weld, n2);
+                    else if(weld_type == 5) Weld_width = pow((y-y_weld),0.5)/k;
+                }
+
+
+                double m = (2.0/(double)(Haz - Weld_width));
+
+                int x = xyz[i][0];
+                nx = domain->boxxhi/domain->lattice->xlattice;
+                if(x > (nx-Haz)/2 && x <= nx/2)
+                    Mobility = m * (x - (nx-Haz)/2);
+                else if(x > nx/2 && x < (nx - (nx-Haz)/2))
+                    Mobility = 1 - m * (x - (nx+Weld_width)/2);
+                if(Mobility > 1.0 || Mobility < 0.0){
+                    Mobility = 0.0;
+                    spin[i] = (int) (nspins*random->uniform());
+                }
             }
-
-
-        double m = (2.0/(double)(Haz - Weld_width));
-
-        int x = xyz[i][0];
-            nx = domain->boxxhi/domain->lattice->xlattice;
-        if(x > (nx-Haz)/2 && x <= nx/2)
-            Mobility = m * (x - (nx-Haz)/2);
-        else if(x > nx/2 && x < (nx - (nx-Haz)/2))
-            Mobility = 1 - m * (x - (nx+Weld_width)/2);
-        if(Mobility > 1.0 || Mobility < 0.0){
-           Mobility = 0.0;
-           spin[i] = (int) (nspins*random->uniform());
         }
-         }
-      }
     }
 
 
     /*We can use the shallow melt pool parameters to only do that and create a "Goldak"-esque double ellipsoid melt pool*/
     else if(weld_type == 1) {
 
-    	int WorkingHAZ = (int)(Haz - Wwidth)/2.0;
+        int WorkingHAZ = (int)(Haz - Wwidth)/2.0;
 
         if (time > StartWeld) {
 
@@ -220,7 +220,7 @@ void AppPottsWeldJOM::site_event_rejection(int i, RandomPark *random)
 
                 }
             }
-			if(Mobility > 1.0 || Mobility < 0.0){
+            if(Mobility > 1.0 || Mobility < 0.0){
                 spin[i] = (int) (nspins*random->uniform());
             }
         }
@@ -263,13 +263,13 @@ void AppPottsWeldJOM::site_event_rejection(int i, RandomPark *random)
                     }
 
                 }
-            	//Set the center of the deep ellipsoid 1/4 of the shallow pool's length from the leading edge
+                //Set the center of the deep ellipsoid 1/4 of the shallow pool's length from the leading edge
                 int y_deep = y_weld - Wlength/4.0;
 
                 //Now lets define the deep ellipsoid
                 if (pow(((x - nx/2)/(deep_width*0.5)),2) + pow(((y - y_deep)/(deep_length * 0.5)),2) + pow(((z - nz)/(nz* 1.1)),2) <= 1) {
-                        MobilityDeep = 1.1;
-                    }
+                    MobilityDeep = 1.1;
+                }
 
                 else {
 
@@ -307,7 +307,7 @@ void AppPottsWeldJOM::site_event_rejection(int i, RandomPark *random)
     }
 
 
-  // events = spin flips to neighboring site different than self
+    // events = spin flips to neighboring site different than self
 
     int j,m,value;
     int nevent = 0;
@@ -320,7 +320,7 @@ void AppPottsWeldJOM::site_event_rejection(int i, RandomPark *random)
             value = spin[neighbor[i][j]];
             if (value == spin[i] || value == nspins) continue;
             for (m = 0; m < nevent; m++)
-            if (value == unique[m]) break;
+                if (value == unique[m]) break;
             if (m < nevent) continue;
             unique[nevent++] = value;
         }
@@ -361,10 +361,8 @@ void AppPottsWeldJOM::site_event_rejection(int i, RandomPark *random)
     if (Lmask) {
         if (einitial < 0.5*numneigh[i]) mask[i] = 1;
         if (spin[i] != oldstate)
-        for (int j = 0; j < numneigh[i]; j++)
-        mask[neighbor[i][j]] = 0;
+            for (int j = 0; j < numneigh[i]; j++)
+                mask[neighbor[i][j]] = 0;
     }
 
 }
-
-

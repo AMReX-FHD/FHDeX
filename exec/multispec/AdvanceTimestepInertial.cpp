@@ -1,4 +1,3 @@
-
 #include "hydro_functions.H"
 #include "common_functions.H"
 #include "gmres_functions.H"
@@ -55,7 +54,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab rho_update (ba,dmap,nspecies,0);
     MultiFab bds_force;
     if (advection_type > 0) {
-      bds_force.define(ba,dmap,nspecies,1);
+        bds_force.define(ba,dmap,nspecies,1);
     }
     MultiFab gmres_rhs_p(ba,dmap,       1,0);
     MultiFab dpi        (ba,dmap,       1,1);
@@ -91,9 +90,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         diff_mass_flux[d]   .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
 
-	if (advection_type > 0) {
-  	  umac_tmp[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
-	}
+        if (advection_type > 0) {
+            umac_tmp[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+        }
     }
 
     // only used when use_charged_fluid=T
@@ -110,8 +109,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // make copies of old quantities
     if (advection_type > 0) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    	  MultiFab::Copy(umac_tmp[d],umac[d],0,0,1,1);
-	}
+            MultiFab::Copy(umac_tmp[d],umac[d],0,0,1,1);
+        }
     }
 
     //////////////////////////////////////////////
@@ -146,14 +145,14 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
     else if (advection_type == 1 || advection_type == 2) {
         bds_force.setVal(0.);
-	MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
-	bds_force.FillBoundary(geom.periodicity());
+        MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
+        bds_force.FillBoundary(geom.periodicity());
 
-	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt, 2);
+        BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt, 2);
 
     }
     else {
-      Abort("Invalid advection_type");
+        Abort("Invalid advection_type");
     }
 
     // set rho_new = rho_old + dt * (A^n + D^n + St^n)
@@ -247,8 +246,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
     if (any_grav) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	    MultiFab::Saxpy(gmres_rhs_v[d],grav[d],rhotot_fc_old[d],0,0,1,0);
-	}
+            MultiFab::Saxpy(gmres_rhs_v[d],grav[d],rhotot_fc_old[d],0,0,1,0);
+        }
     }
 
     // compute (eta,kappa)^{*,n+1}
@@ -426,15 +425,15 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // bds force currently contains D^n + St^n
         // add D^{*,n+1} + St^{*,n+1} and then multiply by 1/2
         MultiFab::Add(bds_force,rho_update,0,0,nspecies,0);
-	bds_force.mult(0.5,0,nspecies,0);
-	bds_force.FillBoundary(geom.periodicity());
-	for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	  MultiFab::Add(umac_tmp[d],umac[d],0,0,1,1);
-	  umac_tmp[d].mult(0.5,0,1,1);
-	}
-	rho_update.setVal(0.);
+        bds_force.mult(0.5,0,nspecies,0);
+        bds_force.FillBoundary(geom.periodicity());
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Add(umac_tmp[d],umac[d],0,0,1,1);
+            umac_tmp[d].mult(0.5,0,1,1);
+        }
+        rho_update.setVal(0.);
 
-	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt, 2);
+        BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt, 2);
     }
     else {
         Abort("Invalid advection_type");
@@ -534,9 +533,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // add gravity term
     if (any_grav) {
-         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-             MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_old[d],0,0,1,0);
-             MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_new[d],0,0,1,0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_old[d],0,0,1,0);
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_new[d],0,0,1,0);
         }
     }
 

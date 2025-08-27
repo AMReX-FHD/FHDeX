@@ -35,10 +35,10 @@ void TurbSpectrumScalar(const MultiFab& variables,
 
     for (int comp=0; comp<ncomp; ++comp) {
 
-	MultiFab mf(variables, amrex::make_alias, comp, 1);
-	cMultiFab cmf(cba, cdm, 1, 0);
+        MultiFab mf(variables, amrex::make_alias, comp, 1);
+        cMultiFab cmf(cba, cdm, 1, 0);
 
-	r2c.forward(mf,cmf);
+        r2c.forward(mf,cmf);
 
         // Fill in the covariance multifab
         int comp_gpu = comp;
@@ -107,18 +107,18 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     // ForwardTransform
     // X
     {
-	MultiFab vel_single(vel, amrex::make_alias, 0, 1);
-	r2c.forward(vel_single,spectral_field_Tx);
+        MultiFab vel_single(vel, amrex::make_alias, 0, 1);
+        r2c.forward(vel_single,spectral_field_Tx);
     }
     // Y
     {
-	MultiFab vel_single(vel, amrex::make_alias, 1, 1);
-	r2c.forward(vel_single,spectral_field_Ty);
+        MultiFab vel_single(vel, amrex::make_alias, 1, 1);
+        r2c.forward(vel_single,spectral_field_Ty);
     }
     // Z
     {
-	MultiFab vel_single(vel, amrex::make_alias, 2, 1);
-	r2c.forward(vel_single,spectral_field_Tz);
+        MultiFab vel_single(vel, amrex::make_alias, 2, 1);
+        r2c.forward(vel_single,spectral_field_Tz);
     }
 
     // Decompose velocity field into solenoidal and dilatational
@@ -270,28 +270,28 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 
     // inverse Fourier transform solenoidal and dilatational components
     {
-	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 0, 1);
-	r2c.backward(spectral_field_Sx,vel_decomp_single);
+        MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 0, 1);
+        r2c.backward(spectral_field_Sx,vel_decomp_single);
     }
     {
-	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 1, 1);
-	r2c.backward(spectral_field_Sy,vel_decomp_single);
+        MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 1, 1);
+        r2c.backward(spectral_field_Sy,vel_decomp_single);
     }
     {
-	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 2, 1);
-	r2c.backward(spectral_field_Sz,vel_decomp_single);
+        MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 2, 1);
+        r2c.backward(spectral_field_Sz,vel_decomp_single);
     }
     {
-	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 3, 1);
-	r2c.backward(spectral_field_Dx,vel_decomp_single);
+        MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 3, 1);
+        r2c.backward(spectral_field_Dx,vel_decomp_single);
     }
     {
-	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 4, 1);
-	r2c.backward(spectral_field_Dy,vel_decomp_single);
+        MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 4, 1);
+        r2c.backward(spectral_field_Dy,vel_decomp_single);
     }
     {
-	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 5, 1);
-	r2c.backward(spectral_field_Dz,vel_decomp_single);
+        MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 5, 1);
+        r2c.backward(spectral_field_Dz,vel_decomp_single);
     }
 
     vel_decomp.mult(1.0/sqrtnpts);
@@ -449,4 +449,3 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
         turb.close();
     }
 }
-

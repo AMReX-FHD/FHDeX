@@ -4,13 +4,13 @@
 // FIXME: Fill ghost cells
 
 void DiffusiveMassFluxdiv(const MultiFab& rho,
-			  const MultiFab& rhotot,
-			  const MultiFab& molarconc,
-			  const MultiFab& rhoWchi,
-			  const MultiFab& Gamma,
-			  MultiFab& diff_mass_fluxdiv,
-			  std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-			  const Geometry& geom)
+                          const MultiFab& rhotot,
+                          const MultiFab& molarconc,
+                          const MultiFab& rhoWchi,
+                          const MultiFab& Gamma,
+                          MultiFab& diff_mass_fluxdiv,
+                          std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+                          const Geometry& geom)
 {
 
     BL_PROFILE_VAR("DiffusiveMassFluxdiv()",DiffusiveMassFluxdiv);
@@ -25,12 +25,12 @@ void DiffusiveMassFluxdiv(const MultiFab& rho,
 }
 
 void DiffusiveMassFlux(const MultiFab& rho,
-		       const MultiFab& rhotot,
-		       const MultiFab& molarconc,
-		       const MultiFab& rhoWchi,
-		       const MultiFab& Gamma,
-		       std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-		       const Geometry& geom)
+                       const MultiFab& rhotot,
+                       const MultiFab& molarconc,
+                       const MultiFab& rhoWchi,
+                       const MultiFab& Gamma,
+                       std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+                       const Geometry& geom)
 {
 
     BL_PROFILE_VAR("DiffusiveMassFlux()",DiffusiveMassFlux);
@@ -64,7 +64,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
     // compute Gama*grad(molarconc): Gama is nspecies^2 matrix; grad(x) is
     // nspecies component vector
     for(i=0; i<AMREX_SPACEDIM; i++) {
-      MatvecMul(diff_mass_flux[i], Gamma_face[i]);
+        MatvecMul(diff_mass_flux[i], Gamma_face[i]);
     }
 
     if (use_flory_huggins == 1) {
@@ -87,7 +87,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
 
     // compute -rhoWchi * (Gamma*grad(x) + ... ) on faces
     for(i=0;i<AMREX_SPACEDIM;i++) {
-      MatvecMul(diff_mass_flux[i], rhoWchi_face[i]);
+        MatvecMul(diff_mass_flux[i], rhoWchi_face[i]);
     }
 
     // If there are walls with zero-flux boundary conditions
@@ -111,12 +111,12 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
     DistributionMapping dmap = molarconc.DistributionMap();
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-//    if (dx[0] != dx[1]) {
+    //    if (dx[0] != dx[1]) {
     if (std::abs(dx[0]-dx[1]) > 1.e-14*dx[0] ){
         Abort("ComputeHigherOrderTerm needs dx=dy=dz");
     }
 #if (AMREX_SPACEDIM == 3)
-//    if (dx[0] != dx[2]) {
+    //    if (dx[0] != dx[2]) {
     if (std::abs(dx[0]-dx[2]) > 1.e-14*dx[0] ){
         Abort("ComputeHigherOrderTerm needs dx=dy=dz");
     }
@@ -288,20 +288,20 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
     }
 }
 void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
-                            std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
-                            const Geometry& geom)
+                              std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                              const Geometry& geom)
 {
 
     BoxArray ba = molarconc.boxArray();
     DistributionMapping dmap = molarconc.DistributionMap();
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-//    if (dx[0] != dx[1]) {
+    //    if (dx[0] != dx[1]) {
     if (std::abs(dx[0]-dx[1]) > 1.e-14*dx[0] ){
         Abort("ComputeHigherOrderTerm needs dx=dy=dz");
     }
 #if (AMREX_SPACEDIM == 3)
-//    if (dx[0] != dx[2]) {
+    //    if (dx[0] != dx[2]) {
     if (std::abs(dx[0]-dx[2]) > 1.e-14*dx[0] ){
         Abort("ComputeHigherOrderTerm needs dx=dy=dz");
     }

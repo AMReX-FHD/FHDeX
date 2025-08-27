@@ -29,8 +29,8 @@ void WriteCheckPoint(int step,
                      const MultiFab& chargeM,
                      const MultiFab& potential,
                      const MultiFab& potentialM,
-	             const MultiFab& struct_cc_numdens0_real,
-		     const MultiFab& struct_cc_numdens0_imag)
+                     const MultiFab& struct_cc_numdens0_real,
+                     const MultiFab& struct_cc_numdens0_imag)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -197,8 +197,8 @@ void ReadCheckPoint(int& step,
                     MultiFab& chargeM,
                     MultiFab& potential,
                     MultiFab& potentialM,
-	            MultiFab& struct_cc_numdens0_real,
-		    MultiFab& struct_cc_numdens0_imag)
+                    MultiFab& struct_cc_numdens0_real,
+                    MultiFab& struct_cc_numdens0_imag)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -234,7 +234,7 @@ void ReadCheckPoint(int& step,
 
         // read in statsCount
         is >> statsCount;
-	GotoNextLine(is);
+        GotoNextLine(is);
 
         // read in BoxArray (fluid) from Header
         BoxArray ba;
@@ -298,7 +298,7 @@ void ReadCheckPoint(int& step,
         else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
             ngp = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
         }
-	//// TODO: need a better way to determine ghost cells for bonds
+        //// TODO: need a better way to determine ghost cells for bonds
         //if (bond_tog != 0) {
         //    ngp = std::max(ngp, 6);
         //}
@@ -437,70 +437,61 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
 
     std::string line, word;
 
-        int temp;
-        std::string File(checkpointname + "/Header");
-        Vector<char> fileCharPtr;
-        ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
-        std::string fileCharPtrString(fileCharPtr.dataPtr());
-        std::istringstream is(fileCharPtrString, std::istringstream::in);
+    int temp;
+    std::string File(checkpointname + "/Header");
+    Vector<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream is(fileCharPtrString, std::istringstream::in);
 
-        // read in title line
-        std::getline(is, line);
+    // read in title line
+    std::getline(is, line);
 
-        // read in time step number
-        is >> temp;
-        GotoNextLine(is);
+    // read in time step number
+    is >> temp;
+    GotoNextLine(is);
 
-        // read in time
-        is >> temp;
-        GotoNextLine(is);
+    // read in time
+    is >> temp;
+    GotoNextLine(is);
 
-        // read in statsCount
-        is >> temp;
-        GotoNextLine(is);
+    // read in statsCount
+    is >> temp;
+    GotoNextLine(is);
 
-        // read in BoxArray (fluid) from Header
-        BoxArray ba;
-        ba.readFrom(is);
-        GotoNextLine(is);
+    // read in BoxArray (fluid) from Header
+    BoxArray ba;
+    ba.readFrom(is);
+    GotoNextLine(is);
 
-        // read in BoxArray (particle) from Header
-        BoxArray bc;
-        bc.readFrom(is);
-        GotoNextLine(is);
+    // read in BoxArray (particle) from Header
+    BoxArray bc;
+    bc.readFrom(is);
+    GotoNextLine(is);
 
-        BoxArray bp;
-        bp.readFrom(is);
-        GotoNextLine(is);
+    BoxArray bp;
+    bp.readFrom(is);
+    GotoNextLine(is);
 
-        // create a distribution mapping
-        DistributionMapping dm { bc, ParallelDescriptor::NProcs() };
+    // create a distribution mapping
+    DistributionMapping dm { bc, ParallelDescriptor::NProcs() };
 
-        //set number of ghost cells to fit whole peskin kernel
-        int ang = 1;
-        if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
-            ang = 2;
-        }
-        else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 4) {
-            ang = 3;
-        }
-        else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
-            ang = 4;
-        }
-        else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
-            ang = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
-        }
+    //set number of ghost cells to fit whole peskin kernel
+    int ang = 1;
+    if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
+        ang = 2;
+    }
+    else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 4) {
+        ang = 3;
+    }
+    else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
+        ang = 4;
+    }
+    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
+        ang = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
+    }
 
     Box minBox = bc.minimalBox();
-
-//    //IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-//    //IntVect dom_hi(AMREX_D_DECL(n_cells[0]/2-1, n_cells[1]/2-1, n_cells[2]/2-1));
-
-//    IntVect dom_lo
-//    IntVect dom_hi(AMREX_D_DECL(n_cells[0]/2-1, n_cells[1]/2-1, n_cells[2]/2-1));
-
-
-//    Box domain(dom_lo, dom_hi);
 
     RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                        {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
@@ -515,18 +506,10 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
 
     Geometry geomC(minBox,&realDomain,CoordSys::cartesian,is_periodic_c.data());
 
-//    Print() <<  "domain: " << domain << std::endl;
-//    Print() <<  "geom: " << geomC << std::endl;
-//    Print() <<  "Box Array: " << bc << std::endl;
-//    Print() <<  "Dist Map: " << dm << std::endl;
-
     // restore particles
 
-    //cout << "Restoring!\n";
     particles.Restart(checkpointname,"particle");
-    //cout << "Restored!\n";
     int np = particles.TotalNumberOfParticles();
-    //particlesTemp.Checkpoint("testcheck","particle");
     Print() << "Checkpoint contains " << np << " particles." <<std::endl;
 
     particles.ReInitParticles();
@@ -570,7 +553,7 @@ void ReadFile(const std::string& filename, Vector<char>& charBuf,
     }
 
     fileLengthPadded = fileLength + 1;
-//    fileLengthPadded += fileLengthPadded % 8;
+    //    fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);
 
     iss.read(charBuf.dataPtr(), fileLength);

@@ -24,28 +24,28 @@ namespace mui {
 #if 0
 class sampler {
 public:
-	sampler() {
-		r = 1.0;
-	}
+    sampler() {
+        r = 1.0;
+    }
 
-	double filter( point<double,3> focus, const virtual_container<double> &data_points ) const {
-		double sum = 0.;
-		int n = 0;
-		for(int i = 0 ; i < data_points.size() ; i++) {
-			if ( ( focus - data_points[i].first ).norm() < r ) {
-				sum += data_points[i].second;
-				n++;
-			}
-		}
-		if (n) return sum / n;
-		else return 0;
-	}
-	inline span<> support() const {
-		return span<>() || geometry::sphere<>( point<double,3>(0), r );
-	}
+    double filter( point<double,3> focus, const virtual_container<double> &data_points ) const {
+        double sum = 0.;
+        int n = 0;
+        for(int i = 0 ; i < data_points.size() ; i++) {
+            if ( ( focus - data_points[i].first ).norm() < r ) {
+                sum += data_points[i].second;
+                n++;
+            }
+        }
+        if (n) return sum / n;
+        else return 0;
+    }
+    inline span<> support() const {
+        return span<>() || geometry::sphere<>( point<double,3>(0), r );
+    }
 
 protected:
-	double r;
+    double r;
 };
 
 #endif
