@@ -211,6 +211,8 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
                 sorted_ibs[id + reduced_ibs[1]]
         );
 
+        //RealVect      pos = {pos_x[global_idx], pos_y[global_idx, pos_z[global_idx]};
+
         //go through each neighbor according to the bond map
         for (const auto idx : bond_neighbors.at(id)) {
 
@@ -224,6 +226,8 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
 
             Real l_b = r_b.vectorLength();
             Real f0 = k_bdy_spr * (l_b - l_0) / l_b;
+
+//            Print() << "Updating spring forces on cell body between markers " << id << "and " << idx << std::endl;
 
             //update spring forces between current and neighbor markers
             fx[global_idx]     += f0 * r_b[0]; fy[global_idx]     += f0 * r_b[1]; fz[global_idx]     += f0 * r_b[2];
@@ -246,6 +250,8 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
             int i_ib    = mark.idata(IBMInt::cpu_1);
 
             int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
+
+//            Print() << "Adding forces to particles..." << std::endl;
 
             mark.rdata(IBMReal::forcex) += fx[i_c];
             mark.rdata(IBMReal::forcey) += fy[i_c];
@@ -367,7 +373,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 Abort("Mismatched flagella detected in predictor!!!");
             }
 
-            if (ind > index_start && ind < index_start + N - 1) {
+                if(ind>index_start and ind<index_start+N-1) {
                 //exclude the first and last marker on the flagellum that
                 //doesn't have either next or previous marker Getting
                 //indexes for the previous/minus and next/plus markers in
@@ -384,6 +390,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
                 Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
                 Real fm_0 = k_spr * (lp_m - l_link) / lp_m, fp_0 = k_spr * (lp_p - l_link) / lp_p;
+
+                    //Print() << "Updating spring forces..." << std::endl;
 
                 //update spring forces between previous/minus and current markers
                 fx[i_m] += fm_0 * r_m[0]; fy[i_m] += fm_0 * r_m[1]; fz[i_m] += fm_0 * r_m[2];
@@ -457,7 +465,11 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
             int i_ib    = mark.idata(IBMInt::cpu_1);  // flagellum #
             int N       = ib_flagellum::n_marker[i_ib];
 
+            //int i_c = id + std::distance(sorted_ibs.begin(), std::find_if(sorted_ibs.begin(), sorted_ibs.end(), [&](const auto& pair) { return pair.first == i_ib; }));
+
             int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
+
+	    //Print() << "Adding forces to particles..." << std::endl;
 
             mark.rdata(IBMReal::forcex) += fx[i_c];
             mark.rdata(IBMReal::forcey) += fy[i_c];

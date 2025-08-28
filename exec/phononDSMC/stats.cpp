@@ -7,7 +7,7 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
     Real time) {
     BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
     const Real osteps = 1.0/steps;
-    const Real stepsMinusOne = steps-1.
+    const Real stepsMinusOne = steps-1.;
 
         // Zero out instantaneous values
     mfcuInst.setVal(0.);

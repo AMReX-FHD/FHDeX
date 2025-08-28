@@ -337,7 +337,7 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     gradU3_d[1] = dProb[1]*(faceTemp[1].sum_unique(0,false,geom.periodicity()));
     gradU3_d[2] = dProb[2]*(faceTemp[2].sum_unique(0,false,geom.periodicity()));
 
-    // Compute Velocity gradient sum
+    // Compute Velocity gradient moment sum
     // 4th moment (solenoidal)
     FCMoments(gradU,comps_s,faceTemp,4,gradU2_temp);
     gradU4_s[0] = dProb[0]*(faceTemp[0].sum_unique(0,false,geom.periodicity()));

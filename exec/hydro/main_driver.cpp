@@ -487,7 +487,7 @@ void main_driver(const char* argv)
                 advance(umac,umacTemp,pres,mfluxdiv_stoch,
                         alpha_fc,beta,gamma,beta_ed,geom,dt,turbforce);
 
-                ////////////////////////////////////////////////////
+                //////////////////////////////////////////////////
 
                 // add a snapshot to the structure factor
                 if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {

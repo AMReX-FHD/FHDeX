@@ -735,9 +735,9 @@ void CommOffLattice::perform_swap(Swap *swap)
       while (i >= 0) {
         j = appoff->new_ghost_site();
         id[j] = id[i];
-        xyz[j][0] = xyz[i] + pbcoffset[jbin][0]*xprd;
-        xyz[j][1] = xyz[i] + pbcoffset[jbin][1]*yprd;
-        xyz[j][2] = xyz[i] + pbcoffset[jbin][2]*zprd;
+	xyz[j][0] = xyz[i][0] + pbcoffset[jbin][0]*xprd;
+	xyz[j][1] = xyz[i][1] + pbcoffset[jbin][1]*yprd;
+	xyz[j][2] = xyz[i][2] + pbcoffset[jbin][2]*zprd;
         if (site_only) site[j] = site[i];
         else {
           for (k = 0; k < ninteger; k++) iarray[k][j] = iarray[k][i];

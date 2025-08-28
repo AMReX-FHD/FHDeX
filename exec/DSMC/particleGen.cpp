@@ -171,8 +171,8 @@ void FhdParticleContainer::InitParticles(Real & dt)
 //      IntVect bigEnd = tile_box.bigEnd();
 //
 //      for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
-//      for (int j = smallEnd[1]; i <= bigEnd[1]; j++) {
-//      for (int k = smallEnd[2]; i <= bigEnd[2]; k++) {
+//      for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
+//      for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
 //          const IntVect& iv = {i,j,k};
 //          long imap = tile_box.index(iv);
 //          for (int niter=0; niter<3; niter++) {

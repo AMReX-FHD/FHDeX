@@ -1025,7 +1025,7 @@ void CommLattice::perform_swap_double(Swap *swap)
 
   for (i = 0; i < swap->nrecv; i++) {
     index = swap->rindex[i];
-    buf = swap->rdbf[i];
+    buf = swap->rdbuf[i];
     m = 0;
     for (n = 0; n < ndouble; n++) {
       vector = darray[n];

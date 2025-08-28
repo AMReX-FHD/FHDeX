@@ -163,7 +163,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
         topFile.close();
     }
 
-    for(int i=0;i<threepmBins;i++)
+    for(int i=1;i<threepmBins;i++)
     {
        threepmPoints[i] = i*dr;
 
@@ -328,7 +328,7 @@ void FhdParticleContainer::velNorm()
 
     ParallelDescriptor::ReduceRealMax(maxS);
     ParallelDescriptor::ReduceRealSum(velN);
-    ParallelDescriptor::ReduceIntMax(pinCheck);
+
     if(pinCheck != 0)
     {
         Print() << setprecision(15) << "Pinned particle velocity norm: " << sqrt(velN) << ", max speed: " << sqrt(maxS) << std::endl;
@@ -637,7 +637,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                                    Real dummy = 1;
                                    //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
                                    //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-                                   //app_bc_gpu(&surf, part, intside, pdomsize, &push, &dummy, &dummy);
+                                   //app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
                                    //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
 
                                    runtime = runtime - inttime;
@@ -1180,6 +1180,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
                     if((nearest[id*(nspecies+1) + nspecies] == 0 || nearest[id*(nspecies+1) + nspecies] > rad) && rad != 0)
                     {
                         nearest[id*(nspecies +1) + nspecies] = rad;
+//                        Print() << "Particle " << i << " species " << jSpec << ", " << nearest[i*nspecies + jSpec] << "\n";
                     }
 
                     // if particles are close enough, increment the bin
@@ -1241,6 +1242,9 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         for(int j=0;j<nspecies;j++)
         {
             nn[(iSpec)*nspecies + j] = nn[(iSpec)*nspecies + j] + nearest[i*(nspecies+1)+j];
+
+            //std::cout << (iSpec)*nspecies + j  << ", " << nearest[i*(nspecies+1)+j] << "\n";
+
         }
 
         nn[nspecies*nspecies] = nn[nspecies*nspecies] + nearest[i*(nspecies+1)+nspecies];
@@ -1257,10 +1261,16 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
             {
                 nn[i*nspecies+j] = nn[i*nspecies+j]/specCount[i];
             }
+
+            //Print() << nn[i*nspecies+j] << "\n";
+
         }
     }
 
     nn[nspecies*nspecies] = nn[nspecies*nspecies]/(totalParticles - 1);
+
+    //Print() << nn[nspecies*nspecies+1] << "\n";
+
 
     // normalize by 1 / (number density * bin volume * total particle count)
     for(int i=0;i<totalBins;i++) {
@@ -1284,6 +1294,8 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     }
 
     for(int i=0;i<(nspecies*nspecies + 1);i++) {
+
+        //Print() << i << ", " << nn[i]<< "\n";
         nearestN[i] = (nearestN[i]*stepsminusone + nn[i])*stepsinv;
     }
 
@@ -1775,7 +1787,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
     std::fill(avcurrent_tile.begin(), avcurrent_tile.end(), 0.);
 
-    Real* avc_tile = avcurrent_tile.data();
+    Real* avc_tile = avcurrent_tile.dataPtr();
 
     BoxArray ba = particleMeans.boxArray();
     long cellcount = ba.numPts();
@@ -1806,9 +1818,13 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
         GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
 
+//        Array4<Real> part_inst = (&particleInstant[pti])->array();
+
         Array4<Real> part_inst = particleInstant[pti].array();
         Array4<Real> part_mean = particleMeans[pti].array();
 
+        //const Array4<Real>& data = charge.array(mfi);
+        // Updates multfab
         AMREX_FOR_1D( np, ni,
         {
             ParticleType & part = particles[ni];
@@ -2111,6 +2127,7 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
 
+//        AMREX_FOR_1D( np, i,
         for(int i=0;i<np;i++)
         {
             ParticleType & part = particles[i];
@@ -2157,7 +2174,17 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
         pinMatrix[i*matrixSize +j] += velpin[i];
         pinMatrix[(i+1)*matrixSize +j] += velpin[i+1];
         pinMatrix[(i+2)*matrixSize +j] += velpin[i+2];
+
+//        Print() << "MAT: " << i*matrixSize +j << ", " << pinMatrix[i*matrixSize+j] << std::endl;
+//        Print() << "MAT: " << (i+1)*matrixSize +j << ", " << pinMatrix[(i+1)*matrixSize+j] << std::endl;
+//        Print() << "MAT: " << (i+2)*matrixSize +j << ", " << pinMatrix[(i+2)*matrixSize+j] << std::endl;
     }
+
+//    Print() << "Real ID: " << realID << std::endl;
+//    Print() << "MAT: " << pinMatrix[0] << std::endl;
+//    Print() << "MAT: " << pinMatrix[2*matrixSize] << std::endl;
+
+
 }
 
 void
@@ -2256,23 +2283,60 @@ FhdParticleContainer::invertMatrix()
             }
         }
 
+
+//        std::string filename1 = "matOut";
+//        std::ofstream ofs1(filename1, std::ofstream::app);
+
+//        int matrixSize = 3*totalPinnedMarkers;
+//
+//        for(int i=0;i<matrixSize;i++)
+//        {
+//            for(int j=0;j<matrixSize;j++)
+//            {
+//                ofs1 << setprecision(15) << pinMatrix[i*matrixSize +j] << std::endl;
+
+//            }
+//        }
+//
+//        ofs1.close();
+
         Real time2 = ParallelDescriptor::second() - time1;
 
         Print() << "Inverse matrix calculated in " << time2 << " seconds.\n";
 
+//        std::string filename1 = "permOut";
+//        remove("permOut");
+//        std::ofstream ofs1(filename1, std::ofstream::app);
+
+//
+//        for(int i=0;i<N;i++)
+//        {
+//            for(int j=0;j<N;j++)
+//            {
+//                ofs1 << setprecision(15) << A[i*N + j] << std::endl;
+
+//            }
+//        }
+//
+//        ofs1.close();
+
+
         std::string filename = "invOut";
         remove("invOut");
-        std::ofstream ofs( filename, std::ios::binary );
+        //std::ofstream ofs2(filename2, std::ofstream::app);
+        ofstream ofs( filename, ios::binary );
 
         for(int i=0;i<N;i++)
         {
             for(int j=0;j<N;j++)
             {
+                //ofs2 << setprecision(15) << inv[i*N + j] << std::endl;
                 Real element = inv[i*N + j];
                 ofs.write( reinterpret_cast<char*>( &element ), sizeof element );
             }
         }
 
+//        ofs2.close();
         ofs.close();
         Print() << "Inverse matrix written\n";
 
@@ -2288,7 +2352,8 @@ FhdParticleContainer::writeMat()
         std::string filename = "matOut";
 
         remove("matOut");
-        std::ofstream ofs( filename, std::ios::binary );
+        //std::ofstream ofs(filename, std::ofstream::app);
+        ofstream ofs( filename, ios::binary );
 
         int matrixSize = 3*totalPinnedMarkers;
 
@@ -2296,6 +2361,8 @@ FhdParticleContainer::writeMat()
         {
             for(int j=0;j<matrixSize;j++)
             {
+                //ofs << setprecision(15) << pinMatrix[i*matrixSize +j] << std::endl;
+
                 Real element = pinMatrix[i*matrixSize +j];
                 ofs.write( reinterpret_cast<char*>( &element ), sizeof element );
             }
@@ -2510,7 +2577,15 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
 
             Real forceNorm = -(dx[0]*dx[0])*ee/(part0.rdata(FHD_realData::q)*part1.rdata(FHD_realData::q));
 
+            //Print() << "Force: " << part0.rdata(FHD_realData::forcex) << ", " << part0.rdata(FHD_realData::forcey) << ", " << part0.rdata(FHD_realData::forcez) << std::endl;
+
             Real forceMag = sqrt(pow(part0.rdata(FHD_realData::forcex),2) + pow(part0.rdata(FHD_realData::forcey),2) + pow(part0.rdata(FHD_realData::forcez),2))*forceNorm;
+
+           // Print() << "ForceMag: " << forceNorm << std::endl;
+
+           // Print() << "currentPre: " << threepmVals[threepmCurrentBin] << std::endl;
+
+           // Print() << "Bin: " << threepmCurrentBin << std::endl;
 
             if(threepmCurrentSample == 1)
             {
@@ -2518,6 +2593,10 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             }
 
             threepmVals[threepmCurrentBin] = (threepmVals[threepmCurrentBin]*(threepmCurrentSample - 1) + forceMag)/threepmCurrentSample;
+
+          //  Print() << "currentPost: " << threepmVals[threepmCurrentBin] << std::endl;
+
+         //   Print() << "Sample: " << threepmCurrentSample << std::endl;
 
             if(forceMag < threepmMin[threepmCurrentBin])
             {
@@ -2547,6 +2626,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
         std::string filename = "threepmPoints";
         std::ofstream ofs0(filename, std::ofstream::out);
 
+        // normalize by
         for(int i=0;i<threepmBins;i++) {
             ofs0 << threepmPoints[i] << ", ";
         }
@@ -2556,6 +2636,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
         filename = "threepmMax";
         std::ofstream ofs1(filename, std::ofstream::out);
 
+        // normalize by
         for(int i=0;i<threepmBins;i++) {
             ofs1 << threepmMax[i] << ", ";
         }
@@ -2565,6 +2646,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
         filename = "threepmMin";
         std::ofstream ofs2(filename, std::ofstream::out);
 
+        // normalize by
         for(int i=0;i<threepmBins;i++) {
             ofs2 << threepmMin[i] << ", ";
         }
@@ -2574,6 +2656,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
         filename = "threepmVals";
         std::ofstream ofs3(filename, std::ofstream::out);
 
+        // normalize by
         for(int i=0;i<threepmBins;i++) {
             ofs3 << threepmVals[i] << ", ";
         }
@@ -2584,36 +2667,52 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
     }
 }
 
-//int
-//FhdParticleContainer::numWrongCell()
+//void
+//FhdParticleContainer::correctCellVectors(int old_index, int new_index,
+//                                         int grid, const ParticleType& p)
 //{
-//    BL_PROFILE_VAR("numWrongCell()",numWrongCell);
-
-//    const int lev = 0;
-//    int num_wrong = 0;
-
-//#ifdef _OPENMP
-//#pragma omp parallel reduction(+:num_wrong)
-//#endif
-//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-//    {
-//        auto& particles = pti.GetArrayOfStructs();
-//        const int np    = pti.numParticles();
-//        for(int pindex = 0; pindex < np; ++pindex) {
-//            const ParticleType& p = particles[pindex];
-//            const IntVect& iv = this->Index(p, lev);
-//            if ((iv[0] != p.idata(FHD_intData::i)) or (iv[1] != p.idata(FHD_intData::j)) or (iv[2] != p.idata(FHD_intData::k))) {
-//                num_wrong += 1;
-//            }
+//    if (not p.idata(FHD_intData::sorted)) return;
+//    IntVect iv(p.idata(FHD_intData::i), p.idata(FHD_intData::j), p.idata(FHD_intData::k));
+//
+//    auto& cell_vector = m_cell_vectors[grid](iv);
+//    for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
+//        if (cell_vector[i] == old_index + 1) {
+//            cell_vector[i] = new_index + 1;
+//            return;
 //        }
 //    }
-
-//    ParallelDescriptor::ReduceIntSum(num_wrong, ParallelDescriptor::IOProcessorNumber());
-//    return num_wrong;
 //}
 
-//void FhdParticleContainer::PostRestart()
-//{
-//    BL_PROFILE_VAR("PostRestart()",PostRestart);
+int
+FhdParticleContainer::numWrongCell()
+{
+    BL_PROFILE_VAR("numWrongCell()",numWrongCell);
 
-//}
+    const int lev = 0;
+    int num_wrong = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:num_wrong)
+#endif
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& particles = pti.GetArrayOfStructs();
+        const int np    = pti.numParticles();
+        for(int pindex = 0; pindex < np; ++pindex) {
+            const ParticleType& p = particles[pindex];
+            const IntVect& iv = this->Index(p, lev);
+            if ((iv[0] != p.idata(FHD_intData::i)) or (iv[1] != p.idata(FHD_intData::j)) or (iv[2] != p.idata(FHD_intData::k))) {
+                num_wrong += 1;
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceIntSum(num_wrong, ParallelDescriptor::IOProcessorNumber());
+    return num_wrong;
+}
+
+void FhdParticleContainer::PostRestart()
+{
+    BL_PROFILE_VAR("PostRestart()",PostRestart);
+
+}

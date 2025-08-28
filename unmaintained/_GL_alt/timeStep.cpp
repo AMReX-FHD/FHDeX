@@ -81,8 +81,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                 //    phin.FillBoundary(geom.periodicity());
                 //
                 //
-                //    for ( MFIter c
-
+                //    for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
                 //    {
                 //        const Box& bx = mfi.validbox();
                 //

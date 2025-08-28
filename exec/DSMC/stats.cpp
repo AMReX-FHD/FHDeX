@@ -259,7 +259,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                     ParticleType & p = particles[pind];
 
                     primInst(i,j,k,6) += propertiesTmp[l].mass*((p.rdata(FHD_realData::velx) - primMeans(i,j,k,2))*(p.rdata(FHD_realData::velx) - primMeans(i,j,k,2)) + (p.rdata(FHD_realData::vely) - primMeans(i,j,k,3))*(p.rdata(FHD_realData::vely) - primMeans(i,j,k,3))
-                                                + (p.rdata(FHD_realData::velz) - primMeans(i,j,k,4))*(p.rdata(FHD_realData::velz) - primMeans(i,j,k,4));
+                                                + (p.rdata(FHD_realData::velz) - primMeans(i,j,k,4))*(p.rdata(FHD_realData::velz) - primMeans(i,j,k,4)));
                 }
             }
 
@@ -555,7 +555,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
           //  	pow(orhomean,2.0)*(coVars(i,j,k,4)-umean*coVars(i,j,k,1)-vmean*coVars(i,j,k,0)
           //  	+umean*vmean*cuVars(i,j,k,0));
          //   coVars(i,j,k,19) = // du.dw
-         //   	pow(orhomean,2.0)*(coVars(i,j,k,5)-umean*coVars(i,j,k,2)-wmean*cuVars(i,j,k,0)
+         //   	pow(orhomean,2.0)*(coVars(i,j,k,5)-umean*coVars(i,j,k,2)-wmean*coVars(i,j,k,0)
          //   	+umean*wmean*cuVars(i,j,k,0));
          //   coVars(i,j,k,20) = // dv.dw
          //   	pow(orhomean,2.0)*(coVars(i,j,k,7)-vmean*coVars(i,j,k,2)-wmean*coVars(i,j,k,1)
@@ -876,15 +876,15 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 // <delu(x*)del(rhoYkL)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkL)> - <u(x*)><delrho(x*)del(rhoYkL)>)
                 // spatialCross(i,j,k,22) = (1.0/meanrhocross)*(spatialCross(i,j,k,6) - meanuxcross*spatialCross(i,j,k,8));
 
-                // <delu(x*)del(rhoYkH)> = (1.0/meanrhocross)*(<deljx(x*)del(rhoYkH)> - <u(x*)><delrho(x*)del(rhoYkH)>)
+                // <delu(x*)del(rhoYkH)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkH)> - <u(x*)><delrho(x*)del(rhoYkH)>)
                 // spatialCross(i,j,k,23) = (1.0/meanrhocross)*(spatialCross(i,j,k,7) - meanuxcross*spatialCross(i,j,k,9));
 
-                // <delu(x*)del(YkL)> = (1.0/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkL) - <u(x*)><delrho(x*)del(rhoYkL)>
+                // <delu(x*)del(YkL)> = (1/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkL) - <u(x*)><delrho(x*)del(rhoYkL)>
                 //                      - <YkL(x)><deljx(x*)delrho(x)> + <u(x*)><YkL(x)><delrho(x*)delrho(x)>)
                 // spatialCross(i,j,k,24) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,6) - meanuxcross*spatialCross(i,j,k,8)
                 //                                                         - meanYk[0]*spatialCross(i,j,k,5) + meanuxcross*meanYk[0]*spatialCross(i,j,k,0));
 
-                // <delu(x*)del(YkH)> = (1.0/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkH) - <u(x*)><delrho(x*)del(rhoYkH)>
+                // <delu(x*)del(YkH)> = (1/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkH) - <u(x*)><delrho(x*)del(rhoYkH)>
                 //                      - <YkH(x)><deljx(x*)delrho(x)> + <u(x*)><YkH(x)><delrho(x*)delrho(x)>)
                 // spatialCross(i,j,k,25) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,7) - meanuxcross*spatialCross(i,j,k,9)
                 //                                                         - meanYk[nspecies-1]*spatialCross(i,j,k,5) + meanuxcross*meanYk[nspecies-1]*spatialCross(i,j,k,0));

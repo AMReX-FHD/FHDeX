@@ -14,7 +14,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         if(amrex::Random(engine) < surf->momentumConsRight)
         {
             //           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
-            //           //string plotfilename = "test";
+            //           string plotfilename = "test";
             /*           std::ofstream ofs(plotfilename, std::ios::app);*/
             /*           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;*/
             /*           ofs.close();*/

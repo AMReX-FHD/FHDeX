@@ -731,6 +731,7 @@ void RK3stepStag(MultiFab& cu,
         const Box& tbz = mfi.nodaltilebox(2);
 
         const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & cup_fab = cup.array(mfi);
         const Array4<Real> & cup2_fab = cup2.array(mfi);
         const Array4<Real> & source_fab = source.array(mfi);
 

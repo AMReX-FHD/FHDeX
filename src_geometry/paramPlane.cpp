@@ -2,7 +2,7 @@
 #include <math.h>
 
 #include "common_functions.H"
-#include <AMReX_MultiFab.H"
+#include <AMReX_MultiFab.H>
 #include "DsmcParticleContainer.H"
 
 using namespace amrex;
@@ -258,6 +258,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
             for(int l=0; l<nspecies; l++)
             {
                 bc_Xk_x_hi[l] /= n_hi[0];
+				cout << "n: " << bc_Xk_x_lo[l] << endl;
             }
         }
         // Number densities defined
@@ -427,7 +428,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         {
             Abort("Neither mass nor number density defined");
         }
-    //  }
+    }
 
     //Domain boundaries
     for(int i=0; i<6; i++)
@@ -2068,3 +2069,4 @@ void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const R
         }
     }
 }
+

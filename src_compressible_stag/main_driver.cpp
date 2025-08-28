@@ -871,8 +871,8 @@ void main_driver(const char* argv)
         structFactPrimMF.define(ba,dmap,structVarsPrim,0);
 
         if ((do_1D==0) and (do_2D==0)) {
-            structFactPrim.FortStructure(structFactPrimMF);
-            structFactCons.FortStructure(structFactConsMF);
+            structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
+            structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
 
             // planar extractions
             if (project_dir >= 0) {
@@ -899,7 +899,6 @@ void main_driver(const char* argv)
                 }
             }
 
-            // surface coverage
             if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
                 MultiFab Flattened;  // flattened multifab defined below
                 // we are only calling ExtractSlice here to obtain
@@ -907,7 +906,11 @@ void main_driver(const char* argv)
                 // structure factor and geometry objects for flattened data
                 // assume surface covered is stored in the "k" direction in the k=0 coordinate.
                 ExtractSlice(surfcov, Flattened, ads_wall_dir, 0, 0, 1);
-                structFactSurfCov.define(Flattened.boxArray(),Flattened.DistributionMap(),surfcov_var_names,surfcov_var_scaling);
+                BoxArray ba_surfcov = Flattened.boxArray();
+                const DistributionMapping& dmap_surfcov = Flattened.DistributionMap();
+
+                structFactSurfCov.define(ba_surfcov,dmap_surfcov,surfcov_var_names,surfcov_var_scaling);
+
             }
         } // 3D case
 
@@ -952,7 +955,6 @@ void main_driver(const char* argv)
                 }
             }
 
-            // surface coverage
             if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
 
                 // each plane in z will have an x-pencil on the low-y face

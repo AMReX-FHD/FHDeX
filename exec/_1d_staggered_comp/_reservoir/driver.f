@@ -462,7 +462,7 @@ c     1                           - vmeant(j,4)*rhostar
 !          write(10,1000)x(j),((vmsq(j,k,l),l=1,4),k=1,4)
 !          write(11,1000)x(j),((vcor(j,k,l),l=1,4),k=1,4)
 !      enddo
-! 1000 format(1p37e17.7)
+1000   format(1p37e17.7)
 
        if(iprint.eq.0)then
 

@@ -88,12 +88,13 @@ while IFS= read -r line || [ -n "$line" ]; do
 
     # Detect beginning of loops
     if echo "$line" | grep -q "do .*="; then
-        echo "   loop detected"
+        echo "   loop detected";
         loopcnt+=1
-        echo "   loop count = $loopcnt"
+        echo "   loop count = $loopcnt";
 
-        if [ "$loopcnt" -eq "$ndims" ] && [ "$inloop" -eq "0" ]; then
-            echo "   entering loop"
+        if [ "$loopcnt" -eq "$ndims" ] && [ "$inloop" -eq "0" ]
+        then
+            echo "   entering loop";
             inloop=1
         fi
 
@@ -101,10 +102,11 @@ while IFS= read -r line || [ -n "$line" ]; do
             # echo "Hack: ${indxnames[$d]}";
 
             if echo "$line" | grep -q "${indxnames[$d]}.*="; then
-                echo "   beginning of ${indxnames[$d]} loop detected"
+                echo "   beginning of ${indxnames[$d]} loop detected";
 
                 if echo "$line" | grep -q -- "-1"; then
-                    echo "   nodal in ${indxnames[$d]} direction"
+                    echo "   nodal in ${indxnames[$d]} direction";
+
                     loopnode[$d]=1
                 fi
             fi
@@ -113,12 +115,13 @@ while IFS= read -r line || [ -n "$line" ]; do
 
     # Detect end of loops
     if echo "$line" | grep -q "end.*do"; then
-        echo "   endloop detected"
+        echo "   endloop detected";
         loopcnt+=-1
-        echo "   loop count = $loopcnt"
+        echo "   loop count = $loopcnt";
 
-        if [ "$loopcnt" -eq "0" ]; then
-            echo "  end of spatial loop detected"
+        if [ "$loopcnt" -eq "0" ]
+        then
+            echo "  end of spatial loop detected";
             inloop=0
 
             for ((d=0;d<3;d++)) do
@@ -128,8 +131,9 @@ while IFS= read -r line || [ -n "$line" ]; do
     fi
 
     # Replace string occurances
-    if [ "$inloop" -eq "1" ]; then
-        echo "   inside loop"
+    if [ "$inloop" -eq "1" ]
+    then
+        echo "   inside loop";
         # for ((d=0;d<3;d++)) do
         # echo "   nodality in ${indxnames[$d]} = ${loopnode[$d]}";
         # done
@@ -138,16 +142,18 @@ while IFS= read -r line || [ -n "$line" ]; do
 
         for ((n=0;n<nvars;n++)) do
             if echo "$line" | grep -q "${varnames[$n]}("; then
-                echo "   checking nodality for ${varnames[$n]}"
+                echo "   checking nodality for ${varnames[$n]}";
 
                 for ((d=0;d<3;d++)) do
-                    echo "   nodality: loop ${loopnode[$((d))]}, mf ${nodality[$((n)),$((d))]}"
+                    echo "   nodality: loop ${loopnode[$((d))]}, mf ${nodality[$((n)),$((d))]}";
 
-                    if [ "${loopnode[$((d))]}" -eq "1" ] && [ "${nodality[$((n)),$((d))]}" -eq "0" ]; then
-                        echo "   loop nodal, mf cell centered..."
+                    if [ "${loopnode[$((d))]}" -eq "1" ] && [ "${nodality[$((n)),$((d))]}" -eq "0" ]
+                    then
+                        echo "   loop nodal, mf cell centered...";
 
                         # Note: ordering of sed statements matters
                         case $d in
+
                             0)
                                 echo "   cc in x"
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-1,${regx}${regx}${regxnd})/${varnames[$n]}(i-2,\1\2\3)/g")
@@ -155,6 +161,7 @@ while IFS= read -r line || [ -n "$line" ]; do
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+1,${regx}${regx}${regxnd})/${varnames[$n]}(i,\1\2\3)/g")
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+2,${regx}${regx}${regxnd})/${varnames[$n]}(i+1,\1\2\3)/g")
                                 ;;
+
                             1)
                                 echo "   cc in y"
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-1,${regx}${regxnd})/${varnames[$n]}(\1j-2,\2\3)/g")
@@ -162,6 +169,7 @@ while IFS= read -r line || [ -n "$line" ]; do
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+1,${regx}${regxnd})/${varnames[$n]}(\1j,\2\3)/g")
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+2,${regx}${regxnd})/${varnames[$n]}(\1j+1,\2\3)/g")
                                 ;;
+
                             2)
                                 echo "   cc in z"
 
@@ -177,18 +185,32 @@ while IFS= read -r line || [ -n "$line" ]; do
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+1)/${varnames[$n]}(\1\2k)/g")
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k+2)/${varnames[$n]}(\1\2k+1)/g")
                                 ;;
+
                         esac
 
                         echo "Original line:       $line"
                         line="$linetemp"
                         echo "Modified line:       $line"
+
+                        # echo "Suggested update:    $linetemp"
+                        # echo "do you wish to change line?"
+                        # select modchoice in "yes" "no"; do
+                        #     case $modchoice in
+                        # 	yes ) line="$linetemp"; break;;
+                        # 	no ) echo "Line not changed:    $line"; exit;;
+                        #     esac
+                        # done
+                        # # echo "Modified line:       $line"
+
                     fi
 
-                    if [ "${loopnode[$((d))]}" -eq "0" ] && [ "${nodality[$((n)),$((d))]}" -eq "1" ]; then
-                        echo "   loop cell centered, mf nodal..."
+                    if [ "${loopnode[$((d))]}" -eq "0" ] && [ "${nodality[$((n)),$((d))]}" -eq "1" ]
+                    then
+                        echo "   loop cell centered, mf nodal...";
 
                         # Note: ordering of sed statements matters
                         case $d in
+
                             0)
                                 echo "   nodal in x"
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i+1,${regx}${regx}${regxnd})/${varnames[$n]}(i+2,\1\2\3)/g")
@@ -196,6 +218,7 @@ while IFS= read -r line || [ -n "$line" ]; do
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-1,${regx}${regx}${regxnd})/${varnames[$n]}(i,\1\2\3)/g")
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(i-2,${regx}${regx}${regxnd})/${varnames[$n]}(i-1,\1\2\3)/g")
                                 ;;
+
                             1)
                                 echo "   nodal in y"
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j+1,${regx}${regxnd})/${varnames[$n]}(\1j+2,\2\3)/g")
@@ -203,6 +226,7 @@ while IFS= read -r line || [ -n "$line" ]; do
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-1,${regx}${regxnd})/${varnames[$n]}(\1j,\2\3)/g")
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}j-2,${regx}${regxnd})/${varnames[$n]}(\1j-1,\2\3)/g")
                                 ;;
+
                             2)
                                 echo "   nodal in z"
 
@@ -218,11 +242,13 @@ while IFS= read -r line || [ -n "$line" ]; do
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-1)/${varnames[$n]}(\1\2k)/g")
                                 linetemp=$(echo "$linetemp" | sed -e "s/${varnames[$n]}(${regx}${regx}k-2)/${varnames[$n]}(\1\2k-1)/g")
                                 ;;
+
                         esac
 
                         echo "Original line:       $line"
                         line="$linetemp"
                         echo "Modified line:       $line"
+
                     fi
                 done
             fi
@@ -231,4 +257,5 @@ while IFS= read -r line || [ -n "$line" ]; do
 
     # Write output to file
     echo "$line" >> ${outputFilename}
+
 done < "$1"

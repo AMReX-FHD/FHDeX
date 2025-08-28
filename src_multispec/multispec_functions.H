@@ -1370,17 +1370,17 @@ void ComputeSqrtLOnsagerSub (
     // compute chi_sub
     ComputeChi(nspecies_sub, Molmass_sub, Rho_sub, rhotot_sub, Molarconc_sub, Chi_sub, DBar_sub);
 
-    // compute Onsager matrix L_sub (store in sqrtLOnsager_sub)
+    // compute Onsager matrix L_sub (store in sqrtLonsager_sub)
     for (int column=1; column<= nspecies_sub; ++column){
         for (int row=1; row<= nspecies_sub; ++row){
             SqrtLOnsager_sub(row, column) = molmtot_sub*rhotot_sub*W_sub(row)*Chi_sub(row,column)*W_sub(column)/k_B;
         }
     }
 
-    // compute cell-centered Cholesky factor, sqrtLOnsager_sub
+    // compute cell-centered Cholesky factor, sqrtLonsager_sub
     CholeskyDC(SqrtLOnsager_sub, nspecies_sub);
 
-    // expand sqrtLOnsager_sub into sqrtLOnsager
+    // expand sqrtLonsager_sub into sqrtLonsager
     MatrixToZeros(nspecies, SqrtLOnsager);
     for (int row=1; row<= nspecies; ++row){
         if (dest(row) == 0){

@@ -1420,10 +1420,6 @@ void AppSurfchemtest::mui_init_agg()
     tmp[1] = domain->subyhi;
     point<double,2> send_span_hi(tmp);
 
-    point<double,2> send_span_lo(tmp);
-
-    point<double,2> send_span_hi(tmp);
-
     mui::geometry::box<config_2d> send_span(send_span_lo,send_span_hi);
 
     spk->uniface->announce_send_span(0.,1.e10,send_span);
@@ -1461,6 +1457,7 @@ void AppSurfchemtest::mui_init_agg()
     for (int i = 0; i < nlocal; i++) {
         int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
         int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
+      assert(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
         cntKMCsite[nx][ny]++;
         sum1[nx][ny] += xyz[i][0]+mui_kmc_lattice_offset_x;
         sum2[nx][ny] += xyz[i][1]+mui_kmc_lattice_offset_y;
@@ -1514,7 +1511,7 @@ void AppSurfchemtest::mui_init_agg()
             double * data2 = new double[nlocalFHDcell_world[i]];
 
             MPI_Recv(data1,nlocalFHDcell_world[i],MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
-            MPI_Recv(data2,nlocalFHDcell_world[i],MPI_DOUBLE,i,1,world,MPI_STATUS_IGNORE);
+            MPI_Recv(data2,nlocalFHDcell_world[i],MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
 
             fprintf(logfile,"** rank %d **\n",i);
             for (int j=0;j<nlocalFHDcell_world[i];j++) {
@@ -1527,7 +1524,7 @@ void AppSurfchemtest::mui_init_agg()
     }
     else {
         MPI_Send(xFHD,nlocalFHDcell,MPI_DOUBLE,0,0,world);
-        MPI_Send(yFHD,nlocalFHDcell,MPI_DOUBLE,0,1,world);
+        MPI_Send(yFHD,nlocalFHDcell,MPI_DOUBLE,0,0,world);
     }
 
     // 3. localFHDcell, MUIintval, MUIdblval
@@ -1565,7 +1562,8 @@ void AppSurfchemtest::mui_init_agg()
         }
     }
     else {
-        MPI_Send(cntKMCsite2.data(),nlocalFHDcell,MPI_INT,0,0,world);
+        int * data = &cntKMCsite2[0];
+        MPI_Send(data,nlocalFHDcell,MPI_INT,0,0,world);
     }
 
     MUIintval = new int[nlocalFHDcell];
@@ -1835,16 +1833,6 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_ac1",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"ac2") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += ac2[i];
-        ac2[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_ac2",{xFHD[n],yFHD[n]},MUIintval[n]);
     } else if (strcmp(arg[k],"dc1") == 0) {
       // compute the sum over each FHD domain
       for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
@@ -1855,106 +1843,6 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_dc1",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"dc2") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += dc2[i];
-        dc2[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_dc2",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"dac1") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += dac1[i];
-        dac1[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_dac1",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"dac2") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += dac2[i];
-        dac2[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_dac2",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"dac3") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += dac3[i];
-        dac3[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_dac3",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"dac4") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += dac4[i];
-        dac4[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_dac4",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"dac5") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += dac5[i];
-        dac5[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_dac5",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"adc1") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += adc1[i];
-        adc1[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_adc1",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"adc2") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += adc2[i];
-        adc2[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_adc2",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"adc3") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += adc3[i];
-        adc3[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_adc3",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"adc4") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += adc4[i];
-        adc4[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_adc4",{xFHD[n],yFHD[n]},MUIintval[n]);
     } else if (strcmp(arg[k],"occ1") == 0) {
       // compute the sum over each FHD domain
       for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
@@ -2081,21 +1969,24 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         density1[i] = MUIdblval[localFHDcell[i]];
-    } else if (strcmp(arg[k],"temp") == 0) {
+    }
+    else if (strcmp(arg[k],"temp") == 0) {
       // get info for each FHD cell
       for (int n=0;n<nlocalFHDcell;n++)
         MUIdblval[n] = spk->uniface->fetch("CH_temp",{xFHD[n],yFHD[n]},timestamp,s,t);
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         temp[i] = MUIdblval[localFHDcell[i]];
-    } else if (strcmp(arg[k],"Vz") == 0) {
+    }
+    else if (strcmp(arg[k],"Vz") == 0) {
       // get info for each FHD cell
       for (int n=0;n<nlocalFHDcell;n++)
         MUIdblval[n] = spk->uniface->fetch("CH_Vz",{xFHD[n],yFHD[n]},timestamp,s,t);
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         Vz[i] = MUIdblval[localFHDcell[i]];
-    } else {
+    }
+    else {
       error->all(FLERR,"Illegal mui_fetch_agg command");
     }
 

@@ -558,7 +558,7 @@
            ioff = 1;
          }
          AMREX_PRAGMA_SIMD
-         for (int i = ylo.x+ioff; i <= yhi.x; ++i) {
+        for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
 
              Lphiy(i,j,k) = phiy(i,j,k)*
                  ( theta_alpha*alphay(i,j,k) +
@@ -602,27 +602,30 @@
            ioff = 1;
          }
          AMREX_PRAGMA_SIMD
-         for (int i = zlo.x+ioff; i <= zhi.x; ++i) {
+        for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
 
              Lphiz(i,j,k) = phiz(i,j,k)*
                  ( theta_alpha*alphaz(i,j,k) +
                    2.*(betacc(i,j,k)+betacc(i,j,k-1))*dzsqinv
                    + (betaxz(i,j,k)+betaxz(i+1,j,k))*dxsqinv
                    + (betayz(i,j,k)+betayz(i,j+1,k))*dysqinv )
+
                  -2.*phiz(i,j,k+1)*betacc(i,j,k)*dzsqinv
                  -2.*phiz(i,j,k-1)*betacc(i,j,k-1)*dzsqinv
                  -phiz(i+1,j,k)*betaxz(i+1,j,k)*dxsqinv
                  -phiz(i-1,j,k)*betaxz(i,j,k)*dxsqinv
                  -phiz(i,j+1,k)*betayz(i,j+1,k)*dysqinv
                  -phiz(i,j-1,k)*betayz(i,j,k)*dysqinv
+
                  -phix(i+1,j,k)*betaxz(i+1,j,k)*dxdzinv
                  +phix(i,j,k)*betaxz(i,j,k)*dxdzinv
-                 -phix(i+1,j,k-1)*betaxz(i+1,j,k)*dxdzinv
-                 +phix(i,j,k-1)*betaxz(i,j,k)*dxdzinv
+                 +phix(i+1,j,k-1)*betaxz(i+1,j,k)*dxdzinv
+                 -phix(i,j,k-1)*betaxz(i,j,k)*dxdzinv
+
                  -phiy(i,j+1,k)*betayz(i,j+1,k)*dydzinv
                  +phiy(i,j,k)*betayz(i,j,k)*dydzinv
-                 -phiy(i,j+1,k-1)*betayz(i,j+1,k)*dydzinv
-                 +phiy(i,j,k-1)*betayz(i,j,k)*dydzinv;
+                 +phiy(i,j+1,k-1)*betayz(i,j+1,k)*dydzinv
+                 -phiy(i,j,k-1)*betayz(i,j,k)*dydzinv;
          }
          }
          }

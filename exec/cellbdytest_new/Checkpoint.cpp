@@ -493,6 +493,15 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
 
     Box minBox = bc.minimalBox();
 
+//    //IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+//    //IntVect dom_hi(AMREX_D_DECL(n_cells[0]/2-1, n_cells[1]/2-1, n_cells[2]/2-1));
+
+//    IntVect dom_lo
+//    IntVect dom_hi(AMREX_D_DECL(n_cells[0]/2-1, n_cells[1]/2-1, n_cells[2]/2-1));
+
+
+//    Box domain(dom_lo, dom_hi);
+
     RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                        {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
@@ -506,10 +515,18 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
 
     Geometry geomC(minBox,&realDomain,CoordSys::cartesian,is_periodic_c.data());
 
+//    Print() <<  "domain: " << domain << std::endl;
+//    Print() <<  "geom: " << geomC << std::endl;
+//    Print() <<  "Box Array: " << bc << std::endl;
+//    Print() <<  "Dist Map: " << dm << std::endl;
+
     // restore particles
 
+    //cout << "Restoring!\n";
     particles.Restart(checkpointname,"particle");
+    //cout << "Restored!\n";
     int np = particles.TotalNumberOfParticles();
+    //particlesTemp.Checkpoint("testcheck","particle");
     Print() << "Checkpoint contains " << np << " particles." <<std::endl;
 
     particles.ReInitParticles();

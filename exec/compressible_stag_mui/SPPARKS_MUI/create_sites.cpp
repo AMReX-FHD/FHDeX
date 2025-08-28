@@ -30,7 +30,7 @@
 
 #include <map>
 
-using namespace SPPARKS;
+using namespace SPPARKS_NS;
 
 // same as in lattice.cpp
 
@@ -704,7 +704,7 @@ void CreateSites::random_connectivity()
   MPI_Request request;
   MPI_Status status;
 
-  int maxbuf = 0;
+  maxbuf = 0;
   Site *bufrecv = NULL;
   int nrecv = 0;
 

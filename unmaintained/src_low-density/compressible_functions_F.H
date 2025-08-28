@@ -6,6 +6,8 @@
 #ifdef __cplusplus
 extern "C"
 {
+#endif
+
     // these are interfaces to fortran subroutines
 
 ///////////////////////////

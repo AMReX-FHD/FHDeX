@@ -881,7 +881,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
     //                        //{
     //                        //    totalFluxInt++;
     //                        //}
-    //                        //Print() << "Surface " << i << " generated " << totalFluxInt << " of species " << j << "\n";
+    //                        //Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the right.\n";
     //
     //                        for(int k=0;k<totalFluxInt;k++)
     //                        {
@@ -972,7 +972,6 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
     //                        //{
     //                        //    totalFluxInt++;
     //                        //}
-    //                        //Print() << "Surface " << i << " generated " << totalFluxInt << " of species " << j << "\n";
     //
     //                        for(int k=0;k<totalFluxInt;k++)
     //                        {
@@ -1086,6 +1085,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
                                 p.idata(FHD_intData::sorted) = -1;
     
                                 p.idata(FHD_intData::species) = j;
+                                p.idata(FHD_intData::newSpecies) = -1;
     
                                 p.pos(0) = paramPlaneList[i].x0 + paramPlaneList[i].ux*uCoord + paramPlaneList[i].vx*vCoord;
                                 p.pos(1) = paramPlaneList[i].y0 + paramPlaneList[i].uy*uCoord + paramPlaneList[i].vy*vCoord;
@@ -1721,7 +1721,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
                             {
                                 totalFluxInt++;
                             }
-                            //Print() << "Flux: " << totalFluxInt << endl;
+
                             //auto old_size = particle_tile.GetArrayOfStructs().size();
                             //auto new_size = old_size + totalFluxInt;
                             //particle_tile.resize(new_size);
@@ -1751,6 +1751,10 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
                                 p.pos(0) = p.pos(0) + smallNumber*paramPlaneListPtr[i].rnx;
                                 p.pos(1) = p.pos(1) + smallNumber*paramPlaneListPtr[i].rny;
                                 p.pos(2) = p.pos(2) + smallNumber*paramPlaneListPtr[i].rnz;
+
+                                p.rdata(FHD_realData::boostx) = 0;
+                                p.rdata(FHD_realData::boosty) = 0;
+                                p.rdata(FHD_realData::boostz) = 0;
     
                                 p.idata(FHD_intData::i) = -100;
                                 p.idata(FHD_intData::j) = -100;
@@ -1780,20 +1784,17 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
                                                     &p.rdata(FHD_realData::velx),&p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz), engine);
                                 }
     
-    
                                 p.rdata(FHD_realData::omega) = plankDist(surf.temperatureRight, engine);
                                 //I hope this is right?
-                                p.rdata(FHD_realData::lambda) = pSpeed*2.0*M_PI/p.rdata(FHD_realData::omega);
-    
-                                //Print() << "Gen " << p.id() << ": " << p.rdata(FHD_realData::velx + 0) << ", " << p.rdata(FHD_realData::velx + 1) << ", " << p.rdata(FHD_realData::velx + 2) << endl;
-    
-                                //cout << "velx: " << p.rdata(FHD_realData::velx) << "\n";
-    
-    
+                                p.rdata(FHD_realData::lambda) = pSpeed*2.0*M_PI/p.rdata(FHD_realData::omega);   
+
                                 particle_tile.push_back(p);
                             }
-    
-    
+//                            ParallelDescriptor::ReduceIntSum(totalFluxInt);
+//                            if(totalFluxInt != 0)
+//                            {
+//                                Print() << "Surface " << i << " generated " << totalFluxInt << " of species " << j << "\n";
+//                            }
                         }
                     }
                 }

@@ -648,7 +648,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
              const GpuArray<Real,MAX_SPECIES>& Ykp,
              const GpuArray<Real,MAX_SPECIES>& Xkp,
-             const Array4<Real>& diff_ij,
+             const Array4<Real>& D_tilde,
              const int nspecies,
              const int iloc,
              const int jloc,
@@ -771,7 +771,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
        for (j=0; j<nspecies; ++j) {
            // indicies on LHS are switched due to C++/F90 memory layout
            // this is the only location this needs to happen I believe
-           diff_ij(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
+           D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
        }
     }
 

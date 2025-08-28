@@ -52,7 +52,7 @@ inline istream& operator>>(istream& stream, std::unordered_multimap<K,V>& ret)
     return stream;
 }
 template<typename K, typename V>
-inline ostream& operator<<(ostream& stream, const std::unordered_multmap<K,V>& map)
+inline ostream& operator<<(ostream& stream, const std::unordered_multimap<K,V>& map)
 {
     stream << map.size();
     for( const auto& p : map ) stream << p;

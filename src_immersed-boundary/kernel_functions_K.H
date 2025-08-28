@@ -252,6 +252,8 @@ struct KernelES
     {
         Real kernel_es;
         Real r = r_in;
+        //Real beta = beta_in;
+        //Real w = static_cast<Real>(w_in);
 
         if (r >= -w / 2.0 && r <= w / 2.0)
         {

@@ -1242,22 +1242,23 @@ void main_driver(const char* argv)
 //            Real x1 = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
 //            Real y1 = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
 //            Real z1 = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
-//
+////
 ////            Real seprad = ionParticle[0].d/2.0;
 ////
 ////            Real x2 = x1 + 0.0*ionParticle[0].d/2.0;
 ////            Real y2 = y1;
 ////            Real z2 = z1;
 //////
-////            particles.SetPosition(kk,x1 ,y1, z1);
+//            particles.SetPosition(kk,x1 ,y1, z1);
 ////            particles.SetPosition(kk+1,x2 ,y2, z2);
 //
 //           // Print() << "Seperating particles " << kk << " and " << kk+1 << " by " << (x1 -x2)/seprad << " radii.\n";
 //
 //            kk = kk+2;
 //
-////          }
-//
+
+//          }
+
 //          kk =1;
 //          while(kk<ionParticle[0].total)
 //          {
@@ -1286,7 +1287,8 @@ void main_driver(const char* argv)
 //
 //            kk = kk+2;
 //
-////          }
+
+//          }
 //
 //            x1 = 0.5*prob_hi[0] + (amrex::Random()-0.5)*(prob_hi[0]-prob_lo[0])*0.25;
 //            y1 = 0.1875*dxp[0];

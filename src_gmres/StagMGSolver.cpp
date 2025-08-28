@@ -411,7 +411,7 @@ void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                              beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
 
                     // set values on physical boundaires
                     MultiFabPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
@@ -512,7 +512,7 @@ void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                                  beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    for (int d=0; d<AMREX_SPACEDIM; d++) {
 
                         // set values on physical boundaries
                         MultiFabPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
@@ -611,7 +611,7 @@ void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
         if ( std::all_of(resid.begin(), resid.end(), [](Real x){return x <= stag_mg_rel_tol;}) ) {
             if (stag_mg_verbosity >= 1) {
-                Print() << "Solved in " << vcycle << " staggered V-Cycles" << std::endl;
+                Print() << "Solved in " << vcycle << " staggered V-cycles" << std::endl;
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     Print() << "resid/resid0 " << d << " " << resid[d] << std::endl;
                 }

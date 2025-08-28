@@ -553,9 +553,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 spatialCross(i,j,k,15) = (spatialCross(i,j,k,15)*stepsMinusOne + deljzcross*deljy)*osteps;  // <deljz(x*)deljy(x)>
                 spatialCross(i,j,k,16) = (spatialCross(i,j,k,16)*stepsMinusOne + delKcross*deljy)*osteps;   // <delK(x*)deljy(x)>
 
-                spatialCross(i,j,k,17) = (spatialCross(i,j,k,17)*stepsMinusOne + delrhocross*deljz)*osteps; // <delrho(x*)deljz(x)>
-                spatialCross(i,j,k,18) = (spatialCross(i,j,k,18)*stepsMinusOne + deljxcross*deljz)*osteps;  // <deljx(x*)deljz(x)>
-                spatialCross(i,j,k,19) = (spatialCross(i,j,k,19)*stepsMinusOne + deljycross*deljz)*osteps;  // <deljy(x*)deljz(x)>
+                spatialCross(i,j,k,17) = (spatialCross(i,j,k,17)*stepsMinusOne + delrhocross*deljz)*osteps; // <delrho(x*)delK(x)>
+                spatialCross(i,j,k,18) = (spatialCross(i,j,k,18)*stepsMinusOne + deljxcross*deljz)*osteps;  // <deljx(x*)delK(x)>
+                spatialCross(i,j,k,19) = (spatialCross(i,j,k,19)*stepsMinusOne + deljycross*deljz)*osteps;  // <deljy(x*)delK(x)>
                 spatialCross(i,j,k,20) = (spatialCross(i,j,k,20)*stepsMinusOne + delKcross*deljz)*osteps;   // <deljz(x*)delK(x)>
 
                 // [IS] Species-dependent stuff -- commented now -- add later

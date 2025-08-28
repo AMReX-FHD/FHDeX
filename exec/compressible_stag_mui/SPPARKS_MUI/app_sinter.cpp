@@ -866,7 +866,7 @@ void AppSinter::choose_neighbor_grain_site_minimizing_energy( int i, int neighst
     }
 }
 
-/////////////////////////////////////////// VACANCIES AND ANNIHILATIONS //////////////////////////////////////////////////
+/////////////////////////////////////////// VACANCIES AND ANNIHILATIONS //////////////////////////////////////////////////////////
 
 /* ----------------------------------------------------------------------
    create a vacancy
@@ -2222,6 +2222,182 @@ double AppSinter::calculate_gb_average(double & grain_size_average)
     return gb_avg;
 }
 
+
+/* ---------------------------------------------------------------------- */
+/*
+void AppSinter::cluster_faces( int start_ilocal, vector<bool> & site_included, int & grain_vol, int & face_sites, vector<int> & faces,
+										 bool & multiproc, vector<int> & neigh_procs )
+{  // per grain per processor
+	int lspin = spin[start_ilocal];
+
+	face_sites = 0;
+	multiproc = false;
+
+	std::stack<int> exploring;
+
+	exploring.push( start_ilocal );
+	site_included[start_ilocal] = true;
+	grain_vol = 1;
+
+	vector<int> aux_faces;
+	vector<int> aux_neigh_procs; // To store neighboring processors that store part of the grain
+
+	while ( exploring.size() ) {
+		int ilocal = exploring.top();
+		exploring.pop();
+		int nevent = 0, m;
+		for ( int nbor = 0; nbor < numneigh[ilocal]; nbor++ ) {
+			int neigh = neighbor[ilocal][nbor];
+			int neigh_spin = spin[neigh];
+			if ( neigh_spin == FRAME || neigh_spin == VACANT ) continue; // Outside simulation space or vacancy
+			if ( neigh_spin == lspin ) { // Same spin, part of the cluster
+				if ( !site_included[neigh] ) { // if not included --> include in exploring stack
+					exploring.push( neigh );
+					site_included[neigh] = true;
+					if ( neigh < nlocal )	grain_vol++;
+					else {
+						aux_neigh_procs.push_back ( owner[neigh] );
+						multiproc = true; // grain is contained in more than one processor
+					}
+				}
+				continue;
+			}
+			if ( ilocal >= nlocal ) continue; // It is going to be counted in the processor that owns it
+			for ( m = 0; m < nevent; m++ )
+				if ( neigh_spin == unique[m] ) break; // Registered Event
+			if ( m < nevent ) continue; // Previous cycle was interrupted because event was found
+			unique[nevent++] = neigh_spin;
+		}
+		face_sites += nevent;
+		for ( int i = 0; i < nevent; i++ ) {
+				aux_faces.push_back( unique[i] );
+		}
+	}
+	// Removing duplicates from list of faces by burning face already included
+	for ( int i = 0; i < aux_faces.size(); i++ ) {
+		if ( aux_faces[i] != -1 ) {
+			int neigh_spin = aux_faces[i];
+			faces.push_back( neigh_spin );
+			aux_faces[i] = -1;
+			for ( int j = i+1; j < aux_faces.size(); j++ ) {
+				if ( aux_faces[j] == neigh_spin ) {
+					aux_faces[j] = -1;
+				}
+			}
+		}
+	}
+
+	if ( multiproc ) { // Grain is contained in more than one processor
+		// Removing duplicates from list of neighboring procs by burning proc already included
+		for ( int i = 0; i < aux_neigh_procs.size(); i++ ) {
+			if ( aux_neigh_procs[i] != -1 ) {
+				int neighproc = aux_neigh_procs[i];
+				neigh_procs.push_back( neighproc );
+				aux_neigh_procs[i] = -1;
+				for ( int j = i+1; j < aux_neigh_procs.size(); j++ ) {
+					if ( aux_neigh_procs[j] == neighproc ) {
+						aux_neigh_procs[j] = -1;
+					}
+				}
+			}
+		}
+	}
+}
+*/
+
+/* ----------------------------------------------------------------------
+ register per grain: sites in faces, in edges and in corners.
+ For sites in faces register spin of nieghboring grain, thus if
+ grain is distributed in several processors, just different faces are
+ counted.
+ ------------------------------------------------------------------------- */
+
+void AppSinter::cluster_faces( int start_ilocal, vector<bool> & site_included, int & grain_vol, int & face_sites, vector<int> & faces,
+							  bool & multiproc, vector<int> & neigh_procs, vector<double> & cm )
+{
+	int ispin = spin[start_ilocal];
+
+	face_sites = 0;
+	multiproc = false;
+
+	std::stack<int> exploring;
+
+	for ( int k = 0; k < dimension; k++ )
+		cm[k] = 0.0;
+
+	exploring.push( start_ilocal );
+	site_included[start_ilocal] = true;
+	grain_vol = 1;
+
+	vector<int> aux_faces;
+	vector<int> aux_neigh_procs; // To store neighboring processors that store part of the grain
+
+	while ( exploring.size() ) {
+		int ilocal = exploring.top();
+		exploring.pop();
+		int nevent = 0, m;
+		for ( int nbor = 0; nbor < numneigh[ilocal]; nbor++ ) {
+			int neigh = neighbor[ilocal][nbor];
+			int neigh_spin = spin[neigh];
+			if ( neigh_spin == FRAME || neigh_spin == VACANT ) continue; // Outside simulation space or vacancy
+			if ( neigh_spin == ispin ) { // Same spin, part of the cluster
+				if ( !site_included[neigh] ) { // if not included --> include in exploring stack
+					exploring.push( neigh );
+					site_included[neigh] = true;
+					if ( neigh < nlocal )	{
+						grain_vol++;
+						for ( int k = 0; k < dimension; k++ )
+							cm[k] += xyz[neigh][k];
+					}
+					else {
+						aux_neigh_procs.push_back ( owner[neigh] );
+						multiproc = true; // grain is contained in more than one processor
+					}
+				}
+				continue;
+			}
+			if ( ilocal >= nlocal ) continue; // It is going to be counted in the processor that owns it
+			for ( m = 0; m < nevent; m++ )
+				if ( neigh_spin == unique[m] ) break; // Registered Event
+			if ( m < nevent ) continue; // Previous cycle was interrupted because event was found
+			unique[nevent++] = neigh_spin;
+		}
+		face_sites += nevent;
+		for ( int i = 0; i < nevent; i++ ) {
+			aux_faces.push_back( unique[i] );
+		}
+	}
+	// Removing duplicates from list of faces by burning face already included
+	for ( int i = 0; i < aux_faces.size(); i++ ) {
+		if ( aux_faces[i] != -1 ) {
+			int neigh_spin = aux_faces[i];
+			faces.push_back( neigh_spin );
+			aux_faces[i] = -1;
+			for ( int j = i+1; j < aux_faces.size(); j++ ) {
+				if ( aux_faces[j] == neigh_spin ) {
+					aux_faces[j] = -1;
+				}
+			}
+		}
+	}
+
+	if ( multiproc ) { // Grain is contained in more than one processor
+		// Removing duplicates from list of neighboring procs by burning proc already included
+		for ( int i = 0; i < aux_neigh_procs.size(); i++ ) {
+			if ( aux_neigh_procs[i] != -1 ) {
+				int neighproc = aux_neigh_procs[i];
+				neigh_procs.push_back( neighproc );
+				aux_neigh_procs[i] = -1;
+				for ( int j = i+1; j < aux_neigh_procs.size(); j++ ) {
+					if ( aux_neigh_procs[j] == neighproc ) {
+						aux_neigh_procs[j] = -1;
+					}
+				}
+			}
+		}
+	}
+}
+
 /* ----------------------------------------------------------------------
    In Parallel execution, consolidate the list of centers of mass for
     each grain in the domain. The same spin comming from different
@@ -2323,6 +2499,9 @@ void AppSinter::consolidate_mass_center_distributed_grains( vector<int> & spins,
      */
 }
 
+/////////////////////////////////////////// STATISTICS /////////////////////////////////////////////////
+
+
 /* ----------------------------------------------------------------------
    print stats header
 ------------------------------------------------------------------------- */
@@ -2369,6 +2548,8 @@ void AppSinter::stats(char *strtmp)
 //  double dum = count_vacant();
   vac_made=0;
 }
+
+/////////////////////////////////////////// CHECKING LATTICE /////////////////////////////////////////////////
 
 /* ----------------------------------------------------------------------
  count pore sites
