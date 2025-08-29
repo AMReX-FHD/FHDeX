@@ -95,9 +95,11 @@ void InitializeMFSurfchemNamespace()
     mean_MFsurfchem = 0; // default value
     pp.query("mean_MFsurfchem",mean_MFsurfchem);
     if (mean_MFsurfchem > 0) {
-	std::vector<amrex::Real> mean_pressure_tmp(MAX_SPECIES);
-	pp.queryarr("mean_pressure",mean_pressure_tmp,0,n_ads_spec); // mean partial pressure of adsorption species
-	for (int m=0;m<n_ads_spec;m++) mean_pressure[m] = mean_pressure_tmp[m];
+        std::vector<amrex::Real> mean_pressure_tmp(MAX_SPECIES);
+        pp.queryarr("mean_pressure",mean_pressure_tmp,0,n_ads_spec); // mean partial pressure of adsorption species
+        for (int m=0;m<n_ads_spec;m++) {
+            mean_pressure[m] = mean_pressure_tmp[m];
+        }
     }
     return;
 }
@@ -188,12 +190,12 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 		    amrex::Real meanNdes;
 
 		    if (mean_MFsurfchem==0) {
-		        meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
-			meanNdes = des_rate[m]*theta*Ntot*dt;
+                        meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
+                        meanNdes = des_rate[m]*theta*Ntot*dt;
 		    }
 		    else {
-			meanNads = ads_rate_const[m]*mean_pressure[m]*(1-sumtheta)*Ntot*dt; // tempratio = 1
-			meanNdes = des_rate[m]*theta*Ntot*dt;
+                        meanNads = ads_rate_const[m]*mean_pressure[m]*(1-sumtheta)*Ntot*dt; // tempratio = 1
+                        meanNdes = des_rate[m]*theta*Ntot*dt;
 		    }
 
                     amrex::Real Nads;
