@@ -189,14 +189,14 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 		    amrex::Real meanNads;
 		    amrex::Real meanNdes;
 
-		    if (mean_MFsurfchem==0) {
+                    if (mean_MFsurfchem==0) {
                         meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
                         meanNdes = des_rate[m]*theta*Ntot*dt;
-		    }
-		    else {
+                    }
+                    else {
                         meanNads = ads_rate_const[m]*mean_pressure[m]*(1-sumtheta)*Ntot*dt; // tempratio = 1
                         meanNdes = des_rate[m]*theta*Ntot*dt;
-		    }
+                    }
 
                     amrex::Real Nads;
                     amrex::Real Ndes;
