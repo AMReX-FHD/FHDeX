@@ -19,6 +19,9 @@ AMREX_GPU_MANAGED amrex::Real MFsurfchem::e_beta;
 AMREX_GPU_MANAGED int MFsurfchem::splitting_MFsurfchem;
 AMREX_GPU_MANAGED int MFsurfchem::conversion_MFsurfchem;
 
+AMREX_GPU_MANAGED int MFsurfchem::mean_MFsurfchem;
+AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::mean_pressure;
+
 void InitializeMFSurfchemNamespace()
 {
     // extract inputs parameters
@@ -86,6 +89,15 @@ void InitializeMFSurfchemNamespace()
     pp.query("conversion_MFsurfchem",conversion_MFsurfchem);
     if ( (n_ads_spec + conversion_MFsurfchem) > nspecies) {
         Abort("ERROR: desorption species is not included in nspecies");
+    }
+
+    // Use equilibrium (mean) values of pressure and temperature to calculate adsorption rate
+    mean_MFsurfchem = 0; // default value
+    pp.query("mean_MFsurfchem",mean_MFsurfchem);
+    if (mean_MFsurfchem) {
+	std::vector<amrex::Real> mean_pressure_tmp(MAX_SPECIES);
+	pp.queryarr("mean_pressure",mean_pressure_tmp,0,n_ads_spec); // mean partial pressure of adsorption species
+	for (int m=0;m<n_ads_spec;m++) mean_pressure[m] = mean_pressure_tmp[m];
     }
     return;
 }
@@ -172,8 +184,17 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
-  		    amrex::Real meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
-                    amrex::Real meanNdes = des_rate[m]*theta*Ntot*dt;
+		    amrex::Real meanNads;
+		    amrex::Real meanNdes;
+
+		    if (mean_MFsurfchem==0) {
+		        meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
+			meanNdes = des_rate[m]*theta*Ntot*dt;
+		    }
+		    else {
+			meanNads = ads_rate_const[m]*mean_pressure[m]*(1-sumtheta)*Ntot*dt; // tempratio = 1
+			meanNdes = des_rate[m]*theta*Ntot*dt;
+		    }
 
                     amrex::Real Nads;
                     amrex::Real Ndes;
