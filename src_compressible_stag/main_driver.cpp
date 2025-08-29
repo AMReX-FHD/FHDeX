@@ -1652,7 +1652,7 @@ void main_driver(const char* argv)
             //
             // 
 
-            if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+            if (do_2D && n_ads_spec > 0 && surfCov_has_multiple_cells) {
 
                 MultiFab surfcov_mag, surfcov_realimag;
 
