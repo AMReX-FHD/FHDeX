@@ -94,7 +94,7 @@ void InitializeMFSurfchemNamespace()
     // Use equilibrium (mean) values of pressure and temperature to calculate adsorption rate
     mean_MFsurfchem = 0; // default value
     pp.query("mean_MFsurfchem",mean_MFsurfchem);
-    if (mean_MFsurfchem) {
+    if (mean_MFsurfchem > 0) {
 	std::vector<amrex::Real> mean_pressure_tmp(MAX_SPECIES);
 	pp.queryarr("mean_pressure",mean_pressure_tmp,0,n_ads_spec); // mean partial pressure of adsorption species
 	for (int m=0;m<n_ads_spec;m++) mean_pressure[m] = mean_pressure_tmp[m];
