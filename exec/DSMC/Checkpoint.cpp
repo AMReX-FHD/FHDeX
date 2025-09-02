@@ -24,19 +24,19 @@ namespace {
 }
 
 void WriteCheckPoint(int step,
-    const Real time,
-    const Real dt,
-    int statsCount,
-    const amrex::MultiFab& cuInst,
-    const amrex::MultiFab& cuMeans,
-    const amrex::MultiFab& cuVars,
-    const amrex::MultiFab& primInst,
-    const amrex::MultiFab& primMeans,
-    const amrex::MultiFab& primVars,
-    const amrex::MultiFab& coVars,
-    const FhdParticleContainer& particles,
-    const amrex::MultiFab& spatialCross1D,
-    const int ncross) {
+                     const Real time,
+                     const Real dt,
+                     int statsCount,
+                     const amrex::MultiFab& cuInst,
+                     const amrex::MultiFab& cuMeans,
+                     const amrex::MultiFab& cuVars,
+                     const amrex::MultiFab& primInst,
+                     const amrex::MultiFab& primMeans,
+                     const amrex::MultiFab& primVars,
+                     const amrex::MultiFab& coVars,
+                     const FhdParticleContainer& particles,
+                     const amrex::MultiFab& spatialCross1D,
+                     const int ncross) {
 
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -137,18 +137,18 @@ void WriteCheckPoint(int step,
 }
 
 void ReadCheckPoint(int& step,
-    Real& time,
-    Real& dt,
-    int& statsCount,
-    amrex::MultiFab& cuInst,
-    amrex::MultiFab& cuMeans,
-    amrex::MultiFab& cuVars,
-    amrex::MultiFab& primInst,
-    amrex::MultiFab& primMeans,
-    amrex::MultiFab& primVars,
-    amrex::MultiFab& coVars,
-    amrex::MultiFab& spatialCross1D,
-    const int ncross) {
+                    Real& time,
+                    Real& dt,
+                    int& statsCount,
+                    amrex::MultiFab& cuInst,
+                    amrex::MultiFab& cuMeans,
+                    amrex::MultiFab& cuVars,
+                    amrex::MultiFab& primInst,
+                    amrex::MultiFab& primMeans,
+                    amrex::MultiFab& primVars,
+                    amrex::MultiFab& coVars,
+                    amrex::MultiFab& spatialCross1D,
+                    const int ncross) {
 
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
