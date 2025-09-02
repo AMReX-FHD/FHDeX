@@ -3065,8 +3065,8 @@ FhdParticleContainer::ReBin()
         const int np = particles.numParticles();
         for(int pindex = 0; pindex < np; ++pindex)
         {
-	    ParticleType& p = particles[pindex];
-	    if (p.idata(FHD_intData::sorted)) continue;
+            ParticleType& p = particles[pindex];
+            if (p.idata(FHD_intData::sorted)) continue;
             const IntVect& iv = this->Index(p, lev);
             p.idata(FHD_intData::sorted) = 1;
             p.idata(FHD_intData::i) = iv[0];
@@ -3692,7 +3692,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
 
 //void
 //FhdParticleContainer::correctCellVectors(int old_index, int new_index,
-//						int grid, const ParticleType& p)
+//                                        int grid, const ParticleType& p)
 //{
 //    if (not p.idata(FHD_intData::sorted)) return;
 //    IntVect iv(p.idata(FHD_intData::i), p.idata(FHD_intData::j), p.idata(FHD_intData::k));

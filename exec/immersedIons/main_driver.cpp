@@ -1335,7 +1335,7 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-//	    particles.SetForce(1,0.00001,0,0);
+//        particles.SetForce(1,0.00001,0,0);
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
 //        origin[1] = prob_hi[1]/2.0;
@@ -1365,8 +1365,8 @@ void main_driver(const char* argv)
 
         if (es_tog==2) {
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
-	    particles.computeForcesCoulombGPU(simParticles);
-	     }
+            particles.computeForcesCoulombGPU(simParticles);
+         }
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
@@ -1570,8 +1570,8 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-	//_______________________________________________________________________
-	// Update structure factor
+        //_______________________________________________________________________
+        // Update structure factor
         if (struct_fact_int > 0 &&
             istep > amrex::Math::abs(n_steps_skip) &&
             (istep-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {

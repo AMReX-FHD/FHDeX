@@ -74,10 +74,10 @@ void Universe::add_world(char *str)
 
   procs_per_world =
     (int *) memory->srealloc(procs_per_world,(nworlds+n)*sizeof(int),
-				  "universe:procs_per_world");
+                              "universe:procs_per_world");
   root_proc =
     (int *) memory->srealloc(root_proc,(nworlds+n)*sizeof(int),
-				  "universe:root_proc");
+                              "universe:root_proc");
 
   for (int i = 0; i < n; i++) {
     procs_per_world[nworlds] = nper;

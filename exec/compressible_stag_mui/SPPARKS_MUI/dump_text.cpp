@@ -224,7 +224,7 @@ int DumpText::count()
     double **xyz = app->xyz;
     for (i = 0; i < nlocal; i++)
       if (choose[i] && region->match(xyz[i][0],xyz[i][1],xyz[i][2]) == 0)
-	choose[i] = 0;
+        choose[i] = 0;
   }
 
   // un-choose if any threshhold criterion isn't met
@@ -237,55 +237,55 @@ int DumpText::count()
     for (int ithresh = 0; ithresh < nthresh; ithresh++) {
 
       if (thresh_array[ithresh] == ID) {
-	tagint *id = app->id;
-	for (i = 0; i < nlocal; i++) dchoose[i] = id[i];
-	ptr = dchoose;
-	nstride = 1;
+        tagint *id = app->id;
+        for (i = 0; i < nlocal; i++) dchoose[i] = id[i];
+        ptr = dchoose;
+        nstride = 1;
       } else if (thresh_array[ithresh] == SITE) {
-	int *site = app->iarray[0];
-	for (i = 0; i < nlocal; i++) dchoose[i] = site[i];
-	ptr = dchoose;
-	nstride = 1;
+        int *site = app->iarray[0];
+        for (i = 0; i < nlocal; i++) dchoose[i] = site[i];
+        ptr = dchoose;
+        nstride = 1;
       } else if (thresh_array[ithresh] == X) {
-	ptr = &app->xyz[0][0];
-	nstride = 3;
+        ptr = &app->xyz[0][0];
+        nstride = 3;
       } else if (thresh_array[ithresh] == Y) {
-	ptr = &app->xyz[0][1];
-	nstride = 3;
+        ptr = &app->xyz[0][1];
+        nstride = 3;
       } else if (thresh_array[ithresh] == Z) {
-	ptr = &app->xyz[0][2];
-	nstride = 3;
+        ptr = &app->xyz[0][2];
+        nstride = 3;
       } else if (thresh_array[ithresh] == ENERGY) {
-	if (latticeflag)
-	  for (i = 0; i < nlocal; i++)
-	    dchoose[i] = applattice->site_energy(i);
-	else
-	  for (i = 0; i < nlocal; i++)
-	    dchoose[i] = appoff->site_energy(i);
-	ptr = dchoose;
-	nstride = 1;
+        if (latticeflag)
+          for (i = 0; i < nlocal; i++)
+            dchoose[i] = applattice->site_energy(i);
+        else
+          for (i = 0; i < nlocal; i++)
+            dchoose[i] = appoff->site_energy(i);
+        ptr = dchoose;
+        nstride = 1;
       } else if (thresh_array[ithresh] == PROPENSITY) {
-	if (latticeflag)
-	  for (i = 0; i < nlocal; i++)
-	    dchoose[i] = applattice->site_propensity(i);
-	else
-	  for (i = 0; i < nlocal; i++)
-	    dchoose[i] = appoff->site_propensity(i);
-	ptr = dchoose;
-	nstride = 1;
+        if (latticeflag)
+          for (i = 0; i < nlocal; i++)
+            dchoose[i] = applattice->site_propensity(i);
+        else
+          for (i = 0; i < nlocal; i++)
+            dchoose[i] = appoff->site_propensity(i);
+        ptr = dchoose;
+        nstride = 1;
       } else if (thresh_array[ithresh] == IARRAY) {
-	int index = thresh_index[ithresh];
-	if (latticeflag)
-	  for (i = 0; i < nlocal; i++)
-	    dchoose[i] = app->iarray[index][i];
-	else
-	  for (i = 0; i < nlocal; i++)
-	    dchoose[i] = app->iarray[index][i];
-	ptr = dchoose;
-	nstride = 1;
+        int index = thresh_index[ithresh];
+        if (latticeflag)
+          for (i = 0; i < nlocal; i++)
+            dchoose[i] = app->iarray[index][i];
+        else
+          for (i = 0; i < nlocal; i++)
+            dchoose[i] = app->iarray[index][i];
+        ptr = dchoose;
+        nstride = 1;
       } else if (thresh_array[ithresh] == DARRAY) {
-	ptr = app->darray[thresh_index[ithresh]];
-	nstride = 1;
+        ptr = app->darray[thresh_index[ithresh]];
+        nstride = 1;
       }
 
       // unselect sites that don't meet threshold criterion
@@ -293,23 +293,23 @@ int DumpText::count()
       value = thresh_value[ithresh];
 
       if (thresh_op[ithresh] == LT) {
-	for (i = 0; i < nlocal; i++, ptr += nstride)
-	  if (choose[i] && *ptr >= value) choose[i] = 0;
+        for (i = 0; i < nlocal; i++, ptr += nstride)
+          if (choose[i] && *ptr >= value) choose[i] = 0;
       } else if (thresh_op[ithresh] == LE) {
-	for (i = 0; i < nlocal; i++, ptr += nstride)
-	  if (choose[i] && *ptr > value) choose[i] = 0;
+        for (i = 0; i < nlocal; i++, ptr += nstride)
+          if (choose[i] && *ptr > value) choose[i] = 0;
       } else if (thresh_op[ithresh] == GT) {
-	for (i = 0; i < nlocal; i++, ptr += nstride)
-	  if (choose[i] && *ptr <= value) choose[i] = 0;
+        for (i = 0; i < nlocal; i++, ptr += nstride)
+          if (choose[i] && *ptr <= value) choose[i] = 0;
       } else if (thresh_op[ithresh] == GE) {
-	for (i = 0; i < nlocal; i++, ptr += nstride)
-	  if (choose[i] && *ptr < value) choose[i] = 0;
+        for (i = 0; i < nlocal; i++, ptr += nstride)
+          if (choose[i] && *ptr < value) choose[i] = 0;
       } else if (thresh_op[ithresh] == EQ) {
-	for (i = 0; i < nlocal; i++, ptr += nstride)
-	  if (choose[i] && *ptr != value) choose[i] = 0;
+        for (i = 0; i < nlocal; i++, ptr += nstride)
+          if (choose[i] && *ptr != value) choose[i] = 0;
       } else if (thresh_op[ithresh] == NEQ) {
-	for (i = 0; i < nlocal; i++, ptr += nstride)
-	  if (choose[i] && *ptr == value) choose[i] = 0;
+        for (i = 0; i < nlocal; i++, ptr += nstride)
+          if (choose[i] && *ptr == value) choose[i] = 0;
       }
     }
   }
@@ -407,11 +407,11 @@ void DumpText::write_text(int n, double *buf)
   for (i = 0; i < n; i++) {
     for (j = 0; j < size_one; j++) {
       if (vtype[j] == INT)
-	fprintf(fp,vformat[j],static_cast<int> (buf[m]));
+        fprintf(fp,vformat[j],static_cast<int> (buf[m]));
       else if (vtype[j] == DOUBLE)
-	fprintf(fp,vformat[j],buf[m]);
+        fprintf(fp,vformat[j],buf[m]);
       else if (vtype[j] == TAGINT)
-	fprintf(fp,vformat[j],static_cast<tagint> (buf[m]));
+        fprintf(fp,vformat[j],static_cast<tagint> (buf[m]));
       m++;
     }
     fprintf(fp,"\n");
@@ -435,7 +435,7 @@ int DumpText::parse_fields(int narg, char **arg)
       pack_choice[i] = &DumpText::pack_site;
       vtype[i] = INT;
       if (app->iarray == NULL)
-	error->all(FLERR,"Dumping a quantity application does not support");
+        error->all(FLERR,"Dumping a quantity application does not support");
     } else if (strcmp(arg[iarg],"x") == 0) {
       fields[i] = X;
       pack_choice[i] = &DumpText::pack_x;
@@ -466,7 +466,7 @@ int DumpText::parse_fields(int narg, char **arg)
       vtype[i] = INT;
       vindex[i] = atoi(&arg[iarg][1]);
       if (latticeflag && (vindex[i] < 1 || vindex[i] > app->ninteger))
-	error->all(FLERR,"Invalid keyword in dump command");
+        error->all(FLERR,"Invalid keyword in dump command");
       vindex[i]--;
     } else if (strcmp(arg[iarg],"drange") == 0) {
       return iarg;
@@ -476,7 +476,7 @@ int DumpText::parse_fields(int narg, char **arg)
       vtype[i] = DOUBLE;
       vindex[i] = atoi(&arg[iarg][1]);
       if (latticeflag && (vindex[i] < 1 || vindex[i] > app->ndouble))
-	error->all(FLERR,"Invalid keyword in dump command");
+        error->all(FLERR,"Invalid keyword in dump command");
       vindex[i]--;
 
     } else return iarg;
@@ -506,14 +506,14 @@ int DumpText::modify_param(int narg, char **arg)
     if (narg < 2) error->all(FLERR,"Illegal dump_modify command");
     if (strcmp(arg[1],"none") == 0) {
       if (nthresh) {
-	memory->sfree(thresh_array);
-	memory->sfree(thresh_op);
-	memory->sfree(thresh_value);
-	memory->sfree(thresh_index);
-	thresh_array = NULL;
-	thresh_op = NULL;
-	thresh_value = NULL;
-	thresh_index = NULL;
+        memory->sfree(thresh_array);
+        memory->sfree(thresh_op);
+        memory->sfree(thresh_value);
+        memory->sfree(thresh_index);
+        thresh_array = NULL;
+        thresh_op = NULL;
+        thresh_value = NULL;
+        thresh_index = NULL;
       }
       nthresh = 0;
       return 2;
@@ -525,16 +525,16 @@ int DumpText::modify_param(int narg, char **arg)
 
     thresh_array = (int *)
       memory->srealloc(thresh_array,(nthresh+1)*sizeof(int),
-		       "dump:thresh_array");
+                       "dump:thresh_array");
     thresh_op = (int *)
       memory->srealloc(thresh_op,(nthresh+1)*sizeof(int),
-		       "dump:thresh_op");
+                       "dump:thresh_op");
     thresh_value = (double *)
       memory->srealloc(thresh_value,(nthresh+1)*sizeof(double),
-		       "dump:thresh_value");
+                       "dump:thresh_value");
     thresh_index = (int *)
       memory->srealloc(thresh_index,(nthresh+1)*sizeof(int),
-		       "dump:thresh_index");
+                       "dump:thresh_index");
 
     // set keyword type of threshold
     // customize by adding to if statement
@@ -543,7 +543,7 @@ int DumpText::modify_param(int narg, char **arg)
 
     else if (strcmp(arg[1],"site") == 0) {
       if (app->iarray == NULL)
-	error->all(FLERR,"Threshold for a quantity "
+        error->all(FLERR,"Threshold for a quantity "
                    "application does not support");
       thresh_array[nthresh] = SITE;
     }
@@ -562,16 +562,16 @@ int DumpText::modify_param(int narg, char **arg)
       thresh_array[nthresh] = IARRAY;
       thresh_index[nthresh] = atoi(&arg[1][1]);
       if (thresh_index[nthresh] < 1 ||
-	  thresh_index[nthresh] > app->ninteger)
-	error->all(FLERR,"Threshold for a quantity "
+          thresh_index[nthresh] > app->ninteger)
+        error->all(FLERR,"Threshold for a quantity "
                    "application does not support");
       thresh_index[nthresh]--;
     } else if (arg[1][0] == 'd') {
       thresh_array[nthresh] = DARRAY;
       thresh_index[nthresh] = atoi(&arg[1][1]);
       if (thresh_index[nthresh] < 1 ||
-	  thresh_index[nthresh] > app->ndouble)
-	error->all(FLERR,"Threshold for a quantity "
+          thresh_index[nthresh] > app->ndouble)
+        error->all(FLERR,"Threshold for a quantity "
                    "application does not support");
       thresh_index[nthresh]--;
 

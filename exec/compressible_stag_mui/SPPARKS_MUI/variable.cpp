@@ -430,7 +430,7 @@ void Variable::copy(int narg, char **from, char **to)
      keyword = time, nglobal
      math operation = (),-x,x+y,x-y,x*y,x/y,x^y,
                       sqrt(x),exp(x),ln(x),log(x),
-		      sin(x),cos(x),tan(x),asin(x),acos(x),atan(x)
+                      sin(x),cos(x),tan(x),asin(x),acos(x),atan(x)
      variable = v_name
 ------------------------------------------------------------------------- */
 

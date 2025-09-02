@@ -196,8 +196,8 @@ while IFS= read -r line || [ -n "$line" ]; do
                         # echo "do you wish to change line?"
                         # select modchoice in "yes" "no"; do
                         #     case $modchoice in
-                        # 	yes ) line="$linetemp"; break;;
-                        # 	no ) echo "Line not changed:    $line"; exit;;
+                        #         yes ) line="$linetemp"; break;;
+                        #         no ) echo "Line not changed:    $line"; exit;;
                         #     esac
                         # done
                         # # echo "Modified line:       $line"

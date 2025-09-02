@@ -108,7 +108,7 @@ void WritePlotFile(const int step,
                    const Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
                    const MultiFab& rhotot,
-		   const MultiFab& rho,
+                   const MultiFab& rho,
                    const MultiFab& pres,
                    const MultiFab& charge,
                    const MultiFab& Epot);

@@ -219,13 +219,13 @@ void main_driver(const char * argv) {
      // Get sorted ibs list
     vector<pair<int, int>> sorted_ibs = ib_mc.get_sorted_map();
 
-    //   	vector<pair<int, int>> sorted_ibs;
+    //       vector<pair<int, int>> sorted_ibs;
 
-    //    	for (int i = 0; i < ibs.size(); ++i) {
-    //        	sorted_ibs.push_back(make_pair(ibs[i], i));
-    //    	}
+    //        for (int i = 0; i < ibs.size(); ++i) {
+    //            sorted_ibs.push_back(make_pair(ibs[i], i));
+    //        }
 
-    //    	sort(sorted_ibs.begin(), sorted_ibs.end());
+    //        sort(sorted_ibs.begin(), sorted_ibs.end());
 
         Print() << "Flagellum number\t" << "index in PullDown Vector" << std::endl;
     for (int i = 0; i < ibs.size(); i++) {
@@ -341,7 +341,7 @@ void main_driver(const char * argv) {
 
 
 //   for (int i=0; i<ib_mc.getTotalNumIDs(); i++) {
-//    	std::vector<int>::iterator gx = std::find(sorted_ibs.begin(), sorted_ibs.end(), i_ib);
+//        std::vector<int>::iterator gx = std::find(sorted_ibs.begin(), sorted_ibs.end(), i_ib);
 
    //actual index in PullDown vectors
 //    int i_c = sorted.ibs[std::distance(sorted_ibs.begin(), gx) + id].second;

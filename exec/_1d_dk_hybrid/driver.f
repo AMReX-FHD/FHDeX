@@ -76,7 +76,7 @@ c
 
        pi = 4.d0*atan2(1.d0,1.d0)
 
- 	time =0.0
+       time =0.0
         dx = xlen/dfloat(npts)
 
         do j=1,npts

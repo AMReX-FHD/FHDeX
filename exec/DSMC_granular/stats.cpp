@@ -49,7 +49,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
         /*
            Primitive Vars:
-          0	 - n   (n_ns)
+          0  - n   (n_ns)
           1  - rho (Y_ns)
           2  - u   (u_ns)
           3  - v   (v_ns)
@@ -92,8 +92,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 primInst(i,j,k,iprim+0) = np_spec*ocollisionCellVol;
                 primInst(i,j,k,0)      += np_spec*ocollisionCellVol;
                 primInst(i,j,k,iprim+1) = np_spec*moV;
-                primInst(i,j,k,1)	     += np_spec*moV;
-                cuInst(i,j,k,icon+0)	  = np_spec*moV;
+                primInst(i,j,k,1)      += np_spec*moV;
+                cuInst(i,j,k,icon+0)    = np_spec*moV;
 
                 Real rho = cuInst(i,j,k,icon+0);
                 cvlInst(i,j,k,icvl) = 3.0*k_B*0.5/mass;
@@ -582,7 +582,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
                 // <delT(x*)delT(x)> = (1/cv*/cv/<rho(x)>/<rho(x*)>)(<delK*delK> + <delG*delG> - <delG*delK> - <delK*delG>
                 //                      + <Q><Q*><delrho*delrho> - <Q*><delrho*delK> - <Q><delK*delrho>
-                //											+ <Q*><delrho*delG> + <Q><delG*delrho>)
+                //                                            + <Q*><delrho*delG> + <Q><delG*delrho>)
                 spatialCross(i,j,k,34) = (cvinvcross*cvinv/(meanrhocross*meanrho))*
                                     (spatialCross(i,j,k,1) + spatialCross(i,j,k,21) - spatialCross(i,j,k,22) - spatialCross(i,j,k,23)
                                     + qmean*qmeancross*spatialCross(i,j,k,0) - qmeancross*spatialCross(i,j,k,17) - qmean*spatialCross(i,j,k,8)
@@ -596,8 +596,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 spatialCross(i,j,k,36) = (1.0/meanrhocross)*(spatialCross(i,j,k,5) - meanuxcross*spatialCross(i,j,k,0));
 
                 // <delT(x*)delu> = (1/cv'/<rho(x*)>/<rho(x)>)*(<deljx(x*)delK(x)> - <u(x)><<delrho(x)delK(x*)>
-                //		- <deljx(x)delG(x*)> + <u(x)><delrho(x)delG(x*)> - Qbar(x*)<deljx(x)delrho(x*)> +
-                //		<u(x)>Qbar(x*)<delrho(x)delrho(x*)>)
+                //        - <deljx(x)delG(x*)> + <u(x)><delrho(x)delG(x*)> - Qbar(x*)<deljx(x)delrho(x*)> +
+                //        <u(x)>Qbar(x*)<delrho(x)delrho(x*)>)
                 spatialCross(i,j,k,37) = (cvinvcross/(meanrhocross*meanrho))*(spatialCross(i,j,k,18) - vxmean*spatialCross(i,j,k,8)
                     - spatialCross(i,j,k,27) + vxmean*spatialCross(i,j,k,25) - qmeancross*spatialCross(i,j,k,9)
                     + vxmean*qmeancross*spatialCross(i,j,k,0));

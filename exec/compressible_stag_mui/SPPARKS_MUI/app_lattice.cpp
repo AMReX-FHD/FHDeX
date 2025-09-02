@@ -162,16 +162,16 @@ void AppLattice::init()
 
     if (dimension == 3) {
       if (nsector == 2 && (domain->procgrid[1] != 1 ||
-			   domain->procgrid[2] != 1))
-	error->all(FLERR,"Invalid number of sectors");
+                           domain->procgrid[2] != 1))
+        error->all(FLERR,"Invalid number of sectors");
       if (nsector == 4 && domain->procgrid[2] != 1)
-	error->all(FLERR,"Invalid number of sectors");
+        error->all(FLERR,"Invalid number of sectors");
     }
     if (dimension == 2) {
       if (nsector == 2 && domain->procgrid[1] != 1)
-	error->all(FLERR,"Invalid number of sectors");
+        error->all(FLERR,"Invalid number of sectors");
       if (nsector == 8)
-	error->all(FLERR,"Invalid number of sectors");
+        error->all(FLERR,"Invalid number of sectors");
     }
     if (dimension == 1 && nsector != 2)
       error->all(FLERR,"Invalid number of sectors");
@@ -239,9 +239,9 @@ void AppLattice::init()
     }
     for (int i = 0; i < nsector; i++)
       for (int j = 0; j < ncolors; j++) {
-	if (nset == nsetold) create_set(m,i+1,j+1,sold[m]);
+        if (nset == nsetold) create_set(m,i+1,j+1,sold[m]);
         else create_set(m,i+1,j+1,NULL);
-	m++;
+        m++;
       }
   }
 
@@ -373,12 +373,12 @@ void AppLattice::setup()
       Ladapt = true;
       double pmax = 0.0;
       for (int i = 0; i < nset; i++) {
-	int ntmp = set[i].solve->get_num_active();
-	if (ntmp > 0) {
-	  double ptmp = set[i].solve->get_total_propensity();
-	  ptmp /= ntmp;
-	  pmax = MAX(ptmp,pmax);
-	}
+        int ntmp = set[i].solve->get_num_active();
+        if (ntmp > 0) {
+          double ptmp = set[i].solve->get_total_propensity();
+          ptmp /= ntmp;
+          pmax = MAX(ptmp,pmax);
+        }
       }
       double pmaxall;
       MPI_Allreduce(&pmax,&pmaxall,1,MPI_DOUBLE,MPI_MAX,world);
@@ -399,27 +399,27 @@ void AppLattice::setup()
 
     if (sweepflag == RANDOM) {
       if (nstop > 0.0) {
-	for (int i = first; i < nset; i++) {
-	  set[i].nloop = 0;
-	  set[i].nselect = static_cast<int> (nstop*set[i].nlocal);
-	}
+        for (int i = first; i < nset; i++) {
+          set[i].nloop = 0;
+          set[i].nselect = static_cast<int> (nstop*set[i].nlocal);
+        }
       }
       if (tstop > 0.0) {
-	double n = tstop / (dt_sweep/nglobal);
-	for (int i = first; i < nset; i++) {
-	  set[i].nloop = 0;
-	  set[i].nselect = static_cast<int> (n/nglobal * set[i].nlocal);
-	}
+        double n = tstop / (dt_sweep/nglobal);
+        for (int i = first; i < nset; i++) {
+          set[i].nloop = 0;
+          set[i].nselect = static_cast<int> (n/nglobal * set[i].nlocal);
+        }
       }
 
     } else if (sweepflag == RASTER ||
-	       sweepflag == COLOR || sweepflag == COLOR_STRICT) {
+               sweepflag == COLOR || sweepflag == COLOR_STRICT) {
       int n;
       if (nstop > 0.0) n = static_cast<int> (nstop);
       if (tstop > 0.0) n = static_cast<int> (tstop/dt_sweep);
       for (int i = first; i < nset; i++) {
-	set[i].nloop = n;
-	set[i].nselect = n * set[i].nlocal;
+        set[i].nloop = n;
+        set[i].nselect = n * set[i].nlocal;
       }
     }
 
@@ -502,12 +502,12 @@ void AppLattice::iterate_kmc_global(double stoptime)
     if (isite >= 0) {
       time += dt_step;
       if (time <= stoptime) {
-	site_event(isite,ranapp);
-	naccept++;
-	timer->stamp(TIME_APP);
+        site_event(isite,ranapp);
+        naccept++;
+        timer->stamp(TIME_APP);
       } else {
-	done = 1;
-	time = stoptime;
+        done = 1;
+        time = stoptime;
       }
     } else {
       done = 1;
@@ -546,8 +546,8 @@ void AppLattice::iterate_kmc_sector(double stoptime)
       timer->stamp();
 
       if (nprocs > 1) {
-	comm->sector(iset);
-	timer->stamp(TIME_COMM);
+        comm->sector(iset);
+        timer->stamp(TIME_COMM);
       }
 
       solve = set[iset].solve;
@@ -566,10 +566,10 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 
       int nsites = 0;
       for (int m = 0; m < nborder; m++) {
-	i = border[m];
-	isite = i2site[i];
-	bsites[nsites++] = isite;
-	propensity[isite] = site_propensity(i);
+        i = border[m];
+        isite = i2site[i];
+        bsites[nsites++] = isite;
+        propensity[isite] = site_propensity(i);
       }
 
       solve->update(nsites,bsites,propensity);
@@ -578,12 +578,12 @@ void AppLattice::iterate_kmc_sector(double stoptime)
       // pmax = maximum sector propensity per site
 
       if (Ladapt) {
-	int ntmp = solve->get_num_active();
-	if (ntmp > 0) {
-	  double ptmp = solve->get_total_propensity();
-	  ptmp /= ntmp;
-	  pmax = MAX(ptmp,pmax);
-	}
+        int ntmp = solve->get_num_active();
+        if (ntmp > 0) {
+          double ptmp = solve->get_total_propensity();
+          ptmp /= ntmp;
+          pmax = MAX(ptmp,pmax);
+        }
       }
 
       // execute events until sector time threshhold reached
@@ -591,25 +591,25 @@ void AppLattice::iterate_kmc_sector(double stoptime)
       done = 0;
       timesector = 0.0;
       while (!done) {
-	timer->stamp();
-	isite = solve->event(&dt);
-	timer->stamp(TIME_SOLVE);
+        timer->stamp();
+        isite = solve->event(&dt);
+        timer->stamp(TIME_SOLVE);
 
-	if (isite < 0) done = 1;
-	else {
-	  timesector += dt;
-	  if (timesector >= dt_kmc) done = 1;
-	  else {
-	    site_event(site2i[isite],ranapp);
-	    naccept++;
-	  }
-	  timer->stamp(TIME_APP);
-	}
+        if (isite < 0) done = 1;
+        else {
+          timesector += dt;
+          if (timesector >= dt_kmc) done = 1;
+          else {
+            site_event(site2i[isite],ranapp);
+            naccept++;
+          }
+          timer->stamp(TIME_APP);
+        }
       }
 
       if (nprocs > 1) {
-	comm->reverse_sector(iset);
-	timer->stamp(TIME_COMM);
+        comm->reverse_sector(iset);
+        timer->stamp(TIME_COMM);
       }
     }
 
@@ -660,10 +660,10 @@ void AppLattice::iterate_rejection(double stoptime)
   while (!done) {
     for (int iset = 0; iset < nset_loop; iset++) {
       if (nprocs > 1) {
-	timer->stamp();
-	if (sectorflag) comm->sector(iset);
-	else comm->all();
-	timer->stamp(TIME_COMM);
+        timer->stamp();
+        if (sectorflag) comm->sector(iset);
+        else comm->all();
+        timer->stamp(TIME_COMM);
       }
 
       if (Lmask) boundary_clear_mask(iset);
@@ -674,21 +674,21 @@ void AppLattice::iterate_rejection(double stoptime)
       // random selection of sites in iset
 
       if (sweepflag == RANDOM) {
-	site2i = set[iset].site2i;
-	nrange = set[iset].nlocal;
-	nselect = set[iset].nselect;
-	for (i = 0; i < nselect; i++)
-	  sitelist[i] = site2i[ranapp->irandom(nrange) - 1];
-	(this->*sweep)(nselect,sitelist);
-	nattempt += nselect;
+        site2i = set[iset].site2i;
+        nrange = set[iset].nlocal;
+        nselect = set[iset].nselect;
+        for (i = 0; i < nselect; i++)
+          sitelist[i] = site2i[ranapp->irandom(nrange) - 1];
+        (this->*sweep)(nselect,sitelist);
+        nattempt += nselect;
 
       // sectors but no colors, or colors but no sectors
       // ordered sweep over all sites in iset
 
       } else if (bothflag == 0) {
-	for (i = 0; i < set[iset].nloop; i++)
-	  (this->*sweep)(set[iset].nlocal,set[iset].site2i);
-	nattempt += set[iset].nselect;
+        for (i = 0; i < set[iset].nloop; i++)
+          (this->*sweep)(set[iset].nlocal,set[iset].site2i);
+        nattempt += set[iset].nselect;
 
       // sectors and colors
       // icolor loop is over all colors in a sector
@@ -696,20 +696,20 @@ void AppLattice::iterate_rejection(double stoptime)
       // ordered sweep over all sites in jset
 
       } else {
-	for (icolor = 0; icolor < ncolors; icolor++) {
-	  jset = nsector + iset*ncolors + icolor;
-	  for (i = 0; i < set[jset].nloop; i++)
-	    (this->*sweep)(set[jset].nlocal,set[jset].site2i);
-	  nattempt += set[jset].nselect;
-	}
+        for (icolor = 0; icolor < ncolors; icolor++) {
+          jset = nsector + iset*ncolors + icolor;
+          for (i = 0; i < set[jset].nloop; i++)
+            (this->*sweep)(set[jset].nlocal,set[jset].site2i);
+          nattempt += set[jset].nselect;
+        }
       }
 
       timer->stamp(TIME_SOLVE);
 
       if (nprocs > 1) {
-	if (sectorflag) comm->reverse_sector(iset);
-	else comm->all_reverse();
-	timer->stamp(TIME_COMM);
+        if (sectorflag) comm->reverse_sector(iset);
+        else comm->all_reverse();
+        timer->stamp(TIME_COMM);
       }
     }
 
@@ -1085,7 +1085,7 @@ int AppLattice::find_border_sites(int isector)
       i = site2i[m];
       if (flag[i]) continue;
       for (j = 0; j < numneigh[i]; j++)
-	if (flag[neighbor[i][j]] < 0) break;
+        if (flag[neighbor[i][j]] < 0) break;
       if (j < numneigh[i]) flag[i] = 1;
     }
     for (m = 0; m < nsites; m++) {
@@ -1138,7 +1138,7 @@ void AppLattice::boundary_clear_mask(int iset)
  ------------------------------------------------------------------------- */
 
 void AppLattice::push_new_site(int i, int* cluster_ids, int id,
-					  std::stack<int>* cluststack)
+                               std::stack<int>* cluststack)
 {
   // This can be used to screen out unwanted spin values
   // int isite = iarray[0][i];
@@ -1155,7 +1155,7 @@ void AppLattice::push_new_site(int i, int* cluster_ids, int id,
  ------------------------------------------------------------------------- */
 
 void AppLattice::push_connected_neighbors(int i, int* cluster_ids, int id,
-					  std::stack<int>* cluststack)
+                                          std::stack<int>* cluststack)
 {
   int ii;
   int isite = iarray[0][i];
@@ -1175,7 +1175,7 @@ void AppLattice::push_connected_neighbors(int i, int* cluster_ids, int id,
  ------------------------------------------------------------------------- */
 
 void AppLattice::connected_ghosts(int i, int* cluster_ids,
-				  Cluster* clustlist, int idoffset)
+                                  Cluster* clustlist, int idoffset)
 {
   int iclust;
   int ii;
@@ -1260,7 +1260,7 @@ void AppLattice::add_site(tagint n, double x, double y, double z)
  ------------------------------------------------------------------------- */
 
 void AppLattice::add_ghost(tagint n, double x, double y, double z,
-			   int proc, int index_owner)
+                           int proc, int index_owner)
 {
   if (nlocal+nghost == nmax) grow(0);
 
@@ -1379,11 +1379,11 @@ void AppLattice::print_connectivity()
   if (me == 0)
     for (i = minall; i <= maxall; i++) {
       if (screen)
-	fprintf(screen,"  " TAGINT_FORMAT " sites have %d neighbors\n",\
-		countall[i],i);
+        fprintf(screen,"  " TAGINT_FORMAT " sites have %d neighbors\n",\
+            countall[i],i);
       if (logfile)
-	fprintf(logfile,"  " TAGINT_FORMAT " sites have %d neighbors\n",
-		countall[i],i);
+        fprintf(logfile,"  " TAGINT_FORMAT " sites have %d neighbors\n",
+            countall[i],i);
     }
 
   delete [] count;

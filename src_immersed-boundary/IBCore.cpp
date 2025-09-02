@@ -414,8 +414,8 @@ void IBCore::IBForceDeposition (       MultiFab & f_u,       MultiFab & f_v,    
      ***************************************************************************/
 
     std::unique_ptr<iMultiFab> et = std::unique_ptr<iMultiFab>(
-	new iMultiFab(u_s.boxArray(), u_s.DistributionMap(), 1, u_s.nGrow())
-	);
+    new iMultiFab(u_s.boxArray(), u_s.DistributionMap(), 1, u_s.nGrow())
+    );
 
     et->setVal(0);
 
@@ -518,8 +518,8 @@ void IBCore::IBForceDeposition ( MultiFab & force, MultiFab & vel_d, const Multi
      ***************************************************************************/
 
     std::unique_ptr<iMultiFab> et = std::unique_ptr<iMultiFab>(
-	new iMultiFab(vel_s.boxArray(), vel_s.DistributionMap(), vel_s.nComp(), vel_s.nGrow())
-	);
+    new iMultiFab(vel_s.boxArray(), vel_s.DistributionMap(), vel_s.nComp(), vel_s.nGrow())
+    );
 
     et->setVal(0);
 
@@ -678,10 +678,10 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
         const auto & et_tile = (* et)[mfi];
 
         fill_fgds_ib (BL_TO_FORTRAN_BOX(tile_box),
-        		      BL_TO_FORTRAN_3D(f_u_tile),
-		              BL_TO_FORTRAN_3D(f_v_tile),
-		              BL_TO_FORTRAN_3D(f_w_tile),
-		              BL_TO_FORTRAN_3D(et_tile));
+                      BL_TO_FORTRAN_3D(f_u_tile),
+                      BL_TO_FORTRAN_3D(f_v_tile),
+                      BL_TO_FORTRAN_3D(f_w_tile),
+                      BL_TO_FORTRAN_3D(et_tile));
 
     }
 

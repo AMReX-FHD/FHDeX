@@ -258,7 +258,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
             for(int l=0; l<nspecies; l++)
             {
                 bc_Xk_x_hi[l] /= n_hi[0];
-				cout << "n: " << bc_Xk_x_lo[l] << endl;
+                cout << "n: " << bc_Xk_x_lo[l] << endl;
             }
         }
         // Number densities defined

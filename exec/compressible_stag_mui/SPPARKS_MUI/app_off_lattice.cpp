@@ -144,10 +144,10 @@ void AppOffLattice::init()
     error->all(FLERR,"Cannot use KMC solver in parallel with no sectors");
   if (nprocs > 1 && sectorflag == 0 && sweepflag == RANDOM)
     error->all(FLERR,
-	       "Cannot use random rejection KMC in parallel with no sectors");
+               "Cannot use random rejection KMC in parallel with no sectors");
   if (nprocs > 1 && sectorflag == 0 && sweepflag == RASTER)
     error->all(FLERR,
-	       "Cannot use raster rejection KMC in parallel with no sectors");
+               "Cannot use raster rejection KMC in parallel with no sectors");
 
   if (sweepflag && dt_sweep == 0.0)
     error->all(FLERR,"App did not set dt_sweep");
@@ -180,16 +180,16 @@ void AppOffLattice::init()
 
     if (dimension == 3) {
       if (nsector == 2 && (domain->procgrid[1] != 1 ||
-			   domain->procgrid[2] != 1))
-	error->all(FLERR,"Invalid number of sectors");
+                           domain->procgrid[2] != 1))
+        error->all(FLERR,"Invalid number of sectors");
       if (nsector == 4 && domain->procgrid[2] != 1)
-	error->all(FLERR,"Invalid number of sectors");
+        error->all(FLERR,"Invalid number of sectors");
     }
     if (dimension == 2) {
       if (nsector == 2 && domain->procgrid[1] != 1)
-	error->all(FLERR,"Invalid number of sectors");
+        error->all(FLERR,"Invalid number of sectors");
       if (nsector == 8)
-	error->all(FLERR,"Invalid number of sectors");
+        error->all(FLERR,"Invalid number of sectors");
     }
     if (dimension == 1 && nsector != 2)
       error->all(FLERR,"Invalid number of sectors");
@@ -396,8 +396,8 @@ void AppOffLattice::iterate_kmc_sector(double stoptime)
       timer->stamp();
 
       if (nprocs > 1) {
-	comm->sector(iset);
-	timer->stamp(TIME_COMM);
+        comm->sector(iset);
+        timer->stamp(TIME_COMM);
       }
 
       solve = set[iset].solve;
@@ -412,12 +412,12 @@ void AppOffLattice::iterate_kmc_sector(double stoptime)
       // pmax = maximum sector propensity per site
 
       if (Ladapt) {
-	int ntmp = solve->get_num_active();
-	if (ntmp > 0) {
-	  double ptmp = solve->get_total_propensity();
-	  ptmp /= ntmp;
-	  pmax = MAX(ptmp,pmax);
-	}
+        int ntmp = solve->get_num_active();
+        if (ntmp > 0) {
+          double ptmp = solve->get_total_propensity();
+          ptmp /= ntmp;
+          pmax = MAX(ptmp,pmax);
+        }
       }
 
       // execute events until sector time threshhold reached
@@ -425,25 +425,25 @@ void AppOffLattice::iterate_kmc_sector(double stoptime)
       done = 0;
       timesector = 0.0;
       while (!done) {
-	timer->stamp();
-	isite = solve->event(&dt);
-	timer->stamp(TIME_SOLVE);
+        timer->stamp();
+        isite = solve->event(&dt);
+        timer->stamp(TIME_SOLVE);
 
-	if (isite < 0) done = 1;
-	else {
-	  timesector += dt;
-	  if (timesector >= dt_kmc) done = 1;
-	  else {
-	    //site_event(site2i[isite]);
-	    naccept++;
-	  }
-	  timer->stamp(TIME_APP);
-	}
+        if (isite < 0) done = 1;
+        else {
+          timesector += dt;
+          if (timesector >= dt_kmc) done = 1;
+          else {
+            //site_event(site2i[isite]);
+            naccept++;
+          }
+          timer->stamp(TIME_APP);
+        }
       }
 
       if (nprocs > 1) {
-	comm->reverse_sector(iset);
-	timer->stamp(TIME_COMM);
+        comm->reverse_sector(iset);
+        timer->stamp(TIME_COMM);
       }
     }
 
@@ -498,9 +498,9 @@ void AppOffLattice::iterate_rejection(double stoptime)
       //check("Before forward",0,iset);
 
       if (sectorflag) {
-	timer->stamp();
-	comm->sector(iset);
-	timer->stamp(TIME_COMM);
+        timer->stamp();
+        comm->sector(iset);
+        timer->stamp(TIME_COMM);
       }
 
       //check("After forward",1,iset);
@@ -510,11 +510,11 @@ void AppOffLattice::iterate_rejection(double stoptime)
       // determine which sites are currently in sector
 
       if (sectorflag) {
-	nlocal_sector = 0;
-	for (i = 0; i < nlocal; i++) {
-	  in_sector[i] = inside_sector(i);
-	  if (in_sector[i]) site2i[nlocal_sector++] = i;
-	}
+        nlocal_sector = 0;
+        for (i = 0; i < nlocal; i++) {
+          in_sector[i] = inside_sector(i);
+          if (in_sector[i]) site2i[nlocal_sector++] = i;
+        }
       }
 
       rkmc_params(nlocal_sector,nloop,nselect);
@@ -525,24 +525,24 @@ void AppOffLattice::iterate_rejection(double stoptime)
       // random selection of sites in iset
 
       if (sweepflag == RANDOM) {
-	nrange = nlocal_sector;
-	for (i = 0; i < nselect; i++)
-	  sitelist[i] = site2i[ranapp->irandom(nrange) - 1];
-	for (int m = 0; m < nselect; m++) {
-	  if (in_sector[sitelist[m]] == 0) continue;
-	  site_event_rejection(sitelist[m],ranapp);
-	}
-	nattempt += nselect;
+        nrange = nlocal_sector;
+        for (i = 0; i < nselect; i++)
+          sitelist[i] = site2i[ranapp->irandom(nrange) - 1];
+        for (int m = 0; m < nselect; m++) {
+          if (in_sector[sitelist[m]] == 0) continue;
+          site_event_rejection(sitelist[m],ranapp);
+        }
+        nattempt += nselect;
 
       // ordered sweep over all sites in iset
 
       } else {
-	for (i = 0; i < nloop; i++)
-	  for (int m = 0; m < nlocal_sector; m++) {
-	    if (i && in_sector[site2i[m]] == 0) continue;
-	    site_event_rejection(site2i[m],ranapp);
-	  }
-	nattempt += nselect;
+        for (i = 0; i < nloop; i++)
+          for (int m = 0; m < nlocal_sector; m++) {
+            if (i && in_sector[site2i[m]] == 0) continue;
+            site_event_rejection(site2i[m],ranapp);
+          }
+        nattempt += nselect;
       }
 
       timer->stamp(TIME_SOLVE);
@@ -552,8 +552,8 @@ void AppOffLattice::iterate_rejection(double stoptime)
       //check("Before reverse",1,iset);
 
       if (sectorflag) {
-	comm->reverse_sector(iset);
-	timer->stamp(TIME_COMM);
+        comm->reverse_sector(iset);
+        timer->stamp(TIME_COMM);
       }
 
       //check("After reverse",0,iset);
@@ -615,7 +615,7 @@ void AppOffLattice::check(char *str, int flag, int iset)
   for (int i = 0; i < nall; i++) {
     if (site2bin(i) != bin[i] || bin[i] < 0 || bin[i] > nbins-1) {
       printf("%s SITE %d: %d " TAGINT_FORMAT " %d: %g %g %g\n",
-	     str,me,i,id[i],bin[i],xyz[i][0],xyz[i][1],xyz[i][2]);
+             str,me,i,id[i],bin[i],xyz[i][0],xyz[i][1],xyz[i][2]);
       error->one(FLERR,"SITE MISMATCH");
     }
   }
@@ -627,8 +627,8 @@ void AppOffLattice::check(char *str, int flag, int iset)
     int m = binhead[i];
     while (m >= 0) {
       if (m >= nlocal) {
-	printf("%s GHOST %d: %d %d %d\n",str,me,m,nlocal,i);
-	error->one(FLERR,"GHOST IN OWNED BIN");
+        printf("%s GHOST %d: %d %d %d\n",str,me,m,nlocal,i);
+        error->one(FLERR,"GHOST IN OWNED BIN");
       }
       m = next[m];
     }
@@ -641,10 +641,10 @@ void AppOffLattice::check(char *str, int flag, int iset)
     int mprev = -1;
     while (m >= 0) {
       if (prev[m] != mprev) {
-	printf("%s LINK me %d: m %d id " TAGINT_FORMAT
-	       " bin %d prev %d mprev %d nloc %d\n",
-	       str,me,m,id[m],bin[m],prev[m],mprev,nlocal);
-	error->one(FLERR,"LINK MISMATCH");
+        printf("%s LINK me %d: m %d id " TAGINT_FORMAT
+               " bin %d prev %d mprev %d nloc %d\n",
+               str,me,m,id[m],bin[m],prev[m],mprev,nlocal);
+        error->one(FLERR,"LINK MISMATCH");
       }
       mprev = m;
       m = next[m];
@@ -657,9 +657,9 @@ void AppOffLattice::check(char *str, int flag, int iset)
     int m = binhead[i];
     while (m >= 0) {
       if (bin[m] != i) {
-	printf("%s BIN %d: %d " TAGINT_FORMAT " %d %d %d\n",
-	       str,me,m,id[m],bin[m],i,site2bin(m));
-	error->one(FLERR,"BIN MISMATCH");
+        printf("%s BIN %d: %d " TAGINT_FORMAT " %d %d %d\n",
+               str,me,m,id[m],bin[m],i,site2bin(m));
+        error->one(FLERR,"BIN MISMATCH");
       }
       m = next[m];
     }
@@ -678,7 +678,7 @@ void AppOffLattice::check(char *str, int flag, int iset)
   }
   if (count != nall) {
     printf("SITES NOT IN BINS %d %d %d %d %d\n",
-	   count,nlocal,nghost,nall,flag);
+           count,nlocal,nghost,nall,flag);
     error->one(FLERR,"SITES NOT IN BINS");
   }
 
@@ -939,33 +939,33 @@ void AppOffLattice::init_bins()
   if (dimension == 3) {
     for (i = 0; i < nbinx; i++)
       for (j = 0; j < nbiny; j++)
-	for (k = 0; k < nbinz; k++) {
-	  m = k*nbiny*nbinx + j*nbinx + i;
-	  if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1 ||
-	      k == 0 || k == nbinz-1) binflag[m] = GHOST;
-	  else if (i > 1 && i < nbinx-2 && j > 1 && j < nbiny-2 &&
-		   k > 1 && k < nbinz-2) binflag[m] = INTERIOR;
-	  else binflag[m] = EDGE;
-	}
+        for (k = 0; k < nbinz; k++) {
+          m = k*nbiny*nbinx + j*nbinx + i;
+          if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1 ||
+              k == 0 || k == nbinz-1) binflag[m] = GHOST;
+          else if (i > 1 && i < nbinx-2 && j > 1 && j < nbiny-2 &&
+                   k > 1 && k < nbinz-2) binflag[m] = INTERIOR;
+          else binflag[m] = EDGE;
+        }
   } else if (dimension == 2) {
     for (i = 0; i < nbinx; i++)
       for (j = 0; j < nbiny; j++) {
-	m = j*nbinx + i;
-	if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1)
-	  binflag[m] = GHOST;
-	else if (i > 1 && i < nbinx-2 && j > 1 && j < nbiny-2)
-	  binflag[m] = INTERIOR;
-	else binflag[m] = EDGE;
+        m = j*nbinx + i;
+        if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1)
+          binflag[m] = GHOST;
+        else if (i > 1 && i < nbinx-2 && j > 1 && j < nbiny-2)
+          binflag[m] = INTERIOR;
+        else binflag[m] = EDGE;
       }
   } else {
     for (i = 0; i < nbinx; i++)
       for (j = 0; j < nbiny; j++) {
-	m = j*nbinx + i;
-	if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1)
-	  binflag[m] = GHOST;
-	else if (i > 1 && i < nbinx-2 && j > 1 && j < nbiny-2)
-	  binflag[m] = INTERIOR;
-	else binflag[m] = EDGE;
+        m = j*nbinx + i;
+        if (i == 0 || i == nbinx-1 || j == 0 || j == nbiny-1)
+          binflag[m] = GHOST;
+        else if (i > 1 && i < nbinx-2 && j > 1 && j < nbiny-2)
+          binflag[m] = INTERIOR;
+        else binflag[m] = EDGE;
       }
   }
 
@@ -982,21 +982,21 @@ void AppOffLattice::init_bins()
 
       if (ix == 0 && myloc[0] == 0) pbcoffset[m][0] = -1;
       else if (ix == nbinx-1 && myloc[0] == procgrid[0]-1)
-	pbcoffset[m][0] = 1;
+        pbcoffset[m][0] = 1;
       else pbcoffset[m][0] = 0;
 
       if (dimension >= 2) {
-	if (iy == 0 && myloc[1] == 0) pbcoffset[m][1] = -1;
-	else if (iy == nbiny-1 && myloc[1] == procgrid[1]-1)
-	  pbcoffset[m][1] = 1;
-	else pbcoffset[m][1] = 0;
+        if (iy == 0 && myloc[1] == 0) pbcoffset[m][1] = -1;
+        else if (iy == nbiny-1 && myloc[1] == procgrid[1]-1)
+          pbcoffset[m][1] = 1;
+        else pbcoffset[m][1] = 0;
       } else pbcoffset[m][1] = 0;
 
       if (dimension == 3) {
-	if (iz == 0 && myloc[2] == 0) pbcoffset[m][2] = -1;
-	else if (iz == nbinz-1 && myloc[2] == procgrid[2]-1)
-	  pbcoffset[m][2] = 1;
-	else pbcoffset[m][2] = 0;
+        if (iz == 0 && myloc[2] == 0) pbcoffset[m][2] = -1;
+        else if (iz == nbinz-1 && myloc[2] == procgrid[2]-1)
+          pbcoffset[m][2] = 1;
+        else pbcoffset[m][2] = 0;
       } else pbcoffset[m][2] = 0;
 
       ghostproc[m] = neighproc(1,ix,iy,iz);
@@ -1005,13 +1005,13 @@ void AppOffLattice::init_bins()
       if (ix == nbinx-1) ix = 1;
 
       if (dimension >= 2) {
-	if (iy == 0) iy = nbiny-2;
-	if (iy == nbiny-1) iy = 1;
+        if (iy == 0) iy = nbiny-2;
+        if (iy == nbiny-1) iy = 1;
       } else iy = 0;
 
       if (dimension == 3) {
-	if (iz == 0) iz = nbinz-2;
-	if (iz == nbinz-1) iz = 1;
+        if (iz == 0) iz = nbinz-2;
+        if (iz == nbinz-1) iz = 1;
       } else iz = 0;
 
       ghostindex[m] = iz*nbinx*nbiny + iy*nbinx + ix;
@@ -1041,12 +1041,12 @@ void AppOffLattice::init_stencil()
   if (dimension == 3) {
     for (k = -1; k <= 1; k++)
       for (j = -1; j <= 1; j++)
-	for (i = -1; i <= 1; i++)
-	  stencil[nstencil++] = k*nbiny*nbinx + j*nbinx + i;
+        for (i = -1; i <= 1; i++)
+          stencil[nstencil++] = k*nbiny*nbinx + j*nbinx + i;
   } else if (dimension == 2) {
     for (j = -1; j <= 1; j++)
       for (i = -1; i <= 1; i++)
-	stencil[nstencil++] = j*nbinx + i;
+        stencil[nstencil++] = j*nbinx + i;
   } else {
     for (i = -1; i <= 1; i++)
       stencil[nstencil++] = i;
@@ -1088,8 +1088,8 @@ void AppOffLattice::neighbor(int i, double cut)
 
       // SHOULD DELETE THIS TEST eventually
       if (numneigh == MAXNEIGH) {
-	printf("NEIGH %d %d %d\n",i,ibin,numneigh);
-	error->one(FLERR,"Too many neighbors per site");
+        printf("NEIGH %d %d %d\n",i,ibin,numneigh);
+        error->one(FLERR,"Too many neighbors per site");
       }
 
       if (rsq <= cutsq && i != j) neighs[numneigh++] = j;
@@ -1229,9 +1229,9 @@ int AppOffLattice::site2bin(int i)
       xyz[i][2] < subzlo-binz-EPSILON ||
       xyz[i][2] >= subzhi+binz+EPSILON) {
     printf("BAD SITE: %d %d %d %d: %g %g %g " TAGINT_FORMAT "\n",
-	   me,i,bin[i],nlocal,xyz[i][0],xyz[i][1],xyz[i][2],id[i]);
+           me,i,bin[i],nlocal,xyz[i][0],xyz[i][1],xyz[i][2],id[i]);
     printf("MY DOMAIN: %g %g %g: %g %g %g\n",subxlo,subylo,
-	   subzlo,subxhi,subyhi,subzhi);
+           subzlo,subxhi,subyhi,subzhi);
     error->one(FLERR,"Site not in my bin domain");
   }
 
@@ -1283,7 +1283,7 @@ void AppOffLattice::add_to_bin(int i, int ibin)
 
   if (site2bin(i) != ibin) {
     printf("BAD BIN: %d %d %d: %g %g %g\n",
-	   me,i,nlocal,xyz[i][0],xyz[i][1],xyz[i][2]);
+           me,i,nlocal,xyz[i][0],xyz[i][1],xyz[i][2]);
     printf("IBIN: %d\n",ibin);
     error->one(FLERR,"Adding site to bin it is not in");
   }

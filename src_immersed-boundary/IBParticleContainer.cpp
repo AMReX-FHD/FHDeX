@@ -490,9 +490,9 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
          Real pos[AMREX_SPACEDIM];
          Real v_spread[AMREX_SPACEDIM];
 
-	 for (int i=0; i<n_marker; ++i) {
-		 for (int j=0; j<AMREX_SPACEDIM; ++j)
-			 pos[j] = marker_positions[lev].at(pindex)[j][i];
+         for (int i=0; i<n_marker; ++i) {
+             for (int j=0; j<AMREX_SPACEDIM; ++j)
+                 pos[j] = marker_positions[lev].at(pindex)[j][i];
                  if (ghost == 0){
                          if (pos[0] < tile_box.loVect()[0]*dx[0]) continue;
                          if (pos[0] >= (tile_box.hiVect()[0]+1)*dx[0]) continue;
@@ -507,7 +507,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
                          v_spread[j] = f_in[j][i];
 
                  SpreadKernel(bx, f_out, f_weights, face_coords, pos, v_spread, dx, & ghost, & mfi);
-	 }
+         }
 
     }
 }

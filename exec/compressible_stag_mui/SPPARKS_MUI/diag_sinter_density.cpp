@@ -63,7 +63,7 @@ void DiagSinterDensity::compute()
    if ( !init_flag ) {
       initialize_parameters_density_calculation();
       init_flag = true;
-      //		printf("xstart_den: %d xend_den: %d ystart_den: %d yend_den: %d zstart_den: %d zend_den: %d\n", xstart_density, xend_density, ystart_density, yend_density, zstart_density, zend_density );
+      //        printf("xstart_den: %d xend_den: %d ystart_den: %d yend_den: %d zstart_den: %d zend_den: %d\n", xstart_density, xend_density, ystart_density, yend_density, zstart_density, zend_density );
    }
 
    int *spin = appsinter->spin;
@@ -72,7 +72,7 @@ void DiagSinterDensity::compute()
 
    for ( int i = 0; i < nlocal; i++ ) {
       appsinter->global_to_grid( id[i], xgrid, ygrid, zgrid );
-      if (	(xgrid > xstart_density) && (xgrid < xend_density) &&
+      if (  (xgrid > xstart_density) && (xgrid < xend_density) &&
             (ygrid > ystart_density) && (ygrid < yend_density) &&
             (zgrid > zstart_density) && (zgrid < zend_density) ) {
          total_sites++;
@@ -85,7 +85,7 @@ void DiagSinterDensity::compute()
    local_density_info[0] = grain_sites;
    local_density_info[1] = total_sites;
 
-   //	printf( "grain sites: %d total sites: %d\n", (int)grain_sites, (int)total_sites );
+   //    printf( "grain sites: %d total sites: %d\n", (int)grain_sites, (int)total_sites );
 
    vector<double> density_info_all( 2, 0 );
 

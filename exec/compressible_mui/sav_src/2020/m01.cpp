@@ -527,15 +527,15 @@ void main_driver(const char* argv)
       {
         IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    	dom_hi[project_dir] = 0;
+        dom_hi[project_dir] = 0;
         Box domain(dom_lo, dom_hi);
 
-    	// This defines the physical box
-    	Vector<Real> projected_hi(AMREX_SPACEDIM);
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  projected_hi[d] = prob_hi[d];
-    	}
-    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+        // This defines the physical box
+        Vector<Real> projected_hi(AMREX_SPACEDIM);
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+          projected_hi[d] = prob_hi[d];
+        }
+        projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
         RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
                          {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
 
@@ -602,7 +602,7 @@ void main_driver(const char* argv)
     setBC(prim, cu);
 
     if (plot_int > 0) {
-	    WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+        WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
@@ -636,17 +636,17 @@ void main_driver(const char* argv)
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();
 
         // compute mean and variances
-	    if (step > n_steps_skip) {
+        if (step > n_steps_skip) {
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
-	    }
+        }
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
@@ -667,8 +667,8 @@ void main_driver(const char* argv)
                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
-	    // collect a snapshot for structure factor
-	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+        // collect a snapshot for structure factor
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
            MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
            MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too

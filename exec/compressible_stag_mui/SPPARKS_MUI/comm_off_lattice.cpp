@@ -484,13 +484,13 @@ void CommOffLattice::create_recv_from_send(Swap *swap)
 
   for (int irecv = 0; irecv < nrecv; irecv++)
     MPI_Irecv(rindex[irecv],rcount[irecv],MPI_INT,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
 
   MPI_Barrier(world);
 
   for (int isend = 0; isend < nsend; isend++)
     MPI_Send(ssite[isend],scount[isend],MPI_INT,
-	     sproc[isend],0,world);
+             sproc[isend],0,world);
 
   if (nrecv) MPI_Waitall(nrecv,request,status);
 
@@ -591,7 +591,7 @@ void CommOffLattice::perform_swap(Swap *swap)
 
   for (int irecv = 0; irecv < nrecv; irecv++)
     MPI_Irecv(rsite[irecv],rcount[irecv],MPI_INT,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
 
   // barrier to insure receives are posted
 
@@ -622,7 +622,7 @@ void CommOffLattice::perform_swap(Swap *swap)
 
   for (int isend = 0; isend < nsend; isend++)
     MPI_Send(ssite[isend],scount[isend],MPI_INT,
-	     sproc[isend],0,world);
+             sproc[isend],0,world);
 
   // copycount = # of ghosts generated via copying from my own bins
 
@@ -692,7 +692,7 @@ void CommOffLattice::perform_swap(Swap *swap)
   int offset = 0;
   for (int irecv = 0; irecv < nrecv; irecv++) {
     MPI_Irecv(&rbuf[offset],size_one*rtotal[irecv],MPI_DOUBLE,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
     offset += size_one*rtotal[irecv];
   }
 
@@ -735,9 +735,9 @@ void CommOffLattice::perform_swap(Swap *swap)
       while (i >= 0) {
         j = appoff->new_ghost_site();
         id[j] = id[i];
-	xyz[j][0] = xyz[i][0] + pbcoffset[jbin][0]*xprd;
-	xyz[j][1] = xyz[i][1] + pbcoffset[jbin][1]*yprd;
-	xyz[j][2] = xyz[i][2] + pbcoffset[jbin][2]*zprd;
+        xyz[j][0] = xyz[i][0] + pbcoffset[jbin][0]*xprd;
+        xyz[j][1] = xyz[i][1] + pbcoffset[jbin][1]*yprd;
+        xyz[j][2] = xyz[i][2] + pbcoffset[jbin][2]*zprd;
         if (site_only) site[j] = site[i];
         else {
           for (k = 0; k < ninteger; k++) iarray[k][j] = iarray[k][i];
@@ -826,7 +826,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
 
   for (int irecv = 0; irecv < nrecv; irecv++)
     MPI_Irecv(rsite[irecv],rcount[irecv],MPI_INT,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
 
   // barrier to insure receives are posted
 
@@ -860,7 +860,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
 
   for (int isend = 0; isend < nsend; isend++)
     MPI_Send(ssite[isend],scount[isend],MPI_INT,
-	     sproc[isend],0,world);
+             sproc[isend],0,world);
 
   // copycount = # of sites copied from my own bins
 
@@ -929,7 +929,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
   int offset = 0;
   for (int irecv = 0; irecv < nrecv; irecv++) {
     MPI_Irecv(&rbuf[offset],size_one*rtotal[irecv],MPI_DOUBLE,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
     offset += size_one*rtotal[irecv];
   }
 

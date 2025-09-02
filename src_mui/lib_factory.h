@@ -2,7 +2,7 @@
  * lib_factory.h
  *
  *  Created on: Mar 10, 2014
- *	  Author: ytang
+ *      Author: ytang
  */
 
 #ifndef LIB_FACTORY_H_

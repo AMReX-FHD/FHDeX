@@ -299,7 +299,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 }
 
 void IntegrateKScalar(const MultiFab& cov_mag,
-                      	    const std::string& name,
+                            const std::string& name,
                             const int& step,
                             const int& comp)
 

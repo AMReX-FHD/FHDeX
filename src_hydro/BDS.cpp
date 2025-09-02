@@ -1,13 +1,13 @@
 #include "hydro_functions.H"
 
 void BDS(MultiFab& s_update,
-	 const int ncomp,
-	 const int bccomp,
-	 MultiFab const& state,
-	 std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	 MultiFab const& fq,
-	 Geometry const& geom,
-	 const Real dt,
+         const int ncomp,
+         const int bccomp,
+         MultiFab const& state,
+         std::array< MultiFab, AMREX_SPACEDIM >& umac,
+         MultiFab const& fq,
+         Geometry const& geom,
+         const Real dt,
          const int proj_type)
 {
 
@@ -23,8 +23,8 @@ void BDS(MultiFab& s_update,
     GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     GpuArray<Real, AMREX_SPACEDIM> dxinv;
     AMREX_D_TERM( dxinv[0] = 1./dx[0];,
-		  dxinv[1] = 1./dx[1];,
-		  dxinv[2] = 1./dx[2];);
+                  dxinv[1] = 1./dx[1];,
+                  dxinv[2] = 1./dx[2];);
 
     BoxArray ba = s_update.boxArray();
     DistributionMapping dmap = s_update.DistributionMap();
@@ -60,18 +60,18 @@ void BDS(MultiFab& s_update,
                              fq.array(mfi),
                              geom, dt, proj_type);
 
-	// flip the sign to return div
+        // flip the sign to return div
         auto const& s_update_arr  = s_update.array(mfi);
         amrex::ParallelFor(bx, ncomp, [=]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-	  s_update_arr( i, j, k, n ) -= (
-  	        (sedgex(i+1,j,k,n)*u(i+1,j,k)-sedgex(i,j,k,n)*u(i,j,k))*dxinv[0]
+          s_update_arr( i, j, k, n ) -= (
+                  (sedgex(i+1,j,k,n)*u(i+1,j,k)-sedgex(i,j,k,n)*u(i,j,k))*dxinv[0]
                +(sedgey(i,j+1,k,n)*v(i,j+1,k)-sedgey(i,j,k,n)*v(i,j,k))*dxinv[1]
 #if (AMREX_SPACEDIM == 3)
                +(sedgez(i,j,k+1,n)*w(i,j,k+1)-sedgez(i,j,k,n)*w(i,j,k))*dxinv[2]
 #endif
-					 );
+                                         );
         });
 
         //
@@ -4139,13 +4139,13 @@ void BDS_ComputeConc(Box const& bx,
 
 // project edge states to satisfy EOS
 void BDS_Proj(const Box& bx,
-	      int ncomp,
-	      Array4<Real> const& sedgex,
-	      Array4<Real> const& sedgey,
+              int ncomp,
+              Array4<Real> const& sedgex,
+              Array4<Real> const& sedgey,
 #if (AMREX_SPACEDIM == 3)
-	      Array4<Real> const& sedgez,
+              Array4<Real> const& sedgez,
 #endif
-	      const int proj_type)
+              const int proj_type)
 {
 
    Box const& xbx = amrex::surroundingNodes(bx,0);

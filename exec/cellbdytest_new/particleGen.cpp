@@ -350,7 +350,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
     ParallelDescriptor::ReduceIntSum(pcount);
     if (pcount != totalParticles) {
-        Print() << "pcount\ttotalParticles: " << pcount << "	" << totalParticles << endl;
+        Print() << "pcount\ttotalParticles: " << pcount << "    " << totalParticles << endl;
         Abort("Total number of particles mismatch; some particles missing.");
     } else {
         Print() << "Total number of generated particles: " << pcount << std::endl;

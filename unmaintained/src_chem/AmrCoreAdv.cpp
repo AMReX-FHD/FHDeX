@@ -813,8 +813,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             const FArrayBox & statein =   Sborder[mfi];
             FArrayBox & stateout      =     (*S_new)[mfi];
             FArrayBox & ptS           =  ptSource[mfi];
-            IArrayBox & fabsl 	      =   sloc_mf[mfi];
-            IArrayBox & fabil 	      =   iloc_mf[mfi];
+            IArrayBox & fabsl         =   sloc_mf[mfi];
+            IArrayBox & fabil         =   iloc_mf[mfi];
             FArrayBox & uface_mf      = uface_lev[mfi];
             FArrayBox & vface_mf      = vface_lev[mfi];
 

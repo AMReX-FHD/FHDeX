@@ -218,15 +218,15 @@ void Domain::procs2domain_2d()
     ipx = 1;
     while (ipx <= nprocs) {
       if (nprocs % ipx == 0) {
-	ipy = nprocs/ipx;
-	boxx = xprd/ipx;
-	boxy = yprd/ipy;
-	surf = boxx + boxy;
-	if (surf < bestsurf) {
-	  bestsurf = surf;
-	  procgrid[0] = ipx;
-	  procgrid[1] = ipy;
-	}
+        ipy = nprocs/ipx;
+        boxx = xprd/ipx;
+        boxy = yprd/ipy;
+        surf = boxx + boxy;
+        if (surf < bestsurf) {
+          bestsurf = surf;
+          procgrid[0] = ipx;
+          procgrid[1] = ipy;
+        }
       }
       ipx++;
     }
@@ -276,24 +276,24 @@ void Domain::procs2domain_3d()
     ipx = 1;
     while (ipx <= nprocs) {
       if (nprocs % ipx == 0) {
-	nremain = nprocs/ipx;
-	ipy = 1;
-	while (ipy <= nremain) {
-	  if (nremain % ipy == 0) {
-	    ipz = nremain/ipy;
-	    boxx = xprd/ipx;
-	    boxy = yprd/ipy;
-	    boxz = zprd/ipz;
-	    surf = boxx*boxy + boxy*boxz + boxz*boxx;
-	    if (surf < bestsurf) {
-	      bestsurf = surf;
-	      procgrid[0] = ipx;
-	      procgrid[1] = ipy;
-	      procgrid[2] = ipz;
-	    }
-	  }
-	  ipy++;
-	}
+        nremain = nprocs/ipx;
+        ipy = 1;
+        while (ipy <= nremain) {
+          if (nremain % ipy == 0) {
+            ipz = nremain/ipy;
+            boxx = xprd/ipx;
+            boxy = yprd/ipy;
+            boxz = zprd/ipz;
+            surf = boxx*boxy + boxy*boxz + boxz*boxx;
+            if (surf < bestsurf) {
+              bestsurf = surf;
+              procgrid[0] = ipx;
+              procgrid[1] = ipy;
+              procgrid[2] = ipz;
+            }
+          }
+          ipy++;
+        }
       }
       ipx++;
     }

@@ -101,7 +101,7 @@ void main_driver(const char* argv)
 
         /*
            Primitive Vars:
-            0	- n   (n_ns)
+            0 - n   (n_ns)
             1 - Yk  (Y_ns)
             2 - u   (u_ns)
             3 - v   (v_ns)

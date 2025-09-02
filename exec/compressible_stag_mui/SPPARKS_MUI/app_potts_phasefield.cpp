@@ -700,17 +700,17 @@ void AppPottsPhaseField::set_phasefield_resetfield()
   pf_nresetlist=0;
   for (int i=0;i<nlocal;i++)
     if ( ( xyz[i][0] <= domain->boxxlo ) ||
-	 ( xyz[i][0] >= (domain->boxxhi - 1) ) )
+         ( xyz[i][0] >= (domain->boxxhi - 1) ) )
       pf_nresetlist++;
 
   // setup lists
 
   pf_resetlist = (int *) memory->
     smalloc(pf_nresetlist*sizeof(int),
-	    "app_potts_pfm:pf_resetlist");
+            "app_potts_pfm:pf_resetlist");
   pf_resetlistvals = (double *) memory->
     smalloc(pf_nresetlist*sizeof(double),
-	    "app_potts_pfm:pf_resetlistvals");
+            "app_potts_pfm:pf_resetlistvals");
 
   // set values in the list
 

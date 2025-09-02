@@ -93,7 +93,7 @@ c
        etaC1 = 5.d0/(16.d0*d1**2)*sqrt(mass1*kboltz/pi)
        kappaC1 = 15.d0*kboltz/(4.d0*mass1)*etaC1
 
- 	time =0.0
+       time =0.0
         dx = xlen/dfloat(npts)
 
         do j=1,npts

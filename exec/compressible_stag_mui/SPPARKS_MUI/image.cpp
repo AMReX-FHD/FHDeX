@@ -161,7 +161,7 @@ void Image::buffers()
 ------------------------------------------------------------------------- */
 
 void Image::view_params(double boxxlo, double boxxhi, double boxylo,
-			double boxyhi, double boxzlo, double boxzhi)
+                        double boxyhi, double boxzlo, double boxzhi)
 {
   // camDir points at the camera, view direction = -camDir
 
@@ -302,12 +302,12 @@ void Image::color_minmax(int n, double *buf, int stride)
   } else if (mstyle == DISCRETE) {
     for (int i = 0; i < nentry; i++) {
       if (mentry[i].lo == MINVALUE) {
-	if (mrange == ABSOLUTE) mentry[i].lvalue = locurrent;
-	else mentry[i].lvalue = 0.0;
+        if (mrange == ABSOLUTE) mentry[i].lvalue = locurrent;
+        else mentry[i].lvalue = 0.0;
       }
       if (mentry[i].hi == MAXVALUE) {
-	if (mrange == ABSOLUTE) mentry[i].hvalue = hicurrent;
-	else mentry[i].hvalue = 1.0;
+        if (mrange == ABSOLUTE) mentry[i].hvalue = hicurrent;
+        else mentry[i].hvalue = 1.0;
       }
     }
   }
@@ -354,14 +354,14 @@ void Image::merge()
       MPI_Irecv(rgbcopy,npixels*3,MPI_BYTE,me+nhalf,0,world,&requests[0]);
       MPI_Irecv(depthcopy,npixels,MPI_DOUBLE,me+nhalf,0,world,&requests[1]);
       if (ssao)
-	MPI_Irecv(surfacecopy,npixels*2,MPI_DOUBLE,
-		  me+nhalf,0,world,&requests[2]);
+        MPI_Irecv(surfacecopy,npixels*2,MPI_DOUBLE,
+                  me+nhalf,0,world,&requests[2]);
       if (ssao) MPI_Waitall(3,requests,statuses);
       else MPI_Waitall(2,requests,statuses);
 
       for (int i = 0; i < npixels; i++) {
         if (depthBuffer[i] < 0 || (depthcopy[i] >= 0 &&
-				   depthcopy[i] < depthBuffer[i])) {
+                                   depthcopy[i] < depthBuffer[i])) {
           depthBuffer[i] = depthcopy[i];
           imageBuffer[i*3+0] = rgbcopy[i*3+0];
           imageBuffer[i*3+1] = rgbcopy[i*3+1];
@@ -566,31 +566,31 @@ void Image::draw_cube(double *x, double *surfaceColor, double diameter)
           tdir[2] = camDir[2] * t;
 
           bool xin = ((surface[0]+tdir[0]) >= -radius) &&
-	    ((surface[0]+tdir[0]) <= radius);
+            ((surface[0]+tdir[0]) <= radius);
           bool yin = ((surface[1]+tdir[1]) >= -radius) &&
-	    ((surface[1]+tdir[1]) <= radius);
+            ((surface[1]+tdir[1]) <= radius);
           bool zin = ((surface[2]+tdir[2]) >= -radius) &&
-	    ((surface[2]+tdir[2]) <= radius);
+            ((surface[2]+tdir[2]) <= radius);
 
           switch (dim) {
-	  case 0:
-	    if (yin & zin) {
-	      depth = dist - t;
-	      draw_pixel (ix, iy, depth, normal, surfaceColor);
-	    }
-	    break;
-	  case 1:
-	    if (xin & zin) {
-	      depth = dist - t;
-	      draw_pixel (ix, iy, depth, normal, surfaceColor);
-	    }
-	    break;
-	  case 2:
-	    if (xin & yin) {
-	      depth = dist - t;
-	      draw_pixel (ix, iy, depth, normal, surfaceColor);
-	    }
-	    break;
+          case 0:
+            if (yin & zin) {
+              depth = dist - t;
+              draw_pixel (ix, iy, depth, normal, surfaceColor);
+            }
+            break;
+          case 1:
+            if (xin & zin) {
+              depth = dist - t;
+              draw_pixel (ix, iy, depth, normal, surfaceColor);
+            }
+            break;
+          case 2:
+            if (xin & yin) {
+              depth = dist - t;
+              draw_pixel (ix, iy, depth, normal, surfaceColor);
+            }
+            break;
           }
         }
       }
@@ -608,7 +608,7 @@ void Image::draw_cube(double *x, double *surfaceColor, double diameter)
 ------------------------------------------------------------------------- */
 
 void Image::draw_cylinder(double *x, double *y,
-			  double *surfaceColor, double diameter, int sflag)
+                          double *surfaceColor, double diameter, int sflag)
 {
   double surface[3], normal[3];
   double mid[3],xaxis[3],yaxis[3],zaxis[3];
@@ -874,11 +874,11 @@ void Image::draw_triangle(double *x, double *y, double *z, double *surfaceColor)
 /* ---------------------------------------------------------------------- */
 
 void Image::draw_pixel(int ix, int iy, double depth,
-			   double *surface, double *surfaceColor)
+                           double *surface, double *surfaceColor)
 {
   double diffuseKey,diffuseFill,diffuseBack,specularKey;
   if (depth < 0 || (depthBuffer[ix + iy*width] >= 0 &&
-		    depth >= depthBuffer[ix + iy*width])) return;
+                    depth >= depthBuffer[ix + iy*width])) return;
   depthBuffer[ix + iy*width] = depth;
 
   // store only the tangent relative to the camera normal (0,0,-1)
@@ -890,7 +890,7 @@ void Image::draw_pixel(int ix, int iy, double depth,
   diffuseFill = saturate(MathExtra::dot3(surface, fillLightDir));
   diffuseBack = saturate(MathExtra::dot3(surface, backLightDir));
   specularKey = pow(saturate(MathExtra::dot3(surface, keyHalfDir)),
-		    specularHardness) * specularIntensity;
+                    specularHardness) * specularIntensity;
 
   double c[3];
   c[0] = surfaceColor[0] * ambientColor[0];
@@ -933,7 +933,7 @@ void Image::compute_SSAO()
   // typical neighborhood value for shading
 
   double pixelWidth = (tanPerPixel > 0) ? tanPerPixel :
-	-tanPerPixel / zoom;
+        -tanPerPixel / zoom;
   int pixelRadius = (int) trunc (SSAORadius / pixelWidth + 0.5);
 
   int x,y,s;
@@ -956,8 +956,8 @@ void Image::compute_SSAO()
         double hy = sin(theta);
         theta += delTheta;
 
-	// multiply by z cross surface tangent
-	// so that dot (aka cos) works here
+        // multiply by z cross surface tangent
+        // so that dot (aka cos) works here
 
         double scaled_sin_t = sin_t * (hx*sy + hy*sx);
 
@@ -984,7 +984,7 @@ void Image::compute_SSAO()
         lenIncr = sqrt (1 + delta * delta) * pixelWidth;
 
         // initialize with one step
-	// because the center point doesn't need testing
+        // because the center point doesn't need testing
 
         int end = ex + ey * width;
         int ind = index + small;
@@ -1006,7 +1006,7 @@ void Image::compute_SSAO()
           // cdepth - depthBuffer B/C we want it in the negative z direction
 
           if (minPeak < 0 || (depthBuffer[ind] >= 0 &&
-			      depthBuffer[ind] < minPeak)) {
+                              depthBuffer[ind] < minPeak)) {
             minPeak = depthBuffer[ind];
             peakLen = len;
           }
@@ -1085,9 +1085,9 @@ void Image::write_PPM(FILE *fp)
   for (y = height-1; y >= 0; y --)
     for (x = 0; x < width; x ++)
       fprintf(fp,"%c%c%c",
-	      writeBuffer[0 + x*3 + y*width*3],
-	      writeBuffer[1 + x*3 + y*width*3],
-	      writeBuffer[2 + x*3 + y*width*3]);
+              writeBuffer[0 + x*3 + y*width*3],
+              writeBuffer[1 + x*3 + y*width*3],
+              writeBuffer[2 + x*3 + y*width*3]);
 }
 
 /* ----------------------------------------------------------------------
@@ -1136,8 +1136,8 @@ int Image::colormap(int narg, char **arg)
     if (mstyle == CONTINUOUS) {
       if (n+2 > narg) return 1;
       if (!islower(arg[n][0])) {
-	mentry[i].single = NUMERIC;
-	mentry[i].svalue = atof(arg[n]);
+        mentry[i].single = NUMERIC;
+        mentry[i].svalue = atof(arg[n]);
       } else if (strcmp(arg[n],"min") == 0) mentry[i].single = MINVALUE;
       else if (strcmp(arg[n],"max") == 0) mentry[i].single = MAXVALUE;
       else return 1;
@@ -1146,14 +1146,14 @@ int Image::colormap(int narg, char **arg)
     } else if (mstyle == DISCRETE) {
       if (n+3 > narg) return 1;
       if (!islower(arg[n][0])) {
-	mentry[i].lo = NUMERIC;
-	mentry[i].lvalue = atof(arg[n]);
+        mentry[i].lo = NUMERIC;
+        mentry[i].lvalue = atof(arg[n]);
       } else if (strcmp(arg[n],"min") == 0) mentry[i].single = MINVALUE;
       else if (strcmp(arg[n],"max") == 0) mentry[i].single = MAXVALUE;
       else return 1;
       if (!islower(arg[n+1][0])) {
-	mentry[i].hi = NUMERIC;
-	mentry[i].hvalue = atof(arg[n+1]);
+        mentry[i].hi = NUMERIC;
+        mentry[i].hvalue = atof(arg[n+1]);
       } else if (strcmp(arg[n+1],"min") == 0) mentry[i].single = MINVALUE;
       else if (strcmp(arg[n+1],"max") == 0) mentry[i].single = MAXVALUE;
       else return 1;
@@ -1241,20 +1241,20 @@ double *Image::value2color(double value)
   if (mstyle == CONTINUOUS) {
     for (int i = 0; i < nentry-1; i++)
       if (value >= mentry[i].svalue && value <= mentry[i+1].svalue) {
-	double fraction = (value-mentry[i].svalue) /
-	  (mentry[i+1].svalue-mentry[i].svalue);
-	interpolate[0] = mentry[i].color[0] +
-	  fraction*(mentry[i+1].color[0]-mentry[i].color[0]);
-	interpolate[1] = mentry[i].color[1] +
-	  fraction*(mentry[i+1].color[1]-mentry[i].color[1]);
-	interpolate[2] = mentry[i].color[2] +
-	  fraction*(mentry[i+1].color[2]-mentry[i].color[2]);
-	return interpolate;
+        double fraction = (value-mentry[i].svalue) /
+          (mentry[i+1].svalue-mentry[i].svalue);
+        interpolate[0] = mentry[i].color[0] +
+          fraction*(mentry[i+1].color[0]-mentry[i].color[0]);
+        interpolate[1] = mentry[i].color[1] +
+          fraction*(mentry[i+1].color[1]-mentry[i].color[1]);
+        interpolate[2] = mentry[i].color[2] +
+          fraction*(mentry[i+1].color[2]-mentry[i].color[2]);
+        return interpolate;
       }
   } else if (mstyle == DISCRETE) {
     for (int i = 0; i < nentry; i++)
       if (value >= mentry[i].lvalue && value <= mentry[i].hvalue)
-	return mentry[i].color;
+        return mentry[i].color;
   } else {
     int ibin = static_cast<int> ((value-lo) * mbinsizeinv);
     return mentry[ibin%nentry].color;

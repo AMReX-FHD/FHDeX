@@ -361,8 +361,8 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                            18.* ( phi(i,j+1,k+1,n)+ phi(i-1,j,k+1,n)+ phi(i+1,j,k+1,n) + phi(i,j-1,k+1,n) +
                                   phi(i-1,j+1,k,n)+ phi(i+1,j+1,k,n)+ phi(i-1,j-1,k,n) + phi(i+1,j-1,k,n) +
                                   phi(i,j+1,k-1,n)+ phi(i-1,j,k-1,n)+ phi(i+1,j,k-1,n) + phi(i,j-1,k-1,n))+
-			   60. * (phi(i-1,j,k,n)+   phi(i+1,j,k,n)+   phi(i,j-1,k,n) +   phi(i,j+1,k,n) + phi(i,j,k-1,n) + phi(i,j,k+1,n))
-		            -600.*phi(i,j,k,n))
+                           60. * (phi(i-1,j,k,n)+   phi(i+1,j,k,n)+   phi(i,j-1,k,n) +   phi(i,j+1,k,n) + phi(i,j,k-1,n) + phi(i,j,k+1,n))
+                            -600.*phi(i,j,k,n))
                 * (one44inv*dxinv*dxinv);
 #endif
 #endif

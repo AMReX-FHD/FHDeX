@@ -525,7 +525,7 @@ void DiagCluster::generate_clusters()
       fprintf(fp,"<R> = %g \n",rav);
       fprintf(fp,"id ivalue dvalue size cx cy cz\n");
       for (int i = 0; i < ncluster; i++) {
-        // 	clustlist[i].print(fp);
+        //     clustlist[i].print(fp);
         if (clustlist[i].volume > 0.0) {
           fprintf(fp," %d %d %g %g %g %g %g\n",
                   clustlist[i].global_id,clustlist[i].ivalue,

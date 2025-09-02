@@ -479,14 +479,14 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
             double dy;
             double dz;
 
-	        Real q1 = part.rdata(FHD_realData::q);
+            Real q1 = part.rdata(FHD_realData::q);
 
             for(int j = 0; j < totalParticles; j++)
             {
 
-		         Real q2 = chargePtr[j];
+                 Real q2 = chargePtr[j];
 
-		        // (currently hard-coded for y-wall)
+                // (currently hard-coded for y-wall)
                 for(int ii = -images; ii <= images; ii++)
                 {
                        for(int kk = -images; kk <= images; kk++)
@@ -497,19 +497,19 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
                           dy = part.pos(1)-posyPtr[j];// - jj*domy;
                           dz = part.pos(2)-poszPtr[j] - kk*domz;
 
-			              dr2 = dx*dx + dy*dy + dz*dz;
+                          dr2 = dx*dx + dy*dy + dz*dz;
                           rtdr2 = sqrt(dr2);
 
-              	          if (rtdr2 < maxdist && rtdr2 > 0.0)
+                            if (rtdr2 < maxdist && rtdr2 > 0.0)
                           {
                               part.rdata(FHD_realData::forcex) += ee*(dx/rtdr2)*q1*q2/dr2;
                               part.rdata(FHD_realData::forcey) += ee*(dy/rtdr2)*q1*q2/dr2;
                               part.rdata(FHD_realData::forcez) += ee*(dz/rtdr2)*q1*q2/dr2;
                           }
-		               }
-		        }
-	        }
-	    });
+                       }
+                }
+            }
+        });
     }
 
     Print() << "Finished Coulomb calculation\n";
@@ -572,35 +572,35 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             TileIndex index(pti.index(), pti.LocalTileIndex());
 
             AoS & aos = this->GetParticles(lev).at(index).GetArrayOfStructs();
-	    ParticleType* particles = aos().dataPtr();
+        ParticleType* particles = aos().dataPtr();
             long np = this->GetParticles(lev).at(index).numParticles();
 
             // Set up vector to do reduction
-	    Gpu::DeviceVector<Real> increment_moves_tile(np, 0.);
+        Gpu::DeviceVector<Real> increment_moves_tile(np, 0.);
             Real* pincrement_moves_tile = increment_moves_tile.data();
 
             //Real posOld[3];
             //Real velOld[3];
             //moves_tile = 0;
 
-	    //// Using this loop to set up counter via a reduce sum operation across each thread
-	    //reduce_op.eval(np, reduce_data, [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+        //// Using this loop to set up counter via a reduce sum operation across each thread
+        //reduce_op.eval(np, reduce_data, [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
 
-	    // Set up RNG engine with ParallelForRNG, and do reduction using a np-sized vector storing value for each particle
-	    amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
-	    //for (int i = 0; i < np; ++ i)
-	    {
+        // Set up RNG engine with ParallelForRNG, and do reduction using a np-sized vector storing value for each particle
+        amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+        //for (int i = 0; i < np; ++ i)
+        {
 
                 ParticleType & part = particles[i];
 
-		        GpuArray<Real, 3> posOld;
+                GpuArray<Real, 3> posOld;
                 GpuArray<Real, 3> velOld;
                 GpuArray<Real, 3> posAlt;
 
                 if(part.idata(FHD_intData::pinned) == 0)
                 {
                         //moves_tile++;
-	                pincrement_moves_tile[i] = 1.;
+                        pincrement_moves_tile[i] = 1.;
 
                         for (int d=0; d<AMREX_SPACEDIM; ++d)
                         {
@@ -611,7 +611,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                         Real runtime = 0.5*dt;
                         Real inttime = 0;
                         int midpoint = 0;
-			            int intsurf, intside, push;
+                        int intsurf, intside, push;
 
                         while(runtime > 0)
                         {
@@ -662,18 +662,18 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                             }
                         }
                 }
-	        //return increment_moves_tile;
+            //return increment_moves_tile;
             });
 
-	    //// Get the value of the reduce sum on one processor
-	    //moves_tile = amrex::get<0>(reduce_data.value());
+            //// Get the value of the reduce sum on one processor
+            //moves_tile = amrex::get<0>(reduce_data.value());
 
-	    //Gpu::synchronize();
-	    //AMREX_GPU_ERROR_CHECK();
-	    moves_proc = Reduce::Sum(np, pincrement_moves_tile);
-	    //Gpu::synchronize();
+            //Gpu::synchronize();
+            //AMREX_GPU_ERROR_CHECK();
+            moves_proc = Reduce::Sum(np, pincrement_moves_tile);
+            //Gpu::synchronize();
             //moves_proc    += moves_tile;
-	    //Gpu::synchronize();
+            //Gpu::synchronize();
 
             //std::cout << "Moves " << moves_tile << std::endl;
 
@@ -687,12 +687,12 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & aos = this->GetParticles(lev).at(index).GetArrayOfStructs();
-	    ParticleType* particles = aos().dataPtr();
+        ParticleType* particles = aos().dataPtr();
         long np = this->GetParticles(lev).at(index).numParticles();
 
         amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
             //for (int i = 0; i < np; ++ i)
-	    {
+        {
                 ParticleType & part = particles[i];
                 if(part.idata(FHD_intData::pinned) == 0)
                 {
@@ -715,12 +715,12 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             TileIndex index(pti.index(), pti.LocalTileIndex());
 
             AoS & aos = this->GetParticles(lev).at(index).GetArrayOfStructs();
-	    ParticleType* particles = aos().dataPtr();
+            ParticleType* particles = aos().dataPtr();
             long np = this->GetParticles(lev).at(index).numParticles();
 
         amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
             //for (int i = 0; i < np; ++ i)
-	    {
+            {
                 ParticleType & part = particles[i];
                 if(part.idata(FHD_intData::pinned) == 0)
                 {
@@ -762,17 +762,17 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
         IntVect myHi = bx.bigEnd();
 
         AoS & aos = this->GetParticles(lev).at(index).GetArrayOfStructs();
-	ParticleType* particles = aos().dataPtr();
+        ParticleType* particles = aos().dataPtr();
         long np = this->GetParticles(lev).at(index).numParticles();
 
         np_proc += np;
 
-	// Set up vectors to do reduction
-	Gpu::DeviceVector<int> increment_moves(np, 0);
-	Gpu::DeviceVector<int> increment_reDist(np, 0);
-	Gpu::DeviceVector<Real> increment_maxspeed(np, 0.);
-	Gpu::DeviceVector<Real> increment_maxdist(np, 0.);
-	Gpu::DeviceVector<Real> increment_diffest(np, 0.);
+        // Set up vectors to do reduction
+        Gpu::DeviceVector<int> increment_moves(np, 0);
+        Gpu::DeviceVector<int> increment_reDist(np, 0);
+        Gpu::DeviceVector<Real> increment_maxspeed(np, 0.);
+        Gpu::DeviceVector<Real> increment_maxdist(np, 0.);
+        Gpu::DeviceVector<Real> increment_diffest(np, 0.);
         int* pincrement_moves = increment_moves.data();
         int* pincrement_reDist = increment_reDist.data();
         Real* pincrement_maxspeed = increment_maxspeed.data();
@@ -781,14 +781,14 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
         //reduce_op5.eval(np, reduce_data5, [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
 
-	// Set up RNG engine with ParallelForRNG, and do reduction using a np-sized vector storing value for each particle
-	amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
-	//for (int i = 0; i < np; ++ i)
-	{
+        // Set up RNG engine with ParallelForRNG, and do reduction using a np-sized vector storing value for each particle
+        amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+        //for (int i = 0; i < np; ++ i)
+        {
 
             ParticleType & part = particles[i];
 
-	    GpuArray<Real, 3> posAlt;
+            GpuArray<Real, 3> posAlt;
 
             if(part.idata(FHD_intData::pinned) == 0)
             {
@@ -808,7 +808,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 Real runtime = dt;
                 Real inttime = 0;
-		int intsurf, intside, push;
+                int intsurf, intside, push;
 
                 //Real thisMove[3] = {0,0,0};
 
@@ -888,20 +888,20 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                 pincrement_reDist[i] = 1;
             }
 
-	    //// For ReduceOP, return reduced data at the end.
-	    //return { maxspeed, maxdist, diffest, increment_moves, increment_reDist };
+            //// For ReduceOP, return reduced data at the end.
+            //return { maxspeed, maxdist, diffest, increment_moves, increment_reDist };
         });
 
-	//// These are ReduceOp-way of getting the value of reduced data
-	////   Need to update to these once there is a RNG-engine feature of ReduceOp
+        //// These are ReduceOp-way of getting the value of reduced data
+        ////   Need to update to these once there is a RNG-engine feature of ReduceOp
         //maxspeed_proc = amrex::max(maxspeed_proc, amrex::get<0>(reduce_data5.value()));
         //maxdist_proc = amrex::max(maxdist_proc, amrex::get<1>(reduce_data5.value()));
         //diffinst_proc = amrex::get<2>(reduce_data5.value());
         //moves += amrex::get<3>(reduce_data5.value());
         //reDist += amrex::get<4>(reduce_data5.value());
 
-	moves = Reduce::Sum(np, pincrement_moves);
-	reDist = Reduce::Sum(np, pincrement_reDist);
+        moves = Reduce::Sum(np, pincrement_moves);
+        reDist = Reduce::Sum(np, pincrement_reDist);
         maxspeed_proc = amrex::max(maxspeed_proc, Reduce::Max(np, pincrement_maxspeed));
         maxdist_proc  = amrex::max(maxdist_proc, Reduce::Max(np, pincrement_maxdist));
         //std::cout << "MAXDISTPROC: " << maxdist_proc << "\n";
@@ -939,7 +939,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-				      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
@@ -1011,7 +1011,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-				      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
@@ -1042,7 +1042,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
             //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
             //                 AMREX_ZFILL(plo),
             //                 AMREX_ZFILL(dxFluid));
-	    SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
+            SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
         }
     //}
 
@@ -1805,13 +1805,13 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
 
-	    PairIndex index(pti.index(), pti.LocalTileIndex());
+        PairIndex index(pti.index(), pti.LocalTileIndex());
         const int np = this->GetParticles(lev)[index].numRealParticles();
-	    auto& plev = this->GetParticles(lev);
-	    auto& ptile = plev[index];
-	    auto& aos   = ptile.GetArrayOfStructs();
+        auto& plev = this->GetParticles(lev);
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
         const Box& tile_box  = pti.tilebox();
-	    ParticleType* particles = aos().dataPtr();
+        ParticleType* particles = aos().dataPtr();
 
         tp = tp + np;
 

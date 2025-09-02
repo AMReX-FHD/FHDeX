@@ -170,17 +170,17 @@ void FhdParticleContainer::InitParticles(Real & dt)
     ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
     mfvrmax.setVal(spdmax);
 
-    //	if(ParallelDescriptor::MyProc() == 0) {
-    //		dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
-    //		dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
-    //		dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
-    //		dt  = 0.2/dt; // Courant number of 0.2
-    //	}
-    //	ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
-    //	amrex::Print() << "My dt " << dt << "\n";
+    //    if(ParallelDescriptor::MyProc() == 0) {
+    //        dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
+    //        dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
+    //        dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
+    //        dt  = 0.2/dt; // Courant number of 0.2
+    //    }
+    //    ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
+    //    amrex::Print() << "My dt " << dt << "\n";
 
     Redistribute();
-    //	SortParticlesDB();
+    //    SortParticlesDB();
 
     // Zero bulk velocities in each cell
 

@@ -691,10 +691,10 @@ void main_driver(const char* argv)
         if (nspec_surfcov>0) {
             surfcovMeans.define(ba,dmap,nspec_surfcov,0);
             surfcovVars.define(ba,dmap,nspec_surfcov,0);
-	    surfcovcoVars.define(ba,dmap,nspec_surfcov*6,0);
+            surfcovcoVars.define(ba,dmap,nspec_surfcov*6,0);
             surfcovMeans.setVal(0.0);
             surfcovVars.setVal(0.0);
-	    surfcovcoVars.setVal(0.0);
+            surfcovcoVars.setVal(0.0);
         }
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -1069,19 +1069,19 @@ void main_driver(const char* argv)
         amrex_push(cu, prim, *mpmd_copier);
 #endif
         if (n_ads_spec>0) {
-	    if (splitting_MFsurfchem == 0) {
+            if (splitting_MFsurfchem == 0) {
                 sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt);
             } else if (splitting_MFsurfchem == 1) {
-	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
-		update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
+                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+                update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
-		for (int d=0; d<AMREX_SPACEDIM; d++) {
-		    cumom[d].FillBoundary(geom.periodicity());
-		}
-		cu.FillBoundary(geom.periodicity());
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    cumom[d].FillBoundary(geom.periodicity());
+                }
+                cu.FillBoundary(geom.periodicity());
 
-		conservedToPrimitiveStag(prim, vel, cu, cumom);
-		            // Set BC: 1) fill boundary 2) physical
+                conservedToPrimitiveStag(prim, vel, cu, cumom);
+                            // Set BC: 1) fill boundary 2) physical
                 for (int d=0; d<AMREX_SPACEDIM; d++) {
                     vel[d].FillBoundary(geom.periodicity());
                 }
@@ -1089,10 +1089,10 @@ void main_driver(const char* argv)
                 cu.FillBoundary(geom.periodicity());
 
                 setBCStag(prim, cu, cumom, vel, geom);
-	    } else {
+            } else {
                 Abort("splitting_MFsurfchem can be 0 or 1");
             }
-	}
+        }
 
         // FHD
         if (turbRestartRun) {
@@ -1102,7 +1102,7 @@ void main_driver(const char* argv)
             calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
         }
 
-	if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
+        if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
             sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
         }
 
@@ -1191,7 +1191,7 @@ void main_driver(const char* argv)
             if (nspec_surfcov>0) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
-		surfcovcoVars.setVal(0.0);
+                surfcovcoVars.setVal(0.0);
             }
 
             if (do_1D) {

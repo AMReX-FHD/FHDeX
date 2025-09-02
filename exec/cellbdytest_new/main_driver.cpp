@@ -1474,7 +1474,7 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-//	    particles.SetForce(1,0.00001,0,0);
+//        particles.SetForce(1,0.00001,0,0);
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
 //        origin[1] = prob_hi[1]/2.0;
@@ -1503,16 +1503,16 @@ void main_driver(const char* argv)
 
         if (es_tog==2) {
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
-	    particles.computeForcesCoulombGPU(simParticles);
-	     }
+            particles.computeForcesCoulombGPU(simParticles);
+         }
 
-	//particles.computeForcesSpringGPU(simParticles);
-	//particles.computeForcesFENEGPU(simParticles);
-	if (bond_tog != 0) {
-	    particles.computeForcesBondGPU(simParticles);
-	}
+        //particles.computeForcesSpringGPU(simParticles);
+        //particles.computeForcesFENEGPU(simParticles);
+        if (bond_tog != 0) {
+            particles.computeForcesBondGPU(simParticles);
+        }
 
-	//particles.SetForce(1,0,0,-1, particles.id_global_map);
+        //particles.SetForce(1,0,0,-1, particles.id_global_map);
         //particles.SetForce(0,0,0,1, particles.id_global_map);
 
         // compute other forces and spread to grid
@@ -1533,7 +1533,7 @@ void main_driver(const char* argv)
             if (fluid_tog ==2) {
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
-	}
+        }
 
 
         MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
@@ -1548,11 +1548,11 @@ void main_driver(const char* argv)
 
                 Real check;
 
-		/* */
-		// Uncomment this section to calculate mobility matrix for pinned particles; this should only run for 1 step
-		//   if discos-particle wall is regular, we can just calculate mobility matrix on one particle and shift it around.
-		if (pinMatrix_tog == 1)
-		{
+                /* */
+                // Uncomment this section to calculate mobility matrix for pinned particles; this should only run for 1 step
+                //   if discos-particle wall is regular, we can just calculate mobility matrix on one particle and shift it around.
+                if (pinMatrix_tog == 1)
+                {
                     particles.clearMobilityMatrix();
                     for(int ii=0;ii<particles.getTotalPinnedMarkers();ii++)
                     {
@@ -1596,24 +1596,24 @@ void main_driver(const char* argv)
 
                     particles.invertMatrix();
 
-		    if(ParallelDescriptor::MyProc() == 0) {
-		        Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, set pinMatrix_tog=0 and rerun");
-		    }
-		}
+                    if(ParallelDescriptor::MyProc() == 0) {
+                        Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, set pinMatrix_tog=0 and rerun");
+                    }
+                }
                 /* */
 
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-		//MultiFab::Add(umac[0],externalVU[0],0,0,externalVU[0].nComp(),externalVU[0].nGrow());
-		//MultiFab::Add(umac[1],externalVU[1],0,0,externalVU[1].nComp(),externalVU[1].nGrow());
-		//MultiFab::Add(umac[2],externalVU[2],0,0,externalVU[2].nComp(),externalVU[2].nGrow());
+                //MultiFab::Add(umac[0],externalVU[0],0,0,externalVU[0].nComp(),externalVU[0].nGrow());
+                //MultiFab::Add(umac[1],externalVU[1],0,0,externalVU[1].nComp(),externalVU[1].nGrow());
+                //MultiFab::Add(umac[2],externalVU[2],0,0,externalVU[2].nComp(),externalVU[2].nGrow());
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
 
-		//particles.PrintParticles();
+                //particles.PrintParticles();
 
                 particles.pinnedParticleInversion(particles.id_global_map);
 
-		//particles.PrintParticles();
+                //particles.PrintParticles();
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         source    [d].setVal(0.0);      // reset source terms
@@ -1627,21 +1627,21 @@ void main_driver(const char* argv)
                 MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
 
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-		//MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
-		//MultiFab::Add(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
-		//MultiFab::Add(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
+                //MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
+                //MultiFab::Add(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
+                //MultiFab::Add(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
 
-		//particles.PrintParticles();
+                //particles.PrintParticles();
 
             }else
             {
-		// TODO: still missing RFD here?
+                // TODO: still missing RFD here?
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-		//MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
-		//MultiFab::Add(umac[1],externalV[1],0,0,externalV[0].nComp(),externalV[1].nGrow());
-		//MultiFab::Add(umac[2],externalV[2],0,0,externalV[0].nComp(),externalV[2].nGrow());
+                //MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
+                //MultiFab::Add(umac[1],externalV[1],0,0,externalV[0].nComp(),externalV[1].nGrow());
+                //MultiFab::Add(umac[2],externalV[2],0,0,externalV[0].nComp(),externalV[2].nGrow());
 
             }
 
@@ -1663,7 +1663,7 @@ void main_driver(const char* argv)
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
 
-	    //particles.PrintParticles();
+            //particles.PrintParticles();
 
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval
@@ -1681,18 +1681,18 @@ void main_driver(const char* argv)
             Print() << "Finish move.\n";
         }
 
-	/* uncomment this section if using Delong et al method: add shear velocity to umac
-	 *   also need to add shear velocity in MoveIonsCPP (1-step or 2-step)
-	MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
-	MultiFab::Add(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
-	MultiFab::Add(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
-	*/
+        /* uncomment this section if using Delong et al method: add shear velocity to umac
+         *   also need to add shear velocity in MoveIonsCPP (1-step or 2-step)
+        MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
+        MultiFab::Add(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
+        MultiFab::Add(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
+        */
 
         // collect particle positions onto one processor
-	particles.GetAllParticlePositions(posxVec,posyVec,poszVec,axVec,ayVec,azVec);
+        particles.GetAllParticlePositions(posxVec,posyVec,poszVec,axVec,ayVec,azVec);
         if (dsf_flag == 1)
         {
-	   if (ParallelDescriptor::MyProc()==0){
+           if (ParallelDescriptor::MyProc()==0){
               std::string filename = Concatenate("partPos_restart", init_step, 9);
               std::ofstream ofs2(filename, std::ofstream::app);
               //ofstream ofs( filename, ios::binary );
@@ -1705,7 +1705,7 @@ void main_driver(const char* argv)
               ofs2.close();
               //ofs.close();
               Print() << "Finished writing particle positions.\n";
-	   }
+           }
         }
 
         /*
@@ -1767,26 +1767,26 @@ void main_driver(const char* argv)
         // also write out time-averaged current to currentEst
         particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
 
-	if (dsf_fft) {
-	   // save t0 stats
-	   if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+        if (dsf_fft) {
+           // save t0 stats
+           if ((n_steps_skip > 0 && istep == n_steps_skip) ||
                (n_steps_skip < 0 && istep%n_steps_skip == 0) ||
-	       istep == 1) {
+               istep == 1) {
 
                Print() << "resetting dsf stats at " << istep << " step.\n";
-	       MultiFab::Copy(struct_cc_numdens0, particleInstant, 0, 0, nvar_sf_numdens, 0);
-	       structFact_numdens.ComputeFFT(struct_cc_numdens0, struct_cc_numdens0_real, struct_cc_numdens0_imag,geomC);
+               MultiFab::Copy(struct_cc_numdens0, particleInstant, 0, 0, nvar_sf_numdens, 0);
+               structFact_numdens.ComputeFFT(struct_cc_numdens0, struct_cc_numdens0_real, struct_cc_numdens0_imag,geomC);
 
            }
 
-	   // compute dynamic structure factor, using particleInstant and particleInstant0
+           // compute dynamic structure factor, using particleInstant and particleInstant0
            MultiFab::Copy(struct_cc_numdens, particleInstant, 0, 0, nvar_sf_numdens, 0);
-	   structFact_numdens.DynStructureDens(struct_cc_numdens,
-	   		                 struct_cc_numdens0_real, struct_cc_numdens0_imag,
-	   			         geomC, ktarg);
+           structFact_numdens.DynStructureDens(struct_cc_numdens,
+                                    struct_cc_numdens0_real, struct_cc_numdens0_imag,
+                                geomC, ktarg);
 
            Print() << "Finish dynamic structure factor.\n";
-	}
+        }
 
 
         // compute the mean and variance of umac
@@ -1801,8 +1801,8 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-	//_______________________________________________________________________
-	// Update structure factor
+        //_______________________________________________________________________
+        // Update structure factor
         if (struct_fact_int > 0 &&
             istep > amrex::Math::abs(n_steps_skip) &&
             (istep-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {
