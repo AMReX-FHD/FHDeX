@@ -246,8 +246,8 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
     Real C2 = -(sinTh*ux) + (1 - cosTh)*uy*uz;
     Real C3 = cosTh + (1 - cosTh)*uz*uz;
 
-    Real l_p = 1.; 
-    Real l_m = 1.; 
+    Real l_p = 1.;
+    Real l_m = 1.;
 
     // NOTE: this might not be necessary
     // Real l_p = std::sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) + (zP-z)*(zP-z) );

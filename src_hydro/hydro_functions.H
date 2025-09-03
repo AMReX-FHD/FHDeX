@@ -19,7 +19,7 @@ void addMomFluctuations(std::array< MultiFab, AMREX_SPACEDIM >&,
                         const MultiFab&, const MultiFab&,
                         const Real&,
                         const Geometry& geom);
-    
+
 // used to add noise to an initial momentum field
 // called by addMomFluctuations
 void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
@@ -32,14 +32,14 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
 // in BDS.cpp
 
 void BDS(MultiFab& s_update,
-	 const int ncomp,
-	 const int bccomp,
-	 MultiFab const& state,
-	 std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	 MultiFab const& fq,
-	 Geometry const& geom,
-	 const Real dt,
-         const int proj_type = 0);
+    const int ncomp,
+    const int bccomp,
+    MultiFab const& state,
+    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+    MultiFab const& fq,
+    Geometry const& geom,
+    const Real dt,
+    const int proj_type = 0);
 
 void BDS_ComputeEdgeState(Box const& bx,
                           int ncomp,
@@ -88,33 +88,33 @@ void BDS_ComputeConc(Box const& bx,
 
 // project edge states to satisfy EOS
 void BDS_Proj(const Box& bx,
-	      const int ncomp,
-	      Array4<Real> const& sedgex,
-	      Array4<Real> const& sedgey,
+    const int ncomp,
+    Array4<Real> const& sedgex,
+    Array4<Real> const& sedgey,
 #if (AMREX_SPACEDIM == 3)
-	      Array4<Real> const& sedgez,
+    Array4<Real> const& sedgez,
 #endif
-	      const int proj_type);
+    const int proj_type);
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
-		     const int& ncomp,
-                     const int& proj_type)
+    const int& ncomp,
+    const int& proj_type)
 {
 
     GpuArray<Real, MAX_SPECIES> w;
     GpuArray<Real, MAX_SPECIES> z;
-    
+
     Real rhobar_sq, delta_eos, temp;
 
     if (proj_type == 0) {
-        
+
         // do nothing
-        
+
     } else if (proj_type == 2) { // L2 projection onto the linear EOS constraint for low Mach models
 
         Abort("Code up and test BDS_Proj proj_type=2");
-        
+
 #if 0
        ! compute mass fractions, w_i = rho_i / rho
        temp = 0.d0
@@ -142,7 +142,7 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
           sedge(comp) = sedge(comp) - w(comp)*(rhobar_sq/rhobar(comp))*delta_eos
        end do
 #endif
-        
+
     } else if (proj_type == 3) { // Ensure sum(rho)=rho0 for Boussinesq models
 
         Real sumw = 0.;
@@ -153,7 +153,7 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
         for (int n=0; n<ncomp; ++n) {
             sedge[n] = rho0* w[n] / sumw;
         }
-        
+
     } else if (proj_type == 4) { // Ensure sum(rho)=rho0
 
         Abort("Code up and test BDS_Proj proj_type=4");
@@ -170,7 +170,7 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
        sedge = rho0 * (w/sum(w))
        !write(*,*) "z^T*rho=", sum(sedge*z), " 1^T*w-1=", sum(sedge/rho0)-1.0d0
 #endif
-                                                       
+
     } else {
         Abort("BDS_Proj: invalid proj_type");
     }
@@ -189,10 +189,10 @@ void ConvertMToUmac(const std::array< MultiFab, AMREX_SPACEDIM >& s_fc,
 // in MkAdvMFluxdiv.cpp
 
 void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac,
-		   const std::array<MultiFab, AMREX_SPACEDIM> & m,
-		   std::array<MultiFab, AMREX_SPACEDIM> & m_update,
-		   const Real * dx,
-		   const int & increment=0);
+    const std::array<MultiFab, AMREX_SPACEDIM> & m,
+    std::array<MultiFab, AMREX_SPACEDIM> & m_update,
+    const Real * dx,
+    const int & increment=0);
 
 void MkAdvSFluxdiv_cc(const std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
                       const MultiFab & s_in,
@@ -222,9 +222,9 @@ void MacProj_hydro(std::array<MultiFab, AMREX_SPACEDIM> & umac,
                    const bool & full_solve=true);
 
 void ComputeMACSolverRHS(MultiFab & solverrhs,
-			 const MultiFab & macrhs,
-			 const std::array<MultiFab, AMREX_SPACEDIM> & umac,
-			 const Geometry & geom);
+             const MultiFab & macrhs,
+             const std::array<MultiFab, AMREX_SPACEDIM> & umac,
+             const Geometry & geom);
 
 void SetMacSolverBCs(MLABecLaplacian & mlabec);
 
@@ -234,24 +234,24 @@ void SetMacSolverBCs(MLABecLaplacian & mlabec);
 // in advance.cpp
 
 void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       MultiFab& pres,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
-	       std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,
-	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       MultiFab& beta,
+       MultiFab& pres,
+       const std::array< MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
+       std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,
+       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+       MultiFab& beta,
                MultiFab& gamma,
-	       std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt);
+       std::array< MultiFab, NUM_EDGE >& beta_ed,
+       const Geometry geom, const Real& dt);
 
 void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-	       MultiFab& pres, MultiFab& tracer,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
-	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       const MultiFab& beta, const MultiFab& gamma,
-	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt);
+       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
+       MultiFab& pres, MultiFab& tracer,
+       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
+       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
+       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+       const MultiFab& beta, const MultiFab& gamma,
+       const std::array< MultiFab, NUM_EDGE >& beta_ed,
+       const Geometry geom, const Real& dt);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in Vorticity.cpp

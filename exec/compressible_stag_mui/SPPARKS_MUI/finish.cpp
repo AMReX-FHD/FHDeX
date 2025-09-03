@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -33,8 +33,8 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   // deduce time_other
 
   double time_other = timer->array[TIME_LOOP] -
-    (timer->array[TIME_SOLVE] + timer->array[TIME_COMM] + 
-     timer->array[TIME_UPDATE] + timer->array[TIME_OUTPUT] + 
+    (timer->array[TIME_SOLVE] + timer->array[TIME_COMM] +
+     timer->array[TIME_UPDATE] + timer->array[TIME_OUTPUT] +
      timer->array[TIME_APP]);
 
   double time_loop = timer->array[TIME_LOOP];
@@ -44,12 +44,12 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   // overall loop time
 
   if (me == 0) {
-    if (screen) 
+    if (screen)
       fprintf(screen,
-	      "Loop time of %g on %d procs\n",time_loop,nprocs);
+              "Loop time of %g on %d procs\n",time_loop,nprocs);
     if (logfile)
       fprintf(logfile,
-	      "Loop time of %g on %d procs\n",time_loop,nprocs);
+              "Loop time of %g on %d procs\n",time_loop,nprocs);
   }
 
   if (flag == 0) return;
@@ -67,9 +67,9 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   MPI_Allreduce(&time,&tmp,1,MPI_DOUBLE,MPI_SUM,world);
   time = tmp/nprocs;
   if (me == 0) {
-    if (screen) 
+    if (screen)
       fprintf(screen,"Solve time (%%) = %g (%g)\n",time,time/time_loop*100.0);
-    if (logfile) 
+    if (logfile)
       fprintf(logfile,"Solve time (%%) = %g (%g)\n",time,time/time_loop*100.0);
   }
 
@@ -77,9 +77,9 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   MPI_Allreduce(&time,&tmp,1,MPI_DOUBLE,MPI_SUM,world);
   time = tmp/nprocs;
   if (me == 0) {
-    if (screen) 
+    if (screen)
       fprintf(screen,"Update time (%%) = %g (%g)\n",time,time/time_loop*100.0);
-    if (logfile) 
+    if (logfile)
       fprintf(logfile,"Update time (%%) = %g (%g)\n",time,time/time_loop*100.0);
   }
 
@@ -87,9 +87,9 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   MPI_Allreduce(&time,&tmp,1,MPI_DOUBLE,MPI_SUM,world);
   time = tmp/nprocs;
   if (me == 0) {
-    if (screen) 
+    if (screen)
       fprintf(screen,"Comm  time (%%) = %g (%g)\n",time,time/time_loop*100.0);
-    if (logfile) 
+    if (logfile)
       fprintf(logfile,"Comm  time (%%) = %g (%g)\n",time,time/time_loop*100.0);
   }
 
@@ -97,9 +97,9 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   MPI_Allreduce(&time,&tmp,1,MPI_DOUBLE,MPI_SUM,world);
   time = tmp/nprocs;
   if (me == 0) {
-    if (screen) 
+    if (screen)
       fprintf(screen,"Outpt time (%%) = %g (%g)\n",time,time/time_loop*100.0);
-    if (logfile) 
+    if (logfile)
       fprintf(logfile,"Outpt time (%%) = %g (%g)\n",time,time/time_loop*100.0);
   }
 
@@ -107,9 +107,9 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   MPI_Allreduce(&time,&tmp,1,MPI_DOUBLE,MPI_SUM,world);
   time = tmp/nprocs;
   if (me == 0) {
-    if (screen) 
+    if (screen)
       fprintf(screen,"App   time (%%) = %g (%g)\n",time,time/time_loop*100.0);
-    if (logfile) 
+    if (logfile)
       fprintf(logfile,"App   time (%%) = %g (%g)\n",time,time/time_loop*100.0);
   }
 
@@ -117,18 +117,18 @@ Finish::Finish (SPPARKS *spk, int flag) : Pointers(spk)
   MPI_Allreduce(&time,&tmp,1,MPI_DOUBLE,MPI_SUM,world);
   time = tmp/nprocs;
   if (me == 0) {
-    if (screen) 
+    if (screen)
       fprintf(screen,"Other time (%%) = %g (%g)\n",time,time/time_loop*100.0);
-    if (logfile) 
+    if (logfile)
       fprintf(logfile,"Other time (%%) = %g (%g)\n",time,time/time_loop*100.0);
   }
 }
 
 /* ---------------------------------------------------------------------- */
 
-void Finish::stats(int n, double *data, 
-		   double *pave, double *pmax, double *pmin,
-		   int nhisto, int *histo)
+void Finish::stats(int n, double *data,
+                   double *pave, double *pmax, double *pmin,
+                   int nhisto, int *histo)
 {
   int i,m;
   int *histotmp;
@@ -163,7 +163,7 @@ void Finish::stats(int n, double *data,
   }
 
   histotmp = (int *) memory->smalloc(nhisto*sizeof(int),
-					  "finish:histotmp");
+                                          "finish:histotmp");
   MPI_Allreduce(histo,histotmp,nhisto,MPI_INT,MPI_SUM,world);
   for (i = 0; i < nhisto; i++) histo[i] = histotmp[i];
   memory->sfree(histotmp);

@@ -26,5 +26,5 @@ contains
     call amrex_filccn(con_lo, con_hi, con, con_lo, con_hi, 1, domlo, domhi, delta, xlo, bc)
 
   end subroutine confill
-  
+
 end module bc_fill_module

@@ -37,7 +37,6 @@ namespace multispec {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_1;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_2;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_3;
-  
     extern int                        midpoint_stoch_mass_flux_type;
     extern AMREX_GPU_MANAGED int      avg_type;
     extern AMREX_GPU_MANAGED int      mixture_type;

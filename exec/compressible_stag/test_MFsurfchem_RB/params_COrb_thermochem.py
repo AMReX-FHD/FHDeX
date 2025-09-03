@@ -1,7 +1,7 @@
 import math
 
 # NIST Chemistry WebBook, SRD 69
-# CO (carbon monoxide): 
+# CO (carbon monoxide):
 # https://webbook.nist.gov/cgi/cbook.cgi?ID=C630080&Mask=1
 # Cp0 = heat capacity (J/mol*K)
 # H0 = standard enthalpy (kJ/mol)
@@ -36,7 +36,7 @@ def compute_thermochem_CO(temp):
     Cp = A + B*t + C*t**2 + D*t**3 + E/t**2
     H = A*t + B*t**2/2 + C*t**3/3 + D*t**4/4 - E/t + F
     S = A*math.log(t) + B*t + C*t**2/2 + D*t**3/3 - E/2/t**2 + G
-    
+
     return [Cp,H,S]
 
 # constants in cgs units
@@ -45,11 +45,11 @@ kB = 1.38064852e-16         # Boltzmann constant
 Navo = 6.0221409e23         # Avogadro constant
 
 # state
-Temp = 1000. 
+Temp = 1000.
 p_atm = 1.
 
 print("Temp=  \t%f" % Temp)
-print("p(atm)=\t%f\n" % p_atm) 
+print("p(atm)=\t%f\n" % p_atm)
 
 # molecular weight
 MCO = 28.0101

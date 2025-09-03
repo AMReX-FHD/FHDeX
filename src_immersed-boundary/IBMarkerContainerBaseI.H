@@ -72,7 +72,7 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
         f_weights[d].setVal(-1.0);
     }
 
-    
+
 }
 
 template <typename StructReal, typename StructInt>
@@ -96,7 +96,7 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
         f_weights[d].setVal(-1.0);
     }
 
-   
+
 }
 
 
@@ -144,7 +144,7 @@ template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             int lev, const Real * dx,
                   std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-            const std::array<MultiFab, AMREX_SPACEDIM> & coords) 
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords)
 {
     // timer for profiling
     BL_PROFILE_VAR("RFD()",RFD);
@@ -156,27 +156,27 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-	PairIndex index(pti.index(), pti.LocalTileIndex());
+        PairIndex index(pti.index(), pti.LocalTileIndex());
         const int np = this->GetParticles(lev)[index].numRealParticles();
-	auto& plev = this->GetParticles(lev);
-	auto& ptile = plev[index];
-	auto& aos   = ptile.GetArrayOfStructs();
-	ParticleType* particles = aos().dataPtr();
+        auto& plev = this->GetParticles(lev);
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        ParticleType* particles = aos().dataPtr();
 
-	amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+        amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
         {
             ParticleType & part = particles[i];
             int pinned = 0;
             if(HAS_PINNED)
             {
-                pinned = part.idata(StructInt::pinned);        
+                pinned = part.idata(StructInt::pinned);
             }
             if(pinned==0)
             {
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // using pred_pos to temporarily store the random direction -
                     // hopefully this doesn't cause problems elsewhere
-    //                part.rdata(StructReal::pred_posx + d) =  get_particle_normal_func();
+//                part.rdata(StructReal::pred_posx + d) =  get_particle_normal_func();
                     part.rdata(StructReal::pred_posx + d) = amrex::RandomNormal(0.,1.,engine);
 
                     // move particle to q^n + (dt/2) * Wtilde
@@ -211,7 +211,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             int pinned = 0;
             if(HAS_PINNED)
             {
-                pinned = part.idata(StructInt::pinned);        
+                pinned = part.idata(StructInt::pinned);
             }
             if(pinned==0)
             {
@@ -249,7 +249,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             int pinned = 0;
             if(HAS_PINNED)
             {
-                pinned = part.idata(StructInt::pinned);        
+                pinned = part.idata(StructInt::pinned);
             }
             if(pinned==0)
             {
@@ -272,27 +272,27 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
 
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM) 
+void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 {
     // timer for profiling
     BL_PROFILE_VAR("initRankLists()",initRankLists);
 
-    totalMarkers = totalM; 
+    totalMarkers = totalM;
 
     ranksIdSorted.resize(totalMarkers, 0);
     idsRankSorted.resize(totalMarkers, 0);
     rankTotals.resize(ParallelDescriptor::NProcs(), 0);
-    
+
     const int lev = 0;
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-	PairIndex index(pti.index(), pti.LocalTileIndex());
-	const int np = this->GetParticles(lev)[index].numRealParticles();
-	auto& plev = this->GetParticles(lev);
-	auto& ptile = plev[index];
-	auto& aos   = ptile.GetArrayOfStructs();
-	ParticleType* particles = aos().dataPtr();
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+        auto& plev = this->GetParticles(lev);
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        ParticleType* particles = aos().dataPtr();
 
         // THIS DOES NOT COMPILE WITH CUDA?
         for(int i=0; i<np;i++)
@@ -323,12 +323,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 
 
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename) 
+void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename)
 {
     // timer for profiling
     BL_PROFILE_VAR("initRankLists()",initRankLists);
 
-    totalPinnedMarkers = totalP; 
+    totalPinnedMarkers = totalP;
 
     pinMatrix.resize(pow(3*totalP,2),0);
 
@@ -438,7 +438,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
 
 //Find a more efficient way to do this...
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion() 
+void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
 {
    // Print() << "inv1, " << totalMarkers;
     Real velx[totalMarkers];
@@ -454,7 +454,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
     PullDown(0, velz, StructReal::velz, totalMarkers);
     PullDownInt(0, pinned, StructInt::pinned, totalMarkers);
   //  Print() << "inv2\n";
-    
+
     Real rhs[totalPinnedMarkers*3];
     Real lhs[totalPinnedMarkers*3];
     int k = 0;
@@ -535,7 +535,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
-            int lev, Real * list, int element, int totalParticles) 
+            int lev, Real * list, int element, int totalParticles)
 {
     // timer for profiling
     BL_PROFILE_VAR("PullDown()",PullDown);
@@ -604,7 +604,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
     // // Vectorized parallel reduce:
     // ParallelDescriptor::ReduceRealSum(std::move(tmp)); // Ask Weiqun why tmp needs to be &&?
     //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 3\n";
-    
+
 }
 
 
@@ -639,10 +639,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 ) {
     // timer for profiling
     BL_PROFILE_VAR("PullDown()", PullDown);
-    
+
 //    Gpu::ManagedDeviceVector<int> cpu_offset;
 //    Gpu::ManagedDeviceVector<int> cpu_offset;
-    
+
     int * cpu_offset_ptr = cpu_offset.data();
     Real * list_ptr      = list.data();
 
@@ -686,7 +686,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
-            int lev, int * list, int element, int totalParticles) 
+            int lev, int * list, int element, int totalParticles)
 {
     // timer for profiling
     BL_PROFILE_VAR("PullDownInt()",PullDownInt);
@@ -755,7 +755,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 ) {
     // timer for profiling
     BL_PROFILE_VAR("PullDownInt()", PullDownInt);
-    
+
     int * cpu_offset_ptr = cpu_offset.data();
     int * list_ptr       = list.data();
 
@@ -804,7 +804,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
-            int lev, Real * list, int element, int totalParticles) 
+            int lev, Real * list, int element, int totalParticles)
 {
     // timer for profiling
     BL_PROFILE_VAR("PushUpAdd()",PushUpAdd);
@@ -850,7 +850,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
         } else {
 
             AMREX_FOR_1D( np, i,
-            { 
+            {
                 ParticleType & part = particles[i];
                 int id = part.id();
 
@@ -863,7 +863,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
 
 
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::ResetMarkers(int lev) 
+void IBMarkerContainerBase<StructReal, StructInt>::ResetMarkers(int lev)
 {
     // timer for profiling
     BL_PROFILE_VAR("ResetMarkers()",ResetMarkers);
@@ -983,7 +983,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
                   std::array<      FArrayBox *, AMREX_SPACEDIM> & f_out,
                   std::array<      FArrayBox *, AMREX_SPACEDIM> & f_weights,
             const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
-            const Real* dx, int ghost) 
+            const Real* dx, int ghost)
 {
     // timer for profiling
     BL_PROFILE_VAR("SpreadMarkers()",SpreadMarkers);
@@ -994,7 +994,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
     for (int i=0; i<1; ++i) {
         pkernel_fluid_in[i] = pkernel_fluid[i];
     }
-    
+
     // Convert stagered boxes into cell centered
     Box bx = enclosedCells(f_out[0]->box());
 
@@ -1070,7 +1070,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
 //    const int pk = pkernel_fluid;
     int ng = *nghost;
     Real* norm_ptr = norm_es.data();
-    
+
     AMREX_FOR_1D( Np, ip,
     {
         const ParticleType& p = pstruct[ip];
@@ -1100,7 +1100,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
         {
             gs = static_cast<int>(floor(eskernel_fluid[p.idata(StructInt::species)-1]*0.5)+1);
         }
-	//Print() << "gs for spreading is " << gs << "\n";
+        //Print() << "gs for spreading is " << gs << "\n";
 
         if (ng == 0)
         {
@@ -1148,7 +1148,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_x(i,j,k,2))*invdx[2];
-		      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -1169,11 +1169,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
-			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
                             weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                          }
-   
+
                       }
 
                       //std::cout << "Adding " << p.rdata(StructReal::forcex + 0) << ", " << weight*invvol << std::endl;
@@ -1191,7 +1191,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_y(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_y(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];
-		      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -1212,15 +1212,15 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
-			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
                             weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                          }
                       }
 
-                      
 
-                     amrex::Gpu::Atomic::Add(&fout_y(i,j,k), p.rdata(StructReal::forcex + 1)*weight*invvol);
+
+                      amrex::Gpu::Atomic::Add(&fout_y(i,j,k), p.rdata(StructReal::forcex + 1)*weight*invvol);
                       amrex::Gpu::Atomic::Add(&fweights_y(i,j,k), weight);
                     }
                 }
@@ -1234,7 +1234,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_z(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_z(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_z(i,j,k,2))*invdx[2];
-		      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -1255,22 +1255,22 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
-			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
                             weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                          }
-		      }
+                      }
 
-                      
 
-                     amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
+
+                      amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
                       amrex::Gpu::Atomic::Add(&fweights_z(i,j,k), weight);
                     }
                 }
             }
         }
     });
-}   
+}
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkersGpu(
@@ -1286,7 +1286,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkersGpu(
 
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
-        
+
         auto& particle_tile = this->GetParticles(lev).at(std::make_pair(grid_id,tile_id));
         const auto& particles = particle_tile.GetArrayOfStructs();
 
@@ -1329,7 +1329,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
 
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
-        
+
         auto& particle_tile = this->GetParticles(lev).at(std::make_pair(grid_id,tile_id));
         auto& particles = particle_tile.GetArrayOfStructs();
 
@@ -1354,7 +1354,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
 
     checkR = rejected_proc;
 }
- 
+
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
             int lev,
@@ -1368,7 +1368,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
 
     if (check)
     {
-       amrex::Print() << "Particles out of bound in InterpolateKernelGpu" << std::endl; 
+       amrex::Print() << "Particles out of bound in InterpolateKernelGpu" << std::endl;
     }
 }
 
@@ -1586,45 +1586,45 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
     }
 
     interpolate_markers(BL_TO_FORTRAN_BOX(bx),
-                        BL_TO_FORTRAN_BOX(tile_box),
-                        BL_TO_FORTRAN_ANYD(* f_in[0]),
+                       BL_TO_FORTRAN_BOX(tile_box),
+                       BL_TO_FORTRAN_ANYD(* f_in[0]),
 #if (AMREX_SPACEDIM > 1)
-                        BL_TO_FORTRAN_ANYD(* f_in[1]),
+                       BL_TO_FORTRAN_ANYD(* f_in[1]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-                        BL_TO_FORTRAN_ANYD(* f_in[2]),
+                       BL_TO_FORTRAN_ANYD(* f_in[2]),
 #endif
-                        BL_TO_FORTRAN_ANYD(* f_weights[0]),
+                       BL_TO_FORTRAN_ANYD(* f_weights[0]),
 #if (AMREX_SPACEDIM > 1)
-                        BL_TO_FORTRAN_ANYD(* f_weights[1]),
+                       BL_TO_FORTRAN_ANYD(* f_weights[1]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-                        BL_TO_FORTRAN_ANYD(* f_weights[2]),
+                       BL_TO_FORTRAN_ANYD(* f_weights[2]),
 #endif
-                        BL_TO_FORTRAN_ANYD(* coords[0]),
+                       BL_TO_FORTRAN_ANYD(* coords[0]),
 #if (AMREX_SPACEDIM > 1)
-                        BL_TO_FORTRAN_ANYD(* coords[1]),
+                       BL_TO_FORTRAN_ANYD(* coords[1]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-                        BL_TO_FORTRAN_ANYD(* coords[2]),
+                       BL_TO_FORTRAN_ANYD(* coords[2]),
 #endif
-                        f_pos.dataPtr(),
-                        f_out.dataPtr(),
-                        & n_marker,
-                        dx,
-                        pkernel_fluid_in.dataPtr() );
+                       f_pos.dataPtr(),
+                       f_out.dataPtr(),
+                       & n_marker,
+                       dx,
+                       pkernel_fluid_in.dataPtr() );
 
 }
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos,
-         const Box& bx, 
-         const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_in, 
-         const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_weights, 
-         const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords, 
-         const Real* dx, 
+         const Box& bx,
+         const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_in,
+         const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_weights,
+         const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+         const Real* dx,
          const int* nghost,
-         int& check)  
+         int& check)
 {
     // timer for profiling
     BL_PROFILE_VAR("InterpolateKernelGpu()",InterpolateKernelGpu);
@@ -1710,7 +1710,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         {
             gs = static_cast<int>(floor(eskernel_fluid[p.idata(StructInt::species)-1]*0.5)+1);
         }
-	//Print() << "gs for interpolating is " << gs << "\n";
+        //Print() << "gs for interpolating is " << gs << "\n";
 
 //        if (ng == 0) //this condition isn't in the Fortan version? -DRL
 //        {
@@ -1766,8 +1766,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         p.rdata(StructReal::velx + 2) = 0;
         //std::cout << "SUCCESS\n";
         double wSum = 0;
-        
-	//std::cout << "normalization factor " << 1 << " are " << norm_es[1] << std::endl;
+
+        //std::cout << "normalization factor " << 1 << " are " << norm_es[1] << std::endl;
         // x-components
         for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
             for (int j = lo_dim[1] ; j < hi_dim[1]; ++j) {
@@ -1777,7 +1777,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
                   pos_grid[2]=(p.pos(2)-coords_x(i,j,k,2))*invdx[2];
-		  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)
@@ -1798,12 +1798,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
                      }
-		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
                         weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
-		        //Print() << "weight is " << weight << "\n";
+                        //Print() << "weight is " << weight << "\n";
                      }
-		  }
+                  }
 
                   Real wfrac = 1.0;
                   if (fweights_x(i,j,k) > 0)
@@ -1814,7 +1814,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   {
                      wfrac = 1.0;
                   }
-                  
+
                   wSum += weight;
 
                   p.rdata(StructReal::velx + 0) += fin_x(i,j,k)*wfrac*weight;
@@ -1832,8 +1832,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   Real pos_grid[3];
                   pos_grid[0]=(p.pos(0)-coords_y(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_y(i,j,k,1))*invdx[1];
-                  pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];  
-		  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                  pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];
+                  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)
@@ -1854,7 +1854,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
                      }
-		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
                         weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                      }
@@ -1869,9 +1869,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   {
                      wfrac = 1.0;
                   }
-                  
-		  
-                  p.rdata(StructReal::velx + 1) += fin_y(i,j,k)*wfrac*weight; 
+
+
+                  p.rdata(StructReal::velx + 1) += fin_y(i,j,k)*wfrac*weight;
                 }
             }
         }
@@ -1884,7 +1884,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   pos_grid[0]=(p.pos(0)-coords_z(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_z(i,j,k,1))*invdx[1];
                   pos_grid[2]=(p.pos(2)-coords_z(i,j,k,2))*invdx[2];
-		  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)
@@ -1905,10 +1905,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
                      }
-		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
                         weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
-                     } 
+                     }
                   }
 
                   Real wfrac = 1.0;
@@ -1921,7 +1921,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      wfrac = 1.0;
                   }
 
-                  p.rdata(StructReal::velx + 2) += fin_z(i,j,k)*wfrac*weight; 
+                  p.rdata(StructReal::velx + 2) += fin_z(i,j,k)*wfrac*weight;
                 }
             }
         }
@@ -2332,7 +2332,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
 
     const Geometry & geom = this->Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
-   
+
     norm_es.resize(common::nspecies);
     for (int i=0; i<common::nspecies; ++i) {
         norm_es[i] = integrate_es(
@@ -2355,7 +2355,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
 //        // Allow user to overwrite
 //        pp.query("do_tiling",  this->do_tiling);
 //#endif
-        
+
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)
         if (this->do_tiling)
@@ -2383,7 +2383,7 @@ Real IBMarkerContainerBase<StructReal, StructInt>::integrate_es(Real beta_in, in
     Real w = static_cast<Real>(w_in);
     int nbin = 100;
     Real dxi = w/nbin;
-    Real integral = 0.0; 
+    Real integral = 0.0;
 
     // mid-point rule for integration
     for (int i = 0; i < nbin; i++) {

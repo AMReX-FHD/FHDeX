@@ -37,7 +37,7 @@ void AdvanceReaction(MultiFab& n_old,
         // calculate rates
         // rates could be deterministic or stochastic depending on reaction_type
         ChemicalRates(n_old,rate,geom,dt,n_old,mattingly_lin_comb_coef,volume_factor);
-        
+
         MultiFab::LinComb(n_new,1,n_old,0,dt,rate,0,0,nspecies,0);
         MultiFab::Saxpy(n_new,-dt,ext_src,0,0,nspecies,0); //note the negative sign
 
@@ -61,14 +61,14 @@ void AdvanceReaction(MultiFab& n_old,
 
         // update
         MultiFab::LinComb(n_new,1,n_old,0,theta*dt,rate,0,0,nspecies,0);
-        MultiFab::Saxpy(n_new,-theta*dt,ext_src,0,0,nspecies,0); //note the negative sign 
+        MultiFab::Saxpy(n_new,-theta*dt,ext_src,0,0,nspecies,0); //note the negative sign
         n_new.FillBoundary(geom.periodicity());
         MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
 
         //!!!!!!!!!!!!!!
         // corrector   !
         //!!!!!!!!!!!!!!
-      
+
         // Here we write this in the form that Mattingly et al do
         //  where we just continue the second half of the time step from where we left
 
@@ -81,11 +81,11 @@ void AdvanceReaction(MultiFab& n_old,
         // update
         MultiFab::Saxpy(n_new,(1.-theta)*dt,rate,0,0,nspecies,0);
         // note the negative sign
-        // also note that ext_src does not change in the time interval (t,t+dt) 
+        // also note that ext_src does not change in the time interval (t,t+dt)
         MultiFab::Saxpy(n_new,-(1.-theta)*dt*(alpha1-alpha2),ext_src,0,0,nspecies,0);
         n_new.FillBoundary(geom.periodicity());
         MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
-        
+
     } else {
         Abort("AdvanceReaction() - invalid reactDiff_reaction_type");
     }

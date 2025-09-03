@@ -83,18 +83,18 @@ public:
                        const int& reset=0);
 
     void Reset();
-    
+
     void ComputeFFT(const amrex::MultiFab&, amrex::MultiFab&,
                     amrex::MultiFab&,
                     bool unpack=true);
 
     void WritePlotFile(const int, const amrex::Real, std::string, const int& zero_avg=1);
-    
+
     void Finalize(amrex::MultiFab&, amrex::MultiFab&,
                   const int& zero_avg=1);
 
     void CallFinalize(const int& zero_avg=1);
-    
+
     void ShiftFFT(amrex::MultiFab&,
                   const int& zero_avg=1);
 

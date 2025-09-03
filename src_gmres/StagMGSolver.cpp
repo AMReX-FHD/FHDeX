@@ -10,13 +10,13 @@ void StagMGSolver::Define(const BoxArray& ba_in,
                           const Geometry& geom_in) {
 
     BL_PROFILE_VAR("StagMGSolver::Define()",StagMGSolver_Define);
-    
+
     // get the problem domain and boxarray at level 0
     pd_base = geom_in.Domain();
     ba_base = ba_in;
-    
-    dmap = dmap_in;    
-    
+
+    dmap = dmap_in;
+
     // compute the number of multigrid levels assuming stag_mg_minwidth is the length of the
     // smallest dimension of the smallest grid at the coarsest multigrid level
     nlevs_mg = ComputeNlevsMG(ba_base);
@@ -39,15 +39,15 @@ void StagMGSolver::Define(const BoxArray& ba_in,
     geom_mg.resize(nlevs_mg);
 
     const Real* dx = geom_in.CellSize();
-    
+
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-    
+
     Vector<int> is_periodic(AMREX_SPACEDIM);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         is_periodic[i] = geom_in.isPeriodic(i);
     }
-    
+
     for (int n=0; n<nlevs_mg; ++n) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // compute dx at this level of multigrid
@@ -69,14 +69,14 @@ void StagMGSolver::Define(const BoxArray& ba_in,
         }
 
         // build multifabs used in multigrid coarsening
-         beta_cc_mg[n].define(ba, dmap, 1, 1);
+        beta_cc_mg[n].define(ba, dmap, 1, 1);
         gamma_cc_mg[n].define(ba, dmap, 1, 1);
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             alpha_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-              rhs_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-              phi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-             Lphi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+            rhs_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+            phi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+            Lphi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
             resid_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
 
             // Put in to fix FPE traps
@@ -94,7 +94,7 @@ void StagMGSolver::Define(const BoxArray& ba_in,
                 beta_ed_mg[n][d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 0);
         }
     } // end loop over multigrid levels
-    
+
 }
 
 
@@ -141,7 +141,7 @@ void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         alpha_fc_mg[0][d].mult(theta_alpha,0,1,0);
     }
 
-    MultiFab::Copy(    beta_ed_mg[0][0], beta_ed[0], 0, 0, 1, 0);
+    MultiFab::Copy(beta_ed_mg[0][0], beta_ed[0], 0, 0, 1, 0);
     if (AMREX_SPACEDIM == 3) {
         MultiFab::Copy(beta_ed_mg[0][1], beta_ed[1], 0, 0, 1, 0);
         MultiFab::Copy(beta_ed_mg[0][2], beta_ed[2], 0, 0, 1, 0);
@@ -151,13 +151,13 @@ void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
     for (n=1; n<nlevs_mg; ++n) {
         // need ghost cells set to zero to prevent intermediate NaN states
         // that cause some compilers to fail
-         beta_cc_mg[n].setVal(0.);
+        beta_cc_mg[n].setVal(0.);
         gamma_cc_mg[n].setVal(0.);
 
         // cc_restriction on beta_cc_mg and gamma_cc_mg
         // NOTE: CCRestriction calls FillBoundary
 
-        CCRestriction( beta_cc_mg[n],  beta_cc_mg[n-1], geom_mg[n]);
+        CCRestriction(beta_cc_mg[n],  beta_cc_mg[n-1], geom_mg[n]);
         CCRestriction(gamma_cc_mg[n], gamma_cc_mg[n-1], geom_mg[n]);
 
         // stag_restriction on alpha_fc_mg
@@ -616,7 +616,7 @@ void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     Print() << "resid/resid0 " << d << " " << resid[d] << std::endl;
                 }
             }
-	    break;
+            break;
         }
 
         if (vcycle == stag_mg_max_vcycles) {
@@ -659,7 +659,7 @@ void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 // compute the number of multigrid levels assuming minwidth is the length of the
 // smallest dimension of the smallest grid at the coarsest multigrid level
 int StagMGSolver::ComputeNlevsMG(const BoxArray& ba) {
-    
+
     BL_PROFILE_VAR("ComputeNlevsMG()",ComputeNlevsMG);
 
     int nlevs_mg = -1;
@@ -748,7 +748,7 @@ void StagMGSolver::StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c
 
         if (simple_stencil == 0) {
 
-#if (AMREX_SPACEDIM == 2)            
+#if (AMREX_SPACEDIM == 2)
             amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 phix_c_fab(i,j,k) = 0.25*( phix_f_fab(2*i  ,2*j,k) + phix_f_fab(2*i  ,2*j+1,k))
@@ -793,7 +793,7 @@ void StagMGSolver::StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c
         }
         else if (simple_stencil == 1) {
 
-#if (AMREX_SPACEDIM == 2)            
+#if (AMREX_SPACEDIM == 2)
             amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 phix_c_fab(i,j,k) = 0.5*(phix_f_fab(2*i,2*j,k) + phix_f_fab(2*i,2*j+1,k));
@@ -918,7 +918,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             int joff = pow(-1,j%2+1);
-            
+
             if (i%2 == 0) {
                 // linear interpolation
                 phix_f(i,j,k) = phix_f(i,j,k)
@@ -936,7 +936,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             int ioff = pow(-1,i%2+1);
-            
+
             if (j%2 == 0) {
                 // linear interpolation
                 phiy_f(i,j,k) = phiy_f(i,j,k)
@@ -960,7 +960,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         Real nine32 = 9./32.;
         Real three32 = 3./32.;
         Real one32 = 1./32.;
-    
+
         amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
@@ -989,7 +989,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         },
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            
+
             int ioff = pow(-1,i%2+1);
             int koff = pow(-1,k%2+1);
 
@@ -1015,7 +1015,7 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         },
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            
+
             int ioff = pow(-1,i%2+1);
             int joff = pow(-1,j%2+1);
 
@@ -1061,8 +1061,8 @@ void stag_mg_update_visc_p1 (Box const& tbx,
                              AMREX_D_DECL(Array4<Real const> const& alphax,
                                           Array4<Real const> const& alphay,
                                           Array4<Real const> const& alphaz),
-			     Array4<Real const> const& beta,
-			     Array4<Real const> const& gamma,
+                             Array4<Real const> const& beta,
+                             Array4<Real const> const& gamma,
                              AMREX_D_DECL(bool do_x,
                                           bool do_y,
                                           bool do_z),
@@ -1105,9 +1105,9 @@ void stag_mg_update_visc_p1 (Box const& tbx,
         for (int k = xlo.z; k <= xhi.z; ++k) {
         for (int j = xlo.y; j <= xhi.y; ++j) {
         ioff = 0;
-	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+        if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
             fac = alphax(i,j,k) + 2.*AMREX_SPACEDIM*beta(i,j,k) * dxsqinv;
@@ -1123,8 +1123,8 @@ void stag_mg_update_visc_p1 (Box const& tbx,
         for (int j = ylo.y; j <= yhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
             fac = alphay(i,j,k) + 2.*AMREX_SPACEDIM*beta(i,j,k) * dxsqinv;
@@ -1141,8 +1141,8 @@ void stag_mg_update_visc_p1 (Box const& tbx,
         for (int j = zlo.y; j <= zhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
             fac = alphaz(i,j,k) + 2.*AMREX_SPACEDIM*beta(i,j,k) * dxsqinv;
@@ -1221,9 +1221,9 @@ void stag_mg_update_visc_m1 (Box const& tbx,
         for (int k = xlo.z; k <= xhi.z; ++k) {
         for (int j = xlo.y; j <= xhi.y; ++j) {
         ioff = 0;
-	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+        if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
 
@@ -1247,8 +1247,8 @@ void stag_mg_update_visc_m1 (Box const& tbx,
         for (int j = ylo.y; j <= yhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
 
@@ -1274,8 +1274,8 @@ void stag_mg_update_visc_m1 (Box const& tbx,
         for (int j = zlo.y; j <= zhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
 
@@ -1312,8 +1312,8 @@ void stag_mg_update_visc_p2 (Box const& tbx,
                              AMREX_D_DECL(Array4<Real const> const& alphax,
                                           Array4<Real const> const& alphay,
                                           Array4<Real const> const& alphaz),
-			     Array4<Real const> const& beta,
-			     Array4<Real const> const& gamma,
+                             Array4<Real const> const& beta,
+                             Array4<Real const> const& gamma,
                              AMREX_D_DECL(bool do_x,
                                           bool do_y,
                                           bool do_z),
@@ -1356,9 +1356,9 @@ void stag_mg_update_visc_p2 (Box const& tbx,
         for (int k = xlo.z; k <= xhi.z; ++k) {
         for (int j = xlo.y; j <= xhi.y; ++j) {
         ioff = 0;
-	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+        if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
             fac = alphax(i,j,k) + 2.*(1.+AMREX_SPACEDIM)*beta(i,j,k) * dxsqinv;
@@ -1374,8 +1374,8 @@ void stag_mg_update_visc_p2 (Box const& tbx,
         for (int j = ylo.y; j <= yhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
             fac = alphay(i,j,k) + 2.*(1.+AMREX_SPACEDIM)*beta(i,j,k) * dxsqinv;
@@ -1392,8 +1392,8 @@ void stag_mg_update_visc_p2 (Box const& tbx,
         for (int j = zlo.y; j <= zhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
             fac = alphaz(i,j,k) + 2.*(1.+AMREX_SPACEDIM)*beta(i,j,k) * dxsqinv;
@@ -1472,9 +1472,9 @@ void stag_mg_update_visc_m2 (Box const& tbx,
         for (int k = xlo.z; k <= xhi.z; ++k) {
         for (int j = xlo.y; j <= xhi.y; ++j) {
         ioff = 0;
-	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+        if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
             fac = alphax(i,j,k) +
@@ -1496,8 +1496,8 @@ void stag_mg_update_visc_m2 (Box const& tbx,
         for (int j = ylo.y; j <= yhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
             fac = alphay(i,j,k) +
@@ -1520,8 +1520,8 @@ void stag_mg_update_visc_m2 (Box const& tbx,
         for (int j = zlo.y; j <= zhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
             fac = alphaz(i,j,k) +
@@ -1555,8 +1555,8 @@ void stag_mg_update_visc_p3 (Box const& tbx,
                              AMREX_D_DECL(Array4<Real const> const& alphax,
                                           Array4<Real const> const& alphay,
                                           Array4<Real const> const& alphaz),
-			     Array4<Real const> const& beta,
-			     Array4<Real const> const& gamma,
+                             Array4<Real const> const& beta,
+                             Array4<Real const> const& gamma,
                              AMREX_D_DECL(bool do_x,
                                           bool do_y,
                                           bool do_z),
@@ -1600,9 +1600,9 @@ void stag_mg_update_visc_p3 (Box const& tbx,
         for (int k = xlo.z; k <= xhi.z; ++k) {
         for (int j = xlo.y; j <= xhi.y; ++j) {
         ioff = 0;
-	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+        if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
             fac = alphax(i,j,k)+(fac2*beta(i,j,k)+2.*gamma(i,j,k)) * dxsqinv;
@@ -1618,8 +1618,8 @@ void stag_mg_update_visc_p3 (Box const& tbx,
         for (int j = ylo.y; j <= yhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
             fac = alphay(i,j,k)+(fac2*beta(i,j,k)+2.*gamma(i,j,k)) * dxsqinv;
@@ -1636,8 +1636,8 @@ void stag_mg_update_visc_p3 (Box const& tbx,
         for (int j = zlo.y; j <= zhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
             fac = alphaz(i,j,k)+(fac2*beta(i,j,k)+2.*gamma(i,j,k)) * dxsqinv;
@@ -1718,9 +1718,9 @@ void stag_mg_update_visc_m3 (Box const& tbx,
         for (int k = xlo.z; k <= xhi.z; ++k) {
         for (int j = xlo.y; j <= xhi.y; ++j) {
         ioff = 0;
-	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+        if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
 
@@ -1745,8 +1745,8 @@ void stag_mg_update_visc_m3 (Box const& tbx,
         for (int j = ylo.y; j <= yhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
 
@@ -1772,8 +1772,8 @@ void stag_mg_update_visc_m3 (Box const& tbx,
         for (int j = zlo.y; j <= zhi.y; ++j) {
         ioff = 0;
         if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
-	  ioff = 1;
-	}
+          ioff = 1;
+        }
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
 
@@ -1810,7 +1810,7 @@ void StagMGSolver::StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
 
     if (color == 0) {
         AMREX_D_TERM(do_x = true;,
-                     do_y = true,;
+                     do_y = true;,
                      do_z = true;);
 
     }
@@ -1888,7 +1888,7 @@ void StagMGSolver::StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                                        AMREX_D_DECL(rhsx_fab,rhsy_fab,rhsz_fab),
                                        AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
                                        AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
-				       beta_cc_fab, gamma_cc_fab,
+                                       beta_cc_fab, gamma_cc_fab,
                                        AMREX_D_DECL(do_x,do_y,do_z),
                                        offset, color, omega, dx_gpu);
             });
@@ -1921,7 +1921,7 @@ void StagMGSolver::StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                                        AMREX_D_DECL(rhsx_fab,rhsy_fab,rhsz_fab),
                                        AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
                                        AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
-				       beta_cc_fab, gamma_cc_fab,
+                                       beta_cc_fab, gamma_cc_fab,
                                        AMREX_D_DECL(do_x,do_y,do_z),
                                        offset, color, omega, dx_gpu);
             });
@@ -1953,7 +1953,7 @@ void StagMGSolver::StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                                        AMREX_D_DECL(rhsx_fab,rhsy_fab,rhsz_fab),
                                        AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
                                        AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
-				       beta_cc_fab, gamma_cc_fab,
+                                       beta_cc_fab, gamma_cc_fab,
                                        AMREX_D_DECL(do_x,do_y,do_z),
                                        offset, color, omega, dx_gpu);
             });

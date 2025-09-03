@@ -115,7 +115,7 @@ print "drho2sq = %e" % drho2sq
 print "drho3sq = %e" % drho3sq
 print "drho4sq = %e" % drho4sq
 print "djasq = %e" % djasq
-print 
+print
 
 print "drhosq*dV = %e" % (drhosq*dV)
 print "drho1sq*dV = %e" % (drho1sq*dV)

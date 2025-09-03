@@ -8,11 +8,11 @@
 // Note for wall-wall corners, the folding is also done in ghost cells so we get
 // corner charges back in.
 void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
-    
+
     BL_PROFILE_VAR("MultiFabPhysBCCharge()",MultiFabPhysBCCharge);
-    
+
 #if (AMREX_SPACEDIM >= 2)
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -29,9 +29,9 @@ void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
 
         //___________________________________________________________________________
         // Apply x-physbc to data
-        
+
         // bc_es check is to see if we have a physical boundary condition
-        // bx/dom comparison is to see if the grid touches a wall 
+        // bx/dom comparison is to see if the grid touches a wall
         if ((bc_es_lo[0] == 1 || bc_es_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
             const Real fac = (bc_es_lo[0] == 1) ? -1. : 1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -98,7 +98,7 @@ void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
             });
         }
 #endif
-        
+
     } // end MFIter
 }
 
@@ -109,11 +109,11 @@ void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
 // 1 =    slip -> leave value on wall alone, add in force from ghost
 // 2 = no slip -> set value on wall to zero, add in negative force from ghost cells
 void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim) {
-    
+
     BL_PROFILE_VAR("ultiFabPhysBCDomainStress()",ultiFabPhysBCDomainStress);
-    
+
 #if (AMREX_SPACEDIM >= 2)
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -130,9 +130,9 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
 
         //___________________________________________________________________________
         // Apply x-physbc to data
-        
+
         if (dim == 0) {
-        
+
             // dim == 0 means we are doing x-stress on x-faces
             // bc_vel check is to see if we have a wall bc
             // bx/dom comparison is to see if the grid touches a wall
@@ -148,7 +148,7 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
                     }
                 });
             }
-            
+
             if ((bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
                 const Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -168,7 +168,7 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
         // Apply y-physbc to data
 
         if (dim == 1) {
-            
+
             if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
                 const Real fac = (bc_vel_lo[1] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -194,16 +194,16 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
                     }
                 });
             }
-            
+
         }
 #endif
-        
+
         //___________________________________________________________________________
         // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
 
         if (dim == 2) {
-        
+
             if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
                 const Real fac = (bc_vel_lo[2] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -216,7 +216,7 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
                     }
                 });
             }
-            
+
             if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
                 const Real fac = (bc_vel_hi[2] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -232,7 +232,7 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
 
         }
 #endif
-        
+
     } // end MFIter
 }
 
@@ -243,11 +243,11 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
 // 1 =    slip -> add in force from ghost
 // 2 = no slip -> add in negative force from ghost cells
 void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
-    
+
     BL_PROFILE_VAR("ultiFabPhysBCMacStress()",ultiFabPhysBCMacStress);
-    
+
 #if (AMREX_SPACEDIM >= 2)
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -264,9 +264,9 @@ void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
 
         //___________________________________________________________________________
         // Apply x-physbc to data
-        
+
         if (dim != 0) {
-        
+
             // dim != 0 means we are either y- or z-stress on x-faces
             // bc_vel check is to see if we have a wall bc
             // bx/dom comparison is to see if the grid touches a wall
@@ -279,7 +279,7 @@ void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
                     }
                 });
             }
-            
+
             if ((bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
                 const Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -296,7 +296,7 @@ void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
         // Apply y-physbc to data
 
         if (dim != 1) {
-            
+
             if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
                 const Real fac = (bc_vel_lo[1] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -316,16 +316,16 @@ void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
                     }
                 });
             }
-            
+
         }
 #endif
-        
+
         //___________________________________________________________________________
         // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
 
         if (dim != 2) {
-        
+
             if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
 
                 const Real fac = (bc_vel_lo[2] == 1) ? 1. : -1.;
@@ -336,9 +336,9 @@ void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
                     }
                 });
             }
-            
+
             if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2))) {
-                const Real fac = (bc_vel_hi[2] == 1) ? 1. : -1.;                
+                const Real fac = (bc_vel_hi[2] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k <= dom.bigEnd(2) && k > dom.bigEnd(2)-ng) {
@@ -349,6 +349,6 @@ void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
 
         }
 #endif
-        
+
     } // end MFIter
 }

@@ -29,16 +29,16 @@ public:
     // initialize n_rngs, geom
     // build MultiFabs to hold random numbers
     StochMassFlux(BoxArray,DistributionMapping,Geometry,int);
-    
+
     // fill stoch_W_fc with random numbers
     void fillMassStochastic();
-    
+
     // create weighted sum of stage RNGs and store in stoch_W_fc_weighted
     void weightMassFlux(Vector< amrex::Real >);
-    
+
     // scale random numbers that lie on physical boundaries appropriately
     void StochMassFluxBC();
-    
+
     void StochMassFluxDiv(const MultiFab& rho,
                           const MultiFab& rhotot,
                           const std::array<MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,

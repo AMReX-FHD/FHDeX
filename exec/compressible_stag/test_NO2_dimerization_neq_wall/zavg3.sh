@@ -3,7 +3,7 @@
 exec=../../../../FBoxLib/Tools/Postprocessing/F_Src/faverage.Linux.gfortran.exe
 
 if [ "$#" -eq 0 ]
-then 
+then
     pltfiles=(`ls -d plt0*`)
     pltfile=${pltfiles[-1]}
 else

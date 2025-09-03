@@ -1,4 +1,3 @@
-
 #include "hydro_functions.H"
 #include "common_functions.H"
 #include "gmres_functions.H"
@@ -19,7 +18,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                           MultiFab& rhotot_old,
                           MultiFab& rhotot_new,
                           MultiFab& pi,
-                          MultiFab& eta, 
+                          MultiFab& eta,
                           std::array< MultiFab, NUM_EDGE >&  eta_ed,
                           MultiFab& kappa, MultiFab& Temp,
                           std::array< MultiFab, NUM_EDGE >& Temp_ed,
@@ -39,7 +38,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                           const int& istep,
                           const Geometry& geom)
 {
-  
+
     BL_PROFILE_VAR("AdvanceTimestepBousq()",AdvanceTimestepBousq);
 
    // int use_disjoin_pres = 0;
@@ -48,7 +47,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     DistributionMapping dmap = rho_old.DistributionMap();
 
     const Real* dx = geom.CellSize();
-    
+
     Vector<Real> weights_mom(1);
     Vector<Real> weights_mass(2);
 
@@ -59,7 +58,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // For BDS we need to project edge states onto constraints
     // int proj_type = (use_charged_fluid && electroneutral) ? 4 : 3;
     int proj_type = 3;
-    
+
     Real theta_alpha = 1./dt;
 
     Real relxn_param_charge_in;
@@ -68,7 +67,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab adv_mass_fluxdiv(ba,dmap,nspecies,0);
     MultiFab gmres_rhs_p     (ba,dmap,       1,0);
     MultiFab dpi             (ba,dmap,       1,1);
-    
+
     std::array< MultiFab, AMREX_SPACEDIM > umac_old;
     std::array< MultiFab, AMREX_SPACEDIM > mtemp;
     std::array< MultiFab, AMREX_SPACEDIM > adv_mom_fluxdiv_old;
@@ -113,7 +112,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         diff_mass_flux[d]      .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
 
-    // for ito interpretation we need to save stoch_mass_fluxdiv_old 
+    // for ito interpretation we need to save stoch_mass_fluxdiv_old
     if (variance_coef_mass != 0. && midpoint_stoch_mass_flux_type == 2) {
         stoch_mass_fluxdiv_old.define(ba,dmap,nspecies,0);
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -126,7 +125,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Lorentz_force[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
     }
-    
+
     if (use_multiphase || use_flory_huggins) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             div_reversible_stress[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
@@ -146,8 +145,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // bds-specific MultiFabs
     MultiFab rho_update;
     MultiFab bds_force;
-    std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;      
-    
+    std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;
+
     //////////////////////////////////////////////
     // Step 1: solve for v^{n+1,*} and pi^{n+1/2,*} using GMRES
     //////////////////////////////////////////////
@@ -173,7 +172,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Add(gmres_rhs_v[d],adv_mom_fluxdiv_old[d],0,0,1,0);
     }
-    
+
     // compute diff_mom_fluxdiv_old = L_0^n v^n
     // save this for use in the corrector GMRES solve
     MkDiffusiveMFluxdiv(diff_mom_fluxdiv_old,umac,eta,eta_ed,kappa,geom,dx,0);
@@ -227,7 +226,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ComputeMassFluxdiv(rho_old,rhotot_old,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                        diff_mass_flux,stoch_mass_flux,sMassFlux,0.5*dt,time,geom,weights_mass,
                        charge_old,grad_Epot_old,Epot,permittivity);
-    
+
     // here is a reasonable place to call something to compute in reversible stress term
     // in this case want to get divergence so it looks like a add to rhs for stokes solver
     if (use_multiphase) {
@@ -287,7 +286,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // compute grad pi^{n-1/2}
     ComputeGrad(pi,gradpi,0,0,1,PRES_BC_COMP,geom);
-    
+
     // subtract grad pi^{n-1/2} from gmres_rhs_v
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Subtract(gmres_rhs_v[d],gradpi[d],0,0,1,0);
@@ -372,7 +371,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // pressure ghost cells
     pi.FillBoundary(geom.periodicity());
     MultiFabPhysBC(pi,geom,0,1,PRES_BC_COMP);
-    
+
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
@@ -411,20 +410,20 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       }
 
       for (int d=0; d<AMREX_SPACEDIM; ++d ) {
-	// create average of umac^n and umac^{n+1,*}
-	umac_tmp[d].setVal(0.,0,1,1);
-	MultiFab::Saxpy(umac_tmp[d],0.5,umac_old[d],0,0,1,1);
-	MultiFab::Saxpy(umac_tmp[d],0.5,umac    [d],0,0,1,1);
+        // create average of umac^n and umac^{n+1,*}
+        umac_tmp[d].setVal(0.,0,1,1);
+        MultiFab::Saxpy(umac_tmp[d],0.5,umac_old[d],0,0,1,1);
+        MultiFab::Saxpy(umac_tmp[d],0.5,umac    [d],0,0,1,1);
       }
 
       // add the diff/stoch/react terms to rho_update
       MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
       if (variance_coef_mass != 0.){
-	MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+        MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
       }
       /*
       if (nreactions > 0) {
-	// call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
+        // call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
       }
       */
 
@@ -435,14 +434,14 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
       // bds increments rho_update with the advection term
       BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, 0.5*dt, proj_type);
-      
+
     } else if (advection_type == 0) {
 
         // compute adv_mass_fluxdiv = -rho_i^n * v^n and then
         // increment adv_mass_fluxdiv by -rho_i^n * v^{n+1,*}
         MkAdvSFluxdiv(umac_old,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,false);
         MkAdvSFluxdiv(umac    ,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,true);
-    } else {      
+    } else {
 
       Abort("Invalid advection_type");
 
@@ -455,7 +454,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (advection_type == 1 || advection_type == 2) {
 
         MultiFab::LinComb(rho_new,1.,rho_old,0,0.5*dt,rho_update,0,0,nspecies,0);
- 
+
     } else {
 
         // compute rho_i^{n+1/2} (store in rho_new)
@@ -478,7 +477,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // fill rho and rhotot ghost cells at t^{n+1/2}
     FillRhoRhototGhost(rho_new,rhotot_new,geom);
-    
+
     // average rho_i^{n+1/2} to faces
     AverageCCToFace(rho_new,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
 
@@ -557,7 +556,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     } else if (use_flory_huggins ==1){
 
         // compute reversible stress tensor ---added term
-          ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
+        ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
 
     }
 
@@ -589,20 +588,20 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       // add the diff/stoch/react terms to rho_update
       MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
       if (variance_coef_mass != 0.) {
-	MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+        MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
       }
       /*
       if (nreactions > 0) {
-	call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
+        call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
       }
       */
 
       bds_force.setVal(0,0,1,1);
       MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
       bds_force.FillBoundary(geom.periodicity());
-      
+
       BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt, proj_type);
-							       
+
     } else if (advection_type == 0) {
         // compute adv_mass_fluxdiv = -rho_i^{n+1/2} * v^n and
         // increment adv_mass_fluxdiv by -rho_i^{n+1/2} * v^{n+1,*}
@@ -617,7 +616,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (advection_type == 1 || advection_type == 2) {
 
         MultiFab::LinComb(rho_new,1.,rho_old,0,0.5*dt,rho_update,0,0,nspecies,0);
- 
+
     } else {
 
         // compute rho_i^{n+1}
@@ -628,7 +627,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         if (variance_coef_mass != 0.) {
             MultiFab::Saxpy(rho_new,dt,stoch_mass_fluxdiv,0,0,nspecies,0);
         }
-        /*                                       
+        /*
         if (nreactions > 0) then
            call multifab_saxpy_3_cc(rho_new(n),1,dt,chem_rate(n),1,nspecies)
         end if
@@ -657,7 +656,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Abort("AdvanceTimestepInertial dielectric_type != 0");
         }
     }
-    
+
     ComputeEta(rho_new, rhotot_new, eta);
     if (AMREX_SPACEDIM == 2) {
         AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
@@ -672,7 +671,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // compute mtemp = (rho*v)^n
     ConvertMToUmac(rhotot_fc_old,umac_old,mtemp,0);
-    
+
     // set gmres_rhs_v = mtemp / dt
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_v[d],mtemp[d],0,0,1,0);
@@ -701,7 +700,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // increment stoch_mom_fluxdiv by = div (sqrt(eta^{n+1}...) Wbar^n)
         weights_mom[0] = 1.;
         sMomFlux.StochMomFluxDiv(stoch_mom_fluxdiv,1,eta,eta_ed,Temp,Temp_ed,weights_mom,dt);
-        
+
         // add stochastic momentum fluxes to gmres_rhs_v
         // note the factor of (1/2) since stoch_mom_fluxdiv contains
         // div (sqrt(eta^{n+1}...) Wbar^n) + div (sqrt(eta^n...) Wbar^n)
@@ -722,7 +721,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
         }
-    }   
+    }
 
     if (use_charged_fluid) {
 
@@ -813,8 +812,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     gmres.Solve(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
                 kappa, theta_alpha, geom, norm_pre_rhs);
 
-    gmres_abs_tol = gmres_abs_tol_in; // Restore the desired tolerance   
-       
+    gmres_abs_tol = gmres_abs_tol_in; // Restore the desired tolerance
+
     // compute v^{n+1} = vbar^{n+1,*} + dumac
     // compute pi^{n+1/2}= pi^{n+1/2,*} + dpi
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -825,7 +824,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // pressure ghost cells
     pi.FillBoundary(geom.periodicity());
     MultiFabPhysBC(pi,geom,0,1,PRES_BC_COMP);
-    
+
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
@@ -860,5 +859,5 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                charge_old,grad_Epot_old,Epot,permittivity,0);
         }
     }
-    
+
 }

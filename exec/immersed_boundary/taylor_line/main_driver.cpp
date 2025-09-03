@@ -82,7 +82,7 @@ void find_equilibrium_position(IBMarkerContainer & ib_mc, int ib_lev, int nstep,
         update_ibm_marker(driv_u, driv_amp, 0, ib_mc, ib_lev,
                           IBMReal::forcex, false,
                           geom);
-	  
+
         // Sum predictor forces added to neighbors back to the real markers
         ib_mc.sumNeighbors(IBMReal::forcex, AMREX_SPACEDIM, 0, 0);
 
@@ -456,7 +456,7 @@ void main_driver(const char * argv) {
     // Find the optimal number of ghost cells for the IBMarkerContainer
     Real min_dx = dx[0];
     for (int d=1; d<AMREX_SPACEDIM; ++d)
-	    min_dx = amrex::min(min_dx, dx[d]);
+        min_dx = amrex::min(min_dx, dx[d]);
 
     // min of 4 is a HACK: something large enough but not too large
     int ib_nghost = 4;
@@ -495,9 +495,9 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
-  int N_markers = immbdy::contains_fourier ? N+1 : N;
+        int N_markers = immbdy::contains_fourier ? N+1 : N;
 
-      Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom); 
+        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom);
         // Vector<RealVect> marker_positions(N_markers);
         // if (immbdy::contains_fourier) {
         //     marker_positions = equil_pos(i_ib, 0, geom);
@@ -535,11 +535,11 @@ void main_driver(const char * argv) {
 
         // initialize velocity
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-             init_vel(BL_TO_FORTRAN_BOX(bx),
-                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
-                      geom.ProbLo(), geom.ProbHi(), & d,
-                      AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()),
-                      &prob_type);
+            init_vel(BL_TO_FORTRAN_BOX(bx),
+                     BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
+                     geom.ProbLo(), geom.ProbHi(), & d,
+                     AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()),
+                     &prob_type);
     }
 
     BL_PROFILE_VAR_STOP(initfv);
@@ -617,19 +617,19 @@ void main_driver(const char * argv) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
-         if(variance_coef_mom != 0.0) {
+        if(variance_coef_mom != 0.0) {
 
             //___________________________________________________________________
             // Fill stochastic terms
 
-             sMflux.fillMomStochastic();
+            sMflux.fillMomStochastic();
 
-             // Compute stochastic force terms (and apply to mfluxdiv_*)
-             sMflux.StochMomFluxDiv(mfluxdiv_predict, 0,
+            // Compute stochastic force terms (and apply to mfluxdiv_*)
+            sMflux.StochMomFluxDiv(mfluxdiv_predict, 0,
                                   eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-             sMflux.StochMomFluxDiv(mfluxdiv_correct, 0,
+            sMflux.StochMomFluxDiv(mfluxdiv_correct, 0,
                                   eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-         }
+        }
 
         //_______________________________________________________________________
         // Advance umac
@@ -637,7 +637,6 @@ void main_driver(const char * argv) {
         //            alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
         advance_stokes(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
                        alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
-
 
 
 

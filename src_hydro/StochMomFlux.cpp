@@ -57,7 +57,7 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
         mflux_ed_weighted[d].setVal(0.);
     }
     //filtering_width=0;
-  
+
 #endif
 }
 
@@ -75,7 +75,7 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
 // effect is an RNG multiplied by 1.  So we will Z_12 with a unit-variance RNG
 // Z is symmetric so we only store the lower-diagonal terms
 void StochMomFlux::fillMomStochastic() {
-    
+
     BL_PROFILE_VAR("fillMomStochastic()",StochMomFlux);
 
     for (int i=0; i<n_rngs; ++i) {
@@ -111,7 +111,7 @@ void StochMomFlux::fillMomStochastic() {
 
 // create weighted sum of stage RNGs and store in mflux_cc_weighted and mflux_ed_weighted
 void StochMomFlux::weightMomflux(Vector< amrex::Real > weights) {
-    
+
     BL_PROFILE_VAR("weightMomFlux()",weightMomFlux);
 
     mflux_cc_weighted.setVal(0.0);
@@ -129,9 +129,9 @@ void StochMomFlux::weightMomflux(Vector< amrex::Real > weights) {
 
 // scale random numbers that lie on physical boundaries appropriately
 void StochMomFlux::MomFluxBC() {
-    
+
     BL_PROFILE_VAR("MomFluxBC()",MomFluxBC);
-    
+
 #if (AMREX_SPACEDIM == 2)
 
     // lo-x domain boundary
@@ -604,7 +604,7 @@ void StochMomFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
                                         const amrex::Real& dt) {
 
     BL_PROFILE_VAR("multbyVarSqrtEtaTemp()",multbyVarSqrtEtaTemp);
-    
+
     const Real* dx = geom.CellSize();
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
 
@@ -621,7 +621,7 @@ void StochMomFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
     for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
         // Note: Make sure that multifab is cell-centered
         const Box& bx = mfi.growntilebox(1);
-        
+
         const Array4<Real> & mflux_cc_fab = mflux_cc_weighted.array(mfi);
         const Array4<Real const> & eta_cc_fab = eta_cc.array(mfi);
         const Array4<Real const> &  temp_cc_fab = temp_cc.array(mfi);
@@ -635,7 +635,7 @@ void StochMomFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
         const Array4<Real> & mflux_xy_fab = mflux_ed_weighted[0].array(mfi);
         const Array4<Real const> & eta_xy_fab = eta_ed[0].array(mfi);
         const Array4<Real const> & temp_xy_fab = temp_ed[0].array(mfi);
-        
+
 #if (AMREX_SPACEDIM == 3)
         const Array4<Real> & mflux_xz_fab = mflux_ed_weighted[1].array(mfi);
         const Array4<Real> & mflux_yz_fab = mflux_ed_weighted[2].array(mfi);
@@ -825,7 +825,7 @@ void StochMomFlux::StochMomFluxDivWideSplit(std::array< MultiFab, AMREX_SPACEDIM
 
     // calculate divergence and add to stoch_m_force
     Real dxinv = 1./(geom.CellSize()[0]);
-    
+
     int splitCell = 128;
 
     // if not incrementing, initialize data to zero
@@ -884,7 +884,7 @@ void StochMomFlux::StochMomFluxDivWideSplit(std::array< MultiFab, AMREX_SPACEDIM
             {
                 divx(i,j,k) += (flux_cc(i+1,j,k,0) - flux_cc(i-2,j,k,0) +
                             flux_xy(i,j+2,k,0) - flux_xy(i,j-1,k,0) +
-                            flux_xz(i,j,k+2,0) - flux_xz(i,j,k-1,0)) * dxinv * 0.5; 
+                            flux_xz(i,j,k+2,0) - flux_xz(i,j,k-1,0)) * dxinv * 0.5;
             }
         },
                                             [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -894,11 +894,11 @@ void StochMomFlux::StochMomFluxDivWideSplit(std::array< MultiFab, AMREX_SPACEDIM
                 divy(i,j,k) += (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
                                 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
                                 flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
-            }else    
+            }else
             {
                 divy(i,j,k) += (flux_xy(i+2,j,k,1) - flux_xy(i-1,j,k,1) +
                             flux_cc(i,j+1,k,1) - flux_cc(i,j-2,k,1) +
-                            flux_yz(i,j,k+2,0) - flux_yz(i,j,k-1,0)) * dxinv * 0.5;  
+                            flux_yz(i,j,k+2,0) - flux_yz(i,j,k-1,0)) * dxinv * 0.5;
             }
         },
                                            [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -913,7 +913,7 @@ void StochMomFlux::StochMomFluxDivWideSplit(std::array< MultiFab, AMREX_SPACEDIM
                 divz(i,j,k) += (flux_xz(i+2,j,k,1) - flux_xz(i-1,j,k,1) +
                             flux_yz(i,j+2,k,1) - flux_yz(i,j-1,k,1) +
                             flux_cc(i,j,k+1,2) - flux_cc(i,j,k-2,2)) * dxinv * 0.5;
-            
+
             }
         });
 #endif
@@ -1017,8 +1017,8 @@ void StochMomFlux::StochMomFluxDivWide(std::array< MultiFab, AMREX_SPACEDIM >& m
                             flux_xy(i,j+2,k,0) - flux_xy(i,j-1,k,0) +
                             flux_xz(i,j,k+2,0) - flux_xz(i,j,k-1,0)) * dxinv * 0.5;
         },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)            
-                                           
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+
         {
             divy(i,j,k) += (flux_xy(i+2,j,k,1) - flux_xy(i-1,j,k,1) +
                             flux_cc(i,j+1,k,1) - flux_cc(i,j-2,k,1) +
@@ -1087,7 +1087,7 @@ void StochMomFlux::StochMomFluxDivOrder3(std::array< MultiFab, AMREX_SPACEDIM >&
             m_force[dir].setVal(0.,0,1,0);
         }
     }
-   
+
     // Loop over boxes
     for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
 
@@ -1111,7 +1111,7 @@ void StochMomFlux::StochMomFluxDivOrder3(std::array< MultiFab, AMREX_SPACEDIM >&
         AMREX_D_TERM(bx_x.growHi(0);,
                      bx_y.growHi(1);,
                      bx_z.growHi(2););
-                     
+
         AMREX_D_TERM(const auto xlo = lbound(bx_x);,
                  const auto ylo = lbound(bx_y);,
                  const auto zlo = lbound(bx_z););
@@ -1119,10 +1119,10 @@ void StochMomFlux::StochMomFluxDivOrder3(std::array< MultiFab, AMREX_SPACEDIM >&
         AMREX_D_TERM(const auto xhi = ubound(bx_x);,
                  const auto yhi = ubound(bx_y);,
                  const auto zhi = ubound(bx_z););
-                 
+
         Real nineOver8 = 9.0/8.0;
         Real oneOver24 = 1.0/24.0;
-        
+
         Real preFac = sqrt(1.0/(nineOver8*nineOver8 + oneOver24*oneOver24));
         preFac = 1;
 
@@ -1152,7 +1152,7 @@ void StochMomFlux::StochMomFluxDivOrder3(std::array< MultiFab, AMREX_SPACEDIM >&
                 divx(i,j,k) += preFac*(nineOver8*flux_cc(i,j,k,0) - nineOver8*flux_cc(i-1,j,k,0) - oneOver24*flux_cc(i+1,j,k,0) + oneOver24*flux_cc(i-2,j,k,0) +
                      nineOver8*flux_xy(i,j+1,k,0) -  nineOver8*flux_xy(i,j,k,0) - oneOver24*flux_xy(i,j+2,k,0) + oneOver24*flux_xy(i,j-1,k,0) +
                     nineOver8*flux_xz(i,j,k+1,0) - nineOver8*flux_xz(i,j,k,0) - oneOver24*flux_xz(i,j,k+2,0) + oneOver24*flux_xz(i,j,k-1,0)) * dxinv;
-            
+
 //            }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -1173,13 +1173,13 @@ void StochMomFlux::StochMomFluxDivOrder3(std::array< MultiFab, AMREX_SPACEDIM >&
         {
 //            if(i==zlo.x || i==zhi.x || j==zlo.y || j==zhi.y || k==zlo.z || k==zhi.z)
 //            {
-//                divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) + 
+//                divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
 //                                flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
 //                                flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
 
 //            }else
 //            {
-                divz(i,j,k) += preFac*(nineOver8*flux_xz(i+1,j,k,1) - nineOver8*flux_xz(i,j,k,1) - oneOver24*flux_xz(i+2,j,k,1) + oneOver24*flux_xz(i-1,j,k,1) + 
+                divz(i,j,k) += preFac*(nineOver8*flux_xz(i+1,j,k,1) - nineOver8*flux_xz(i,j,k,1) - oneOver24*flux_xz(i+2,j,k,1) + oneOver24*flux_xz(i-1,j,k,1) +
                                 nineOver8*flux_yz(i,j+1,k,1) - nineOver8*flux_yz(i,j,k,1) - oneOver24*flux_yz(i,j+2,k,1) + oneOver24*flux_yz(i,j-1,k,1) +
                                 nineOver8*flux_cc(i,j,k,2) - nineOver8*flux_cc(i,j,k-1,2) - oneOver24*flux_cc(i,j,k+1,2) + oneOver24*flux_cc(i,j,k-2,2)) * dxinv;
 //            }
@@ -1242,7 +1242,7 @@ void StochMomFlux::StochMomFluxDivOrder3Split(std::array< MultiFab, AMREX_SPACED
             m_force[dir].setVal(0.,0,1,0);
         }
     }
-   
+
     // Loop over boxes
     for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
 
@@ -1266,7 +1266,7 @@ void StochMomFlux::StochMomFluxDivOrder3Split(std::array< MultiFab, AMREX_SPACED
         AMREX_D_TERM(bx_x.growHi(0);,
                      bx_y.growHi(1);,
                      bx_z.growHi(2););
-                     
+
         AMREX_D_TERM(const auto xlo = lbound(bx_x);,
                  const auto ylo = lbound(bx_y);,
                  const auto zlo = lbound(bx_z););
@@ -1274,12 +1274,12 @@ void StochMomFlux::StochMomFluxDivOrder3Split(std::array< MultiFab, AMREX_SPACED
         AMREX_D_TERM(const auto xhi = ubound(bx_x);,
                  const auto yhi = ubound(bx_y);,
                  const auto zhi = ubound(bx_z););
-                 
+
         Real nineOver8 = 9.0/8.0;
         Real oneOver24 = 1.0/24.0;
-        
+
         Real preFac = sqrt(1.0/(nineOver8*nineOver8 + oneOver24*oneOver24));
-        
+
         int splitCell = 250;
 
 
@@ -1308,7 +1308,7 @@ void StochMomFlux::StochMomFluxDivOrder3Split(std::array< MultiFab, AMREX_SPACED
                 divx(i,j,k) += preFac*(nineOver8*flux_cc(i,j,k,0) - nineOver8*flux_cc(i-1,j,k,0) - oneOver24*flux_cc(i+1,j,k,0) + oneOver24*flux_cc(i-2,j,k,0) +
                      nineOver8*flux_xy(i,j+1,k,0) -  nineOver8*flux_xy(i,j,k,0) - oneOver24*flux_xy(i,j+2,k,0) + oneOver24*flux_xy(i,j-1,k,0) +
                     nineOver8*flux_xz(i,j,k+1,0) - nineOver8*flux_xz(i,j,k,0) - oneOver24*flux_xz(i,j,k+2,0) + oneOver24*flux_xz(i,j,k-1,0)) * dxinv;
-            
+
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -1329,13 +1329,13 @@ void StochMomFlux::StochMomFluxDivOrder3Split(std::array< MultiFab, AMREX_SPACED
         {
             if(i==zlo.x || i==zhi.x || j==zlo.y || j==zhi.y || k==zlo.z || k==zhi.z)
             {
-                divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) + 
+                divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
                                 flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
                                 flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
 
             }else
             {
-                divz(i,j,k) += preFac*(nineOver8*flux_xz(i+1,j,k,1) - nineOver8*flux_xz(i,j,k,1) - oneOver24*flux_xz(i+2,j,k,1) + oneOver24*flux_xz(i-1,j,k,1) + 
+                divz(i,j,k) += preFac*(nineOver8*flux_xz(i+1,j,k,1) - nineOver8*flux_xz(i,j,k,1) - oneOver24*flux_xz(i+2,j,k,1) + oneOver24*flux_xz(i-1,j,k,1) +
                                 nineOver8*flux_yz(i,j+1,k,1) - nineOver8*flux_yz(i,j,k,1) - oneOver24*flux_yz(i,j+2,k,1) + oneOver24*flux_yz(i,j-1,k,1) +
                                 nineOver8*flux_cc(i,j,k,2) - nineOver8*flux_cc(i,j,k-1,2) - oneOver24*flux_cc(i,j,k+1,2) + oneOver24*flux_cc(i,j,k-2,2)) * dxinv;
             }
@@ -1352,9 +1352,9 @@ void StochMomFlux::StochMomFluxDivOrder3Split(std::array< MultiFab, AMREX_SPACED
 
 // utility to write out random number MultiFabs to plotfiles
 void StochMomFlux::writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv) {
-    
+
     BL_PROFILE_VAR("writeMFs()",writeMFs);
-    
+
     std::string plotfilename;
     std::string dimStr = "xyz";
 

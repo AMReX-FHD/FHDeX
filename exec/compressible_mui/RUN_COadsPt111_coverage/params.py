@@ -9,13 +9,13 @@ Navo = 6.0221409e23         # Avogadro constant
 ##########
 
 # molecular weights
-M1 = 28.01      # CO 
+M1 = 28.01      # CO
 M2 =  4.0026    # He
 print "- molecular masses: [%.2f, %.2f]" % (M1,M2)
 
 # mass fractions
 Y1 = 0.2
-Y2 = 1-Y1 
+Y2 = 1-Y1
 print "- mass fractions: [%.3f, %.3f]" % (Y1,Y2)
 
 # mole fractions
@@ -84,7 +84,7 @@ print "- Lz = %e\n" % Lz
 ##########
 
 n1s = 2*n1x*n1y
-print "- total number of sites per dxFHD*dyFHD = %d" % n1s 
+print "- total number of sites per dxFHD*dyFHD = %d" % n1s
 
 Ntot = ntot*dV
 N1 = n1*dV

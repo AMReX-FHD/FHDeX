@@ -46,7 +46,7 @@ void RhototBCInit() {
 
 // compute rhotot from rho in VALID REGION
 void ComputeRhotot(const MultiFab& rho,
-		   MultiFab& rhotot,
+                   MultiFab& rhotot,
                    int include_ghost) // include_ghost=0 by default
 {
     BL_PROFILE_VAR("ComputeRhotot()",ComputeRhotot);
@@ -59,7 +59,7 @@ void ComputeRhotot(const MultiFab& rho,
             Abort("ComputeRhotot: rho needs as many ghost cells as rhotot");
         }
     }
-    
+
     rhotot.setVal(0.0);
     for (int i=0; i<nspecies; i++) {
         MultiFab::Add(rhotot,rho,i,0,1,ng);
@@ -70,7 +70,7 @@ void ComputeRhotot(const MultiFab& rho,
 void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab& conc, int rho_to_c)
 {
     BL_PROFILE_VAR("ConvertRhoCToC()",ConvertRhoCToC);
-    
+
     if (rho_to_c == 1) {
         // rho to conc - NO GHOST CELLS
         MultiFab::Copy(conc,rho,0,0,nspecies,0);
@@ -88,7 +88,7 @@ void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab& conc, int r
         if (ng > ng_c || ng > ng_r) {
             Abort("ConvertRhoCToC: conc needs as many ghost cells as rho or rhotot");
         }
-        
+
         // conc to rho - VALID + GHOST
         MultiFab::Copy(rho,conc,0,0,nspecies,ng);
         for (int i=0; i<nspecies; ++i) {
@@ -104,7 +104,7 @@ void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab& conc, int r
 void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
 
     BL_PROFILE_VAR("FillRhoRhototGhost()",FillRhoRhototGhost);
-    
+
     BoxArray ba = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();
     int ng = rho.nGrow();
@@ -126,7 +126,7 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
     FillRhototGhost(rhotot,conc,geom);
 
     // conc to rho - INCLUDING GHOST CELLS
-    ConvertRhoCToC(rho,rhotot,conc,0);    
+    ConvertRhoCToC(rho,rhotot,conc,0);
 }
 
 // Ghost cell filling routine.
@@ -137,9 +137,9 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
 void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom) {
 
     BL_PROFILE_VAR("FillRhototGhost()",FillRhototGhost);
-    
+
     rhotot_in.FillBoundary(geom.periodicity());
-                            
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -147,7 +147,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
     if (algorithm_type == 6) {
         MultiFabPhysBC(rhotot_in,geom,0,1,RHO_BC_COMP);
         return;
-    }    
+    }
 
     // Physical Domain
     Box dom(geom.Domain());
@@ -158,7 +158,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
     if (ng_c < 1 || ng < 1) {
         Abort("FillRhototGhost: rhotot and conc both need a ghost cell");
     }
-    
+
     Vector<int> bc_lo(AMREX_SPACEDIM);
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
@@ -168,7 +168,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
     for (int i=0; i<nspecies; ++i) {
         rhobar_gpu[i] = rhobar[i];
     }
-   
+
     // compute mathematical boundary conditions
     BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi);
 
@@ -189,7 +189,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
 
         int lo = dom.smallEnd(0);
         int hi = dom.bigEnd(0);
-   
+
         if (bx.smallEnd(0) < lo) {
             if (bc_lo[0] == BCType::foextrap || bc_lo[0] == BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -204,7 +204,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                 });
             }
         }
-        
+
         if (bx.bigEnd(0) > hi) {
             if (bc_hi[0] == BCType::foextrap || bc_hi[0] == BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -226,7 +226,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
 
         lo = dom.smallEnd(1);
         hi = dom.bigEnd(1);
-        
+
         if (bx.smallEnd(1) < lo) {
             if (bc_lo[1] == BCType::foextrap || bc_lo[1] == BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC ) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -264,7 +264,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
 
         lo = dom.smallEnd(2);
         hi = dom.bigEnd(2);
-        
+
         if (bx.smallEnd(2) < lo) {
             if (bc_lo[2] == BCType::foextrap || bc_lo[2] == BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC ) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -295,6 +295,6 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
             }
         }
 #endif
-        
+
     } // end MFIter
 }

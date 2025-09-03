@@ -1,5 +1,5 @@
 #include "AMReX_PlotFileUtil.H"
- 
+
 #include "common_functions.H"
 
 
@@ -7,14 +7,14 @@
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
-	           const amrex::MultiFab& cu,
-	           const amrex::MultiFab& cuMeans,
-	           const amrex::MultiFab& cuVars,
-	           const amrex::MultiFab& prim,
-	           const amrex::MultiFab& primMeans,
-	           const amrex::MultiFab& primVars,
-		   const amrex::MultiFab& eta,
-		   const amrex::MultiFab& kappa)
+                   const amrex::MultiFab& cu,
+                   const amrex::MultiFab& cuMeans,
+                   const amrex::MultiFab& cuVars,
+                   const amrex::MultiFab& prim,
+                   const amrex::MultiFab& primMeans,
+                   const amrex::MultiFab& primVars,
+                   const amrex::MultiFab& eta,
+                   const amrex::MultiFab& kappa)
 {
 
     int cnt, numvars, i = 0;
@@ -28,11 +28,11 @@ void WritePlotFile(int step,
     if (plot_means == 1) {
         nplot += 11;
     }
-    
+
     if (plot_vars == 1) {
         nplot += 10;
     }
-    
+
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
@@ -43,7 +43,7 @@ void WritePlotFile(int step,
     amrex::Vector<std::string> varNames(nplot);
 
     // Load into plotfile MF
-    
+
     cnt = 0;
 
     // instantaneous values of conserved variables
@@ -59,13 +59,13 @@ void WritePlotFile(int step,
     cnt+=numvars;
 
     if (plot_means == 1) {
-    
+
         // mean values of conserved variables
         // rho, jx, jy, jz, e
         numvars = 5;
         amrex::MultiFab::Copy(plotfile,cuMeans,0,cnt,numvars,0);
         cnt+=numvars;
-    
+
         // mean values of primitive variables
         // rho, ux, uy, uz, temp, pres
         numvars = 6;
@@ -74,13 +74,13 @@ void WritePlotFile(int step,
     }
 
     if (plot_vars == 1) {
-    
+
         // variance of conserved variables
         // rho, jx, jy, jz, e
         numvars = 5;
         amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
         cnt+=numvars;
-    
+
         // variances of primitive variables
         // rho, ux, uy, uz, temp
         numvars = 5;

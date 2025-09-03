@@ -12,15 +12,15 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		           const MultiFab& rhotot,
-		           const MultiFab& rho,
-		           const MultiFab& pres,
+                   const MultiFab& rhotot,
+                   const MultiFab& rho,
+                   const MultiFab& pres,
                    const MultiFab& charge,
                    const MultiFab& Epot)
 {
-    
+
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
-    
+
     const std::string plotfilename = Concatenate(plot_base_name,step,7);
 
     BoxArray ba = pres.boxArray();
@@ -39,7 +39,7 @@ void WritePlotFile(int step,
         // Epot
         nPlot += 2;
     }
-    
+
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
     Vector<std::string> varNames(nPlot);
@@ -60,7 +60,7 @@ void WritePlotFile(int step,
         x += (49+i);
         varNames[cnt++] = x;
     }
-    
+
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         std::string x = "averaged_vel";
         x += (120+i);
@@ -86,13 +86,13 @@ void WritePlotFile(int step,
     // copy rhotot into plotfile
     MultiFab::Copy(plotfile, rhotot, 0, cnt, 1, 0);
     cnt++;
-    
+
     // copy densities into plotfile
     for (int i=0; i<nspecies; ++i) {
         MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
         cnt++;
     }
-    
+
     // copy densities and convert to concentrations
     for (int i=0; i<nspecies; ++i) {
         MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
@@ -125,23 +125,23 @@ void WritePlotFile(int step,
     // write a plotfile
     // timer
     Real t1 = ParallelDescriptor::second();
-    
+
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
-    
+
     Real t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2);
     amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;
 
     // staggered velocity
     if (plot_stag == 1) {
-      const std::string plotfilenamex = Concatenate("stagx",step,7);
-      const std::string plotfilenamey = Concatenate("stagy",step,7);
-      const std::string plotfilenamez = Concatenate("stagz",step,7);
+        const std::string plotfilenamex = Concatenate("stagx",step,7);
+        const std::string plotfilenamey = Concatenate("stagy",step,7);
+        const std::string plotfilenamez = Concatenate("stagz",step,7);
 
-      WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
-      WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
+        WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
+        WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
 #if (AMREX_SPACEDIM == 3)
-      WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
+        WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
 #endif
     }
 

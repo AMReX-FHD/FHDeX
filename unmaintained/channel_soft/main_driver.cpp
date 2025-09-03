@@ -43,8 +43,8 @@ inline void defineFC(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
 }
 
 inline void defineEdge(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
-                     const BoxArray & ba, const DistributionMapping & dm,
-                     int nghost) {
+                       const BoxArray & ba, const DistributionMapping & dm,
+                       int nghost) {
 
     for (int i=0; i<AMREX_SPACEDIM; i++)
         mf_in[i].define(convert(ba, nodal_flag_edge[i]), dm, 1, nghost);
@@ -334,7 +334,7 @@ void main_driver(const char * argv) {
                      geom.ProbLo(), geom.ProbHi(), & d,
                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
-    	// initialize tracer
+        // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_ANYD(tracer[mfi]),
                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
@@ -528,7 +528,7 @@ void main_driver(const char * argv) {
 
         //_______________________________________________________________________
         // Advance umac and chemistry
- 
+
         advance(amr_core_adv,
                 umac, umacNew, pres, tracer,
                 force_ibm, marker_force_0,

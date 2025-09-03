@@ -18,19 +18,19 @@
 
 
 void writePlotFile(
-        	    const MultiFab& mfcuInst,
-        		const MultiFab& mfcuMeans,
-        		const MultiFab& mfcuVars,
-        		const MultiFab& mfprimInst,
-        		const MultiFab& mfprimMeans,
-        		const MultiFab& mfprimVars,
-        		const MultiFab& mfcoVars,
-                const MultiFab& mfspatialCorr1d,
-                FhdParticleContainer& particles,
-        		const Geometry& geom,
-        		Real time,
-                const int ncross,
-        		int step);
+        const MultiFab& mfcuInst,
+        const MultiFab& mfcuMeans,
+        const MultiFab& mfcuVars,
+        const MultiFab& mfprimInst,
+        const MultiFab& mfprimMeans,
+        const MultiFab& mfprimVars,
+        const MultiFab& mfcoVars,
+        const MultiFab& mfspatialCorr1d,
+        FhdParticleContainer& particles,
+        const Geometry& geom,
+        Real time,
+        const int ncross,
+        int step);
 ///////////////////////////
 
 
@@ -38,10 +38,10 @@ void writePlotFile(
 // in Checkpoint.cpp
 
 void WriteCheckPoint(int step,
-					 const Real time,
-					 const Real dt,
-					 int statsCount,
-                     const amrex::MultiFab& cuInst, 
+                     const Real time,
+                     const Real dt,
+                     int statsCount,
+                     const amrex::MultiFab& cuInst,
                      const amrex::MultiFab& cuMeans,
                      const amrex::MultiFab& cuVars,
                      const amrex::MultiFab& primInst,
@@ -52,29 +52,29 @@ void WriteCheckPoint(int step,
                      const amrex::MultiFab& spatialCross1D,
                      const int ncross);
 
-void ReadCheckPoint(int& step, 
-					 Real& time,
-					 Real& dt,
-					 int& statsCount,
-                     amrex::MultiFab& cuInst, 
-                     amrex::MultiFab& cuMeans,
-                     amrex::MultiFab& cuVars,
-                     amrex::MultiFab& primInst,
-                     amrex::MultiFab& primMeans,
-                     amrex::MultiFab& primVars,
-                     amrex::MultiFab& coVars,
-                     amrex::MultiFab& spatialCross1D,
-                     const int ncross);
+void ReadCheckPoint(int& step,
+                    Real& time,
+                    Real& dt,
+                    int& statsCount,
+                    amrex::MultiFab& cuInst,
+                    amrex::MultiFab& cuMeans,
+                    amrex::MultiFab& cuVars,
+                    amrex::MultiFab& primInst,
+                    amrex::MultiFab& primMeans,
+                    amrex::MultiFab& primVars,
+                    amrex::MultiFab& coVars,
+                    amrex::MultiFab& spatialCross1D,
+                    const int ncross);
 
 void ReadCheckPointParticles(FhdParticleContainer& particles);
 
-void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
               bool bExitOnError);
-              
+
 void globalVars(Real time);
 
-void ReadFile(const std::string& filename, Vector<char>& charBuf, 
-	      bool bExitOnError=true);
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
+              bool bExitOnError=true);
 
 ///////////////////////////
 

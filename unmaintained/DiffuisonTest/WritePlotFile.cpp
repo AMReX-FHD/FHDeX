@@ -47,7 +47,7 @@ void WritePlotFile(int step,
       const std::string plotfilenamex = Concatenate("stagx",step,7);
       const std::string plotfilenamey = Concatenate("stagy",step,7);
       const std::string plotfilenamez = Concatenate("stagz",step,7);
-      
+
       WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
       WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
 #if (AMREX_SPACEDIM == 3)

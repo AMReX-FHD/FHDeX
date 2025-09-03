@@ -14,7 +14,7 @@ using namespace amrex;
 
 class GMRES {
 
-    
+
     std::array< MultiFab, AMREX_SPACEDIM > r_u;
     std::array< MultiFab, AMREX_SPACEDIM > w_u;
     std::array< MultiFab, AMREX_SPACEDIM > tmp_u;
