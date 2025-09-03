@@ -34,9 +34,19 @@ jobs:
   #        make -j 2
 
   # Build libamrex and all tests with CUDA 12.0
+
   tests-cuda11:
-    name: CUDA@12.0 GNU C++17 Release [tests]
+    name: CUDA@12.0 GNU C++17 Release [${{ matrix.app }}]
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        app:
+          - compressible_stag
+          - multispec
+          - dean_kow/singlelevel
+          - dean_kow/multilevel
+          - thinFilm
+          - hydro
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v4
@@ -55,10 +65,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
-        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.app }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-${{ github.workflow }}-${{ github.job }}-git-
-    - name: Build & Install
+             ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.app }}-git-
+    - name: Build & Install ${{ matrix.app }}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -68,7 +78,7 @@ jobs:
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         export LD_LIBRARY_PATH=/usr/local/cuda/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
-        cd exec/multispec
+        cd exec/${{ matrix.app }}
         which nvcc || echo "nvcc not in PATH!"
         make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=FALSE
 
