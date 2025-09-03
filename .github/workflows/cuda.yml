@@ -33,9 +33,9 @@ jobs:
   #            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
   #        make -j 2
 
-  # Build libamrex and all tests with CUDA 11.0.2
+  # Build libamrex and all tests with CUDA 12.0
   tests-cuda11:
-    name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
+    name: CUDA@12.0 GNU C++17 Release [tests]
     runs-on: ubuntu-24.04
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
     steps:
@@ -44,7 +44,7 @@ jobs:
       run: |
         git clone https://github.com/AMReX-Codes/amrex.git ${{runner.workspace}}/amrex
     - name: Prepare CUDA environment
-      run: ${{runner.workspace}}/amrex/.github/workflows/dependencies/dependencies_nvcc.sh 11.2
+      run: ${{runner.workspace}}/amrex/.github/workflows/dependencies/dependencies_nvcc.sh 12.0
     - name: Install Additional Dependencies
       run: |
         sudo apt-get update
