@@ -10,6 +10,7 @@ COMP      = gnu
 DIM       = 2
 MAX_SPEC  = 8
 MAX_REAC  = 7
+USE_FFT   = TRUE
 
 TINY_PROFILE = FALSE
 
