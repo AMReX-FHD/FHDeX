@@ -9,9 +9,9 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   integer         , intent(in   ) :: lo(3), hi(3), vello(3), velhi(3), di
   real(amrex_real), intent(inout) :: vel(vello(1):velhi(1),vello(2):velhi(2),vello(3):velhi(3))
   real(amrex_real), intent(in   ) :: reallo(3), realhi(3)
-  real(amrex_real), intent(in   ) :: prob_lo(3) 
+  real(amrex_real), intent(in   ) :: prob_lo(3)
   real(amrex_real), intent(in   ) :: prob_hi(3)
-  real(amrex_real), intent(in   ) :: dx(3) 
+  real(amrex_real), intent(in   ) :: dx(3)
 
   integer          :: i,j,k
   double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,rad2,zshft
@@ -190,7 +190,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
      CASE DEFAULT
         print*, "Error: Invalid prob_type"
      END SELECT
-                                
+
   endif
 
   if (di .EQ. 2) then
@@ -304,7 +304,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
   select case (abs(prob_type))
 
-  case (1) 
+  case (1)
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
@@ -360,7 +360,7 @@ subroutine init_rho_and_umac(lo,hi, &
      end do
      !$omp end parallel do
 
-  case (4) 
+  case (4)
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
@@ -417,14 +417,14 @@ subroutine init_rho_and_umac(lo,hi, &
 !              endif
               ! print *, "Hack: c = ", c(i,j,1:nspecies-1)
 
-           end if           
+           end if
 
         end do
         !print *, "c: ", c(i,j,1:nspecies)
      end do
      !$omp end parallel do
 
-  case (2) 
+  case (2)
 
      !=========================================================
      ! constant concentration gradient along y
@@ -533,7 +533,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
   select case (abs(prob_type))
 
-  case (1) 
+  case (1)
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
@@ -580,7 +580,7 @@ subroutine init_rho_and_umac(lo,hi, &
      end do
      !$omp end parallel do
 
-  case (2) 
+  case (2)
 
      !=========================================================
      ! constant concentration gradient along y
@@ -593,7 +593,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !$omp parallel do private(i,j,k,x,y,z)
      do k=lo(3),hi(3)
-        z = prob_lo(3) + (dble(k)+half)*dx(3) 
+        z = prob_lo(3) + (dble(k)+half)*dx(3)
         do j=lo(2),hi(2)
            y = prob_lo(2) + (dble(j)+half)*dx(2)
            do i=lo(1),hi(1)

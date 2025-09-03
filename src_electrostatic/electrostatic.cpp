@@ -36,7 +36,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 //                hi_linop_bc[i] = LinOpBCType::Neumann;
             }
             if(bc_es_lo[i] == 1)
-            {                 
+            {
                 lo_linop_bc[i] = LinOpBCType::Dirichlet;
             }
             if(bc_es_hi[i] == 1)
@@ -50,7 +50,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
         //create solver opject
         MLPoisson linop({geom}, {ba}, {dmap});
- 
+
         //set BCs
         linop.setDomainBC({AMREX_D_DECL(lo_linop_bc[0],
                                         lo_linop_bc[1],
@@ -78,18 +78,18 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         mlmg.setMaxIter(poisson_max_iter);
         mlmg.setVerbose(poisson_verbose);
         mlmg.setBottomVerbose(poisson_bottom_verbose);
-        
+
         //Do solve
         mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
-            
+
         potential.FillBoundary(geom.periodicity());
         // set ghost cell values so electric field is calculated properly
         // the ghost cells will hold the values extrapolated to the ghost CC
-        MultiFabPotentialBC(potential, geom); 
+        MultiFabPotentialBC(potential, geom);
 
         //Find e field, gradient from cell centers to faces
         ComputeCentredGrad(potential, efieldCC, geom);
-        
+
 
     }
 

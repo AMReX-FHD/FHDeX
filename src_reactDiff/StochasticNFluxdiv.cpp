@@ -9,7 +9,7 @@ void StochasticNFluxdiv(MultiFab& n_in,
                         const Real& time,
                         int increment_div) {
 
-    // single cell case set stochastic mass fluxdiv to zero 
+    // single cell case set stochastic mass fluxdiv to zero
     // (or its increment if increment_in=T) and return
     long cell_count = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
     if (cell_count == 1 && increment_div==0) {
@@ -48,7 +48,7 @@ void StochasticNFluxdiv(MultiFab& n_in,
         AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
                      const Box & bx_y = mfi.nodaltilebox(1);,
                      const Box & bx_z = mfi.nodaltilebox(2););
-        
+
         amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             fluxx(i,j,k,n) = average_to_faces(n_arr(i-1,j,k,n),n_arr(i,j,k,n),dv);
@@ -72,7 +72,7 @@ void StochasticNFluxdiv(MultiFab& n_in,
             MultiFabFillRandom(rand[i], n, 1., geom, 0);
         }
     }
-    
+
     // assemble_stoch_n_fluxes
     for (MFIter mfi(n_in); mfi.isValid(); ++mfi)
     {
@@ -95,7 +95,7 @@ void StochasticNFluxdiv(MultiFab& n_in,
         AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
                      const Box & bx_y = mfi.nodaltilebox(1);,
                      const Box & bx_z = mfi.nodaltilebox(2););
-        
+
         amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             fluxx(i,j,k,n) = std::sqrt(coefx(i,j,k,n)*fluxx(i,j,k,n)) * randx(i,j,k,n);
@@ -107,7 +107,7 @@ void StochasticNFluxdiv(MultiFab& n_in,
 #if (AMREX_SPACEDIM == 3)
                          , bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            fluxz(i,j,k,n) = std::sqrt(coefz(i,j,k,n)*fluxz(i,j,k,n)) * randz(i,j,k,n);            
+            fluxz(i,j,k,n) = std::sqrt(coefz(i,j,k,n)*fluxz(i,j,k,n)) * randz(i,j,k,n);
         }
 #endif
         );
@@ -118,14 +118,14 @@ void StochasticNFluxdiv(MultiFab& n_in,
             Abort("StochasticNFluxdiv() - implement physical bc's for noise");
         }
     }
-    
+
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         flux[i].mult(std::sqrt(2.*variance_coef_mass/(dv*dt)));
     }
 
     // compute flux divergence
     ComputeDiv(stoch_fluxdiv, flux, 0, 0, nspecies, geom, increment_div);
-    
+
 }
 
 AMREX_GPU_HOST_DEVICE Real average_to_faces(const Real& value1,
@@ -176,5 +176,5 @@ AMREX_GPU_HOST_DEVICE Real average_to_faces(const Real& value1,
         return 0;
 
     }
-    
+
 }

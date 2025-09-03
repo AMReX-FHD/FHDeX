@@ -32,7 +32,7 @@ contains
     double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          conx_1d, cony_1d, conx, cony, slope
-         
+
     integer :: i, j, k
     double precision :: hdtdx(2)
 
@@ -109,5 +109,5 @@ contains
     end do
 
   end subroutine compute_flux_2d
-                                       
+
 end module compute_flux_module_2d

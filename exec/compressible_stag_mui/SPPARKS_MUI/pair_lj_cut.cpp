@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -48,7 +48,7 @@ PairLJCut::~PairLJCut()
 /* ---------------------------------------------------------------------- */
 
 double PairLJCut::energy(int i, int numneigh, int *neighs,
-			 double **x, int *type)
+                         double **x, int *type)
 {
   int j,jj,itype,jtype;
   double xtmp,ytmp,ztmp,delx,dely,delz;
@@ -73,7 +73,7 @@ double PairLJCut::energy(int i, int numneigh, int *neighs,
       r2inv = 1.0/rsq;
       r6inv = r2inv*r2inv*r2inv;
       phi = r6inv*(lj3[itype][jtype]*r6inv-lj4[itype][jtype]) -
-	offset[itype][jtype];
+        offset[itype][jtype];
       eng += phi;
     }
   }
@@ -82,7 +82,7 @@ double PairLJCut::energy(int i, int numneigh, int *neighs,
 }
 
 /* ----------------------------------------------------------------------
-   allocate all arrays 
+   allocate all arrays
 ------------------------------------------------------------------------- */
 
 void PairLJCut::allocate()
@@ -108,7 +108,7 @@ void PairLJCut::allocate()
 }
 
 /* ----------------------------------------------------------------------
-   global settings 
+   global settings
 ------------------------------------------------------------------------- */
 
 void PairLJCut::settings(int narg, char **arg)
@@ -124,7 +124,7 @@ void PairLJCut::settings(int narg, char **arg)
     int i,j;
     for (i = 1; i <= ntypes; i++)
       for (j = i+1; j <= ntypes; j++)
-	if (setflag[i][j]) cut[i][j] = cut_global;
+        if (setflag[i][j]) cut[i][j] = cut_global;
   }
 }
 
@@ -169,7 +169,7 @@ double PairLJCut::init_one(int i, int j)
 {
   if (setflag[i][j] == 0) {
     epsilon[i][j] = mix_energy(epsilon[i][i],epsilon[j][j],
-			       sigma[i][i],sigma[j][j]);
+                               sigma[i][i],sigma[j][j]);
     sigma[i][j] = mix_distance(sigma[i][i],sigma[j][j]);
     cut[i][j] = mix_distance(cut[i][i],cut[j][j]);
   }

@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -60,7 +60,7 @@ Lattice::Lattice(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
 
   if (style == LINE_2N || style == SQ_4N || style == SQ_8N ||
       style == TRI || style == ZIGZAG || style == SC_6N || style == SC_26N ||
-      style == FCC || style == BCC || style == DIAMOND || 
+      style == FCC || style == BCC || style == DIAMOND ||
       style == FCC_OCTA_TETRA) {
     if (narg != 2) error->all(FLERR,"Illegal lattice command");
     latconst = atof(arg[1]);
@@ -75,16 +75,16 @@ Lattice::Lattice(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
 
   // check dimensionality
 
-  if ((style == LINE_2N || style == RANDOM_1D) && 
+  if ((style == LINE_2N || style == RANDOM_1D) &&
       domain->dimension != 1)
     error->all(FLERR,"Lattice style does not match dimension");
-  if ((style == SQ_4N || style == SQ_8N || style == TRI || style == ZIGZAG ||  
-       style == RANDOM_2D) && 
+  if ((style == SQ_4N || style == SQ_8N || style == TRI || style == ZIGZAG ||
+       style == RANDOM_2D) &&
       domain->dimension != 2)
     error->all(FLERR,"Lattice style does not match dimension");
-  if ((style == SC_6N || style == SC_26N || style == FCC || 
+  if ((style == SC_6N || style == SC_26N || style == FCC ||
        style == BCC || style == DIAMOND || style == FCC_OCTA_TETRA ||
-       style == RANDOM_3D) && 
+       style == RANDOM_3D) &&
       domain->dimension != 3)
     error->all(FLERR,"Lattice style does not match dimension");
 
@@ -270,7 +270,7 @@ int Lattice::id2color(tagint idsite, int delcolor)
     i = idsite % nx;
     j = (idsite%(nx*ny)) / nx;
     k = idsite / (nx*ny);
-    icolor = ncolor1d*ncolor1d*(k%ncolor1d) + 
+    icolor = ncolor1d*ncolor1d*(k%ncolor1d) +
       ncolor1d*(j%ncolor1d) + i%ncolor1d;
 
   } else if (style == FCC) {

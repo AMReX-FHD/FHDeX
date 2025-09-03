@@ -41,12 +41,12 @@ void ComputeDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversi
 void ComputeMassFluxdiv(MultiFab& rho,
                         MultiFab& rhotot,
                         const MultiFab& Temp,
-			MultiFab& diff_mass_fluxdiv,
+                        MultiFab& diff_mass_fluxdiv,
                         MultiFab& stoch_mass_fluxdiv,
-			std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                        std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                         std::array<MultiFab,AMREX_SPACEDIM>& stoch_mass_flux,
                         StochMassFlux& sMassFlux,
-			const Real& dt, const Real& stage_time, const Geometry& geom,
+                        const Real& dt, const Real& stage_time, const Geometry& geom,
                         Vector<Real>& weights,
                         MultiFab& charge,
                         std::array<MultiFab,AMREX_SPACEDIM>& grad_Epot,
@@ -66,29 +66,29 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
 // in DiffusiveMassFlux.cpp
 
 void DiffusiveMassFluxdiv(const MultiFab& rho,
-			  const MultiFab& rhotot,
-			  const MultiFab& molarconc,
-			  const MultiFab& rhoWchi,
-			  const MultiFab& Gamma,
-			  MultiFab& diff_mass_fluxdiv,
-			  std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-			  const Geometry& geom);
+              const MultiFab& rhotot,
+              const MultiFab& molarconc,
+              const MultiFab& rhoWchi,
+              const MultiFab& Gamma,
+              MultiFab& diff_mass_fluxdiv,
+              std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+              const Geometry& geom);
 
 void DiffusiveMassFlux(const MultiFab& rho,
-		       const MultiFab& rhotot,
-		       const MultiFab& molarconc,
-		       const MultiFab& rhoWchi,
-		       const MultiFab& Gamma,
-		       std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-		       const Geometry& geom);
+               const MultiFab& rhotot,
+               const MultiFab& molarconc,
+               const MultiFab& rhoWchi,
+               const MultiFab& Gamma,
+               std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+               const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeMixtureProperties.cpp
 void ComputeMixtureProperties(const MultiFab& rho,
-			      const MultiFab& rhotot,
-			      MultiFab& D_bar,
-			      MultiFab& D_therm,
-			      MultiFab& Hessian);
+                  const MultiFab& rhotot,
+                  MultiFab& D_bar,
+                  MultiFab& D_therm,
+                  MultiFab& Hessian);
 
 void ComputeEta(const MultiFab& rho_in,
                 const MultiFab& rhotot_in,
@@ -98,13 +98,13 @@ void ComputeEta(const MultiFab& rho_in,
 // in CorrectionFlux.cpp
 
 void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
-		    std::array< MultiFab, AMREX_SPACEDIM >& flux);
+            std::array< MultiFab, AMREX_SPACEDIM >& flux);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in CorrectionFlux.cpp
 
 void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
-		    std::array< MultiFab, AMREX_SPACEDIM >& flux);
+            std::array< MultiFab, AMREX_SPACEDIM >& flux);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ElectroDiffusiveMassFluxdiv.cpp
@@ -194,32 +194,32 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 // in MassFluxUtil.cpp
 
 void ComputeMolconcMolmtot(const MultiFab& rho,
-			   const MultiFab& rhotot,
-			   MultiFab& molarconc,
-			   MultiFab& molmtot);
+               const MultiFab& rhotot,
+               MultiFab& molarconc,
+               MultiFab& molmtot);
 
 void ComputeMassfrac(const MultiFab& rho,
-			   const MultiFab& rhotot,
-			   MultiFab& massfrac);
+               const MultiFab& rhotot,
+               MultiFab& massfrac);
 
 void ComputeGamma(const MultiFab& molarconc,
-		  const MultiFab& Hessian,
-		  MultiFab& Gamma);
+          const MultiFab& Hessian,
+          MultiFab& Gamma);
 
 void ComputeFHGamma(const MultiFab& massfrac,
-		  MultiFab& Gamma);
+          MultiFab& Gamma);
 
 void ComputeRhoWChi(const MultiFab& rho,
-		    const MultiFab& rhotot,
-		    const MultiFab& molarconc,
-		    MultiFab& rhoWchi,
-		    const MultiFab& D_bar);
+            const MultiFab& rhotot,
+            const MultiFab& molarconc,
+            MultiFab& rhoWchi,
+            const MultiFab& D_bar);
 
 void ComputeZetaByTemp(const MultiFab& molarconc,
- 		       const MultiFab& D_bar,
- 		       const MultiFab& Temp,
- 		       MultiFab& zeta_by_Temp,
- 		       const MultiFab& D_therm);
+           const MultiFab& D_bar,
+           const MultiFab& Temp,
+           MultiFab& zeta_by_Temp,
+           const MultiFab& D_therm);
 
 void ComputeSqrtLonsagerFC(const MultiFab& rho,
                            const MultiFab& rhotot,
@@ -230,7 +230,7 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho,
 // in MatvecMul.cpp
 
 void MatvecMul(MultiFab& x,
-	       const MultiFab& A);
+           const MultiFab& A);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in MkDiffusiveMFluxdiv.cpp
@@ -500,7 +500,7 @@ void ComputeFHGammaLocal (
         Real Nbar;
 
         GetMonomerTot ( massFrac, fh_monomers, Nbar, nspecies);
-    
+
         for (int n=0; n<nspecies; n++){
            for (int m=0; m<nspecies; m++){
               Real wn = std::max(std::min( massFrac[n],1.),0.);
@@ -576,14 +576,14 @@ void ComputeChiSub(int nspecies_sub,
     ComputeMolconcMolmtotLocal(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
 
     // compute chi_sub
-//	  amrex::Print() << " entering reduced system "  << nspecies_sub << std::endl;
-//	  for (int n=1; n<=nspecies_sub; ++n){
-//		  amrex::Print() << "n , dest,molmass rho massf " << n << " " << dest(n) << " " << molmass_sub[n-1] << " " <<
-//			  rhoN_sub[n-1] << " " << MolarConcN_sub[n-1] << std::endl;
-//	          for (int m=1; m<=nspecies_sub; ++m){
-//			  amrex::Print() << "m d chi " << m << " " << D_barN_sub(n,m) << " " <<  chi_sub(n,m) << std::endl;
-//		  }
-//	  }
+//      amrex::Print() << " entering reduced system "  << nspecies_sub << std::endl;
+//      for (int n=1; n<=nspecies_sub; ++n){
+//          amrex::Print() << "n , dest,molmass rho massf " << n << " " << dest(n) << " " << molmass_sub[n-1] << " " <<
+//              rhoN_sub[n-1] << " " << MolarConcN_sub[n-1] << std::endl;
+//              for (int m=1; m<=nspecies_sub; ++m){
+//              amrex::Print() << "m d chi " << m << " " << D_barN_sub(n,m) << " " <<  chi_sub(n,m) << std::endl;
+//          }
+//      }
     ComputeChi(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, chi_sub, D_barN_sub);
 
 
@@ -686,7 +686,7 @@ void Dbar2chiIterative ( int nspecies_in,
        sum += Xkp(ii);
     }
 //    if(amrex::abs(sum-1.) > 1.e-12){
-//	    amrex::Print() << " bad x in dbarier " << sum  << std::endl;
+//        amrex::Print() << " bad x in dbarier " << sum  << std::endl;
 //    }
 
     // molecular weight of mixture - EGLIB
@@ -966,13 +966,13 @@ void ComputeRhoWChiLocal (
           // consisting of non-trace species
           nspecies_sub = nspecies - ntrace;
 
-//	  amrex::Print() << " entering subspecies " << ntrace << " " << nspecies_sub << std::endl;
-//	  for (int n=1; n<=nspecies; ++n){
-//		  amrex::Print() << "n , dest,molmass rho " << n << " " << dest(n) << " " << molmass_in[n-1] << " " << rhoN[n-1] << std::endl;
-//	          for (int m=1; m<=nspecies; ++m){
-//			  amrex::Print() << "m d rhowchi " << m << " " << D_barN(n,m) << " " <<  rhoWchiN(n,m) << std::endl;
-//		  }
-//	  }
+//          amrex::Print() << " entering subspecies " << ntrace << " " << nspecies_sub << std::endl;
+//          for (int n=1; n<=nspecies; ++n){
+//              amrex::Print() << "n , dest,molmass rho " << n << " " << dest(n) << " " << molmass_in[n-1] << " " << rhoN[n-1] << std::endl;
+//              for (int m=1; m<=nspecies; ++m){
+//                  amrex::Print() << "m d rhowchi " << m << " " << D_barN(n,m) << " " <<  rhoWchiN(n,m) << std::endl;
+//              }
+//          }
           ComputeChiSub(nspecies_sub,
                         dest,
                         molmass_in,

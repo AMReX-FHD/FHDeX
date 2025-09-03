@@ -28,7 +28,7 @@ Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
 
     // set temp to the average
     temp.setVal(average);
-    
+
     // subtract mf from temp; "temp = temp - mf"
     MultiFab::Subtract(temp,mf,incomp,0,1,0);
 
@@ -58,7 +58,7 @@ void ComputeBasicStats(MultiFab & instant, MultiFab & means,
 
         amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            means_data(i,j,k,outcomp) = (means_data(i,j,k,outcomp)*stepsMinusOne + instant_data(i,j,k,incomp))*stepsInv;        
+            means_data(i,j,k,outcomp) = (means_data(i,j,k,outcomp)*stepsMinusOne + instant_data(i,j,k,incomp))*stepsInv;
         });
 
     }
@@ -81,7 +81,7 @@ void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domai
 Real MaskedSum(const MultiFab & inFab,int comp, const Periodicity& period)
 {
     BL_PROFILE_VAR("MaskedSum()",MaskedSum);
-    
+
     MultiFab tmpmf(inFab.boxArray(), inFab.DistributionMap(), 1, 0,
                    MFInfo(), inFab.Factory());
 

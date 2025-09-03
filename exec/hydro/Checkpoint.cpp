@@ -42,7 +42,7 @@ void WriteCheckPoint(int step,
     // ---- after all directories are built
     // ---- ParallelDescriptor::IOProcessor() creates the directories
     amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
-    
+
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
     // write Header file
@@ -74,12 +74,12 @@ void WriteCheckPoint(int step,
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
 
-	if (turbForcing == 1) {
-	  // write turbulent forcing U's
-	  for (int i=0; i<132; ++i) {
-            HeaderFile << turbforce.getU(i) << '\n';
-	  }
-	}
+        if (turbForcing == 1) {
+            // write turbulent forcing U's
+            for (int i=0; i<132; ++i) {
+                HeaderFile << turbforce.getU(i) << '\n';
+            }
+        }
     }
 
     int comm_rank = 0;
@@ -103,7 +103,7 @@ void WriteCheckPoint(int step,
             // create filename, e.g. chk0000005/rng0000002
             const std::string& rngFileNameBase = (checkpointname + "/rng");
             const std::string& rngFileName = amrex::Concatenate(rngFileNameBase,comm_rank,7);
-        
+
             rngFile.open(rngFileName.c_str(), std::ofstream::out   |
                          std::ofstream::trunc |
                          std::ofstream::binary);
@@ -111,14 +111,14 @@ void WriteCheckPoint(int step,
             if( !rngFile.good()) {
                 amrex::FileOpenFailed(rngFileName);
             }
-    
+
             amrex::SaveRandomState(rngFile);
 
         }
 
         ParallelDescriptor::Barrier();
     }
-    
+
     // write the MultiFab data to, e.g., chk00010/Level_0/
     VisMF::Write(umac[0],
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umac"));
@@ -175,18 +175,18 @@ void ReadCheckPoint(int& step,
         // create a distribution mapping
         dmap.define(ba, ParallelDescriptor::NProcs());
 
-	if (turbForcing == 1) {
-	  turbforce.define(ba,dmap,turb_a,turb_b);
-	}
+        if (turbForcing == 1) {
+            turbforce.define(ba,dmap,turb_a,turb_b);
+        }
 
-	if (turbForcing == 1) {
-	  // read in turbulent forcing U's
-	  Real utemp;
-	  for (int i=0; i<132; ++i) {
-            is >> utemp;
-            turbforce.setU(i,utemp);
-	  }        
-	}
+        if (turbForcing == 1) {
+            // read in turbulent forcing U's
+            Real utemp;
+            for (int i=0; i<132; ++i) {
+                is >> utemp;
+                turbforce.setU(i,utemp);
+            }
+        }
 
         // build MultiFab data
         umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
@@ -217,7 +217,7 @@ void ReadCheckPoint(int& step,
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
-    
+
                 // create filename, e.g. chk0000005/rng0000002
                 std::string FileBase(checkpointname + "/rng");
                 std::string File = amrex::Concatenate(FileBase,comm_rank,7);
@@ -238,13 +238,13 @@ void ReadCheckPoint(int& step,
         }
 
     } else if (seed == 0) {
-                
+
         // initializes the seed for C++ random number calls based on the clock
         auto now = time_point_cast<nanoseconds>(system_clock::now());
         int randSeed = now.time_since_epoch().count();
         // broadcast the same root seed to all processors
         ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-        
+
         InitRandom(randSeed+ParallelDescriptor::MyProc(),
                    ParallelDescriptor::NProcs(),
                    randSeed+ParallelDescriptor::MyProc());
@@ -300,11 +300,11 @@ ReadFile (const std::string& filename, Vector<char>& charBuf,
     }
 
     if(fileLength == -1) {
-      return;
+        return;
     }
 
     fileLengthPadded = fileLength + 1;
-//    fileLengthPadded += fileLengthPadded % 8;
+    //    fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);
 
     iss.read(charBuf.dataPtr(), fileLength);

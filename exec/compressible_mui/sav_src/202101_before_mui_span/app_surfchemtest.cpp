@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -32,7 +32,7 @@ enum{VACANCY,SPEC1,SPEC2,SPEC3,SPEC4,SPEC5}; // removed ZERO and moved VACANCY t
 
 /* ---------------------------------------------------------------------- */
 
-AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) : 
+AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   AppLattice(spk,narg,arg)
 {
   ninteger = 12; // type, element, ac1, ac2, ac3, ac4, ac5, dc1, dc2, dc3, dc4, dc5  (number changes due to ads/des)
@@ -144,7 +144,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else error->all(FLERR,"Illegal event command");
 
       none++;
-      
+
     } else if (rstyle == 2) {
       if (narg != 8) error->all(FLERR,"Illegal event command");
 
@@ -287,7 +287,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else error->all(FLERR,"Illegal event command");
 
       nads++;
-      
+
     } else if (rstyle == 5) {   // desorption
       if (narg != 5) error->all(FLERR,"Illegal event command");
 
@@ -308,9 +308,9 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
 
       // want to make sure that darray[0], darray[1], darray[2], darray[3], darray[4]
       // correspond to number densities of spec1, spec2, spec3, spec4, spec5
-      if (strcmp(arg[4],"spec1") == 0) 
+      if (strcmp(arg[4],"spec1") == 0)
         error->all(FLERR,"rstyle=5 only allows spec1/2/3/4/5->vac");
-      else if (strcmp(arg[4],"spec2") == 0) 
+      else if (strcmp(arg[4],"spec2") == 0)
         error->all(FLERR,"rstyle=5 only allows spec1/2/3/4/5->vac");
       else if (strcmp(arg[4],"spec3") == 0)
         error->all(FLERR,"rstyle=5 only allows spec1/2/3/4/5->vac");
@@ -322,7 +322,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else error->all(FLERR,"Illegal event command");
 
       ndes++;
-      
+
     } else error->all(FLERR,"Illegal event command");
   } else if (strcmp(command,"mui_push") == 0) {
     if (narg < 2) error->all(FLERR,"Illegal mui_push command");
@@ -381,7 +381,7 @@ void AppSurfchemtest::init_app()
     memory->create(firstevent,nlocal,"app:firstevent");
 
     // esites must be large enough for 3 sites and their 1st neighbors
-    
+
     esites = new int[3 + 3*maxneigh];
 
     // initializing ac1-ac5 and dc1-dc5
@@ -428,7 +428,7 @@ void AppSurfchemtest::setup_app()
   freeevent = 0;
 
   // set propensities from rates
-  // propentities for adsorption reactions will be calculated in site_propensity(i) 
+  // propentities for adsorption reactions will be calculated in site_propensity(i)
 
   if (temperature == 0.0)
     error->all(FLERR,"Temperature cannot be 0.0 for app surfchemtest");
@@ -690,7 +690,7 @@ void AppSurfchemtest::add_event(int i, int rstyle, int which, double propensity,
 
   if (nevents == maxevent) {
     maxevent += DELTAEVENT;
-    events = 
+    events =
       (Event *) memory->srealloc(events,maxevent*sizeof(Event),"app:events");
     for (int m = nevents; m < maxevent; m++) events[m].next = m+1;
     freeevent = nevents;
@@ -757,11 +757,11 @@ void AppSurfchemtest::grow_reactions(int rstyle)
     memory->grow(desinput,n,"app/surfchemtest:desinput");
     memory->grow(desoutput,n,"app/surfchemtest:desoutput");
     memory->grow(descount,n,"app/surfchemtest:descount");
-  } 
+  }
 }
 
 /* ----------------------------------------------------------------------
-   MUI routines 
+   MUI routines
 ------------------------------------------------------------------------- */
 
 void AppSurfchemtest::mui_push(int narg, char **arg)
@@ -857,7 +857,7 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
     } else {
       error->all(FLERR,"Illegal mui_push command");
     }
-    
+
     if (domain->me == 0 && screen) fprintf(screen,"** DEBUG: %s pushed\n",arg[k]);
   }
 

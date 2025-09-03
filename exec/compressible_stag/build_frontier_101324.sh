@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-## load necessary modules 
+## load necessary modules
 module load rocm/5.7.1
 
 # GPU-aware MPI

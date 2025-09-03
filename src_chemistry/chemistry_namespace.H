@@ -12,7 +12,7 @@ namespace chemistry {
     // reaction rate constant for each reaction (assuming Law of Mass Action holds)
     // using rate_multiplier, reaction rates can be changed by the same factor
     // if include_discrete_LMA_correction, n^2 and n^3 in rate expressions become
-    // n*(n-1/dv) and n*(n-1/dv)*(n-2/dv). 
+    // n*(n-1/dv) and n*(n-1/dv)*(n-2/dv).
     extern AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> rate_const;
     extern AMREX_GPU_MANAGED amrex::Real rate_multiplier;
     extern AMREX_GPU_MANAGED int include_discrete_LMA_correction;
@@ -32,7 +32,7 @@ namespace chemistry {
     // use mole fraction based LMA
     extern AMREX_GPU_MANAGED int use_mole_frac_LMA;
 
-    // specific to compressible codes 
+    // specific to compressible codes
     extern AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> alpha_param;
     extern AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> beta_param;
     extern AMREX_GPU_MANAGED amrex::Real T0_chem;

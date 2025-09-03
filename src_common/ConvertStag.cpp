@@ -26,7 +26,7 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
     }
 }
 
-void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>& face_in, 
+void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>& face_in,
                      int scomp, int ncomp, int bccomp, const Geometry& geom)
 {
     BL_PROFILE_VAR("AverageCCToFace()",AverageCCToFace);
@@ -37,10 +37,10 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
     if (ng >= ng_c) {
         Abort("AverageCCToFace requires ng < ng_c");
     }
-    
+
     // Physical Domain
     Box dom(geom.Domain());
-    
+
     Vector<int> bc_lo(AMREX_SPACEDIM);
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
@@ -92,7 +92,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
-            
+
         if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) {
             if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
                 int hi = dom.bigEnd(0)+1;
@@ -104,7 +104,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
-        
+
         if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
@@ -116,7 +116,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
-            
+
         if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) {
             if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
                 int hi = dom.bigEnd(1)+1;
@@ -141,7 +141,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
-            
+
         if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) {
             if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
                 int hi = dom.bigEnd(2)+1;
@@ -154,7 +154,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
             }
         }
 #endif
-        
+
     }
 }
 
@@ -197,7 +197,7 @@ void ShiftCCToFace_onegrid(MultiFab& face_in, int face_comp,
     if (face_in.boxArray().size() != 1) {
         Abort("ShiftCCToFace_onegrid requires face_in contain only one box");
     }
-    
+
     int dir=0;
     if (face_in.is_nodal(0)) {
         dir = 0;
@@ -212,10 +212,10 @@ void ShiftCCToFace_onegrid(MultiFab& face_in, int face_comp,
     }
 
     Box bx0 = cc_in.boxArray()[0];
-    
+
     int lo = bx0.smallEnd(dir);
     int hi = bx0.bigEnd(dir);
-    
+
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -240,7 +240,7 @@ void ShiftCCToFace_onegrid(MultiFab& face_in, int face_comp,
                     face(i,hi+1,k,cc_comp+n) = cc(i,j,k,face_comp+n);
                 }
             });
-            
+
         } else if (dir == 2) {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
@@ -266,10 +266,10 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
     if (ng >= ng_c) {
         Abort("AverageCCToNode requires ng < ng_c");
     }
-    
+
     // Physical Domain
     Box dom(geom.Domain());
-    
+
     Vector<int> bc_lo(AMREX_SPACEDIM);
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
@@ -283,7 +283,7 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
         const Array4<Real> & node = node_in.array(mfi);
 
         const Box& bx = mfi.growntilebox(ng);
-        
+
         amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             // average to nodes
@@ -329,7 +329,7 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
                 });
             }
         }
-        
+
         if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
             if (bx.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
@@ -363,7 +363,7 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
         }
 
 #if (AMREX_SPACEDIM == 3)
-        
+
         if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) {
             if (bx.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
@@ -387,9 +387,9 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
                 });
             }
         }
-        
+
 #endif
-        
+
     } // end MFIter
 }
 
@@ -403,7 +403,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
     if (AMREX_SPACEDIM != 3) {
         Abort("AverageCCToEdge requires AMREX_SPACEDIM=3");
     }
-    
+
     int ng = edge_in[0].nGrow();
     int ng_c = cc_in.nGrow();
 
@@ -413,21 +413,21 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
     if (ng >= ng_c) {
         Abort("AverageCCToEdge requires ng < ng_c");
     }
-    
+
     // Physical Domain
     Box dom(geom.Domain());
-    
+
     Vector<int> bc_lo(AMREX_SPACEDIM);
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
     BCPhysToMath(bccomp,bc_lo,bc_hi);
-    
+
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         const Array4<Real const> & cc = cc_in.array(mfi);
-        
+
         const Array4<Real> & edge_xy = edge_in[0].array(mfi);
         const Array4<Real> & edge_xz = edge_in[1].array(mfi);
         const Array4<Real> & edge_yz = edge_in[2].array(mfi);
@@ -449,7 +449,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
         {
             edge_yz(i,j,k,scomp+n) = 0.25*(cc(i,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i,j,k-1,scomp+n)+cc(i,j-1,k-1,scomp+n));
         });
-    
+
         // boundary conditions
         // note: at physical boundaries,
         // the value in ghost cells represents the value ON the boundary
@@ -584,8 +584,8 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                     }
                 });
             }
-        }                        
-                
+        }
+
     } // end MFIter
-    
+
 }

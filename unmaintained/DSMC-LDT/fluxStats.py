@@ -18,7 +18,7 @@ def getData(data):
 
   #Read in each line
   for line in file:
-    
+
     entries = line.split()
 
     if counter == 0:
@@ -34,8 +34,8 @@ def getData(data):
       rFlux.append(int(entries[1]))
 
     counter = counter + 1
-    
-  #close file   
+
+  #close file
   file.close()
 
   #get the net flux - particles going right - left
@@ -91,7 +91,7 @@ def getAverageFlux(N, ts):
     #compute a cumulative sum of netFlux
     cs = np.cumsum(netFlux)
     cs = np.insert(cs,0,0) #append a zero as the first element
-    
+
     #add the cumsum to cumFlux
     cumFlux = np.add(cumFlux, cs)
 

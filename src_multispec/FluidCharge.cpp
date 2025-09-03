@@ -31,7 +31,7 @@ void DotWithZFace(std::array< const MultiFab, AMREX_SPACEDIM >& mf,
                   int abs_z)
 {
     BL_PROFILE_VAR("DotWithZFace()",DotWithZFace);
-    
+
     amrex::Vector<amrex::Real> z_temp;
     z_temp.resize(nspecies);
 
@@ -61,9 +61,9 @@ void ComputeChargeCoef(const MultiFab& rho_in,
     BL_PROFILE_VAR("ComputeChargeCoef()",ComputeChargeCoef);
 
     for ( MFIter mfi(charge_coef_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.growntilebox(1);
-        
+
         const Array4<const Real> & rho   = rho_in.array(mfi);
         const Array4<const Real> & Temp  = Temp_in.array(mfi);
         const Array4<Real> & charge_coef = charge_coef_in.array(mfi);
@@ -86,7 +86,7 @@ void ComputeChargeCoef(const MultiFab& rho_in,
 void EnforceChargeNeutrality()
 {
     BL_PROFILE_VAR("EnforceChargeNeutrality",EnforceChargeNeutrality);
-    
+
     Abort("EnforceChargeNeutrality() not written yet");
 }
 
@@ -97,21 +97,21 @@ void EnforceChargeNeutrality()
 void ImplicitPotentialCoef()
 {
     BL_PROFILE_VAR("ImplicitPotentialCoef",ImplicitPotentialCoef);
-    
+
     Abort("ImplicitPotentialCoef() not written yet");
 }
 
 void ModifyS()
 {
     BL_PROFILE_VAR("ModifyS",ModifyS);
-    
+
     Abort("ModifyS() not written yet; needed for AdvanceTimestepIterative");
 }
 
 void ComputePermittivity()
 {
     BL_PROFILE_VAR("ComputePermittivity",ComputePermittivity);
-    
+
     if (dielectric_type == 0) {
         return;
     } else {
@@ -126,11 +126,11 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
                          const Geometry& geom)
 {
     BL_PROFILE_VAR("ComputeLorentzForce",ComputeLorentzForce);
-    
+
     bool use_qE_Lorentz = false;
 
     if (use_qE_Lorentz) {
-        
+
         AverageCCToFace(charge,Lorentz_force,0,1,SPEC_BC_COMP,geom);
 
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -143,7 +143,7 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
 
     // temporary multifab to hold div(-eps*E)
     MultiFab temp_cc(permittivity.boxArray(),permittivity.DistributionMap(),1,1);
-           
+
     // Lorentz force = E div (eps*E) - (1/2) E^2 grad(eps)
 
     // discretize E div(eps*E)
@@ -180,30 +180,30 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         MultiFab::Multiply(Lorentz_force[i],grad_Epot[i],0,0,1,0);
     }
-    
+
     if (dielectric_type != 0) {
         // spatially-varying permittivity
         // add -(1/2) E^2 grad(eps)
         Abort("ComputeLorentzForce() spatially-varying epsilon not implemented yet");
     }
-    
+
 }
 
 void ComputeE_ext(std::array< MultiFab, AMREX_SPACEDIM >& E_ext) {
 
     BL_PROFILE_VAR("ComputeE_ext",ComputeE_ext);
-    
+
     if (E_ext_type == 1) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             E_ext[i].setVal(E_ext_value[i]);
         }
     }
-    
+
 }
 
 void ZeroEpsOnWall(std::array< MultiFab, AMREX_SPACEDIM >& beta) {
-    
+
     BL_PROFILE_VAR("ZeroEpsOnWall",ZeroEpsOnWall);
-    
+
     Abort("ZeroEpsOnWall not written yet");
 }

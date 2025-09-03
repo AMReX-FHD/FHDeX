@@ -7,7 +7,7 @@ void InitN(MultiFab& n_in,
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(n_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<Real> & n_init = n_in.array(mfi);
@@ -16,7 +16,7 @@ void InitN(MultiFab& n_in,
             //============================================================
             // Thermodynamic equilibrium
             //============================================================
-        
+
             amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 n_init(i,j,k,n) = n_init_in(0,n);
@@ -24,13 +24,13 @@ void InitN(MultiFab& n_in,
 
         } else if (prob_type == 5) {
             //=================================================================
-            // bubble having radius = 0.5*perturb_width*dx(1) 
+            // bubble having radius = 0.5*perturb_width*dx(1)
             // n_init = n_init_in(1,:) inside, n_init = n_init_in (2,:) outside
             // can be discontinous or smooth depending on smoothing_width
             //=================================================================
 
             Real rad = 0.5*perturb_width*dx[0];
-        
+
             amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 Real x = prob_lo[0] + (i+0.5)*dx[0] - 0.5*(prob_lo[0]+prob_hi[0]);
@@ -52,7 +52,7 @@ void InitN(MultiFab& n_in,
                     // smooth interface
                     n_init(i,j,k,n) = n_init_in(0,n) + (n_init_in(1,n) - n_init_in(0,n))* 0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
                 }
-                
+
             });
 
         } else {
@@ -72,7 +72,7 @@ void InitN(MultiFab& n_in,
         } else if (initial_variance_mass > 0.) { // Make the number of molecules in each cell Poisson distributed with desired mean
 
             for ( MFIter mfi(n_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
                 const Box& bx = mfi.tilebox();
 
                 const Array4<Real> & n_init = n_in.array(mfi);

@@ -64,12 +64,12 @@ def self_consistent_update(u_kn, N_k, f_k):
     """
 
     u_kn, N_k, f_k = validate_inputs(u_kn, N_k, f_k)
-    
+
     states_with_samples = (N_k > 0)
 
     # Only the states with samples can contribute to the denominator term.
     log_denominator_n = logsumexp(f_k[states_with_samples] - u_kn[states_with_samples].T, b=N_k[states_with_samples], axis=1)
-    
+
     # All states can contribute to the numerator term.
     return -1. * logsumexp(-log_denominator_n - u_kn, axis=1)
 
@@ -132,7 +132,7 @@ def mbar_objective_and_gradient(u_kn, N_k, f_k):
 
     More optimal precision, the objective function uses math.fsum for the
     outermost sum and logsumexp for the inner sum.
-    
+
     The gradient is equation C6 in the JCP MBAR paper; the objective
     function is its integral.
     """
@@ -327,13 +327,13 @@ def solve_mbar_once(u_kn_nonzero, N_k_nonzero, f_k_nonzero, method="hybr", tol=1
     #If there were runtime warnings, show the messages
     if len(w) > 0:
         for warn_msg in w:
-            warnings.showwarning(warn_msg.message, warn_msg.category, warn_msg.filename, warn_msg.lineno, warn_msg.file, "") 
+            warnings.showwarning(warn_msg.message, warn_msg.category, warn_msg.filename, warn_msg.lineno, warn_msg.file, "")
         #Ensure MBAR solved correctly
         W_nk_check = mbar_W_nk(u_kn_nonzero, N_k_nonzero, f_k_nonzero)
         check_w_normalized(W_nk_check, N_k_nonzero)
         print("MBAR weights converged within tolerance, despite the SciPy Warnings. Please validate your results.")
-       
-            
+
+
     return f_k_nonzero, results
 
 
@@ -383,7 +383,7 @@ def solve_mbar(u_kn_nonzero, N_k_nonzero, f_k_nonzero, solver_protocol=None, ver
     for k, options in enumerate(solver_protocol):
         f_k_nonzero, results = solve_mbar_once(u_kn_nonzero, N_k_nonzero, f_k_nonzero, **options)
         all_results.append(results)
-    
+
     if verbose:
         print(("Final gradient norm: %.3g" % np.linalg.norm(mbar_gradient(u_kn_nonzero, N_k_nonzero, f_k_nonzero))))
 
@@ -420,7 +420,7 @@ def subsample_data(u_kn0, N_k0, s_n, subsampling, rescale=False, replace=False):
     -----
     In situations where N >> K and the overlap is good, one might use
     subsampling to solve MBAR on a smaller dataset as an initial guess.
-    """    
+    """
     n_states = len(N_k0)
     N_k = N_k0 // subsampling
     N_k[(N_k == 0) & (N_k0 > 0)] = 1
@@ -480,8 +480,8 @@ def solve_mbar_with_subsampling(u_kn, N_k, f_k, solver_protocol, subsampling_pro
     -------
     f_k : np.ndarray, shape=(n_states), dtype='float'
         The free energies of states
-    
-    
+
+
     """
     states_with_samples = np.where(N_k > 0)[0]
 
@@ -497,7 +497,7 @@ def solve_mbar_with_subsampling(u_kn, N_k, f_k, solver_protocol, subsampling_pro
 
         f_k[states_with_samples] = f_k_nonzero
         f_k_nonzero, all_results = solve_mbar(u_kn[states_with_samples], N_k[states_with_samples], f_k[states_with_samples], solver_protocol=solver_protocol)
-    
+
     f_k[states_with_samples] = f_k_nonzero
 
     # Update all free energies because those from states with zero samples are not correctly computed by Newton-Raphson.

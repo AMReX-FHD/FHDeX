@@ -13,7 +13,7 @@ AMREX_GPU_MANAGED Array2D<int,0, MAX_REACTION,0, MAX_SPECIES> chemistry::stoich_
 // reaction rate constant for each reaction (assuming Law of Mass Action holds)
 // using rate_multiplier, reaction rates can be changed by the same factor
 // if include_discrete_LMA_correction, n^2 and n^3 in rate expressions become
-// n*(n-1/dv) and n*(n-1/dv)*(n-2/dv). 
+// n*(n-1/dv) and n*(n-1/dv)*(n-2/dv).
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> chemistry::rate_const;
 AMREX_GPU_MANAGED amrex::Real chemistry::rate_multiplier;
 AMREX_GPU_MANAGED int chemistry::include_discrete_LMA_correction;
@@ -100,7 +100,7 @@ void InitializeChemistryNamespace()
 
     exclude_solvent_comput_rates = -1;
     pp.query("exclude_solvent_comput_rates",exclude_solvent_comput_rates);
-    
+
     // get reaction type (0=deterministic; 1=CLE; 2=SSA; 3=tau leap)
     pp.get("reaction_type",reaction_type);
 
@@ -111,12 +111,12 @@ void InitializeChemistryNamespace()
     std::vector<amrex::Real> alpha_tmp(MAX_REACTION);
     pp.queryarr("alpha_param",alpha_tmp,0,nreaction);
     for (int m=0; m<nreaction; m++) alpha_param[m] = alpha_tmp[m];
-    
+
     // get beta parameter for compressible code
     std::vector<amrex::Real> beta_tmp(MAX_REACTION);
     pp.queryarr("beta_param",beta_tmp,0,nreaction);
     for (int m=0; m<nreaction; m++) beta_param[m] = beta_tmp[m];
-    
+
     T0_chem = 0.;
     // get temperature T0 for rate constants for compressible code
     pp.query("T0_chem",T0_chem);
@@ -193,7 +193,7 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
 }
 
 
-void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geometry& geom, const amrex::Real& dt, 
+void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geometry& geom, const amrex::Real& dt,
                    const MultiFab& n_interm, Vector<Real>& lin_comb_coef_in, Real volume_factor_in)
 {
     if (nreaction == 1) {
@@ -214,7 +214,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
 
     Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2]*cell_depth : dx[0]*dx[1]*cell_depth;
     dv *= volume_factor_in;
-    
+
     for (MFIter mfi(n_cc); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -233,7 +233,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                 GpuArray<Real,MAX_REACTION> avg_reaction_rate;
 
                 Real t_local = 0.;
-                
+
                 for (int n=0; n<nspecies; ++n) {
                     n_old[n] = n_arr(i,j,k,n);
                     n_new[n] = n_arr(i,j,k,n);
@@ -399,9 +399,9 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
                 reaction_rates[r] *= std::pow(n_nonneg[n],stoich_coeffs_R(r,n));
             }
         }
-        
+
     } else { // General case of number-density based LMA is handled by slower code that includes species by species
-    
+
         for (int r=0; r<nreaction; ++r) {
             reaction_rates[r] = rate_multiplier*rate_const[r];
 
@@ -431,7 +431,7 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
             } // end loop over species
         } // end loop over reaction
     }
-   
+
 }
 
 AMREX_GPU_HOST_DEVICE void sample_num_reactions(GpuArray<Real,MAX_SPECIES>& n_in,

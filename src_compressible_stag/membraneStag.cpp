@@ -4,9 +4,9 @@
 #include "rng_functions.H"
 #include <math.h>
 
-void doMembraneStag(MultiFab& cons, 
+void doMembraneStag(MultiFab& cons,
                     std::array< MultiFab, AMREX_SPACEDIM >& cumom,
-                    MultiFab& prim, 
+                    MultiFab& prim,
                     std::array< MultiFab, AMREX_SPACEDIM >& vel,
                     std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
                     const amrex::Geometry& geom, const amrex::Real dt)
@@ -14,16 +14,16 @@ void doMembraneStag(MultiFab& cons,
     BL_PROFILE_VAR("doMembraneStag()",doMembraneStag);
 
     faceflux[0].setVal(0.0); // set mass flux to zero
-    
+
     doLangevin(cons,prim,faceflux,geom,dt);
 
     faceflux[0].OverrideSync(geom.periodicity());
 
     applyEffusion(faceflux,cons);
 
-    cons.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below 
+    cons.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below
     conservedToPrimitiveStag(prim, vel, cons, cumom);
-    cons.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above 
+    cons.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
@@ -42,7 +42,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
 
     Real vol = dx[0]*dx[1]*dx[2];
     Real area = dx[1]*dx[2];
-    
+
     GpuArray<Real,MAX_SPECIES> mass;
     GpuArray<Real,MAX_SPECIES> fac1;
     GpuArray<Real,MAX_SPECIES> fac3;
@@ -53,7 +53,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
         fac3[l] = transmission[l]*std::pow(k_B,1.5)*2.0/sqrt(2*mass[l]*3.142);
         fac1[l] = transmission[l]*sqrt(k_B)*1.0/sqrt(2*mass[l]*3.142);
     }
-    
+
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
@@ -71,7 +71,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
             for (auto j = lo.y; j <= hi.y; ++j) {
 
                 Real TL = prim(membrane_cell-1,j,k,4);
-                Real TR = prim(membrane_cell,j,k,4); 
+                Real TR = prim(membrane_cell,j,k,4);
                 Real sqrtTL = sqrt(TL);
                 Real sqrtTR = sqrt(TR);
 
@@ -85,10 +85,10 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES> corr;
 
                 for (int l=0;l<nspecies;++l) {
-                    
+
                     rhoL[l] = cons(membrane_cell-1,j,k,5+l);
                     rhoR[l] = cons(membrane_cell,j,k,5+l);
-                    
+
                     delUmean[l] = fac3[l]*(sqrtTL*TL*rhoL[l] - sqrtTR*TR*rhoR[l]);
                     delNmean[l] = fac1[l]*(sqrtTL*rhoL[l] - sqrtTR*rhoR[l]);
 
@@ -115,7 +115,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     xflux(membrane_cell,j,k,5+l) = (dt*area*delNmean[l] + sqrt(dt*area*mass[l]*delNvar[l])*rn1)/vol;
                     xflux(membrane_cell,j,k,0) +=  xflux(membrane_cell,j,k,5+l);
                     xflux(membrane_cell,j,k,4) +=  (dt*area*delUmean[l] + sqrt(dt*area*mass[l]*delUvar[l])*rn3)/(vol*mass[l]);
-                    
+
                 }
 
             }
@@ -127,11 +127,11 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
 
 }
 
-void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, MultiFab& cons_in) 
+void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, MultiFab& cons_in)
 {
-    
+
     BL_PROFILE_VAR("applyEffusion()",applyEffusion);
-    
+
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
@@ -170,7 +170,7 @@ void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, MultiFab& con
                 }
             }
             }
-        
+
         }
 
     }

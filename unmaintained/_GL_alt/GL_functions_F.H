@@ -4,7 +4,7 @@
 #include <AMReX_MultiFab.H>
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
@@ -12,9 +12,9 @@ extern "C"
 
   void set_inputs(const int* Plot_Skip_out,const int* Number_of_Samples_out, const int* Equil,amrex::Real* alpha,amrex::Real* r1,amrex::Real* r2, const int* adaptive, const int* reverse);
   void rk2_stage1(const int* lo, const int* hi,
-			      amrex::Real* phi,
-			      amrex::Real* phin,
-			      const amrex::Real* rannums,
+              amrex::Real* phi,
+              amrex::Real* phin,
+              const amrex::Real* rannums,
                               amrex::Real* integral,
                               amrex::Real* energy,
                               amrex::Real* teng,
@@ -24,12 +24,12 @@ extern "C"
                               amrex::Real* phi_avg);
 
 
-                              
+
 
   void rk2_stage2(const int* lo, const int* hi,
-			      amrex::Real* phi,
-			      amrex::Real* phin,
-			      const amrex::Real* rannums,
+              amrex::Real* phi,
+              amrex::Real* phin,
+              const amrex::Real* rannums,
                               const amrex::Real* integral,
                               const amrex::Real* dx,
                               const amrex::Real* dt);
@@ -60,7 +60,7 @@ extern "C"
                               amrex::Real* phi,
                               const amrex::Real* dx);
   void Stat_Quant(const int* lo, const int* hi,
-			                        amrex::Real* phi,
+                              amrex::Real* phi,
                               amrex::Real* phi_avg,
                               amrex::Real* phi_sq_avg);
 

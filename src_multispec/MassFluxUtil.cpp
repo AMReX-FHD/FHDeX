@@ -1,9 +1,9 @@
 #include "multispec_functions.H"
 
 void ComputeMolconcMolmtot(const MultiFab& rho_in,
-			   const MultiFab& rhotot_in,
-			   MultiFab& molarconc_in,
-			   MultiFab& molmtot_in)
+    const MultiFab& rhotot_in,
+    MultiFab& molarconc_in,
+    MultiFab& molmtot_in)
 {
 
     BL_PROFILE_VAR("ComputeMolconcMolmtot()",ComputeMolconcMolmtot);
@@ -47,8 +47,8 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 }
 
 void ComputeMassfrac(const MultiFab& rho_in,
-			   const MultiFab& rhotot_in,
-			   MultiFab& massfrac_in)
+    const MultiFab& rhotot_in,
+    MultiFab& massfrac_in)
 {
 
     BL_PROFILE_VAR("ComputeMassfrac()",ComputeMassfrac);
@@ -75,8 +75,8 @@ void ComputeMassfrac(const MultiFab& rho_in,
 }
 
 void ComputeGamma(const MultiFab& molarconc_in,
-		      const MultiFab& Hessian_in,
-          MultiFab& Gamma_in)
+    const MultiFab& Hessian_in,
+    MultiFab& Gamma_in)
 {
 
     BL_PROFILE_VAR("ComputeGamma()",ComputeGamma);
@@ -123,7 +123,7 @@ void ComputeGamma(const MultiFab& molarconc_in,
 }
 
 void ComputeFHGamma(const MultiFab& massfrac_in,
-          MultiFab& Gamma_in)
+    MultiFab& Gamma_in)
 {
 
     BL_PROFILE_VAR("ComputeFHGamma()",ComputeFHGamma);
@@ -169,10 +169,10 @@ void ComputeFHGamma(const MultiFab& massfrac_in,
 
 
 void ComputeRhoWChi(const MultiFab& rho_in,
-		    const MultiFab& rhotot_in,
-		    const MultiFab& molarconc_in,
-		    MultiFab& rhoWchi_in,
-		    const MultiFab& D_bar_in)
+    const MultiFab& rhotot_in,
+    const MultiFab& molarconc_in,
+    MultiFab& rhoWchi_in,
+    const MultiFab& D_bar_in)
 {
     BL_PROFILE_VAR("ComputeRhoWChi()",ComputeRhoWChi);
 
@@ -229,10 +229,10 @@ void ComputeRhoWChi(const MultiFab& rho_in,
 }
 
 void ComputeZetaByTemp(const MultiFab& molarconc_in,
- 		       const MultiFab& D_bar_in,
- 		       const MultiFab& Temp_in,
- 		       MultiFab& zeta_by_Temp_in,
- 		       const MultiFab& D_therm_in)
+    const MultiFab& D_bar_in,
+    const MultiFab& Temp_in,
+    MultiFab& zeta_by_Temp_in,
+    const MultiFab& D_therm_in)
 {
     BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
 
@@ -284,9 +284,9 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
 }
 
 void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
-                          const MultiFab& rhotot_in,
-                          std::array< MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,
-                          const Geometry& geom)
+    const MultiFab& rhotot_in,
+    std::array< MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,
+    const Geometry& geom)
 {
     BL_PROFILE_VAR("ComputeSqrtLonsagerFC()",ComputeSqrtLonsagerFC);
 

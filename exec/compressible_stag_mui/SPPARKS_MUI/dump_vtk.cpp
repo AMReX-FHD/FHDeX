@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -28,14 +28,14 @@ enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,DIAMOND,
 
 /* ---------------------------------------------------------------------- */
 
-DumpVTK::DumpVTK(SPPARKS *spk, int narg, char **arg) : 
+DumpVTK::DumpVTK(SPPARKS *spk, int narg, char **arg) :
   DumpText(spk, narg, arg)
 {
   // error check for allowed dump vtk output
 
   if (!multifile)
     error->all(FLERR,"Dump vtk must write one file per snapshot");
-  if (multiproc) 
+  if (multiproc)
     error->all(FLERR,"Dump vtk cannot write multiple files per snapshot");
   if (binary) error->all(FLERR,"Dump vtk cannot write to binary files");
 
@@ -48,14 +48,14 @@ DumpVTK::DumpVTK(SPPARKS *spk, int narg, char **arg) :
 
   // check for valid lattice
 
-  if (!domain->lattice) 
+  if (!domain->lattice)
     error->all(FLERR,"Dump vtk requires a lattice be defined");
 
   int latstyle = domain->lattice->style;
   int valid = 0;
-  if (latstyle == LINE_2N || latstyle == SQ_4N || latstyle == SQ_8N || 
+  if (latstyle == LINE_2N || latstyle == SQ_4N || latstyle == SQ_8N ||
       latstyle == SC_6N || latstyle == SC_26N) valid = 1;
-  if (!valid) 
+  if (!valid)
     error->all(FLERR,"Dump vtk requires a regular lattice of sites");
 
   vtkflag = 0;
@@ -66,7 +66,7 @@ DumpVTK::DumpVTK(SPPARKS *spk, int narg, char **arg) :
 void DumpVTK::init_style()
 {
   if (!vtkflag) error->all(FLERR,"Dump vtk requires dump modify vtk settings");
-  if (!sort_flag || sortcol != 0) 
+  if (!sort_flag || sortcol != 0)
     error->all(FLERR,
                "Dump vtk requires ID-sorted output via dump modify command");
 }

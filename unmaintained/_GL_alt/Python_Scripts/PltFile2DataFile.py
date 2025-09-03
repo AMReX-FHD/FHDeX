@@ -75,5 +75,5 @@ for y in range (0,N):
         values[x] = np.sum(new_data)*(1./128.)*(1./128.)
         print("here",y,x,np.sum(new_data)*(1./128.)*(1./128.)) # note that np.sum sums all the data in the arrays if you don't specify an axis
     print(values)
-    phi_0_loc =str(format(((y)*phi_increment+phi_initial), '.3f')) 
+    phi_0_loc =str(format(((y)*phi_increment+phi_initial), '.3f'))
     np.savetxt('data'+phi_0_loc, values)

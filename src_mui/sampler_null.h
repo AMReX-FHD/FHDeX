@@ -12,24 +12,24 @@ namespace mui {
 template<typename O_TP, typename I_TP=O_TP, typename CONFIG=default_config>
 class sampler_null {
 public:
-	using OTYPE      = O_TP;
-	using ITYPE      = I_TP;
-	using REAL       = typename CONFIG::REAL;
-	using INT        = typename CONFIG::INT;
-	using point_type = typename CONFIG::point_type;
+    using OTYPE      = O_TP;
+    using ITYPE      = I_TP;
+    using REAL       = typename CONFIG::REAL;
+    using INT        = typename CONFIG::INT;
+    using point_type = typename CONFIG::point_type;
 
-	sampler_null() {
-		// to do: initialization
-	}
+    sampler_null() {
+        // to do: initialization
+    }
 
-	template<template<typename,typename> class CONTAINER>
-	inline OTYPE filter( point_type focus, const CONTAINER<ITYPE,CONFIG> &data_points ) const {
-		// to do: interpolation algorithm
-	}
+    template<template<typename,typename> class CONTAINER>
+    inline OTYPE filter( point_type focus, const CONTAINER<ITYPE,CONFIG> &data_points ) const {
+        // to do: interpolation algorithm
+    }
 
-	inline geometry::any_shape<CONFIG> support( point_type focus ) const {
-		// to do: scope of points needed expressed in terms of mui::geometry::...
-	}
+    inline geometry::any_shape<CONFIG> support( point_type focus ) const {
+        // to do: scope of points needed expressed in terms of mui::geometry::...
+    }
 };
 
 }

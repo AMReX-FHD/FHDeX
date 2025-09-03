@@ -25,7 +25,7 @@ StochMassFlux::StochMassFlux(BoxArray ba_in, DistributionMapping dmap_in, Geomet
             stoch_W_fc[i][d].setVal(0.);
         }
     }
-    
+
     // Temporary storage for linear combinations of random number stages
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         stoch_W_fc_weighted[d].define(convert(ba_in,nodal_flag_dir[d]),dmap_in,nspecies,0);
@@ -37,7 +37,7 @@ StochMassFlux::StochMassFlux(BoxArray ba_in, DistributionMapping dmap_in, Geomet
 void StochMassFlux::weightMassFlux(Vector< amrex::Real > weights) {
 
     BL_PROFILE_VAR("weightMassFlux()",weightMassFlux);
-    
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         stoch_W_fc_weighted[d].setVal(0.);
     }
@@ -68,7 +68,7 @@ void StochMassFlux::fillMassStochastic() {
 void StochMassFlux::StochMassFluxBC() {
 
     BL_PROFILE_VAR("StochMassFluxBC()",StochMassFluxBC);
-    
+
     // lo-x domain boundary
     if (bc_mass_lo[0] == 1 || bc_mass_lo[0] == 2 || bc_mass_lo[0] == 4) {
 
@@ -124,7 +124,7 @@ void StochMassFlux::StochMassFluxBC() {
                 });
             }
         }
-        
+
     }
     else if (bc_mass_hi[0] != -1) {
         Abort("StochMassFluxBC unsupported bc type");
@@ -191,7 +191,7 @@ void StochMassFlux::StochMassFluxBC() {
     }
 
 #if (AMREX_SPACEDIM == 3)
-    
+
     // lo-z domain boundary
     if (bc_mass_lo[2] == 1 || bc_mass_lo[2] == 2 || bc_mass_lo[2] == 4) {
 
@@ -221,7 +221,7 @@ void StochMassFlux::StochMassFluxBC() {
     else if (bc_mass_lo[2] != -1) {
         Abort("StochMassFluxBC unsupported bc type");
     }
-    
+
     // hi-z domain boundary
     if (bc_mass_hi[2] == 1 || bc_mass_hi[2] == 2 || bc_mass_hi[2] == 4) {
 
@@ -283,7 +283,7 @@ void StochMassFlux::StochMassFluxDiv(const MultiFab& rho,
     const Real* dx = geom.CellSize();
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
     Real variance = sqrt(2.*k_B*variance_coef_mass/(dVol*dt));
-    
+
     // compute variance X sqrtLonsager_fc X stoch_mass_flux X variance
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MatvecMul(stoch_mass_flux[d], sqrtLonsager_fc[d]);
@@ -300,7 +300,7 @@ void StochMassFlux::StochMassFluxDiv(const MultiFab& rho,
     if (is_nonisothermal == 1) {
         Abort("StochMassFlux: is_nonisothermal==1 not supported yet");
     }
-    
+
     // correct fluxes to ensure mass conservation to roundoff
     if (correct_flux == 1 && nspecies > 1) {
         CorrectionFlux(rho,rhotot,stoch_mass_flux);
@@ -308,6 +308,6 @@ void StochMassFlux::StochMassFluxDiv(const MultiFab& rho,
 
     // compute divergence of stochastic flux
     ComputeDiv(stoch_mass_fluxdiv,stoch_mass_flux,0,0,nspecies,geom,increment);
-    
+
 }
 

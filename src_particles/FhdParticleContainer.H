@@ -63,7 +63,7 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	    p3m_radius,
+        p3m_radius,
         spring,
         omega,
         lambda,
@@ -89,44 +89,42 @@ struct FHD_realData {
             "pred_forcey",
             "pred_forcez",
             "vx",
-        "vy",
-        "vz",
-        "fx",
-        "fy",
-        "fz",
-        "ux",
-        "uy",
-        "uz",
-        "mass",
-        "R",
-        "q",
-        "accelFactor",
-        "dragFactor",
-        "ox",
-        "oy",
-        "oz",
-        "ax",
-        "ay",
-        "az",
-        "travelTime",
-        "diffAv",
-        "stepCount",
-        "multi",
-        "dryDiff",
-        "wetDiff",
-        "totalDiff",
-        "sigma",
-        "eepsilon",
-        "potential",
-	    "p3m_radius",
-        "spring",
-        "omega",
-        "lambda"
+            "vy",
+            "vz",
+            "fx",
+            "fy",
+            "fz",
+            "ux",
+            "uy",
+            "uz",
+            "mass",
+            "R",
+            "q",
+            "accelFactor",
+            "dragFactor",
+            "ox",
+            "oy",
+            "oz",
+            "ax",
+            "ay",
+            "az",
+            "travelTime",
+            "diffAv",
+            "stepCount",
+            "multi",
+            "dryDiff",
+            "wetDiff",
+            "totalDiff",
+            "sigma",
+            "eepsilon",
+            "potential",
+            "p3m_radius",
+            "spring",
+            "omega",
+            "lambda"
         };
     };
 };
-
-
 
 struct FHD_intData {
     //Analogous to particle intData (p.m_data)
@@ -172,33 +170,23 @@ struct FHD_realDataLW {
     };
 };
 
-
 typedef struct {
-
     Real x;
     Real y;
     Real z;
-
 } Triplet;
-
 
 class FhdParIter
     : public IBMarIterBase<FHD_realData::count, FHD_intData::count>
 {
-
 public:
     using IBMarIterBase<FHD_realData::count, FHD_intData::count>::IBMarIterBase;
-
 };
-
-
 
 class FhdParticleContainer
     : public IBMarkerContainerBase<FHD_realData, FHD_intData>
 {
-
 public:
-
     using IBMarkerContainerBase<FHD_realData, FHD_intData>
         ::IBMarkerContainerBase;
 
@@ -207,7 +195,7 @@ public:
 
     FhdParticleContainer(AmrCore * amr_core, int n_nbhd);
     FhdParticleContainer(const Geometry & geom, const Geometry & geomF, const DistributionMapping & dmap,
-                      const BoxArray & ba, const BoxArray & bc, int n_nbhd, int ngF);
+                         const BoxArray & ba, const BoxArray & bc, int n_nbhd, int ngF);
 
     virtual ~FhdParticleContainer() {};
 
@@ -216,20 +204,16 @@ public:
         ::PairIndex;
 
     void InitParticles(species* particleInfo, const Real* dxp);
-
     void InitParticlesFromFile(species* particleInfo, const Real* dxp);
 
     void ReInitParticles();//species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal);
 
     void PostRestart();
-
     void WriteParticlesAscii(string asciiName);
-
     void forceFunction(Real dt);
     void velNorm();
     void pinForce();
     void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
-
     void fillMobilityMatrix(int id, int comp);
     void clearMobilityMatrix();
     void writeMat();
@@ -241,15 +225,13 @@ public:
                std::array<MultiFab, AMREX_SPACEDIM>& source,
                std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
-    
+
     void PrintParticles();
     void SetPosition(int id, Real x, Real y, Real z);
     void SetVel(int id, Real x, Real y, Real z);
     void SetForce(int id, Real x, Real y, Real z);
     void writeVel(int id);
-
     void MeanSqrCalc(int lev, int step);
-
     void BuildCorrectionTable(const Real* dx, int setMeasureFinal);
 
     void DoRFDbase(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -261,20 +243,15 @@ public:
                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
     void computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx);
-
     void computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx);
-
     void computeForcesCoulombGPU(long totalParticles);
-
-    void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
-
+    void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, Real time, int* flux);
     void MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
-                                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
-                                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                    std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                    paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
-
+                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                     std::array<MultiFab, AMREX_SPACEDIM>& source,
+                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                     paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
     void SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -286,56 +263,43 @@ public:
                     const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
     void SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, 
-		    const std::array<MultiFab, AMREX_SPACEDIM>& coords,
-		    std::array<MultiFab, AMREX_SPACEDIM>& efield,
-                    std::array<MultiFab, AMREX_SPACEDIM>& source,
-                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
+                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& coords,
+                       std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                       std::array<MultiFab, AMREX_SPACEDIM>& source,
+                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
 
     void SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-		    const std::array<MultiFab, AMREX_SPACEDIM>& coords,
-                    std::array<MultiFab, AMREX_SPACEDIM>& source,
-                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
-    
+                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& coords,
+                       std::array<MultiFab, AMREX_SPACEDIM>& source,
+                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
+
     //void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
     void RadialDistribution(long totalParticles, const int step, const species* particleInfo);
     void CartesianDistribution(long totalParticles, const int step, const species* particleInfo);
-
     void collectFields(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomF, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
-
     void collectFieldsGPU(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomP, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
-
     void InitCollisionCells(MultiFab& collisionPairs,
-                            MultiFab& collisionFactor, 
+                            MultiFab& collisionFactor,
                             MultiFab& cellVols, const species particleInfo, const Real delt);
-
     void CollideParticles(MultiFab& collisionPairs,
-                          MultiFab& collisionFactor, 
+                          MultiFab& collisionFactor,
                           MultiFab& cellVols, const species particleInfo, const Real delt);
-
-
     void InitializeFields(MultiFab& particleInstant,
                           MultiFab& cellVols, const species particleInfo);
-
     void EvaluateStats(MultiFab& particleInstant,
                        MultiFab& particleMeans, species particleInfo, const Real delt, int steps);
-
-
     void invertMatrix();
-    
     void TwoParticleCorrelation();
-    
     void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles);
-
 
     /****************************************************************************
      *                                                                          *
      * Access marker (amrex particle) data                                      *
      *                                                                          *
      ***************************************************************************/
-
 
     const IntVector & get_neighbor_list(int lev, const PairIndex & index) const {
         return neighbor_list[lev].at(index);
@@ -346,24 +310,20 @@ public:
     };
 
     int numWrongCell();
-
-
     void ReBin();
 
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
     int totalBins;
-
     int doRedist;
-
     Real *nearestN;
 
     Real *meanRadialDistribution   ;
     Real *meanRadialDistribution_pp;
     Real *meanRadialDistribution_pm;
     Real *meanRadialDistribution_mm;
-    
+
     Real *binVolRadial;
     int radialStatsCount;
 
@@ -371,19 +331,19 @@ public:
     Real *meanXDistribution_pp;
     Real *meanXDistribution_pm;
     Real *meanXDistribution_mm;
-    
+
     Real *meanYDistribution   ;
     Real *meanYDistribution_pp;
     Real *meanYDistribution_pm;
     Real *meanYDistribution_mm;
-    
+
     Real *meanZDistribution   ;
     Real *meanZDistribution_pp;
     Real *meanZDistribution_pm;
     Real *meanZDistribution_mm;
-    
+
     Real binVolCartesian;
-    int cartesianStatsCount;   
+    int cartesianStatsCount;
 
     int  threepmBins = 50;
     int  threepmCurrentBin = 1;
@@ -392,19 +352,19 @@ public:
     Real threepmVals[50];
     Real threepmMax[50];
     Real threepmMin[50];
-    Real threepmPoints[50]; 
-    Real threepmRange = 5; 
-    
+    Real threepmPoints[50];
+    Real threepmRange = 5;
+
     int bottomListLength;
     int topListLength;
-    
+
     Triplet* bottomList;
     Triplet* topList;
 
-  //protected:
+    //protected:
 
     // used to store vectors of particle indices on a cell-by-cell basis
-//    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+    //    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
     std::map<int, std::vector<std::vector<int> > > m_cell_vectors;
 
     // primitive data for passing the above into Fortran
@@ -416,7 +376,7 @@ public:
     amrex::BoxArray::RefID m_BARef;
     amrex::DistributionMapping::RefID m_DMRef;
 
-  //private:
+    //private:
 
     //void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p);
 
@@ -429,6 +389,5 @@ public:
         }
     };
 };
-
 
 #endif

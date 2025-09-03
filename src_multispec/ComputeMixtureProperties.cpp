@@ -1,16 +1,16 @@
 #include "multispec_functions.H"
 
 void ComputeMixtureProperties(const MultiFab& rho_in,
-			      const MultiFab& rhotot_in,
-			      MultiFab& D_bar_in,
-			      MultiFab& D_therm_in,
-			      MultiFab& Hessian_in)
+    const MultiFab& rhotot_in,
+    MultiFab& D_bar_in,
+    MultiFab& D_therm_in,
+    MultiFab& Hessian_in)
 {
 
     BL_PROFILE_VAR("ComputeMixtureProperties()",ComputeMixtureProperties);
 
     int ng = D_bar_in.nGrow();
-    
+
     // Loop over boxes
     for (MFIter mfi(D_bar_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -21,8 +21,8 @@ void ComputeMixtureProperties(const MultiFab& rho_in,
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
         const Array4<      Real>& D_bar_nn = D_bar_in.array(mfi);
         const Array4<      Real>& D_therm_n = D_therm_in.array(mfi);
-        const Array4<      Real>& Hessian_nn = Hessian_in.array(mfi); 
-        
+        const Array4<      Real>& Hessian_nn = Hessian_in.array(mfi);
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
@@ -43,7 +43,7 @@ void ComputeMixtureProperties(const MultiFab& rho_in,
 
             MixturePropsMassLocal(Rho, rhotot(i,j,k), DBar, DTherm, Hessian);
 
-            //write back to multifab 
+            //write back to multifab
             for (int n=0; n<nspecies; ++n ){
                 D_therm_n(i,j,k,n) = DTherm[n];
                 for (int m=0; m<nspecies; ++m){
@@ -58,17 +58,17 @@ void ComputeMixtureProperties(const MultiFab& rho_in,
 }
 
 void ComputeEta(const MultiFab& rho_in,
-                const MultiFab& rhotot_in,
-                MultiFab& eta_in)
+    const MultiFab& rhotot_in,
+    MultiFab& eta_in)
 {
 
     BL_PROFILE_VAR("ComputeEtas()",ComputeEta);
 
     // overwrite depending on mixture_type
     eta_in.setVal(visc_coef);
-    
+
     int ng = eta_in.nGrow();
-    
+
     // Loop over boxes
     for (MFIter mfi(eta_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -81,7 +81,7 @@ void ComputeEta(const MultiFab& rho_in,
 
         // 100:1 viscosity ratio
         if (mixture_type == 3) {
-        
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Real c = rho(i,j,k,1) / rhotot(i,j,k);
@@ -92,7 +92,7 @@ void ComputeEta(const MultiFab& rho_in,
                 eta(i,j,k) = std::max(0.1*visc_coef,eta(i,j,k));
                 eta(i,j,k) = std::min(visc_coef,eta(i,j,k));
 
-                
+
             });
         }
     }

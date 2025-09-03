@@ -54,7 +54,7 @@ void WriteCheckPoint(int step,
     // ---- after all directories are built
     // ---- ParallelDescriptor::IOProcessor() creates the directories
     amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
-    
+
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
     // write Header file
@@ -84,7 +84,7 @@ void WriteCheckPoint(int step,
 
         // write out statsCount
         HeaderFile << statsCount << "\n";
-        
+
         // write the BoxArray (fluid)
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
@@ -122,7 +122,7 @@ void WriteCheckPoint(int step,
 
     // kappa
     VisMF::Write(kappa,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "kappa"));    
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "kappa"));
 }
 
 void ReadCheckPoint(int& step,
@@ -135,9 +135,9 @@ void ReadCheckPoint(int& step,
                      amrex::MultiFab& prim,
                      amrex::MultiFab& primMeans,
                      amrex::MultiFab& primVars,
-                     amrex::MultiFab& spatialCross, 
-                     amrex::MultiFab& miscStats, 
-                     amrex::MultiFab& eta, 
+                     amrex::MultiFab& spatialCross,
+                     amrex::MultiFab& miscStats,
+                     amrex::MultiFab& eta,
                      amrex::MultiFab& kappa)
 {
     // timer for profiling
@@ -183,7 +183,7 @@ void ReadCheckPoint(int& step,
 
         // create a distribution mapping
         DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
-        
+
         // cu, cuMeans, cuVars
         cu.define(ba,dm,nvars,ngc);
         cuMeans.define(ba,dm,nvars,ngc);
@@ -199,7 +199,7 @@ void ReadCheckPoint(int& step,
 
         // miscStats
         miscStats.define(ba,dm,10,ngc);
- 
+
         //eta and kappa
         eta.define(ba,dm,1,ngc);
         kappa.define(ba,dm,1,ngc);
@@ -213,7 +213,7 @@ void ReadCheckPoint(int& step,
     // prim
     VisMF::Read(prim,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "prim"));
- 
+
     // eta and kappa
     VisMF::Read(eta,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "eta"));

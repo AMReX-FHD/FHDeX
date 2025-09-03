@@ -8,9 +8,9 @@
 void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int bccomp, const Real& time) {
 
     BL_PROFILE_VAR("MultiFabPhysBC()",MultiFabPhysBC);
-    
+
     // bccomp definitions are in BCPhysToMath.cpp
-    
+
     if (geom.isAllPeriodic() || phi.nGrow() == 0) {
         return;
     }
@@ -49,7 +49,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
 
         int lo = dom.smallEnd(0);
         int hi = dom.bigEnd(0);
-        
+
         if (bx.smallEnd(0) < lo) {
             Real x = prob_lo[0];
             if (bc_lo[0] == amrex::BCType::foextrap) {
@@ -73,7 +73,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 });
             }
         }
-        
+
         if (bx.bigEnd(0) > hi) {
             Real x = prob_hi[0];
             if (bc_hi[0] == amrex::BCType::foextrap) {
@@ -104,7 +104,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
 
         lo = dom.smallEnd(1);
         hi = dom.bigEnd(1);
-        
+
         if (bx.smallEnd(1) < lo) {
             Real y = prob_lo[1];
             if (bc_lo[1] == amrex::BCType::foextrap) {
@@ -160,7 +160,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
 
         lo = dom.smallEnd(2);
         hi = dom.bigEnd(2);
-        
+
         if (bx.smallEnd(2) < lo) {
             Real z = prob_lo[2];
             if (bc_lo[2] == amrex::BCType::foextrap) {
@@ -209,7 +209,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
             }
         }
 #endif
-        
+
     } // end MFIter
 }
 
@@ -221,7 +221,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
 void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     BL_PROFILE_VAR("MultiFabPhysBCDomainVel()",MultiFabPhysBCDomainVel);
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -250,7 +250,7 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
                 if (i < dom.smallEnd(0)) {
                     // set ghost cells to negative of interior value
                     data(i,j,k) = -data(-i,j,k);
-                }           
+                }
                 else if (i == dom.smallEnd(0)) {
                     // set normal velocity on boundary to zero
                     data(i,j,k) = 0.;
@@ -262,10 +262,10 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         if ((dim == 0) && (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (i > dom.bigEnd(0)+1) {
                     data(i,j,k) = -data(2*dom.bigEnd(0)+2-i,j,k);
-                }           
+                }
                 else if (i == dom.bigEnd(0)+1) {
                     data(i,j,k) = 0.;
                 }
@@ -273,7 +273,7 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         }
 
 #if (AMREX_SPACEDIM >= 2)
-        
+
         //___________________________________________________________________________
         // Apply y-physbc to data
 
@@ -281,10 +281,10 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         if ((dim == 1) && (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (j < dom.smallEnd(1)) {
                     data(i,j,k) = -data(i,-j,k);
-                }           
+                }
                 else if (j == dom.smallEnd(1)) {
                     data(i,j,k) = 0.;
                 }
@@ -295,17 +295,17 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         if ((dim == 1) && (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) {
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (j > dom.bigEnd(1)+1) {
                     data(i,j,k) = -data(i,2*dom.bigEnd(1)+2-j,k);
-                }           
+                }
                 else if (j == dom.bigEnd(1)+1) {
                     data(i,j,k) = 0.;
                 }
             });
         }
 #endif
-        
+
 #if (AMREX_SPACEDIM >= 3)
 
         //___________________________________________________________________________
@@ -315,10 +315,10 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         if ((dim == 2) && (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (k < dom.smallEnd(2)) {
                     data(i,j,k) = -data(i,j,-k);
-                }           
+                }
                 else if (k == dom.smallEnd(2)) {
                     data(i,j,k) = 0.;
                 }
@@ -329,17 +329,17 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         if ((dim == 2) && (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (k > dom.bigEnd(2)+1) {
                     data(i,j,k) = -data(i,j,2*dom.bigEnd(2)+2-k);
-                }           
+                }
                 else if (k == dom.bigEnd(2)+1) {
                     data(i,j,k) = 0.;
                 }
             });
         }
 #endif
-        
+
     } // end MFIter
 }
 
@@ -350,7 +350,7 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim, int is_inhomogeneous) {
 
     BL_PROFILE_VAR("MultiFabPhysBCMacVel()",MultiFabPhysBCMacVel);
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -367,11 +367,11 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim, int is_i
 
         //___________________________________________________________________________
         // Apply x-physbc to data
-        
+
         // lo-x faces
         // dim != 0 means we are doing y and z-velocity on x-faces
         // bc_vel check is to see if we have a wall bc
-        // bx/dom comparison is to see if the grid touches a wall 
+        // bx/dom comparison is to see if the grid touches a wall
         if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) < dom.smallEnd(0))) {
             if (bc_vel_lo[0] == 1) { // slip
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -407,7 +407,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim, int is_i
                 });
             }
         }
-        
+
 #if (AMREX_SPACEDIM >= 2)
         //___________________________________________________________________________
         // Apply y-physbc to data
@@ -487,7 +487,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim, int is_i
             }
         }
 #endif
-        
+
     } // end MFIter
 }
 
@@ -497,7 +497,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim, int is_i
 void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
 
     BL_PROFILE_VAR("ZeroEdgevalWalls()",ZeroEdgevalWalls);
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -531,7 +531,7 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
         if ((bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (i == dom.bigEnd(0)+1) {
                     data(i,j,k,scomp+n) = 0.;
                 }
@@ -540,13 +540,13 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
     }
 
 #if (AMREX_SPACEDIM >= 2)
-        
+
     for (MFIter mfi(edge[1]); mfi.isValid(); ++mfi) {
 
         Box bx = mfi.tilebox();
 
         const Array4<Real>& data = edge[1].array(mfi);
-        
+
         //___________________________________________________________________________
         // Apply y-physbc to data
 
@@ -554,7 +554,7 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
         if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (j == dom.smallEnd(1)) {
                     data(i,j,k,scomp+n) = 0.;
                 }
@@ -565,16 +565,16 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
         if ((bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (j == dom.bigEnd(1)+1) {
                     data(i,j,k,scomp+n) = 0.;
                 }
             });
         }
     }
-    
+
 #endif
-        
+
 #if (AMREX_SPACEDIM >= 3)
 
     for (MFIter mfi(edge[2]); mfi.isValid(); ++mfi) {
@@ -582,7 +582,7 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
         Box bx = mfi.tilebox();
 
         const Array4<Real>& data = edge[2].array(mfi);
-        
+
         //___________________________________________________________________________
         // Apply z-physbc to data
 
@@ -590,7 +590,7 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
         if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (k == dom.smallEnd(2)) {
                     data(i,j,k,scomp+n) = 0.;
                 }
@@ -601,14 +601,14 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
         if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (k == dom.bigEnd(2)+1) {
                     data(i,j,k,scomp+n) = 0.;
                 }
             });
         }
     }
-    
+
 #endif
 }
 
@@ -618,7 +618,7 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
 void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
 
     BL_PROFILE_VAR("ZeroEdgevalPhysical()",ZeroEdgevalPhysical);
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -652,7 +652,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         if ((bc_vel_hi[0] != -1) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (i == dom.bigEnd(0)+1) {
                     data(i,j,k,scomp+n) = 0.;
                 }
@@ -661,13 +661,13 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
     }
 
 #if (AMREX_SPACEDIM >= 2)
-        
+
     for (MFIter mfi(edge[1]); mfi.isValid(); ++mfi) {
 
         Box bx = mfi.tilebox();
 
         const Array4<Real>& data = edge[1].array(mfi);
-        
+
         //___________________________________________________________________________
         // Apply y-physbc to data
 
@@ -675,7 +675,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         if ((bc_vel_lo[1] != -1) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (j == dom.smallEnd(1)) {
                     data(i,j,k,scomp+n) = 0.;
                 }
@@ -686,16 +686,16 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         if ((bc_vel_hi[1] != -1) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (j == dom.bigEnd(1)+1) {
                     data(i,j,k,scomp+n) = 0.;
                 }
             });
         }
     }
-    
+
 #endif
-        
+
 #if (AMREX_SPACEDIM >= 3)
 
     for (MFIter mfi(edge[2]); mfi.isValid(); ++mfi) {
@@ -703,7 +703,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         Box bx = mfi.tilebox();
 
         const Array4<Real>& data = edge[2].array(mfi);
-        
+
         //___________________________________________________________________________
         // Apply z-physbc to data
 
@@ -711,7 +711,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         if ((bc_vel_lo[2] != -1) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (k == dom.smallEnd(2)) {
                     data(i,j,k,scomp+n) = 0.;
                 }
@@ -722,14 +722,14 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         if ((bc_vel_hi[2] != -1) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {        
+            {
                 if (k == dom.bigEnd(2)+1) {
                     data(i,j,k,scomp+n) = 0.;
                 }
             });
         }
     }
-    
+
 #endif
 }
 
@@ -743,11 +743,11 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
 // 1 = Dirichlet phi -> reflect interior values of E
 // 2 = Neumann phi -> reflect and invert interior values of E
 void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
-    
+
     BL_PROFILE_VAR("MultiFabElectricBC()",MultiFabElectricBC);
-    
+
 #if (AMREX_SPACEDIM >= 2)
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -764,9 +764,9 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
 
         //___________________________________________________________________________
         // Apply x-physbc to data
-        
+
         // bc_es check is to see if we have a physical boundary condition
-        // bx/dom comparison is to see if the grid touches a wall 
+        // bx/dom comparison is to see if the grid touches a wall
         if ((bc_es_lo[0] == 1 || bc_es_lo[0] == 2) && (bx.smallEnd(0) < dom.smallEnd(0))) {
             const Real fac = (bc_es_lo[0] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -833,7 +833,7 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
             });
         }
 #endif
-        
+
     } // end MFIter
 }
 
@@ -849,11 +849,11 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
 // Neumann value on the boundary.
 // (the Poisson solver needs this; MultifFabPotentialBC_solver())
 void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
-    
+
     BL_PROFILE_VAR("MultiFabPotentialBC()",MultiFabPotentialBC);
-    
+
 #if (AMREX_SPACEDIM >= 2)
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -883,14 +883,14 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
                         data(i,j,k) = -data(i+1,j,k) + 2.*pot;
                     }
                 });
-            }                
+            }
             else if (bc_es_lo[0] == 2) { // Neumann
                 const Real pot = potential_lo[0];
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < dom.smallEnd(0)) {
                         data(i,j,k) = data(i+1,j,k) - dx[0]*pot;
-                    }                    
+                    }
                 });
             }
         }
@@ -904,14 +904,14 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
                         data(i,j,k) = -data(i-1,j,k) + 2.*pot;
                     }
                 });
-            }                
+            }
             else if (bc_es_hi[0] == 2) { // Neumann
                 const Real pot = potential_hi[0];
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > dom.bigEnd(0)) {
                         data(i,j,k) = data(i-1,j,k) + dx[0]*pot;
-                    }                    
+                    }
                 });
             }
         }
@@ -928,14 +928,14 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
                         data(i,j,k) = -data(i,j+1,k) + 2.*pot;
                     }
                 });
-            }                
+            }
             else if (bc_es_lo[1] == 2) { // Neumann
                 const Real pot = potential_lo[1];
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < dom.smallEnd(1)) {
                         data(i,j,k) = data(i,j+1,k) - dx[1]*pot;
-                    }                    
+                    }
                 });
             }
         }
@@ -949,19 +949,19 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
                         data(i,j,k) = -data(i,j-1,k) + 2.*pot;
                     }
                 });
-            }                
+            }
             else if (bc_es_hi[1] == 2) { // Neumann
                 const Real pot = potential_hi[1];
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > dom.bigEnd(1)) {
                         data(i,j,k) = data(i,j-1,k) + dx[1]*pot;
-                    }                    
+                    }
                 });
             }
         }
 
-                                   
+
 #endif
 #if (AMREX_SPACEDIM >= 3)
 
@@ -977,14 +977,14 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
                         data(i,j,k) = -data(i,j,k+1) + 2.*pot;
                     }
                 });
-            }                
+            }
             else if (bc_es_lo[2] == 2) { // Neumann
                 const Real pot = potential_lo[2];
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < dom.smallEnd(2)) {
                         data(i,j,k) = data(i,j,k+1) - dx[2]*pot;
-                    }                    
+                    }
                 });
             }
         }
@@ -998,19 +998,19 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
                         data(i,j,k) = -data(i,j,k-1) + 2.*pot;
                     }
                 });
-            }                
+            }
             else if (bc_es_hi[2] == 2) { // Neumann
                 const Real pot = potential_hi[2];
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > dom.bigEnd(2)) {
                         data(i,j,k) = data(i,j,k-1) + dx[2]*pot;
-                    }                    
+                    }
                 });
             }
         }
 #endif
-        
+
     } // end MFIter
 }
 
@@ -1028,7 +1028,7 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
     BL_PROFILE_VAR("MultiFabPotentialBC_solver()",MultiFabPotentialBC_solver);
 
 #if (AMREX_SPACEDIM >= 2)
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -1098,7 +1098,7 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
             }
         }
 
-                                   
+
 #endif
 #if (AMREX_SPACEDIM >= 3)
 
@@ -1129,7 +1129,7 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
             }
         }
 #endif
-        
+
     } // end MFIter
 }
 

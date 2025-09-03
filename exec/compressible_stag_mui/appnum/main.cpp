@@ -15,8 +15,8 @@ int main (int argc, char* argv[])
     int appnum;
 #ifdef SLURM
     if (argc<3) MPI_Abort(MPI_COMM_WORLD,0);
-    int task = atoi(argv[1]); 
-    int offset = atoi(argv[2]); 
+    int task = atoi(argv[1]);
+    int offset = atoi(argv[2]);
     appnum = task-offset;
 #else
     void* v;

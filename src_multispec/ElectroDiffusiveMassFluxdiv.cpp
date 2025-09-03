@@ -19,15 +19,15 @@ void ElectroDiffusiveMassFluxdiv(const MultiFab& rho,
 {
     BoxArray ba = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();
-    
-    // electro_mass_flux(d) is face-centered, has nspecies component, zero ghost 
+
+    // electro_mass_flux(d) is face-centered, has nspecies component, zero ghost
     // cells & nodal in direction d
     std::array< MultiFab, AMREX_SPACEDIM > electro_mass_flux;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         electro_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
-  
-    // compute the face-centered electro_mass_flux (each direction: cells+1 faces while 
+
+    // compute the face-centered electro_mass_flux (each direction: cells+1 faces while
     // cells contain interior+2 ghost cells)
     ElectroDiffusiveMassFlux(rho,Temp,rhoWchi,electro_mass_flux,diff_mass_flux,
                              stoch_mass_flux,charge,grad_Epot,Epot,permittivity,
@@ -39,7 +39,7 @@ void ElectroDiffusiveMassFluxdiv(const MultiFab& rho,
     }
 
     // add flux divergence to diff_mass_fluxdiv
-    ComputeDiv(diff_mass_fluxdiv,electro_mass_flux,0,0,nspecies,geom,1);    
+    ComputeDiv(diff_mass_fluxdiv,electro_mass_flux,0,0,nspecies,geom,1);
 }
 
 
@@ -90,13 +90,13 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
         if (shift_cc_to_boundary[i] == 1) any_shift=true;
     }
 
-    // compute face-centered rhoWchi from cell-centered values 
+    // compute face-centered rhoWchi from cell-centered values
     if (any_shift) {
-        Abort("ShiftCCToBoundaryFace not written yet");        
+        Abort("ShiftCCToBoundaryFace not written yet");
     } else {
         AverageCCToFace(rhoWchi,rhoWchi_fc,0,nspecies*nspecies,SPEC_BC_COMP,geom);
     }
-    
+
     // solve poisson equation for phi (the electric potential)
     // -del dot epsilon grad Phi = charge
     if (zero_initial_Epot) {
@@ -122,7 +122,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
         // For electroneutral we only support homogeneous Neumann BCs for potential
         // This is the correct Poisson BC for impermeable walls
         // For reservoirs, the BCs are actually inhomogeneous but computed on-the-fly by the code later on
-        // Here we setup just the homogeneous Poisson problem -- this is all that the multigrid solver can handle     
+        // Here we setup just the homogeneous Poisson problem -- this is all that the multigrid solver can handle
         // Reactive walls are not yet supported
         Abort("ElectroDiffusiveMassFluxdiv.cpp: electroneutral not written yet");
     } else {
@@ -186,7 +186,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
             hi_linop_bc[i] = LinOpBCType::inhomogNeumann;
         }
         if(bc_es_lo[i] == 1)
-        {                 
+        {
             lo_linop_bc[i] = LinOpBCType::Dirichlet;
         }
         if(bc_es_hi[i] == 1)
@@ -198,7 +198,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     // create solver opject
     // (alpha - del dot beta grad) Epot = charge (for electro-explicit)
     MLABecLaplacian linop({geom}, {ba}, {dmap});
- 
+
     //set BCs
     linop.setDomainBC({AMREX_D_DECL(lo_linop_bc[0],
                                     lo_linop_bc[1],
@@ -232,7 +232,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     mlmg.setMaxIter(poisson_max_iter);
     mlmg.setVerbose(poisson_verbose);
     mlmg.setBottomVerbose(poisson_bottom_verbose);
-    
+
     // Do solve
     mlmg.solve({&Epot}, {&rhs}, poisson_rel_tol, 0.0);
 
@@ -263,7 +263,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
 
     // compute the gradient of the electric potential
     ComputeGrad(Epot,grad_Epot,0,0,1,EPOT_BC_COMP,geom,0);
-    
+
     if (E_ext_type != 0) {
         // add external electric field
         // since E = -grad(Epot), we have to subtract the external field from grad_Epot
@@ -274,14 +274,14 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
 
     if (zero_eps_on_wall_type > 0) {
         // Set E-field ie grad_Epot to be zero on certain boundary faces.
-        // This enforces dphi/dn = 0 on the parts of the (Dirichlet) wall we want. 
+        // This enforces dphi/dn = 0 on the parts of the (Dirichlet) wall we want.
         Abort("ElectroDiffusiveMassFluxdiv.cpp: zero_eps_on_wall_type > 0 not written yet");
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         grad_Epot[i].FillBoundary(geom.periodicity());
     }
-    
+
     // compute the charge flux coefficient
     ComputeChargeCoef(rho,Temp,charge_coef);
 
@@ -326,7 +326,7 @@ void LimitEMF(const MultiFab& rho_in,
         const Box& bx = mfi.tilebox();
 
         const Array4<Real const>& rho = rho_in.array(mfi);
-        
+
         AMREX_D_TERM(const Array4<Real>& emfx = electro_mass_flux[0].array(mfi);,
                      const Array4<Real>& emfy = electro_mass_flux[1].array(mfi);,
                      const Array4<Real>& emfz = electro_mass_flux[2].array(mfi););
@@ -367,7 +367,7 @@ void LimitEMF(const MultiFab& rho_in,
                         emfz(i,j,k+1,m) = 0.;
                     }
                 }
-#endif                
+#endif
             }
         });
     } // end MFIter
