@@ -39,26 +39,43 @@ jobs:
     runs-on: ubuntu-24.04
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
     steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc11.sh
-    - name: Clone AMReX
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+    - name: Clone AMReX for dependency scripts
+      run: |
+        git clone https://github.com/AMReX-Codes/amrex.git ${{runner.workspace}}/amrex
+    - name: Prepare CUDA environment
+      run: ${{runner.workspace}}/amrex/.github/workflows/dependencies/dependencies_nvcc.sh 11.2
+    - name: Install Additional Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libfftw3-dev libfftw3-mpi-dev
+    - name: Install CCache
+      run: ${{runner.workspace}}/amrex/.github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
       with:
-        repository: AMReX-Codes/amrex
-        ref: development
-        path: amrex
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=600M
+        ccache -z
+
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         export LD_LIBRARY_PATH=/usr/local/cuda/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         cd exec/multispec
         which nvcc || echo "nvcc not in PATH!"
         make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=FALSE
-      env:
-        AMREX_HOME: $(GITHUB_WORKSPACE)/amrex
 
+        ccache -s
+        du -hs ~/.cache/ccache
+      env:
+        AMREX_HOME: ${{runner.workspace}}/amrex
 
 
         #cmake -S . -B build                              \
