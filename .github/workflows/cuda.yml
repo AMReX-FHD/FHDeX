@@ -41,37 +41,54 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app:
-          - compressible
-          - compressible_stag
-          - immersedIons
-        dim: [3]
         include:
+          # 3D tests for main applications
+          - app: compressible
+            dim: 3
+            artifact_name: compressible
+          - app: compressible_stag
+            dim: 3
+            artifact_name: compressible_stag
+          - app: immersedIons
+            dim: 3
+            artifact_name: immersedIons
           # 2D and 3D tests for specified applications
           - app: structFactTest
             dim: 2
+            artifact_name: structFactTest
           - app: structFactTest
             dim: 3
+            artifact_name: structFactTest
           - app: reactDiff
             dim: 2
+            artifact_name: reactDiff
           - app: reactDiff
             dim: 3
+            artifact_name: reactDiff
           - app: multispec
             dim: 2
+            artifact_name: multispec
           - app: multispec
             dim: 3
+            artifact_name: multispec
           - app: dean_kow/singlelevel
             dim: 2
+            artifact_name: dean_kow-singlelevel
           - app: dean_kow/singlelevel
             dim: 3
+            artifact_name: dean_kow-singlelevel
           - app: dean_kow/multilevel
             dim: 2
+            artifact_name: dean_kow-multilevel
           - app: dean_kow/multilevel
             dim: 3
+            artifact_name: dean_kow-multilevel
           - app: hydro
             dim: 2
+            artifact_name: hydro
           - app: hydro
             dim: 3
+            artifact_name: hydro
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v4
@@ -157,7 +174,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: build-reports-${{ replace(matrix.app, '/', '-') }}-${{ matrix.dim }}d
+        name: build-reports-${{ matrix.artifact_name }}-${{ matrix.dim }}d
         path: |
           ${{runner.workspace}}/build-warnings.txt
           ${{runner.workspace}}/build-errors.txt
