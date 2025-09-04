@@ -226,6 +226,7 @@ jobs:
           name: build-reports-all
           pattern: build-reports-*
           delete-merged: true  # Optional: removes individual artifacts
+          separate-directories: true
 
   # Build 3D libamrex cuda build with configure
   #  configure-3d-cuda:
