@@ -38,7 +38,6 @@ jobs:
   tests-cuda11:
     name: CUDA@12.0 GNU C++17 Release [${{ matrix.app }}] DIM=${{ matrix.dim }}
     runs-on: ubuntu-22.04
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -97,6 +96,7 @@ jobs:
     - name: Enable Problem Matchers
       run: echo "::add-matcher::.github/problem-matchers/gcc.json"
     - name: Build & Install ${{ matrix.app }}
+      continue-on-error: true
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -148,11 +148,14 @@ jobs:
         echo "=== ERRORS ==="
         cat ${{runner.workspace}}/build-errors.txt
 
-        # Store error count for later use (but count total, not just displayed)
+        # Store error and warning counts for later use (but count total, not just displayed)
         total_errors=$(egrep -i "(\): error:|error:|Error:|errors detected|make: \*\*\*)" ${{runner.workspace}}/build-output.txt 2>/dev/null | egrep -v "lto-wrapper:" | wc -l)
+        total_warnings=$(egrep -i "(warning|Warning)" ${{runner.workspace}}/build-output.txt 2>/dev/null | egrep -v "lto-wrapper:" | wc -l)
         echo "error_count=${total_errors}" >> $GITHUB_OUTPUT
+        echo "warning_count=${total_warnings}" >> $GITHUB_OUTPUT
+        echo "has_issues=$((total_errors > 0 || total_warnings > 0))" >> $GITHUB_OUTPUT
     - name: Generate Error Summary
-      if: always()
+      if: always() && steps.report.outputs.has_issues == '1'
       run: |
         echo "## Build Report 📊" >> $GITHUB_STEP_SUMMARY
         echo "**Job Details:**" >> $GITHUB_STEP_SUMMARY
@@ -163,8 +166,8 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
 
         # Add warnings if they exist
-        if [ -f "${{runner.workspace}}/build-warnings.txt" ]; then
-          echo "## ⚠️ Warnings" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.report.outputs.warning_count }}" != "0" ] && [ -f "${{runner.workspace}}/build-warnings.txt" ]; then
+          echo "## ⚠️ Warnings (${{ steps.report.outputs.warning_count }} total)" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat ${{runner.workspace}}/build-warnings.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -172,12 +175,18 @@ jobs:
         fi
 
         # Add errors if they exist
-        if [ -f "${{runner.workspace}}/build-errors.txt" ]; then
-          echo "## 🚨 Errors" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.report.outputs.error_count }}" != "0" ] && [ -f "${{runner.workspace}}/build-errors.txt" ]; then
+          echo "## 🚨 Errors (${{ steps.report.outputs.error_count }} total)" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat ${{runner.workspace}}/build-errors.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
         fi
+
+    - name: Fail if errors detected
+      if: steps.report.outputs.error_count != '0'
+      run: |
+        echo "Build failed with ${{ steps.report.outputs.error_count }} errors"
+        exit 1
 
 
   #  # Build 3D libamrex cuda build with configure
