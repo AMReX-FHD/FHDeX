@@ -125,16 +125,18 @@ jobs:
         touch ${{runner.workspace}}/build-errors.txt
 
         if [ -f "${{runner.workspace}}/build-output.txt" ]; then
-          # Extract warnings - avoid compile command lines
-          egrep -i "warning" ${{runner.workspace}}/build-output.txt | \
-            egrep -v "(lto-wrapper:|-W)" | \
+          # Extract warnings - broader patterns
+          egrep -i "(warning|Warning)" ${{runner.workspace}}/build-output.txt | \
+            egrep -v "lto-wrapper:" | \
             sort | uniq | \
+            head -10 | \
             awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > ${{runner.workspace}}/build-warnings.txt
 
-          # Extract errors - be more specific to avoid compiler flags
-          egrep -i "(errors detected|make: \*\*\*.*Error|fatal error|compilation terminated)" ${{runner.workspace}}/build-output.txt | \
-            egrep -v "(-Werror|-ferror)" | \
+          # Extract errors - match specific compiler error patterns and make errors
+          egrep -i "(\): error:|error:|Error:|errors detected|make: \*\*\*)" ${{runner.workspace}}/build-output.txt | \
+            egrep -v "lto-wrapper:" | \
             sort | uniq | \
+            head -10 | \
             awk 'BEGIN{i=0}{print $0}{i++}END{print "Errors: "i}' > ${{runner.workspace}}/build-errors.txt
         else
           echo "No build output captured" > ${{runner.workspace}}/build-errors.txt
@@ -146,9 +148,9 @@ jobs:
         echo "=== ERRORS ==="
         cat ${{runner.workspace}}/build-errors.txt
 
-        # Store error count for later use
-        export error_count=$(tail -n 1 ${{runner.workspace}}/build-errors.txt | awk '{print $2}')
-        echo "error_count=${error_count}" >> $GITHUB_OUTPUT
+        # Store error count for later use (but count total, not just displayed)
+        total_errors=$(egrep -i "(\): error:|error:|Error:|errors detected|make: \*\*\*)" ${{runner.workspace}}/build-output.txt 2>/dev/null | egrep -v "lto-wrapper:" | wc -l)
+        echo "error_count=${total_errors}" >> $GITHUB_OUTPUT
     - name: Generate Error Summary
       if: always()
       run: |
