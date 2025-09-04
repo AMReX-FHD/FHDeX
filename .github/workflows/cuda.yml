@@ -115,6 +115,8 @@ jobs:
       env:
         AMREX_HOME: ${{runner.workspace}}/amrex
     - name: Report
+      id: report
+      continue-on-error: true
       run: |
         # Extract and count warnings
         egrep "warning:" ${{runner.workspace}}/build-output.txt \
@@ -136,22 +138,39 @@ jobs:
         echo "=== ERRORS ==="
         cat ${{runner.workspace}}/build-errors.txt
 
-        # Only fail on errors, not warnings
+        # Store error count for later use
         export error_count=$(tail -n 1 ${{runner.workspace}}/build-errors.txt | awk '{print $2}')
-        exit ${error_count}
+        echo "error_count=${error_count}" >> $GITHUB_OUTPUT
     - name: Generate Error Summary
-      if: failure()
+      if: always()
       run: |
-        echo "## Build Failed 🚨" >> $GITHUB_STEP_SUMMARY
-        echo "**Error Details:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Step: ${{ github.job }}" >> $GITHUB_STEP_SUMMARY
+        echo "## Build Report 📊" >> $GITHUB_STEP_SUMMARY
+        echo "**Job Details:**" >> $GITHUB_STEP_SUMMARY
+        echo "- App: ${{ matrix.app }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Dimensions: ${{ matrix.dim }}" >> $GITHUB_STEP_SUMMARY
         echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
         echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Last 10 lines of build output:**" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        tail -10 ${{runner.workspace}}/build-output.txt >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No build-output.txt found"
-        echo '```' >> $GITHUB_STEP_SUMMARY
+
+        # Add warnings if they exist
+        if [ -f "${{runner.workspace}}/build-warnings.txt" ]; then
+          echo "## ⚠️ Warnings" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat ${{runner.workspace}}/build-warnings.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Add errors if they exist
+        if [ -f "${{runner.workspace}}/build-errors.txt" ]; then
+          echo "## 🚨 Errors" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat ${{runner.workspace}}/build-errors.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
+    - name: Fail on Errors
+      if: steps.report.outputs.error_count != '0'
+      run: exit 1
 
 
   #  # Build 3D libamrex cuda build with configure
