@@ -115,24 +115,31 @@ jobs:
         du -hs ~/.cache/ccache
       env:
         AMREX_HOME: ${{runner.workspace}}/amrex
+
     - name: Report
       id: report
       continue-on-error: true
       run: |
-        # Extract and count warnings
-        egrep "warning:" ${{runner.workspace}}/build-output.txt \
-          # | egrep -v "amrex" \
-          # Note: if avoiding third party library errors, filter by full path like ${{runner.workspace}}/amrex instead \
-          | egrep -v "lto-wrapper: warning:" \
-          | sort | uniq \
-          | awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > ${{runner.workspace}}/build-warnings.txt
+        # Create empty files first
+        touch ${{runner.workspace}}/build-warnings.txt
+        touch ${{runner.workspace}}/build-errors.txt
 
-        # Extract and count errors
-        egrep "error:" ${{runner.workspace}}/build-output.txt \
-          # | egrep -v "amrex" \
-          # Note: if avoiding third party library errors, filter by full path like ${{runner.workspace}}/amrex instead \
-          | sort | uniq \
-          | awk 'BEGIN{i=0}{print $0}{i++}END{print "Errors: "i}' > ${{runner.workspace}}/build-errors.txt
+        if [ -f "${{runner.workspace}}/build-output.txt" ]; then
+          # Extract warnings - avoid compile command lines
+          egrep -i "warning" ${{runner.workspace}}/build-output.txt | \
+            egrep -v "(lto-wrapper:|-W)" | \
+            sort | uniq | \
+            awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > ${{runner.workspace}}/build-warnings.txt
+
+          # Extract errors - be more specific to avoid compiler flags
+          egrep -i "(errors detected|make: \*\*\*.*Error|fatal error|compilation terminated)" ${{runner.workspace}}/build-output.txt | \
+            egrep -v "(-Werror|-ferror)" | \
+            sort | uniq | \
+            awk 'BEGIN{i=0}{print $0}{i++}END{print "Errors: "i}' > ${{runner.workspace}}/build-errors.txt
+        else
+          echo "No build output captured" > ${{runner.workspace}}/build-errors.txt
+          echo "Errors: 1" >> ${{runner.workspace}}/build-errors.txt
+        fi
 
         echo "=== WARNINGS ==="
         cat ${{runner.workspace}}/build-warnings.txt
