@@ -94,7 +94,7 @@ void InitConsVarStag(MultiFab& cons,
                 Real Lz = realhi[2] - reallo[2];
 
                 // problem scale
-                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
+                Real sound_speed; GetSoundSpeed(sound_speed, rho0, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
                 Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
                 Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
@@ -130,7 +130,7 @@ void InitConsVarStag(MultiFab& cons,
                 Real Lz = realhi[2] - reallo[2];
 
                 // problem scale
-                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
+                Real sound_speed; GetSoundSpeed(sound_speed, rho0, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
                 Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
                 Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
@@ -166,7 +166,7 @@ void InitConsVarStag(MultiFab& cons,
                 Real Lz = realhi[2] - reallo[2];
 
                 // problem scale
-                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
+                Real sound_speed; GetSoundSpeed(sound_speed, rho0, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
                 Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
                 Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
@@ -262,7 +262,7 @@ void InitConsVarStag(MultiFab& cons,
                 Real Lz = realhi[2] - reallo[2];
 
                 // problem scale
-                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
+                Real sound_speed; GetSoundSpeed(sound_speed, rho0, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
                 Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
                 Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
@@ -696,11 +696,12 @@ void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in)
         const Box& bx = mfi.tilebox();
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             Real T = prim(i,j,k,4);
+            Real rho = prim(i,j,k,0);
             GpuArray<Real,MAX_SPECIES> Yk;
             for (int ns=0; ns<nspecies; ++ns) {
                 Yk[ns] = prim(i,j,k,6+ns);
             }
-            GetSoundSpeed(sound_speed(i,j,k),Yk,T);
+            GetSoundSpeed(sound_speed(i,j,k),rho,Yk,T);
         });
     } // end MFIter
 }
@@ -735,32 +736,35 @@ amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             Real temp = 0.5*(prim(i-1,j,k,4) + prim(i,j,k,4));
+            Real rho  = 0.5*(prim(i-1,j,k,0) + prim(i,j,k,0));
             GpuArray<Real,MAX_SPECIES> Yk;
             for (int ns=0; ns<nspecies; ++ns) {
                 Yk[ns] = 0.5*(prim(i-1,j,k,6+ns) + prim(i,j,k,6+ns));
             }
             Real sound_speed;
-            GetSoundSpeed(sound_speed,Yk,temp);
+            GetSoundSpeed(sound_speed,rho,Yk,temp);
             cflx(i,j,k) = (sound_speed + std::abs(velx(i,j,k)))*dt/dx[0];
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             Real temp = 0.5*(prim(i,j-1,k,4) + prim(i,j,k,4));
+            Real rho  = 0.5*(prim(i,j-1,k,0) + prim(i,j,k,0));
             GpuArray<Real,MAX_SPECIES> Yk;
             for (int ns=0; ns<nspecies; ++ns) {
                 Yk[ns] = 0.5*(prim(i,j-1,k,6+ns) + prim(i,j,k,6+ns));
             }
             Real sound_speed;
-            GetSoundSpeed(sound_speed,Yk,temp);
+            GetSoundSpeed(sound_speed,rho,Yk,temp);
             cfly(i,j,k) = (sound_speed + std::abs(vely(i,j,k)))*dt/dx[1];
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             Real temp = 0.5*(prim(i,j,k-1,4) + prim(i,j,k,4));
+            Real rho  = 0.5*(prim(i,j,k-1,0) + prim(i,j,k,0));
             GpuArray<Real,MAX_SPECIES> Yk;
             for (int ns=0; ns<nspecies; ++ns) {
                 Yk[ns] = 0.5*(prim(i,j,k-1,6+ns) + prim(i,j,k,6+ns));
             }
             Real sound_speed;
-            GetSoundSpeed(sound_speed,Yk,temp);
+            GetSoundSpeed(sound_speed,rho,Yk,temp);
             cflz(i,j,k) = (sound_speed + std::abs(velz(i,j,k)))*dt/dx[2];
         });
     }

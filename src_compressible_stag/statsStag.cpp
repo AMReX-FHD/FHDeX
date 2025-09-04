@@ -511,10 +511,12 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
             Real T = primmeans(i,j,k,4);
             Real densitymeaninv = 1.0/cumeans(i,j,k,0);
 
-            Real cv = 0.;
-            for (int l=0; l<nspecies; ++l) {
-                cv = cv + hcv[l]*cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
-            }
+            Real cv;
+            GetCv(T, Ykmean, cv);
+            //Real cv = 0.;
+            //for (int l=0; l<nspecies; ++l) {
+            //    cv = cv + hcv[l]*cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
+            //}
             Real cvinv = 1.0/cv;
 
             Real qmean = cv*T-0.5*(vx*vx + vy*vy + vz*vz);
@@ -913,15 +915,18 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
     Real delTcross = data_xcross[16] - data_xcross[17];
     Real delvxcross = data_xcross[10] - data_xcross[11];
     Vector<Real>  delYkcross(nspecies, 0.0);
+    GpuArray<Real,MAX_SPECIES>& Ykcross;
     for (int ns=0; ns<nspecies; ++ns) {
         delYkcross[ns] =  data_xcross[18+4*ns+2] - data_xcross[18+4*ns+3];
+        Ykcross[ns] =  data_xcross[18+4*ns+3]; 
     }
     
     // evaluate heat stuff at the cross cell
-    Real cvcross = 0.;
-    for (int l=0; l<nspecies; ++l) {
-        cvcross = cvcross + hcv[l]*data_xcross[18+4*l+1]/data_xcross[1];
-    }
+    Real cvcross;
+    GetCv(delTcross, Ykcross, cvcross);
+    //for (int l=0; l<nspecies; ++l) {
+    //    cvcross = cvcross + hcv[l]*data_xcross[18+4*l+1]/data_xcross[1];
+    //}
     Real cvinvcross = 1.0/cvcross;
     Real qmeancross = cvcross*data_xcross[17] - 
                      0.5*(data_xcross[11]*data_xcross[11] + data_xcross[13]*data_xcross[13] + data_xcross[15]*data_xcross[15]);

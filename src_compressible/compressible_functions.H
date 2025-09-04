@@ -165,6 +165,20 @@ void ReadCheckPoint(int& step,
                      MultiFab& eta,
                      MultiFab& kappa);
 
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMolfrac (const GpuArray<Real,MAX_SPECIES>& Yk,
+                 GpuArray<Real,MAX_SPECIES>& Xk)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real X[NUM_SPECIES];
+    amrex::Real Y[NUM_SPECIES];
+    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    eos.Y2X(Y,X);
+    for (i=0;i<NUM_SPECIES;++i) Xk[i] = Y[i];
+
+}
+#else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetMolfrac (const GpuArray<Real,MAX_SPECIES>& Yk,
                  GpuArray<Real,MAX_SPECIES>& Xk)
@@ -180,7 +194,21 @@ void GetMolfrac (const GpuArray<Real,MAX_SPECIES>& Yk,
     }
 
 }
+#endif
 
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMassfrac (const GpuArray<Real,MAX_SPECIES>& Xk,
+                 GpuArray<Real,MAX_SPECIES>& Yk)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real X[NUM_SPECIES];
+    amrex::Real Y[NUM_SPECIES];
+    for (i=0;i<NUM_SPECIES;++i) X[i] = Xk[i];
+    eos.X2Y(X,Y);
+    for (i=0;i<NUM_SPECIES;++i) Yk[i] = Y[i];
+}
+#else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetMassfrac (const GpuArray<Real,MAX_SPECIES>& Xk,
                  GpuArray<Real,MAX_SPECIES>& Yk)
@@ -195,7 +223,20 @@ void GetMassfrac (const GpuArray<Real,MAX_SPECIES>& Xk,
     }
 
 }
+#endif
 
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetTemperature ( Real const energy,
+                      const GpuArray<Real,MAX_SPECIES>& Yk,
+                      Real& temp)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real Y[NUM_SPECIES];
+    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    eos.EY2T(energy, Y, temp);
+}
+#else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetTemperature ( Real const energy,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
@@ -211,7 +252,21 @@ void GetTemperature ( Real const energy,
 
     temp = (energy-e0mix)/cvmix;
 }
+#endif
 
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetPressureGas ( Real& pressure,
+                      const GpuArray<Real,MAX_SPECIES>& Yk,
+                      Real const density,
+                      Real const temp)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real Y[NUM_SPECIES];
+    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    eos.RTY2P(density, temp, Y, pressure);
+}
+#else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetPressureGas ( Real& pressure,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
@@ -227,9 +282,105 @@ void GetPressureGas ( Real& pressure,
 
     pressure = density*(Runiv/molmix)*temp;
 }
+#endif
 
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetDensity ( const Real pressure,
+                  Real& density,
+                  const Real temp,
+                  const GpuArray<Real,MAX_SPECIES>& massfrac)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real Y[NUM_SPECIES];
+    for (i=0;i<NUM_SPECIES;++i) Y[i] = massfrac[i];
+    eos.PYT2R(pressure, Y, temp, density);
+}
+#else
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetDensity ( const Real pressure,
+                  Real& density,
+                  const Real temp,
+                  const GpuArray<Real,MAX_SPECIES>& massfrac)
+{
+    Real molmix = 0.;
+    for (int i=0; i<nspecies; ++i) {
+        molmix += massfrac[i]/molmass[i];
+    }
+
+    molmix = 1./molmix;
+
+    density = pressure/(Runiv/molmix)/temp;
+    
+}
+#endif
+
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnergy ( Real& energy,
+                 const GpuArray<Real,MAX_SPECIES>& massvec,
+                 const Real temp)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real Y[NUM_SPECIES];
+    for (i=0;i<NUM_SPECIES;++i) Y[i] = massvec[i];
+    eos.TY2E(temp, Y, energy);
+}
+#else
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnergy ( Real& energy,
+                 const GpuArray<Real,MAX_SPECIES>& massvec,
+                 const Real temp)
+{
+    Real cvmix = 0.;
+    Real e0mix = 0.;
+
+    for (int i=0; i<nspecies; ++i) {
+        cvmix += massvec[i]*hcv[i];
+        e0mix += massvec[i]*e0[i];
+    }
+
+    energy = e0mix + temp*cvmix;
+}
+#endif
+
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnthalpies (const Real& T,
+                    GpuArray<Real,MAX_SPECIES>& hk)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real Hk[NUM_SPECIES];
+    eos.T2Hi(T, Hk);
+    for (i=0;i<NUM_SPECIES;++i) hk[i] = Hk[i]
+}
+#else
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnthalpies (const Real& T,
+                    GpuArray<Real,MAX_SPECIES>& hk)
+{
+    for (int i=0; i<nspecies; ++i) {
+        hk[i] = e0[i]+hcp[i]*T;
+    }
+}
+#endif
+
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetSoundSpeed (Real& c,
+                    const Real& rho,
+                    const GpuArray<Real,MAX_SPECIES>& Yk,
+                    Real const temp)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real Y[NUM_SPECIES];
+    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    eos.RTY2Cs(rho, temp, Y, c);
+}
+#else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetSoundSpeed (Real& c, 
+                    const Real& rho,
                     const GpuArray<Real,MAX_SPECIES>& Yk,
                     Real const temp)
 {
@@ -247,6 +398,29 @@ void GetSoundSpeed (Real& c,
 
     c = sqrt(gamma*(Runiv/molmix)*temp);
 }
+#endif
+
+#if defined(PELEPHYSICS)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetCv (const Real& temp,
+            const GpuArray<Real,MAX_SPECIES>& Yk,
+            Real& cv)
+{
+    auto eos = pele::physics::PhysicsType::eos();
+    amrex::Real Y[NUM_SPECIES];
+    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    eos.TY2Cv(temp, Y, cv);
+}
+#else
+void GetCv (const Real& /*temp*/,
+            const GpuArray<Real,MAX_SPECIES>& Yk,
+            Real& cv)
+{
+    cv = 0.;
+    for (i=0;i<MAX_SPECIES;++i) cv += hcv[i]*Yk[i];
+}
+#endif
+             
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Decomp ( int const neq,
@@ -1512,48 +1686,6 @@ void IdealMixtureTransportHCBBin ( /*int iloc, int jloc, int kloc,*/
     chitil[0] = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]); 
     chitil[1] =  1.0*xxtr[1]*thermal_diff/(mR*yytr[1]*yytr[1]);
 
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetDensity ( const Real pressure,
-                  Real& density,
-                  const Real temp,
-                  const GpuArray<Real,MAX_SPECIES>& massfrac)
-{
-    Real molmix = 0.;
-    for (int i=0; i<nspecies; ++i) {
-        molmix += massfrac[i]/molmass[i];
-    }
-
-    molmix = 1./molmix;
-
-    density = pressure/(Runiv/molmix)/temp;
-    
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetEnergy ( Real& energy,
-                 const GpuArray<Real,MAX_SPECIES>& massvec,
-                 const Real temp)
-{
-    Real cvmix = 0.;
-    Real e0mix = 0.;
-
-    for (int i=0; i<nspecies; ++i) {
-        cvmix += massvec[i]*hcv[i];
-        e0mix += massvec[i]*e0[i];
-    }
-
-    energy = e0mix + temp*cvmix;
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetEnthalpies (const Real& T,
-                    GpuArray<Real,MAX_SPECIES>& hk)
-{
-    for (int i=0; i<nspecies; ++i) {
-        hk[i] = e0[i]+hcp[i]*T;
-    }
 }
 
 #endif
