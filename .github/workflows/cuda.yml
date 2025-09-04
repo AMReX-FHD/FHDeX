@@ -97,7 +97,6 @@ jobs:
     - name: Enable Problem Matchers
       run: echo "::add-matcher::.github/problem-matchers/gcc.json"
     - name: Build & Install ${{ matrix.app }}
-      continue-on-error: true
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -118,6 +117,7 @@ jobs:
 
     - name: Report
       id: report
+      if: always()
       continue-on-error: true
       run: |
         # Create empty files first
@@ -178,9 +178,6 @@ jobs:
           cat ${{runner.workspace}}/build-errors.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
         fi
-    - name: Fail on Errors
-      if: steps.report.outputs.error_count != '0'
-      run: exit 1
 
 
   #  # Build 3D libamrex cuda build with configure
