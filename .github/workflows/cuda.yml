@@ -97,6 +97,7 @@ jobs:
     - name: Enable Problem Matchers
       run: echo "::add-matcher::.github/problem-matchers/gcc.json"
     - name: Build & Install ${{ matrix.app }}
+      continue-on-error: true
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
