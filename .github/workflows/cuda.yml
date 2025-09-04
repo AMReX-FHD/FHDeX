@@ -217,7 +217,7 @@ jobs:
 
   merge-reports:
     runs-on: ubuntu-latest
-    needs: build
+    needs: tests-cuda11
     if: always()
     steps:
       - name: Merge Build Reports
