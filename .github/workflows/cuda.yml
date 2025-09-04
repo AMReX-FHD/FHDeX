@@ -118,14 +118,16 @@ jobs:
       run: |
         # Extract and count warnings
         egrep "warning:" ${{runner.workspace}}/build-output.txt \
-          | egrep -v "amrex" \
+          # | egrep -v "amrex" \
+          # Note: if avoiding third party library errors, filter by full path like ${{runner.workspace}}/amrex instead \
           | egrep -v "lto-wrapper: warning:" \
           | sort | uniq \
           | awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > ${{runner.workspace}}/build-warnings.txt
 
         # Extract and count errors
         egrep "error:" ${{runner.workspace}}/build-output.txt \
-          | egrep -v "amrex" \
+          # | egrep -v "amrex" \
+          # Note: if avoiding third party library errors, filter by full path like ${{runner.workspace}}/amrex instead \
           | sort | uniq \
           | awk 'BEGIN{i=0}{print $0}{i++}END{print "Errors: "i}' > ${{runner.workspace}}/build-errors.txt
 
