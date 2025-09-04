@@ -157,7 +157,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: build-reports-${{ matrix.app }}-${{ matrix.dim }}d
+        name: build-reports-${{ replace(matrix.app, '/', '-') }}-${{ matrix.dim }}d
         path: |
           ${{runner.workspace}}/build-warnings.txt
           ${{runner.workspace}}/build-errors.txt
@@ -172,7 +172,6 @@ jobs:
         echo "- Dimensions: ${{ matrix.dim }}" >> $GITHUB_STEP_SUMMARY
         echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
         echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "- [View Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ github.job }}#step:10:1)" >> $GITHUB_STEP_SUMMARY
         echo "- [📁 Download Build Reports](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
 
