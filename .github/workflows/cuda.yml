@@ -138,31 +138,35 @@ jobs:
       if: always()
       continue-on-error: true
       run: |
+        # Create matrix-specific filenames
+        WARNINGS_FILE="${{runner.workspace}}/build-warnings-${{ matrix.artifact_name }}-${{ matrix.dim }}d.txt"
+        ERRORS_FILE="${{runner.workspace}}/build-errors-${{ matrix.artifact_name }}-${{ matrix.dim }}d.txt"
+
         # Create empty files first
-        touch ${{runner.workspace}}/build-warnings.txt
-        touch ${{runner.workspace}}/build-errors.txt
+        touch "$WARNINGS_FILE"
+        touch "$ERRORS_FILE"
 
         if [ -f "${{runner.workspace}}/build-output.txt" ]; then
           # Extract warnings - broader patterns (include ALL warnings)
           egrep -i "(warning|Warning)" ${{runner.workspace}}/build-output.txt | \
             egrep -v "lto-wrapper:" | \
             sort | uniq | \
-            awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > ${{runner.workspace}}/build-warnings.txt
+            awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > "$WARNINGS_FILE"
 
           # Extract errors - match specific compiler error patterns and make errors (include ALL errors)
           egrep -i "(\): error:|error:|Error:|errors detected|make: \*\*\*)" ${{runner.workspace}}/build-output.txt | \
             egrep -v "lto-wrapper:" | \
             sort | uniq | \
-            awk 'BEGIN{i=0}{print $0}{i++}END{print "Errors: "i}' > ${{runner.workspace}}/build-errors.txt
+            awk 'BEGIN{i=0}{print $0}{i++}END{print "Errors: "i}' > "$ERRORS_FILE"
         else
-          echo "No build output captured" > ${{runner.workspace}}/build-errors.txt
-          echo "Errors: 1" >> ${{runner.workspace}}/build-errors.txt
+          echo "No build output captured" > "$ERRORS_FILE"
+          echo "Errors: 1" >> "$ERRORS_FILE"
         fi
 
-        echo "=== WARNINGS ==="
-        cat ${{runner.workspace}}/build-warnings.txt
-        echo "=== ERRORS ==="
-        cat ${{runner.workspace}}/build-errors.txt
+        echo "=== WARNINGS (${{ matrix.artifact_name }}-${{ matrix.dim }}d) ==="
+        cat "$WARNINGS_FILE"
+        echo "=== ERRORS (${{ matrix.artifact_name }}-${{ matrix.dim }}d) ==="
+        cat "$ERRORS_FILE"
 
         # Store error and warning counts for later use (but count total, not just displayed)
         total_errors=$(egrep -i "(\): error:|error:|Error:|errors detected|make: \*\*\*)" ${{runner.workspace}}/build-output.txt 2>/dev/null | egrep -v "lto-wrapper:" | wc -l)
@@ -174,10 +178,10 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: build-reports-${{ matrix.artifact_name }}-${{ matrix.dim }}d
+        name: build-reports-all
         path: |
-          ${{runner.workspace}}/build-warnings.txt
-          ${{runner.workspace}}/build-errors.txt
+          ${{runner.workspace}}/build-warnings-${{ matrix.artifact_name }}-${{ matrix.dim }}d.txt
+          ${{runner.workspace}}/build-errors-${{ matrix.artifact_name }}-${{ matrix.dim }}d.txt
         retention-days: 30
 
     - name: Generate Error Summary
