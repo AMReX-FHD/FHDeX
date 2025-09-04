@@ -215,8 +215,19 @@ jobs:
         echo "Build failed with ${{ steps.report.outputs.error_count }} errors"
         exit 1
 
+  merge-reports:
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+    steps:
+      - name: Merge Build Reports
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: build-reports-all
+          pattern: build-reports-*
+          delete-merged: true  # Optional: removes individual artifacts
 
-  #  # Build 3D libamrex cuda build with configure
+  # Build 3D libamrex cuda build with configure
   #  configure-3d-cuda:
   #    name: CUDA@11.2 GNU@9.3.0 [configure 3D]
   #    runs-on: ubuntu-20.04
