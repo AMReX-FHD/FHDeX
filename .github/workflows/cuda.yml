@@ -94,6 +94,8 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.app }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.app }}-git-
+    - name: Enable Problem Matchers
+      run: echo "::add-matcher::.github/problem-matchers/gcc.json"
     - name: Build & Install ${{ matrix.app }}
       run: |
         export CCACHE_COMPRESS=1
@@ -106,31 +108,49 @@ jobs:
         export LD_LIBRARY_PATH=/usr/local/cuda/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         cd exec/${{ matrix.app }}
         which nvcc || echo "nvcc not in PATH!"
-        make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=${{ matrix.dim }} TINY_PROFILE=FALSE
+        make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=${{ matrix.dim }} TINY_PROFILE=FALSE 2>&1 | tee ${{runner.workspace}}/build-output.txt
 
         ccache -s
         du -hs ~/.cache/ccache
       env:
         AMREX_HOME: ${{runner.workspace}}/amrex
+    - name: Report
+      run: |
+        # Extract and count warnings
+        egrep "warning:" ${{runner.workspace}}/build-output.txt \
+          | egrep -v "amrex" \
+          | egrep -v "lto-wrapper: warning:" \
+          | sort | uniq \
+          | awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > ${{runner.workspace}}/build-warnings.txt
 
+        # Extract and count errors
+        egrep "error:" ${{runner.workspace}}/build-output.txt \
+          | egrep -v "amrex" \
+          | sort | uniq \
+          | awk 'BEGIN{i=0}{print $0}{i++}END{print "Errors: "i}' > ${{runner.workspace}}/build-errors.txt
 
-        #cmake -S . -B build                              \
-        #    -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-        #    -DAMReX_ENABLE_TESTS=ON                      \
-        #    -DAMReX_FORTRAN=OFF                          \
-        #    -DAMReX_PARTICLES=ON                         \
-        #    -DAMReX_GPU_BACKEND=CUDA                     \
-        #    -DCMAKE_C_COMPILER=$(which gcc)              \
-        #    -DCMAKE_CXX_COMPILER=$(which g++)            \
-        #    -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
-        #    -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-        #    -DCMAKE_CUDA_STANDARD=17                     \
-        #    -DCMAKE_CXX_STANDARD=17                      \
-        #    -DAMReX_CUDA_ARCH=8.0                        \
-        #    -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
-        #    -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+        echo "=== WARNINGS ==="
+        cat ${{runner.workspace}}/build-warnings.txt
+        echo "=== ERRORS ==="
+        cat ${{runner.workspace}}/build-errors.txt
 
-        #cmake --build build -j 2
+        # Only fail on errors, not warnings
+        export error_count=$(tail -n 1 ${{runner.workspace}}/build-errors.txt | awk '{print $2}')
+        exit ${error_count}
+    - name: Generate Error Summary
+      if: failure()
+      run: |
+        echo "## Build Failed 🚨" >> $GITHUB_STEP_SUMMARY
+        echo "**Error Details:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Step: ${{ github.job }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Last 10 lines of build output:**" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        tail -10 ${{runner.workspace}}/build-output.txt >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No build-output.txt found"
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
 
   #  # Build 3D libamrex cuda build with configure
   #  configure-3d-cuda:
