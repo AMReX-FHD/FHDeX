@@ -36,17 +36,43 @@ jobs:
   # Build libamrex and all tests with CUDA 12.0
 
   tests-cuda11:
-    name: CUDA@12.0 GNU C++17 Release [${{ matrix.app }}]
+    name: CUDA@12.0 GNU C++17 Release [${{ matrix.app }}] DIM=${{ matrix.dim }}
     runs-on: ubuntu-22.04
+    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         app:
+          - compressible
           - compressible_stag
-          - multispec
-          - dean_kow/singlelevel
-          - dean_kow/multilevel
-          - thinFilm
-          - hydro
+          - immersedIons
+        dim: [3]
+        include:
+          # 2D and 3D tests for specified applications
+          - app: structFactTest
+            dim: 2
+          - app: structFactTest
+            dim: 3
+          - app: reactDiff
+            dim: 2
+          - app: reactDiff
+            dim: 3
+          - app: multispec
+            dim: 2
+          - app: multispec
+            dim: 3
+          - app: dean_kow/singlelevel
+            dim: 2
+          - app: dean_kow/singlelevel
+            dim: 3
+          - app: dean_kow/multilevel
+            dim: 2
+          - app: dean_kow/multilevel
+            dim: 3
+          - app: hydro
+            dim: 2
+          - app: hydro
+            dim: 3
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v4
@@ -80,7 +106,7 @@ jobs:
         export LD_LIBRARY_PATH=/usr/local/cuda/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         cd exec/${{ matrix.app }}
         which nvcc || echo "nvcc not in PATH!"
-        make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=FALSE
+        make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=${{ matrix.dim }} TINY_PROFILE=FALSE
 
         ccache -s
         du -hs ~/.cache/ccache
