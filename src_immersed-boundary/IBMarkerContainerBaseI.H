@@ -78,7 +78,7 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
 template <typename StructReal, typename StructInt>
 IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
             const Geometry & geom,
-            const Geometry & geomF,
+            const Geometry & /*geomF*/,
             const DistributionMapping & dmap,
             const BoxArray & ba,
             const BoxArray & baF,
@@ -323,7 +323,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 
 
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename)
+void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* /*filename*/)
 {
     // timer for profiling
     BL_PROFILE_VAR("initRankLists()",initRankLists);

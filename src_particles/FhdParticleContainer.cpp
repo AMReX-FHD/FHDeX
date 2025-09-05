@@ -589,7 +589,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, [[may
         //reduce_op.eval(np, reduce_data, [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
 
         // Set up RNG engine with ParallelForRNG, and do reduction using a np-sized vector storing value for each particle
-        amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+        amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& /*engine*/) noexcept
         //for (int i = 0; i < np; ++ i)
         {
 
@@ -940,7 +940,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, [[may
 }
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
-                                      const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& /*umac*/,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
@@ -1012,7 +1012,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 }
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
-                                      const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& /*umac*/,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
@@ -1359,7 +1359,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     }
 }
 
-void FhdParticleContainer::potentialDistribution(long totalParticles, const int step, const species* particleInfo)
+void FhdParticleContainer::potentialDistribution(long totalParticles, const int step, const species* /*particleInfo*/)
 {
     const int lev = 0;
     [[maybe_unused]] int bin;
@@ -1720,9 +1720,9 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
     }
 }
 
-void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotential,
-                                         const MultiFab& RealCenterCoords, const Geometry geomP, MultiFab& charge, MultiFab& chargeTemp,
-                                         MultiFab& mass, MultiFab& massTemp)
+void FhdParticleContainer::collectFieldsGPU(const Real /*dt*/, const Real* dxPotential,
+                                         const MultiFab& /*RealCenterCoords*/, const Geometry geomP, MultiFab& charge, MultiFab& chargeTemp,
+                                         MultiFab& /*mass*/, MultiFab& /*massTemp*/)
 {
     BL_PROFILE_VAR("collectFields()",collectFields);
 
@@ -1766,7 +1766,7 @@ void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotenti
 }
 
 void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
-                                         MultiFab& particleMeans, species particleInfo, const Real delt, int steps)
+                                         MultiFab& particleMeans, species particleInfo, const Real /*delt*/, int steps)
 {
     BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
 

@@ -867,7 +867,7 @@ void get_weights (const FhdParticleContainer::ParticleType& p, F f,
 
 template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void spread_op (amrex::Array4<amrex::Real> const& arr, F f,
+void spread_op (amrex::Array4<amrex::Real> const& arr, F /*f*/,
                 amrex::Real w[3][2*F::ks], int indices[3][2*F::ks],
                 amrex::Real value)
 {
@@ -885,7 +885,7 @@ void spread_op (amrex::Array4<amrex::Real> const& arr, F f,
 
 template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real inter_op (amrex::Array4<amrex::Real> const& arr, F f,
+Real inter_op (amrex::Array4<amrex::Real> const& arr, F /*f*/,
                amrex::Real w[3][2*F::ks], int indices[3][2*F::ks])
 {
     constexpr int ks = F::ks;
