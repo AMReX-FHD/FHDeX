@@ -56,13 +56,13 @@ void StagMGSolver::Define(const BoxArray& ba_in,
 
         // create the problem domain for this multigrid level
         Box pd(pd_base);
-        pd.coarsen(pow(2,n));
+        pd.coarsen(static_cast<int>(pow(2,n)));
 
         geom_mg[n].define(pd,&real_box,CoordSys::cartesian,is_periodic.data());
 
         // create the boxarray for this multigrid level
         BoxArray ba(ba_base);
-        ba.coarsen(pow(2,n));
+        ba.coarsen(static_cast<int>(pow(2,n)));
 
         if ( n == 0 && !(ba == ba_base) ) {
             Abort("Finest multigrid level boxarray and coarsest problem boxarrays do not match");
@@ -662,7 +662,7 @@ int StagMGSolver::ComputeNlevsMG(const BoxArray& ba) {
 
     BL_PROFILE_VAR("ComputeNlevsMG()",ComputeNlevsMG);
 
-    int nlevs_mg = -1;
+    int nlevs_mg_local = -1;
 
     for (int i=0; i<ba.size(); ++i) {
         Box bx = ba.get(i);
@@ -676,16 +676,16 @@ int StagMGSolver::ComputeNlevsMG(const BoxArray& ba) {
                 ++rdir;
             }
 
-            if (nlevs_mg == -1) {
-                nlevs_mg = rdir;
+            if (nlevs_mg_local == -1) {
+                nlevs_mg_local = rdir;
             }
             else {
-                nlevs_mg = amrex::min(rdir,nlevs_mg);
+                nlevs_mg_local = amrex::min(rdir,nlevs_mg_local);
             }
         }
     }
 
-    return nlevs_mg;
+    return nlevs_mg_local;
 }
 
 void StagMGSolver::CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_c)
@@ -736,7 +736,7 @@ void StagMGSolver::StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c
                      Box bx_y = mfi.tilebox(nodal_flag_y);,
                      Box bx_z = mfi.tilebox(nodal_flag_z););
 
-        const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
+        [[maybe_unused]] const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
 
         AMREX_D_TERM(Array4<Real> const& phix_c_fab = phi_c[0].array(mfi);,
                      Array4<Real> const& phiy_c_fab = phi_c[1].array(mfi);,
@@ -866,7 +866,7 @@ void StagMGSolver::EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
         Box bx_xz = mfi.tilebox(nodal_flag_xz);
         Box bx_yz = mfi.tilebox(nodal_flag_yz);
 
-        const Box& index_bounds = amrex::getIndexBounds(bx_xy, bx_xz, bx_yz);
+        [[maybe_unused]] const Box& index_bounds = amrex::getIndexBounds(bx_xy, bx_xz, bx_yz);
 
         Array4<Real> const& phixy_c_fab = phi_c[0].array(mfi);
         Array4<Real> const& phixz_c_fab = phi_c[1].array(mfi);
@@ -964,8 +964,8 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
-            int joff = pow(-1,j%2+1);
-            int koff = pow(-1,k%2+1);
+            int joff = static_cast<int>(pow(-1,j%2+1));
+            int koff = static_cast<int>(pow(-1,k%2+1));
 
             if (i%2 == 0) {
                 // bilinear in the yz plane
@@ -990,8 +990,8 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
-            int ioff = pow(-1,i%2+1);
-            int koff = pow(-1,k%2+1);
+            int ioff = static_cast<int>(pow(-1,i%2+1));
+            int koff = static_cast<int>(pow(-1,k%2+1));
 
             if (j%2 == 0) {
                 // bilinear in the xz plane
@@ -1016,8 +1016,8 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
-            int ioff = pow(-1,i%2+1);
-            int joff = pow(-1,j%2+1);
+            int ioff = static_cast<int>(pow(-1,i%2+1));
+            int joff = static_cast<int>(pow(-1,j%2+1));
 
             if (k%2 == 0) {
                 // bilinear in the xy plane
@@ -1062,7 +1062,7 @@ void stag_mg_update_visc_p1 (Box const& tbx,
                                           Array4<Real const> const& alphay,
                                           Array4<Real const> const& alphaz),
                              Array4<Real const> const& beta,
-                             Array4<Real const> const& gamma,
+                             [[maybe_unused]] Array4<Real const> const& gamma,
                              AMREX_D_DECL(bool do_x,
                                           bool do_y,
                                           bool do_z),
@@ -1313,7 +1313,7 @@ void stag_mg_update_visc_p2 (Box const& tbx,
                                           Array4<Real const> const& alphay,
                                           Array4<Real const> const& alphaz),
                              Array4<Real const> const& beta,
-                             Array4<Real const> const& gamma,
+                             [[maybe_unused]] Array4<Real const> const& gamma,
                              AMREX_D_DECL(bool do_x,
                                           bool do_y,
                                           bool do_z),
@@ -1844,7 +1844,7 @@ void StagMGSolver::StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
     for ( MFIter mfi(beta_cc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
-        const Box& bx = mfi.tilebox();
+        [[maybe_unused]] const Box& bx = mfi.tilebox();
 
         AMREX_D_TERM(Array4<Real> const& phix_fab = phi_fc[0].array(mfi);,
                      Array4<Real> const& phiy_fab = phi_fc[1].array(mfi);,

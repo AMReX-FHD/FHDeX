@@ -19,7 +19,7 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                    MultiFab& beta,
                    MultiFab& gamma,
                    std::array< MultiFab, NUM_EDGE >& beta_ed,
-                   const Geometry geom, const Real& dt)
+                   const Geometry geom, const Real& [[maybe_unused]] dt)
 {
     BL_PROFILE_VAR("advanceStokes()",advance);
 

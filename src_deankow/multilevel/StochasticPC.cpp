@@ -183,10 +183,12 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
                     if(std::abs(vsubx) >= 1.e-12)
                     {
                        sampx = -gamma * std::log(1. - r[0]*(1. - std::exp(-2*vsubx*dx[0]/gamma)))/(2.*vsubx);
+#ifndef AMREX_USE_GPU
                        if( sampx < 0. || sampx > dx[0])
                        {
                           amrex::Print() << " offx " << sampx << " " << r[0] << " " << vsubx << std::endl;
                        }
+#endif
                      //  if(j == 50){
                      //     amrex::Print() << "center " << i << " " << j << " " << sampx << " " << r[0] << " " << vsubx << std::endl;
                      //  }
@@ -196,10 +198,12 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
                     if(std::abs(vsuby) >= 1.e-12)
                     {
                        sampy = -gamma * std::log(1. - r[1]*(1. - std::exp(-2*vsuby*dx[1]/gamma)))/(2.*vsuby);
+#ifndef AMREX_USE_GPU
                        if( sampy < 0. || sampy > dx[1])
                        {
                           amrex::Print() << "offy " <<sampy << " " << r[1] << " " << vsuby << std::endl;
                        }
+#endif
                        r[1] = sampy / dx[1];
                     }
                 }

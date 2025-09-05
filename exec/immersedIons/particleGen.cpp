@@ -24,8 +24,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
         //Assuming tile=box for now, i.e. no tiling.
-        IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();
+        [[maybe_unused]] IntVect smallEnd = tile_box.smallEnd();
+        [[maybe_unused]] IntVect bigEnd = tile_box.bigEnd();
 
         if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 
@@ -179,7 +179,7 @@ void FhdParticleContainer::ReInitParticles()
     const int lev = 0;
     const Geometry& geom = Geom(lev);
 
-    int pcount = 0;
+    [[maybe_unused]] int pcount = 0;
 
     bool proc0_enter = true;
     int pinnedParticles = 0;
@@ -199,8 +199,8 @@ void FhdParticleContainer::ReInitParticles()
         auto* pstruct = aos().dataPtr();
 
         //Assuming tile=box for now, i.e. no tiling.
-        IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();
+        [[maybe_unused]] IntVect smallEnd = tile_box.smallEnd();
+        [[maybe_unused]] IntVect bigEnd = tile_box.bigEnd();
 
         if (ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 

@@ -86,7 +86,7 @@ void main_driver(const char* argv)
             tempang = 4;
         }
         else {
-            tempang = floor(eskernel_fluid[i]/2)+1;
+            tempang = static_cast<int>(floor(eskernel_fluid[i]/2))+1;
         }
 
         if(tempang > ang)
@@ -743,7 +743,7 @@ void main_driver(const char* argv)
 
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
-    double relRefine = particle_grid_refine/es_grid_refine;
+    [[maybe_unused]] double relRefine = particle_grid_refine/es_grid_refine;
     Real max_es_range = 0;
     Real max_sr_range = 0;
     Real max_range = 0;
@@ -972,7 +972,7 @@ void main_driver(const char* argv)
 
 
 
-    particles.initRankLists(simParticles);
+    particles.initRankLists(static_cast<long>(simParticles));
 
     Real init_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(init_time);
@@ -1365,7 +1365,7 @@ void main_driver(const char* argv)
 
         if (es_tog==2) {
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
-            particles.computeForcesCoulombGPU(simParticles);
+            particles.computeForcesCoulombGPU(static_cast<long>(simParticles));
          }
 
         // compute other forces and spread to grid
@@ -1530,7 +1530,7 @@ void main_driver(const char* argv)
             Real time_PC1 = ParallelDescriptor::second();
 
             // compute g(r)
-            particles.RadialDistribution(simParticles, istep, ionParticle);
+            particles.RadialDistribution(static_cast<long>(simParticles), istep, ionParticle);
             //particles.potentialDistribution(simParticles, istep, ionParticle);
 
             // timer
@@ -1546,7 +1546,7 @@ void main_driver(const char* argv)
             Real time_PC1 = ParallelDescriptor::second();
 
             // compute g(x), g(y), g(z)
-            particles.CartesianDistribution(simParticles, istep, ionParticle);
+            particles.CartesianDistribution(static_cast<long>(simParticles), istep, ionParticle);
 
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;

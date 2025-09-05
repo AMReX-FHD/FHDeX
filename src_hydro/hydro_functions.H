@@ -103,9 +103,11 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
 {
 
     GpuArray<Real, MAX_SPECIES> w;
-    GpuArray<Real, MAX_SPECIES> z;
+    [[maybe_unused]] GpuArray<Real, MAX_SPECIES> z;
 
-    Real rhobar_sq, delta_eos, temp;
+    [[maybe_unused]] Real rhobar_sq;
+    [[maybe_unused]] Real delta_eos;
+    [[maybe_unused]] Real temp;
 
     if (proj_type == 0) {
 

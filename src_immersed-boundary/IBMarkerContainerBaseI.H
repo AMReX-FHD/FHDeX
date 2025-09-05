@@ -78,7 +78,7 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
 template <typename StructReal, typename StructInt>
 IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
             const Geometry & geom,
-            const Geometry & geomF,
+            const Geometry & /*geomF*/,
             const DistributionMapping & dmap,
             const BoxArray & ba,
             const BoxArray & baF,
@@ -323,7 +323,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 
 
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename)
+void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* /*filename*/)
 {
     // timer for profiling
     BL_PROFILE_VAR("initRankLists()",initRankLists);
@@ -1148,7 +1148,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_x(i,j,k,2))*invdx[2];
-                      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                      [[maybe_unused]] Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -1191,7 +1191,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_y(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_y(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];
-                      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                      [[maybe_unused]] Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -1234,7 +1234,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_z(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_z(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_z(i,j,k,2))*invdx[2];
-                      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                      [[maybe_unused]] Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -1656,7 +1656,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
 
     const auto Np = aos.numParticles();
     const auto pstruct = aos().dataPtr();
-    int ng = nghost[0];
+    [[maybe_unused]] int ng = nghost[0];
 
     check = 0;
     int vcheck = 0;
@@ -1777,7 +1777,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
                   pos_grid[2]=(p.pos(2)-coords_x(i,j,k,2))*invdx[2];
-                  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                  [[maybe_unused]] Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)
@@ -1833,7 +1833,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   pos_grid[0]=(p.pos(0)-coords_y(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_y(i,j,k,1))*invdx[1];
                   pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];
-                  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                  [[maybe_unused]] Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)
@@ -1884,7 +1884,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   pos_grid[0]=(p.pos(0)-coords_z(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_z(i,j,k,1))*invdx[1];
                   pos_grid[2]=(p.pos(2)-coords_z(i,j,k,2))*invdx[2];
-                  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
+                  [[maybe_unused]] Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)

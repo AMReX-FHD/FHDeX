@@ -19,8 +19,8 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
 
     BL_PROFILE_VAR("ApplyMatrix()", ApplyMatrix);
 
-    const BoxArray & ba              = b_p.boxArray();
-    const DistributionMapping & dmap = b_p.DistributionMap();
+    [[maybe_unused]] const BoxArray & ba              = b_p.boxArray();
+    [[maybe_unused]] const DistributionMapping & dmap = b_p.DistributionMap();
 
     const Real* dx = geom.CellSize();
 

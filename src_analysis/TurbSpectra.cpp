@@ -312,7 +312,7 @@ void IntegrateKScalar(const MultiFab& cov_mag,
     int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
     int comp_gpu = comp;
-    int nx = n_cells[0];
+    [[maybe_unused]] int nx = n_cells[0];
     int ny = n_cells[1];
     int nz = n_cells[2];
     for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -388,7 +388,7 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
     int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
     int comp_gpu = comp;
-    int nx = n_cells[0];
+    [[maybe_unused]] int nx = n_cells[0];
     int ny = n_cells[1];
     int nz = n_cells[2];
     for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {

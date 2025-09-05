@@ -13,16 +13,16 @@ double getTheta(double nx, double ny, double nz)
     return acos(nz/r);
 }
 
-double getPhi(double nx, double ny, double nz)
+double getPhi(double nx, double ny, [[maybe_unused]] double nz)
 {
     return atan2(ny,nx);
 }
 
-void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi)
+void BuildParamplanes(paramPlane* paramPlaneList, [[maybe_unused]] const int paramplanes, const Real* domainLo, const Real* domainHi)
 {
 
     double theta, phi;
-    Real local_pi = 4.0*atan(1.0);
+    [[maybe_unused]] Real local_pi = 4.0*atan(1.0);
     Real xl = prob_hi[0] - prob_lo[0];
     Real yl = prob_hi[1] - prob_lo[1];
     Real zl = prob_hi[2] - prob_lo[2];
@@ -551,7 +551,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[0].sinkRight = 0;
         paramPlaneList[0].specularityRight    = 1;
 
-        Real total_n0 = 0;
+        [[maybe_unused]] Real total_n0 = 0;
         for (int l=0; l<nspecies; l++)
         {
             paramPlaneList[0].temperatureRight = t_lo[0];
@@ -690,7 +690,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[1].sinkRight = 0;
         paramPlaneList[1].specularityLeft = 1;
 
-        Real total_n0 = 0;
+        [[maybe_unused]] Real total_n0 = 0;
         for (int l=0; l<nspecies; l++)
         {
             paramPlaneList[1].temperatureLeft = t_hi[0];
@@ -1861,7 +1861,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     planeFile.close();
 }
 
-void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi)
+void BuildParamplanesPhonon(paramPlane* paramPlaneList, [[maybe_unused]] const int paramplanes, [[maybe_unused]] const Real* domainLo, [[maybe_unused]] const Real* domainHi)
 {
 
     double theta, phi;
@@ -1989,7 +1989,7 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
     planeFile.close();
 }
 
-void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, const Geometry & Geom, iMultiFab& bCell, int paramPlaneCount)
+void SetBoundaryCells(paramPlane* paramPlaneList, [[maybe_unused]] const int paramplanes, [[maybe_unused]] const Real* domainLo, [[maybe_unused]] const Real* domainHi, const Geometry & Geom, iMultiFab& bCell, int paramPlaneCount)
 {
 
     bool proc_enter = true;
@@ -2002,7 +2002,7 @@ void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const R
     if(dx[2] < smallNumber){smallNumber = dx[2];}
     smallNumber = smallNumber*0.00000001;
 
-    int procID = ParallelDescriptor::MyProc();
+    [[maybe_unused]] int procID = ParallelDescriptor::MyProc();
 
     for(MFIter mfi = MFIter(bCell); mfi.isValid(); ++mfi)
     {
@@ -2010,8 +2010,8 @@ void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const R
         {
             proc_enter = false;//Make sure this runs only once incase of tiling
 
-            const int grid_id = mfi.index();
-            const int tile_id = mfi.LocalTileIndex();
+            [[maybe_unused]] const int grid_id = mfi.index();
+            [[maybe_unused]] const int tile_id = mfi.LocalTileIndex();
 
             Gpu::ManagedVector<paramPlane> paramPlaneListTmp;
             paramPlaneListTmp.resize(paramPlaneCount);

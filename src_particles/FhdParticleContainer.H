@@ -384,7 +384,7 @@ public:
 
     struct CHECK_PAIR {
         AMREX_GPU_HOST_DEVICE AMREX_INLINE
-        bool operator()(const ParticleType & p1, const ParticleType & p2) const {
+        bool operator()([[maybe_unused]] const ParticleType & p1, [[maybe_unused]] const ParticleType & p2) const {
             return true;
         }
     };

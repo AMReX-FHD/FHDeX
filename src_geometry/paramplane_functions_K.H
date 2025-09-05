@@ -6,14 +6,14 @@
 #include <math.h>
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes,
-                                                const int ns, int* flag, const GpuArray<Real, 3>& phi, const GpuArray<Real, 3>& plo, Real* inttime)
+void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* /*paramplanes*/,
+                                                const int /*ns*/, int* flag, const GpuArray<Real, 3>& phi, const GpuArray<Real, 3>& plo, Real* /*inttime*/)
 {
     Real proj[3];
     Real box1lo[3];
-    Real box2lo[3];
+    [[maybe_unused]] Real box2lo[3];
     Real box1hi[3];
-    Real box2hi[3];
+    [[maybe_unused]] Real box2hi[3];
 
     for (int d=0; d<(AMREX_SPACEDIM); ++d)
     {
@@ -43,7 +43,7 @@ void dummy(Real* inttime)
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, const int ns, int* intsurf,
-                        Real* inttime, int* intside, const GpuArray<Real, 3>& phi, const GpuArray<Real, 3>& plo)
+                        Real* inttime, int* intside, const GpuArray<Real, 3>& /*phi*/, const GpuArray<Real, 3>& /*plo*/)
 {
 
     //BL_PROFILE_VAR("find_inter_gpu()", find_inter_gpu);
@@ -342,7 +342,7 @@ void zeroMassFlux(paramPlane* paramPlaneList, const int paramplanes)
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime, amrex::RandomEngine const& engine)
+void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real /*inttime*/, amrex::RandomEngine const& engine)
 {
 
     //BL_PROFILE_VAR("app_bc_gpu()", app_bc_gpu);

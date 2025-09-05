@@ -349,25 +349,25 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
 
         const Box& bx = mfi.tilebox();
 
-        const Array4<Real> & slice = mf_slice.array(mfi);
+        [[maybe_unused]] const Array4<Real> & slice_local = mf_slice.array(mfi);
         const Array4<Real> & slice_tmp = mf_slice_tmp.array(mfi);
 
         if (dir == 0) {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                slice(0,j,k,n) = slice_tmp(i,j,k,n);
+                slice_local(0,j,k,n) = slice_tmp(i,j,k,n);
             });
         }
         if (dir == 1) {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                slice(i,0,k,n) = slice_tmp(i,j,k,n);
+                slice_local(i,0,k,n) = slice_tmp(i,j,k,n);
             });
         }
         if (dir == 2) {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                slice(i,j,0,n) = slice_tmp(i,j,k,n);
+                slice_local(i,j,0,n) = slice_tmp(i,j,k,n);
             });
         }
     }

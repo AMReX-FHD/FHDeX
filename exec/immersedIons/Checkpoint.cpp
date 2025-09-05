@@ -25,7 +25,7 @@ void WriteCheckPoint(int step,
                      const MultiFab& pres,
                      const FhdParticleContainer& particles,
                      const MultiFab& particleMeans,
-                     const MultiFab& particleVars,
+                     const MultiFab& /*particleVars*/,
                      const MultiFab& chargeM,
                      const MultiFab& potential,
                      const MultiFab& potentialM)
@@ -398,7 +398,7 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
 }
 
-void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp) {
+void ReadCheckPointParticles(FhdParticleContainer& particles, species* /*particleInfo*/, const Real* /*dxp*/) {
 
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPointParticles()",ReadCheckPointParticles);
@@ -457,7 +457,7 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
     DistributionMapping dm { bc, ParallelDescriptor::NProcs() };
 
     //set number of ghost cells to fit whole peskin kernel
-    int ang = 1;
+    [[maybe_unused]] int ang = 1;
     if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
         ang = 2;
     }

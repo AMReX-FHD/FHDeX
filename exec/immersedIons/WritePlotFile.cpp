@@ -6,7 +6,7 @@
 
 void WritePlotFile(int step,
                    const amrex::Real time,
-                   const amrex::Geometry geom,
+                   const amrex::Geometry /*geom*/,
                    const amrex::Geometry cgeom,
                    const amrex::Geometry egeom,
                    const MultiFab& particleInstant,
