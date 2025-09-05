@@ -174,7 +174,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     doRedist = 1;
 }
 
-void FhdParticleContainer::forceFunction(Real dt)
+void FhdParticleContainer::forceFunction([[maybe_unused]] Real dt)
 {
    const int lev = 0;
 
@@ -189,7 +189,7 @@ void FhdParticleContainer::forceFunction(Real dt)
         AoS& particles = pti.GetArrayOfStructs();
         int np = pti.numParticles();
 
-        const Box& tile_box  = pti.tilebox();
+        [[maybe_unused]] const Box& tile_box  = pti.tilebox();
 
         Real maxUtile = 0;
         Real maxDtile = 0;
@@ -262,10 +262,10 @@ void FhdParticleContainer::pinForce()
         AoS& particles = pti.GetArrayOfStructs();
         int np = pti.numParticles();
 
-        const Box& tile_box  = pti.tilebox();
+        [[maybe_unused]] const Box& tile_box  = pti.tilebox();
 
-        Real maxUtile = 0;
-        Real maxDtile = 0;
+        [[maybe_unused]] Real maxUtile = 0;
+        [[maybe_unused]] Real maxDtile = 0;
 
          for (int i = 0; i < np; ++i) {
 
@@ -298,7 +298,7 @@ void FhdParticleContainer::velNorm()
         AoS& particles = pti.GetArrayOfStructs();
         int np = pti.numParticles();
 
-        const Box& tile_box  = pti.tilebox();
+        [[maybe_unused]] const Box& tile_box  = pti.tilebox();
 
         Real velNtile = 0;
         Real maxStile = 0;
@@ -335,7 +335,7 @@ void FhdParticleContainer::velNorm()
     }
 }
 
-void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
+void FhdParticleContainer::computeForcesNLGPU([[maybe_unused]] const MultiFab& charge, [[maybe_unused]] const MultiFab& coords, const Real* dx) {
 
     BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
 
@@ -362,9 +362,9 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
         AoS& particles = pti.GetArrayOfStructs();
         int Np = pti.numParticles();
         int Nn = pti.numNeighborParticles();
-        int size = neighbor_list[lev][index].size();
+        [[maybe_unused]] int size = neighbor_list[lev][index].size();
 
-        const Box& tile_box  = pti.tilebox();
+        [[maybe_unused]] const Box& tile_box  = pti.tilebox();
 
         if (sr_tog != 0)
         {
@@ -412,7 +412,9 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
     GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
 
     const int lev = 0;
-    double domx, domy, domz;
+    double domx;
+    [[maybe_unused]] double domy;
+    double domz;
 
     domx = (phi[0] - plo[0]);
     domy = (phi[1] - plo[1]);
@@ -515,12 +517,12 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
     Print() << "Finished Coulomb calculation\n";
 }
 
-void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
-                                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, [[maybe_unused]] const Real* dxE, [[maybe_unused]] const Geometry geomF,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, [[maybe_unused]] const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                    std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                    paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+                                    [[maybe_unused]] std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                    [[maybe_unused]] std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                    paramPlane* paramPlaneList, const int paramPlaneCount, [[maybe_unused]] int sw)
 {
     BL_PROFILE_VAR("MoveIons()",MoveIons);
 
@@ -538,16 +540,16 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
         pdomsize[d] = phi[d]-plo[d];
     }
 
-    double kinetic = 0;
+    [[maybe_unused]] double kinetic = 0;
 
     doRedist = 0;
 
-    int        np_tile = 0 ,       np_proc = 0 ; // particle count
-    Real rejected_tile = 0., rejected_proc = 0.; // rejected moves in midpoint scheme
-    Real    moves_tile = 0.,    moves_proc = 0.; // total moves in midpoint scheme
-    Real maxspeed_tile = 0., maxspeed_proc = 0.; // max speed
-    Real  maxdist_tile = 0.,  maxdist_proc = 0.; // max displacement (fraction of radius)
-    Real diffinst_tile = 0., diffinst_proc = 0.; // average diffusion coefficient
+    [[maybe_unused]] int        np_tile = 0 ,       np_proc = 0 ; // particle count
+    [[maybe_unused]] Real rejected_tile = 0., rejected_proc = 0.; // rejected moves in midpoint scheme
+    [[maybe_unused]] Real    moves_tile = 0.,    moves_proc = 0.; // total moves in midpoint scheme
+    [[maybe_unused]] Real maxspeed_tile = 0., maxspeed_proc = 0.; // max speed
+    [[maybe_unused]] Real  maxdist_tile = 0.,  maxdist_proc = 0.; // max displacement (fraction of radius)
+    [[maybe_unused]] Real diffinst_tile = 0., diffinst_proc = 0.; // average diffusion coefficient
 
     Real adj = 0.99999;
     Real adjalt = 2.0*(1.0-0.99999);
@@ -593,7 +595,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 ParticleType & part = particles[i];
 
-                GpuArray<Real, 3> posOld;
+                [[maybe_unused]] GpuArray<Real, 3> posOld;
                 GpuArray<Real, 3> velOld;
                 GpuArray<Real, 3> posAlt;
 
@@ -610,8 +612,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                         Real runtime = 0.5*dt;
                         Real inttime = 0;
-                        int midpoint = 0;
-                        int intsurf, intside, push;
+                        [[maybe_unused]] int midpoint = 0;
+                        int intsurf, intside; [[maybe_unused]] int push;
 
                         while(runtime > 0)
                         {
@@ -634,7 +636,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                                 if(surf.periodicity == 0)
                                 {
-                                   Real dummy = 1;
+                                   [[maybe_unused]] Real dummy = 1;
                                    //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
                                    //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
                                    //app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
@@ -947,11 +949,11 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
     BL_PROFILE_VAR("SpreadIons()",SpreadIons);
 
     const int lev = 0;
-    const Real* dx = Geom(lev).CellSize();
+    [[maybe_unused]] const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
-    const Real* phi = Geom(lev).ProbHi();
+    [[maybe_unused]] const Real* phi = Geom(lev).ProbHi();
 
-    double potential = 0;
+    [[maybe_unused]] double potential = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -961,11 +963,11 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
     {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
+        [[maybe_unused]] const Box& tile_box  = pti.tilebox();
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+        [[maybe_unused]] const int np = particles.numParticles();
 
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
@@ -1018,9 +1020,9 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
     BL_PROFILE_VAR("SpreadIons()",SpreadIons);
 
     const int lev = 0;
-    const Real* dx = Geom(lev).CellSize();
-    const Real* plo = Geom(lev).ProbLo();
-    const Real* phi = Geom(lev).ProbHi();
+    [[maybe_unused]] const Real* dx = Geom(lev).CellSize();
+    [[maybe_unused]] const Real* plo = Geom(lev).ProbLo();
+    [[maybe_unused]] const Real* phi = Geom(lev).ProbHi();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1077,7 +1079,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 {
     const int lev = 0;
     int bin;
-    double domx, domy, domz, totalDist, temp;
+    double domx, domy, domz, totalDist; [[maybe_unused]] double temp;
 
     domx = (prob_hi[0] - prob_lo[0]);
     domy = (prob_hi[1] - prob_lo[1]);
@@ -1360,8 +1362,8 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 void FhdParticleContainer::potentialDistribution(long totalParticles, const int step, const species* particleInfo)
 {
     const int lev = 0;
-    int bin;
-    Real totalDist;
+    [[maybe_unused]] int bin;
+    [[maybe_unused]] Real totalDist;
 
     Print() << "Calculating potential distribution\n";
 
@@ -1450,7 +1452,7 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
 
     const int lev = 0;
     int bin;
-    double domx, domy, domz, totalDist, temp;
+    double domx, domy, domz, totalDist; [[maybe_unused]] double temp;
 
     domx = (prob_hi[0] - prob_lo[0]);
     domy = (prob_hi[1] - prob_lo[1]);
@@ -1725,9 +1727,9 @@ void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotenti
     BL_PROFILE_VAR("collectFields()",collectFields);
 
     const int lev = 0;
-    const Real* dx = Geom(lev).CellSize();
-    const Real* plo = Geom(lev).ProbLo();
-    const Real* phi = Geom(lev).ProbHi();
+    [[maybe_unused]] const Real* dx = Geom(lev).CellSize();
+    [[maybe_unused]] const Real* plo = Geom(lev).ProbLo();
+    [[maybe_unused]] const Real* phi = Geom(lev).ProbHi();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1743,11 +1745,11 @@ void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotenti
     {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
+        [[maybe_unused]] const Box& tile_box  = pti.tilebox();
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+        [[maybe_unused]] const int np = particles.numParticles();
 
         collect_charge_gpu(particles, chargeTemp[pti], AMREX_ZFILL(geomP.ProbLo()), AMREX_ZFILL(dxPotential));
     }
@@ -1769,15 +1771,15 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
 
     const int lev = 0;
-    const double Neff = particleInfo.Neff;
-    const double n0 = particleInfo.n0;
-    const double T0 = particleInfo.T;
+    [[maybe_unused]] const double Neff = particleInfo.Neff;
+    [[maybe_unused]] const double n0 = particleInfo.n0;
+    [[maybe_unused]] const double T0 = particleInfo.T;
 
     double tp = 0;
-    double te = 0;
-    double tm = 0;
+    [[maybe_unused]] double te = 0;
+    [[maybe_unused]] double tm = 0;
 
-    double totalMass;
+    [[maybe_unused]] double totalMass;
 
     Gpu::DeviceVector<Real> avcurrent_tile (3);
 
@@ -1815,8 +1817,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
         tp = tp + np;
 
-        GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
-        GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
+        [[maybe_unused]] GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
+        [[maybe_unused]] GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
 
 //        Array4<Real> part_inst = (&particleInstant[pti])->array();
 
@@ -1829,9 +1831,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         {
             ParticleType & part = particles[ni];
 
-            int i = floor(part.pos(0)*dxInv);
-            int j = floor(part.pos(1)*dxInv);
-            int k = floor(part.pos(2)*dxInv);
+            int i = static_cast<int>(floor(part.pos(0)*dxInv));
+            int j = static_cast<int>(floor(part.pos(1)*dxInv));
+            int k = static_cast<int>(floor(part.pos(2)*dxInv));
 
             amrex::Gpu::Atomic::Add(&part_inst(i,j,k,0), 1.0);
             amrex::Gpu::Atomic::Add(&part_inst(i,j,k,1), part.rdata(FHD_realData::mass));
@@ -2109,9 +2111,9 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
     Real vely[totalMarkers];
     Real velz[totalMarkers];
     int  pinned[totalMarkers];
-    Real  forcex[totalMarkers];
-    Real  forcey[totalMarkers];
-    Real  forcez[totalMarkers];
+    [[maybe_unused]] Real  forcex[totalMarkers];
+    [[maybe_unused]] Real  forcey[totalMarkers];
+    [[maybe_unused]] Real  forcez[totalMarkers];
 
     int idMap[totalMarkers];
 
@@ -2378,10 +2380,10 @@ FhdParticleContainer::MeanSqrCalc(int lev, int step) {
 
     BL_PROFILE_VAR("MeanSqrCalc()",MeanSqrCalc);
 
-    Real diffTotal = 0;
-    Real tt = 0.; // set to zero to protect against grids with no particles
+    [[maybe_unused]] Real diffTotal = 0;
+    [[maybe_unused]] Real tt = 0.; // set to zero to protect against grids with no particles
     long nTotal = 0;
-    Real sumPosQ[3] = {0,0,0};
+    [[maybe_unused]] Real sumPosQ[3] = {0,0,0};
     Real sqrDispX[nspecies];
     Real sqrDispY[nspecies];
     Real sqrDispZ[nspecies];
@@ -2539,12 +2541,12 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = this->GetParticles(lev).at(index).numParticles();
+        [[maybe_unused]] long np = this->GetParticles(lev).at(index).numParticles();
 
         if(setMeasureFinal == 0)
         {
-            ParticleType & part0 = particles[0];
-            ParticleType & part1 = particles[1];
+            [[maybe_unused]] ParticleType & part0 = particles[0];
+            [[maybe_unused]] ParticleType & part1 = particles[1];
 
             x0 = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]) + amrex::Random()*(prob_hi[0]-prob_lo[0])*0.5;
             y0 = prob_lo[1] + 0.25*(prob_hi[0]-prob_lo[0]) + amrex::Random()*(prob_hi[1]-prob_lo[1])*0.5;
@@ -2573,7 +2575,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
 
             Real ee = (permittivity*4*3.14159265359);
 
-            Real re = threepmCurrentBin*(threepmRange/threepmBins)/(1);
+            [[maybe_unused]] Real re = threepmCurrentBin*(threepmRange/threepmBins)/(1);
 
             Real forceNorm = -(dx[0]*dx[0])*ee/(part0.rdata(FHD_realData::q)*part1.rdata(FHD_realData::q));
 

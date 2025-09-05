@@ -11,9 +11,9 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, co
 {
     Real proj[3];
     Real box1lo[3];
-    Real box2lo[3];
+    [[maybe_unused]] Real box2lo[3];
     Real box1hi[3];
-    Real box2hi[3];
+    [[maybe_unused]] Real box2hi[3];
 
     for (int d=0; d<(AMREX_SPACEDIM); ++d)
     {
