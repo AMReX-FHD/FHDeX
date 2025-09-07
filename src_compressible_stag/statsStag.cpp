@@ -915,7 +915,7 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
     Real delTcross = data_xcross[16] - data_xcross[17];
     Real delvxcross = data_xcross[10] - data_xcross[11];
     Vector<Real>  delYkcross(nspecies, 0.0);
-    GpuArray<Real,MAX_SPECIES>& Ykcross;
+    GpuArray<Real,MAX_SPECIES> Ykcross;
     for (int ns=0; ns<nspecies; ++ns) {
         delYkcross[ns] =  data_xcross[18+4*ns+2] - data_xcross[18+4*ns+3];
         Ykcross[ns] =  data_xcross[18+4*ns+3]; 

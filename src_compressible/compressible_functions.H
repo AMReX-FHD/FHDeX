@@ -173,9 +173,9 @@ void GetMolfrac (const GpuArray<Real,MAX_SPECIES>& Yk,
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real X[NUM_SPECIES];
     amrex::Real Y[NUM_SPECIES];
-    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    for (int i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
     eos.Y2X(Y,X);
-    for (i=0;i<NUM_SPECIES;++i) Xk[i] = Y[i];
+    for (int i=0;i<NUM_SPECIES;++i) Xk[i] = Y[i];
 
 }
 #else
@@ -204,9 +204,9 @@ void GetMassfrac (const GpuArray<Real,MAX_SPECIES>& Xk,
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real X[NUM_SPECIES];
     amrex::Real Y[NUM_SPECIES];
-    for (i=0;i<NUM_SPECIES;++i) X[i] = Xk[i];
+    for (int i=0;i<NUM_SPECIES;++i) X[i] = Xk[i];
     eos.X2Y(X,Y);
-    for (i=0;i<NUM_SPECIES;++i) Yk[i] = Y[i];
+    for (int i=0;i<NUM_SPECIES;++i) Yk[i] = Y[i];
 }
 #else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -233,7 +233,7 @@ void GetTemperature ( Real const energy,
 {
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real Y[NUM_SPECIES];
-    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    for (int i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
     eos.EY2T(energy, Y, temp);
 }
 #else
@@ -263,7 +263,7 @@ void GetPressureGas ( Real& pressure,
 {
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real Y[NUM_SPECIES];
-    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    for (int i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
     eos.RTY2P(density, temp, Y, pressure);
 }
 #else
@@ -293,7 +293,7 @@ void GetDensity ( const Real pressure,
 {
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real Y[NUM_SPECIES];
-    for (i=0;i<NUM_SPECIES;++i) Y[i] = massfrac[i];
+    for (int i=0;i<NUM_SPECIES;++i) Y[i] = massfrac[i];
     eos.PYT2R(pressure, Y, temp, density);
 }
 #else
@@ -323,7 +323,7 @@ void GetEnergy ( Real& energy,
 {
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real Y[NUM_SPECIES];
-    for (i=0;i<NUM_SPECIES;++i) Y[i] = massvec[i];
+    for (int i=0;i<NUM_SPECIES;++i) Y[i] = massvec[i];
     eos.TY2E(temp, Y, energy);
 }
 #else
@@ -352,7 +352,7 @@ void GetEnthalpies (const Real& T,
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real Hk[NUM_SPECIES];
     eos.T2Hi(T, Hk);
-    for (i=0;i<NUM_SPECIES;++i) hk[i] = Hk[i]
+    for (int i=0;i<NUM_SPECIES;++i) hk[i] = Hk[i];
 }
 #else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -374,7 +374,7 @@ void GetSoundSpeed (Real& c,
 {
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real Y[NUM_SPECIES];
-    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    for (int i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
     eos.RTY2Cs(rho, temp, Y, c);
 }
 #else
@@ -408,7 +408,7 @@ void GetCv (const Real& temp,
 {
     auto eos = pele::physics::PhysicsType::eos();
     amrex::Real Y[NUM_SPECIES];
-    for (i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
+    for (int i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
     eos.TY2Cv(temp, Y, cv);
 }
 #else
@@ -417,7 +417,7 @@ void GetCv (const Real& /*temp*/,
             Real& cv)
 {
     cv = 0.;
-    for (i=0;i<MAX_SPECIES;++i) cv += hcv[i]*Yk[i];
+    for (int i=0;i<MAX_SPECIES;++i) cv += hcv[i]*Yk[i];
 }
 #endif
              
