@@ -201,7 +201,7 @@ void ComputeE_ext(std::array< MultiFab, AMREX_SPACEDIM >& E_ext) {
 
 }
 
-void ZeroEpsOnWall(std::array< MultiFab, AMREX_SPACEDIM >& beta) {
+void ZeroEpsOnWall(std::array< MultiFab, AMREX_SPACEDIM >& /*beta*/) {
 
     BL_PROFILE_VAR("ZeroEpsOnWall",ZeroEpsOnWall);
 

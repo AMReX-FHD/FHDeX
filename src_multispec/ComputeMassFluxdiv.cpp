@@ -9,13 +9,13 @@ void ComputeMassFluxdiv(MultiFab& rho,
   std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                         std::array<MultiFab,AMREX_SPACEDIM>& stoch_mass_flux,
                         StochMassFlux& sMassFlux,
-  const Real& dt, const Real& stage_time, const Geometry& geom,
+  const Real& dt, const Real& /*stage_time*/, const Geometry& geom,
                         Vector<Real>& weights,
                         MultiFab& charge,
                         std::array<MultiFab,AMREX_SPACEDIM>& grad_Epot,
                         MultiFab& Epot,
                         MultiFab& permittivity,
-                        const int& zero_initial_Epot)
+                        const int& /*zero_initial_Epot*/)
 {
 
   BL_PROFILE_VAR("ComputeMassFluxdiv()",ComputeMassFluxdiv);

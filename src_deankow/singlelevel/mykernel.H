@@ -177,7 +177,7 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxz,
                      amrex::Array4<amrex::Real> const& stochfluxz,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
     int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
