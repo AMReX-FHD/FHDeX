@@ -1687,47 +1687,4 @@ void IdealMixtureTransportHCBBin ( /*int iloc, int jloc, int kloc,*/
     chitil[1] =  1.0*xxtr[1]*thermal_diff/(mR*yytr[1]*yytr[1]);
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetDensity ( const Real pressure,
-                  Real& density,
-                  const Real temp,
-                  const GpuArray<Real,MAX_SPECIES>& massfrac)
-{
-    Real molmix = 0.;
-    for (int i=0; i<nspecies; ++i) {
-        molmix += massfrac[i]/molmass[i];
-    }
-
-    molmix = 1./molmix;
-
-    density = pressure/(Runiv/molmix)/temp;
-
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetEnergy ( Real& energy,
-                 const GpuArray<Real,MAX_SPECIES>& massvec,
-                 const Real temp)
-{
-    Real cvmix = 0.;
-    Real e0mix = 0.;
-
-    for (int i=0; i<nspecies; ++i) {
-        cvmix += massvec[i]*hcv[i];
-        e0mix += massvec[i]*e0[i];
-    }
-
-    energy = e0mix + temp*cvmix;
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetEnthalpies (const Real& T,
-                    GpuArray<Real,MAX_SPECIES>& hk)
-{
-    for (int i=0; i<nspecies; ++i) {
-        hk[i] = e0[i]+hcp[i]*T;
-    }
->>>>>>> origin/main
-}
-
 #endif
