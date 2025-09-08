@@ -46,8 +46,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
                      int component_src, int component_dest);
 
-Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom, 
-		           const RealVect & x_anchor, const RealVect & e_anchor);
+Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom,
+    const RealVect & x_anchor, const RealVect & e_anchor);
 
 
 
@@ -62,12 +62,12 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
              std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
              MultiFab & pres,
              IBMarkerContainer & ib_mc,
-//	     const std::map<std::tuple<int, int>, double> & bond_map,
-//             const std::map<int, std::vector<int>> & bond_neighbors,
+ //             const std::map<std::tuple<int, int>, double> & bond_map,
+ //             const std::map<int, std::vector<int>> & bond_neighbors,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
-                   std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-                   std::array<MultiFab, AMREX_SPACEDIM> & force_ib,
+             std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+             std::array<MultiFab, AMREX_SPACEDIM> & force_ib,
              const MultiFab& beta, const MultiFab & gamma,
 # if (AMREX_SPACEDIM == 2)
              const std::array< MultiFab, 1 > & beta_ed,
@@ -85,8 +85,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM> & umac,
                 IBMarkerContainer & ib_mc,
                 const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
                 const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
-                      std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-                      std::array<MultiFab, AMREX_SPACEDIM> & force_ib,
+                std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                std::array<MultiFab, AMREX_SPACEDIM> & force_ib,
                 const MultiFab& beta, const MultiFab & gamma,
 # if (AMREX_SPACEDIM == 2)
                 const std::array<MultiFab, 1> & beta_ed,
@@ -106,8 +106,8 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM> & umac,
                     const std::map<int, std::vector<int>> & bond_neighbors,
                     const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
                     const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
-                          std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-                          std::array<MultiFab, AMREX_SPACEDIM> & force_ib,
+                    std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                    std::array<MultiFab, AMREX_SPACEDIM> & force_ib,
                     const MultiFab& beta, const MultiFab & gamma,
 # if (AMREX_SPACEDIM == 2)
                     const std::array<MultiFab, 1> & beta_ed,

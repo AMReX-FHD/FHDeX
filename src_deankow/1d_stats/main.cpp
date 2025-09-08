@@ -76,26 +76,26 @@ void main_main ()
 
         istat = 0;
 
-	npts_scale = 1.;
-	pp.query ("npts_scale",npts_scale);
+        npts_scale = 1.;
+        pp.query ("npts_scale",npts_scale);
 
-	alg_type = 0;
-	pp.query ("alg_type",alg_type);
+        alg_type = 0;
+        pp.query ("alg_type",alg_type);
 
-	avg_type = 0;
-	pp.query ("avg_type",avg_type);
+        avg_type = 0;
+        pp.query ("avg_type",avg_type);
 
         phileft = 32;
-	pp.query ("phileft",phileft);
+        pp.query ("phileft",phileft);
 
         phiright = 32;
-	pp.query ("phiright",phiright);
+        pp.query ("phiright",phiright);
 
         seed = 0;
         pp.query("seed",seed);
 
-	cfl=.9;
-	pp.query ("cfl",cfl);
+        cfl=.9;
+        pp.query ("cfl",cfl);
 
 
         // By default, the boundary conditions will be set to periodic, or bc_lo = bc_hi = 0.
@@ -129,24 +129,24 @@ void main_main ()
         ba.maxSize(max_grid_size);
 
 
-       // This defines the physical box, [0,1] in each direction.
+        // This defines the physical box, [0,1] in each direction.
         RealBox real_box({AMREX_D_DECL( 0.0, 0.0, 0.0)},
                          {AMREX_D_DECL( 1.0, copies, 1.0)});
 
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
 
-         BoxArray ba_onegrid;
-         Vector<int> pmap(1);
-         const int ioproc = ParallelDescriptor::IOProcessorNumber();
-         if(ioproc != 0){
-             amrex::Print() << "IO processor is " << ioproc << std::endl;
-         }
-         pmap[0] = ioproc;
-         ba_onegrid.define(domain);
-         //DistributionMapping dmap_onegrid(ba_onegrid,pmap);
-         DistributionMapping dmap_onegrid(pmap);
-         stats_onegrid.define(ba_onegrid,dmap_onegrid,4,0);
+        BoxArray ba_onegrid;
+        Vector<int> pmap(1);
+        const int ioproc = ParallelDescriptor::IOProcessorNumber();
+        if(ioproc != 0){
+            amrex::Print() << "IO processor is " << ioproc << std::endl;
+        }
+        pmap[0] = ioproc;
+        ba_onegrid.define(domain);
+        //DistributionMapping dmap_onegrid(ba_onegrid,pmap);
+        DistributionMapping dmap_onegrid(pmap);
+        stats_onegrid.define(ba_onegrid,dmap_onegrid,4,0);
 
     }
 
@@ -156,9 +156,9 @@ void main_main ()
     // Ncomp = number of components for each array
     int Ncomp;
     if(alg_type == 0){
-       Ncomp = 1;
+        Ncomp = 1;
     } else {
-       Ncomp = 2;
+        Ncomp = 2;
     }
 
     // How Boxes are distrubuted among MPI processes
@@ -300,26 +300,25 @@ void main_main ()
 
             istat += 1;
 
-	    for ( MFIter mfi(stats); mfi.isValid(); ++mfi )
+            for ( MFIter mfi(stats); mfi.isValid(); ++mfi )
             {
                 const Box& vbx = mfi.validbox();
                 const auto lo = amrex::lbound(vbx);
                 const auto hi = amrex::ubound(vbx);
 
-         	auto const& phiNew = phi_new.array(mfi);
-         	auto const& stat_arr = stats.array(mfi);
+                auto const& phiNew = phi_new.array(mfi);
+                auto const& stat_arr = stats.array(mfi);
 
-               for (auto k = lo.z; k <= hi.z; ++k) {
-               for (auto j = lo.y; j <= hi.y; ++j) {
-               for (auto i = lo.x; i <= hi.x; ++i) {
-		   stat_arr(i,j,k,0) += phiNew(i,j,k);
-		   stat_arr(i,j,k,1) += phiNew(i,j,k)*phiNew(i,j,k);
-		   stat_arr(i,j,k,2) += phiNew(i,j,k)*phiNew(icor,j,k);
-		   stat_arr(i,j,k,3) += phiNew(icor,j,k);
+                for (auto k = lo.z; k <= hi.z; ++k) {
+                    for (auto j = lo.y; j <= hi.y; ++j) {
+                        for (auto i = lo.x; i <= hi.x; ++i) {
+                            stat_arr(i,j,k,0) += phiNew(i,j,k);
+                            stat_arr(i,j,k,1) += phiNew(i,j,k)*phiNew(i,j,k);
+                            stat_arr(i,j,k,2) += phiNew(i,j,k)*phiNew(icor,j,k);
+                            stat_arr(i,j,k,3) += phiNew(icor,j,k);
+                        }
+                    }
                 }
-                }
-                }
-
 
             }
 
@@ -331,124 +330,121 @@ void main_main ()
 
             if(nstat > 0 && istat > 0){
 
-               stats_onegrid.ParallelCopy(stats,0,0,4);
-               amrex::Real mean[n_cell];
-               amrex::Real var[n_cell];
-               amrex::Real cor[n_cell];
-               amrex::Real mean_avg[n_cell];
-               amrex::Real var_avg[n_cell];
-               amrex::Real cor_avg[n_cell];
+                stats_onegrid.ParallelCopy(stats,0,0,4);
+                amrex::Real mean[n_cell];
+                amrex::Real var[n_cell];
+                amrex::Real cor[n_cell];
+                amrex::Real mean_avg[n_cell];
+                amrex::Real var_avg[n_cell];
+                amrex::Real cor_avg[n_cell];
 
-               amrex::Real num_stats = istat;
+                amrex::Real num_stats = istat;
 
-               for (MFIter mfi(stats_onegrid); mfi.isValid(); ++mfi ) {
+                for (MFIter mfi(stats_onegrid); mfi.isValid(); ++mfi ) {
 
-                  const Array4<Real>& stat_arr = stats_onegrid.array(mfi);
-
-                  for (int i=0; i<n_cell; i++){
-                     mean_avg[i]=0.;
-                     var_avg[i]=0.;
-                     cor_avg[i]=0.;
-                  }
-
-                  amrex::Real sum_check;
-
-                  for (int j=0; j<ncopies; j++){
-
+                    const Array4<Real>& stat_arr = stats_onegrid.array(mfi);
 
                     for (int i=0; i<n_cell; i++){
-
-                        mean[i] = stat_arr(i,j,0,0)/num_stats;
-                        mean_avg[i] += mean[i];
-                        var[i] = stat_arr(i,j,0,1)/num_stats - mean[i]*mean[i];
-                        var_avg[i] += var[i];
-                        cor[i] = stat_arr(i,j,0,2)/num_stats - mean[i]*stat_arr(icor,j,0,3)/num_stats;
-                        cor_avg[i] += cor[i];
-
+                        mean_avg[i]=0.;
+                        var_avg[i]=0.;
+                        cor_avg[i]=0.;
                     }
 
-                  }
-                  for (int i=0; i<n_cell; i++){
-                     mean_avg[i]=mean_avg[i]/copies;
-                     var_avg[i]=var_avg[i]/copies;
-                     cor_avg[i]=cor_avg[i]/copies;
-                  }
+                    amrex::Real sum_check;
 
+                    for (int j=0; j<ncopies; j++){
 
-               }
+                        for (int i=0; i<n_cell; i++){
 
-               if (ParallelDescriptor::IOProcessor()) {
+                            mean[i] = stat_arr(i,j,0,0)/num_stats;
+                            mean_avg[i] += mean[i];
+                            var[i] = stat_arr(i,j,0,1)/num_stats - mean[i]*mean[i];
+                            var_avg[i] += var[i];
+                            cor[i] = stat_arr(i,j,0,2)/num_stats - mean[i]*stat_arr(icor,j,0,3)/num_stats;
+                            cor_avg[i] += cor[i];
 
-                  std::ofstream meandat;
-                  std::string meanBaseName = "mean";
-                  std::string meanName = Concatenate(meanBaseName,n,9);
-                  meanName += ".dat";
-                  meandat.open(meanName);
+                        }
 
-                  std::ofstream vardat;
-                  std::string varBaseName = "var";
-                  std::string varName = Concatenate(varBaseName,n,9);
-                  varName += ".dat";
-                  vardat.open(varName);
+                    }
+                    for (int i=0; i<n_cell; i++){
+                        mean_avg[i]=mean_avg[i]/copies;
+                        var_avg[i]=var_avg[i]/copies;
+                        cor_avg[i]=cor_avg[i]/copies;
+                    }
 
-                  std::ofstream cordat;
-                  std::string corBaseName = "cor";
-                  std::string corName = Concatenate(corBaseName,n,9);
-                  corName += ".dat";
-                  cordat.open(corName);
+                }
 
-                 for (int i=0; i<n_cell; i++) {
-                     meandat << (i+0.5)*dx[0]  << " " << mean_avg[i] << std::endl;
-                     vardat << (i+0.5)*dx[0]  << " " << var_avg[i] << std::endl;
-                     cordat << (i+0.5)*dx[0]  << " " << cor_avg[i] << std::endl;
-                  }
+                if (ParallelDescriptor::IOProcessor()) {
 
-                  meandat.close();
-                  vardat.close();
-                  cordat.close();
+                    std::ofstream meandat;
+                    std::string meanBaseName = "mean";
+                    std::string meanName = Concatenate(meanBaseName,n,9);
+                    meanName += ".dat";
+                    meandat.open(meanName);
 
-               }
-           }
+                    std::ofstream vardat;
+                    std::string varBaseName = "var";
+                    std::string varName = Concatenate(varBaseName,n,9);
+                    varName += ".dat";
+                    vardat.open(varName);
+
+                    std::ofstream cordat;
+                    std::string corBaseName = "cor";
+                    std::string corName = Concatenate(corBaseName,n,9);
+                    corName += ".dat";
+                    cordat.open(corName);
+
+                    for (int i=0; i<n_cell; i++) {
+                        meandat << (i+0.5)*dx[0]  << " " << mean_avg[i] << std::endl;
+                        vardat << (i+0.5)*dx[0]  << " " << var_avg[i] << std::endl;
+                        cordat << (i+0.5)*dx[0]  << " " << cor_avg[i] << std::endl;
+                    }
+
+                    meandat.close();
+                    vardat.close();
+                    cordat.close();
+
+                }
+            }
         }
 
-//	    amrex::Real Ephi=0.;
-//	    amrex::Real Ephi2=0.;
+//        amrex::Real Ephi=0.;
+//        amrex::Real Ephi2=0.;
 /*
-	    Vector<Real> Ephi(2,0.);
-            Real Ephimin = npts_scale;
-	    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
-            {
-                const Box& vbx = mfi.validbox();
-                const auto lo = amrex::lbound(vbx);
-                const auto hi = amrex::ubound(vbx);
+        Vector<Real> Ephi(2,0.);
+        Real Ephimin = npts_scale;
+        for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+        {
+            const Box& vbx = mfi.validbox();
+            const auto lo = amrex::lbound(vbx);
+            const auto hi = amrex::ubound(vbx);
 
-         	auto const& phiNew = phi_new.array(mfi);
+            auto const& phiNew = phi_new.array(mfi);
 
-               for (auto k = lo.z; k <= hi.z; ++k) {
-               for (auto j = lo.y; j <= hi.y; ++j) {
-               for (auto i = lo.x; i <= hi.x; ++i) {
-		   Ephi[0] += phiNew(i,j,k);
-		   Ephi[1] += phiNew(i,j,k)*phiNew(i,j,k);
-                   Ephimin = std::min(Ephimin,phiNew(i,j,k));
+            for (auto k = lo.z; k <= hi.z; ++k) {
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                    for (auto i = lo.x; i <= hi.x; ++i) {
+                        Ephi[0] += phiNew(i,j,k);
+                        Ephi[1] += phiNew(i,j,k)*phiNew(i,j,k);
+                        Ephimin = std::min(Ephimin,phiNew(i,j,k));
+                    }
                 }
-                }
-                }
-
-
             }
 
-            const int IOProc = ParallelDescriptor::IOProcessorNumber();
-            ParallelDescriptor::ReduceRealSum(Ephi.dataPtr(),2);
-            ParallelDescriptor::ReduceRealMin(Ephimin);
-	    amrex::Real scale = n_cell*n_cell;
-	    amrex::Real scale2 =  AMREX_D_TERM( dx[0],
+        }
+
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        ParallelDescriptor::ReduceRealSum(Ephi.dataPtr(),2);
+        ParallelDescriptor::ReduceRealMin(Ephimin);
+        amrex::Real scale = n_cell*n_cell;
+        amrex::Real scale2 =  AMREX_D_TERM( dx[0],
                                * dx[1],
                                * dx[2] );
 
-            amrex::Print() << "phi variance = " << Ephi[1]/scale - (Ephi[0]*Ephi[0]
-			    /(scale*scale)) << std::endl;
-            amrex::Print() << "phi integral = " << Ephi[0]*scale2 << std::endl;
-            amrex::Print() << "phi min = " << Ephimin << std::endl;
+        amrex::Print() << "phi variance = " << Ephi[1]/scale - (Ephi[0]*Ephi[0]
+                /(scale*scale)) << std::endl;
+        amrex::Print() << "phi integral = " << Ephi[0]*scale2 << std::endl;
+        amrex::Print() << "phi min = " << Ephimin << std::endl;
 */
 
     }

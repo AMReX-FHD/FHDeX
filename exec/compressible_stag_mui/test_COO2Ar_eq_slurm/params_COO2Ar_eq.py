@@ -56,16 +56,16 @@ print("- average molecular mass = %e\n" % mavg)
 ##########
 
 temp = 1000.
-pres = 1.01325e6            # 1atm 
+pres = 1.01325e6            # 1atm
 
 rho = pres*Mavg/Runiv/temp  # total mass density
-rho1 = rho*Y1 
-rho2 = rho*Y2 
+rho1 = rho*Y1
+rho2 = rho*Y2
 rho3 = rho*Y3
 
 dens = pres/kB/temp         # total number density
 n1 = dens*X1
-n2 = dens*X2 
+n2 = dens*X2
 n3 = dens*X3
 
 print("** gas state **")
@@ -88,7 +88,7 @@ print("- number density of spec3 = %e\n" % n3)
 lat_const = 3.0e-8  # lattice constant of Pt(111)
 Nucx = 150          # number of unit cells in dx
 Nucy = 300          # number of unit cells in dy
-Ntot = Nucx*Nucy  # total number of sites per dx*dy (2 sites per unit cell) 
+Ntot = Nucx*Nucy  # total number of sites per dx*dy (2 sites per unit cell)
 
 dx = Nucx*lat_const*2
 dy = Nucy*lat_const
@@ -124,7 +124,7 @@ print("- number of gas molecules of spec3 in dv = %e\n" % N3)
 print("** surface **")
 
 print("- lattice constant for Pt(111): %e" % lat_const)
-print("- total number of sites per dx*dy = %d" % Ntot) 
+print("- total number of sites per dx*dy = %d" % Ntot)
 print("- surf_site_num_dens = %e\n" % (Ntot/dx/dy))
 
 ##########
@@ -244,7 +244,7 @@ print("dTsq*dv    (+/-25%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.75*dTsq*d
 dt = 1.e-12
 
 # diameters
-d1 = 3.46e-8 
+d1 = 3.46e-8
 d2 = 3.63e-8
 d12 = (d1+d2)/2
 

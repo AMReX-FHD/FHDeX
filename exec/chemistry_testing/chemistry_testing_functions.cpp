@@ -14,7 +14,7 @@ void EMstep_chem_only(MultiFab& rho_old, MultiFab& rho_new,
     DistributionMapping dm = rho_old.DistributionMap();
 
     MultiFab source(ba,dm,nspecies,0);;
-    
+
     MultiFab ranchem(ba,dm,nreaction,0);
 
     // initialize white noise field
@@ -60,7 +60,7 @@ void RK3step_chem_only(MultiFab& rho_old, MultiFab& rho_new,
     MultiFab ranchem(ba,dm,nreaction,0);
     MultiFab ranchem_A(ba,dm,nreaction,0);
     MultiFab ranchem_B(ba,dm,nreaction,0);
-    
+
     // weights for stochastic fluxes; swgt2 changes each stage
     amrex::Real swgt1, swgt2;
     swgt1 = 1.;
@@ -157,9 +157,9 @@ void compute_chemistry_source_CLE_1(amrex::Real dt, amrex::Real dV,
 // startComp_out: position of the first source term corresponding to rho1 in MultiFab source
 {
     if (reaction_type<0 || reaction_type>2) amrex::Abort("ERROR: invalid reaction_type");
-    
+
     if (reaction_type==2) amrex::Abort("ERROR: reaction_type=2 not implemented yet");
-    
+
     GpuArray<amrex::Real,MAX_SPECIES> m_s;
     for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(avogadro);
 
@@ -174,7 +174,7 @@ void compute_chemistry_source_CLE_1(amrex::Real dt, amrex::Real dV,
         {
             GpuArray<amrex::Real,MAX_SPECIES> n_dens;
             for (int n=0; n<nspecies; n++) n_dens[n] = rho_arr(i,j,k,n+startComp_in)/m_s[n];
-            
+
             GpuArray<amrex::Real,MAX_REACTION> avg_react_rate;
             compute_reaction_rates(n_dens,avg_react_rate);
 
@@ -182,12 +182,12 @@ void compute_chemistry_source_CLE_1(amrex::Real dt, amrex::Real dV,
             for (int n=0; n<nspecies; n++) sourceArr[n] = 0.;
 
             for (int m=0; m<nreaction; m++)
-            {    
+            {
                 avg_react_rate[m] = std::max(0.,avg_react_rate[m]);
                 for (int n=0; n<nspecies; n++)
                     sourceArr[n] += m_s[n]*stoich_coeffs_PR(m,n)*avg_react_rate[m];
             }
-            
+
             if (reaction_type==1)
             {
                 for (int m=0; m<nreaction; m++)
@@ -259,7 +259,7 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
     for (int m=0; m<nreaction; m++)
     {
         a_r[m] = rate_const[m];
-        
+
         for (int n=0; n<nspecies; n++)
             a_r[m] *= pow(n_dens[n],stoich_coeffs_R(m,n));
     }

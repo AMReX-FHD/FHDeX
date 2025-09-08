@@ -10,7 +10,7 @@ void advance (MultiFab& phi_old,
               Array<MultiFab, AMREX_SPACEDIM>& flux,
               Array<MultiFab, AMREX_SPACEDIM>& stochFlux,
               Real dt,
-	      Real npts_scale,
+              Real npts_scale,
               Geometry const& geom,
               Vector<BCRec> const& BoundaryCondition,
               int Ncomp)
@@ -53,7 +53,7 @@ void advance (MultiFab& phi_old,
 
     // fill random numbers (can skip density component 0)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
-            MultiFabFillRandom(stochFlux[d], 0, variance, geom);
+        MultiFabFillRandom(stochFlux[d], 0, variance, geom);
     }
 
 
@@ -78,7 +78,6 @@ void advance (MultiFab& phi_old,
         const auto hi = ubound(bx);
 
         auto const& phi = phi_old.array(mfi);
-
 
 
 

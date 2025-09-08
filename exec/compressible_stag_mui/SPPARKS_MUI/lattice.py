@@ -8,7 +8,7 @@ def compare(a,b):
   if a[0] < b[0]: return -1
   elif a[0] > b[0]: return 1
   else: return 0
-  
+
 if len(argv) != 5 and len(argv) != 6:
   raise StandardError, "Syntax: lattice.py dumpfile N nx ny (nz)"
 
@@ -50,8 +50,8 @@ if nz:
         n = k*ny*nx + j*nx + i
         print "%2d" % spins[n][1],
       print
-  
+
 sys.exit()
 
-  
+
 

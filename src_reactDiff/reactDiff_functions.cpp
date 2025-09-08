@@ -5,7 +5,7 @@
 // 1=(1/2)R + D + (1/2)R (Strang option 1)
 // 2=(1/2)D + R + (1/2)D (Strang option 2)
 // -1=unsplit forward Euler
-// -2=unsplit explicit midpoint 
+// -2=unsplit explicit midpoint
 // -3=unsplit multinomial diffusion
 // -4=unsplit implicit midpoint
 AMREX_GPU_MANAGED int reactDiff::temporal_integrator;
@@ -15,7 +15,7 @@ AMREX_GPU_MANAGED int reactDiff::temporal_integrator;
 // 1=Crank-Nicolson semi-implicit
 // 2=explicit midpoint
 // 3=multinomial diffusion
-// 4=forward Euler  
+// 4=forward Euler
 AMREX_GPU_MANAGED int reactDiff::reactDiff_diffusion_type;
 
 // only used for split schemes (temporal_integrator>=0)
@@ -77,10 +77,10 @@ void InitializeReactDiffNamespace()
     ParmParse pp;
 
     int temp_max = std::max(MAX_SPECIES,MAX_REACTION);
-    
+
     amrex::Vector<amrex::Real> temp    (temp_max,0.);
     amrex::Vector<int>         temp_int(temp_max,0 );
-    
+
     temporal_integrator = 0;
     pp.query("temporal_integrator",temporal_integrator);
 
@@ -89,7 +89,7 @@ void InitializeReactDiffNamespace()
 
     reactDiff_reaction_type = 0;
     pp.query("reactDiff_reaction_type",reactDiff_reaction_type);
-    
+
     midpoint_stoch_flux_type = 1;
     pp.query("midpoint_stoch_flux_type",midpoint_stoch_flux_type);
 
@@ -139,6 +139,6 @@ void InitializeReactDiffNamespace()
 
     implicit_diffusion_abs_eps = -1.;
     pp.query("implicit_diffusion_abs_eps",implicit_diffusion_abs_eps);
-    
+
     return;
 }

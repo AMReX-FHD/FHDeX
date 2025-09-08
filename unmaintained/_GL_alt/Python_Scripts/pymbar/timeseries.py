@@ -85,7 +85,7 @@ def statisticalInefficiency(A_n, B_n=None, fast=False, mintime=3, fft=False):
     B_n : np.ndarray, float, optional, default=None
         B_n[n] is nth value of timeseries B.  Length is deduced from vector.
         If supplied, the cross-correlation of timeseries A and B will be estimated instead of the
-        autocorrelation of timeseries A.  
+        autocorrelation of timeseries A.
     fast : bool, optional, default=False
         f True, will use faster (but less accurate) method to estimate correlation
         time, described in Ref. [1] (default: False).  This is ignored
@@ -119,7 +119,7 @@ def statisticalInefficiency(A_n, B_n=None, fast=False, mintime=3, fft=False):
     Examples
     --------
 
-    Compute statistical inefficiency of timeseries data with known correlation time.  
+    Compute statistical inefficiency of timeseries data with known correlation time.
 
     >>> from pymbar.testsystems import correlated_timeseries_example
     >>> A_n = correlated_timeseries_example(N=100000, tau=5.0)
@@ -131,7 +131,7 @@ def statisticalInefficiency(A_n, B_n=None, fast=False, mintime=3, fft=False):
     A_n = np.array(A_n)
 
     if fft and B_n is None:
-        return statisticalInefficiency_fft(A_n, mintime=mintime)    
+        return statisticalInefficiency_fft(A_n, mintime=mintime)
 
     if B_n is not None:
         B_n = np.array(B_n)
@@ -730,7 +730,7 @@ def detectEquilibration(A_t, fast=True, nskip=1):
 
     Parameters
     ----------
-    A_t : np.ndarray 
+    A_t : np.ndarray
         timeseries
     nskip : int, optional, default=1
         number of samples to sparsify data by in order to speed equilibration detection
@@ -742,7 +742,7 @@ def detectEquilibration(A_t, fast=True, nskip=1):
     g : float
         statistical inefficiency of equilibrated data
     Neff_max : float
-        number of uncorrelated samples   
+        number of uncorrelated samples
 
     ToDo
     ----
@@ -752,7 +752,7 @@ def detectEquilibration(A_t, fast=True, nskip=1):
     -----
     If your input consists of some period of equilibration followed by
     a constant sequence, this function treats the trailing constant sequence
-    as having Neff = 1.  
+    as having Neff = 1.
 
     Examples
     --------
@@ -806,8 +806,8 @@ def statisticalInefficiency_fft(A_n, mintime=3, memsafe=None):
         correlation function first goes negative.  Note that this time may need to be increased
         if there is a strong initial negative peak in the correlation function.
     memsafe: bool, optional, default=None (in depreciation)
-        If this function is used several times on arrays of comparable size then one might benefit 
-        from setting this option to False. If set to True then clear np.fft cache to avoid a fast 
+        If this function is used several times on arrays of comparable size then one might benefit
+        from setting this option to False. If set to True then clear np.fft cache to avoid a fast
         increase in memory consumption when this function is called on many arrays of different sizes.
 
     Returns
@@ -862,7 +862,7 @@ def statisticalInefficiency_fft(A_n, mintime=3, memsafe=None):
         warnings.warn("NumPy's FFT pack now uses an LRU cache to fix the very problem that the memsafe keyword "
                       "was protecting. This argument no longer changes the code and will be removed in a future "
                       "version.", FutureWarning)
-    
+
     try:
         ind = np.where((C_t <= 0) & (t_grid > mintime))[0][0]
     except IndexError:
@@ -879,9 +879,9 @@ def detectEquilibration_binary_search(A_t, bs_nodes=10):
 
     Parameters
     ----------
-    A_t : np.ndarray 
+    A_t : np.ndarray
         timeseries
-    
+
     bs_nodes : int > 4
         number of geometrically distributed binary search nodes
 
@@ -893,7 +893,7 @@ def detectEquilibration_binary_search(A_t, bs_nodes=10):
         statistical inefficiency of equilibrated data
     Neff_max : float
         number of uncorrelated samples
-        
+
     Notes
     -----
     Finds the discard region (t) by a binary search on the range of
@@ -912,12 +912,12 @@ def detectEquilibration_binary_search(A_t, bs_nodes=10):
     start = 1
     end = T - 1
     n_grid = min(bs_nodes, T)
-    
+
     while True:
-        time_grid = np.unique((10 ** np.linspace(np.log10(start), np.log10(end), n_grid)).round().astype('int')) 
+        time_grid = np.unique((10 ** np.linspace(np.log10(start), np.log10(end), n_grid)).round().astype('int'))
         g_t = np.ones(time_grid.size)
         Neff_t = np.ones(time_grid.size)
-        
+
         for k, t in enumerate(time_grid):
             if t < T-1:
                 g_t[k] = statisticalInefficiency_fft(A_t[t:], memsafe=True)
@@ -927,10 +927,10 @@ def detectEquilibration_binary_search(A_t, bs_nodes=10):
         k = Neff_t.argmax()
         t = time_grid[k]
         g = g_t[k]
-        
+
         if (end - start < 4):
             break
-        
+
         if k == 0:
             start = time_grid[0]
             end = time_grid[1]
@@ -940,5 +940,5 @@ def detectEquilibration_binary_search(A_t, bs_nodes=10):
         else:
             start = time_grid[k - 1]
             end = time_grid[k + 1]
-        
+
     return (t, g, Neff_max)

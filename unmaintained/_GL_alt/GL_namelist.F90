@@ -24,12 +24,12 @@ module GL_namelist_module
   double precision,   save :: umbrella_min
   integer,            save :: adaptive
   integer,            save :: Reverse
-  
 
 
 
 
-  
+
+
 
 
   ! Problem specification
@@ -55,12 +55,12 @@ module GL_namelist_module
   namelist /GL_params/ adaptive
   namelist /GL_params/ Reverse
 
-  
 
 
-  
 
-  
+
+
+
 
 
 contains

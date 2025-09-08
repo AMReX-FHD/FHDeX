@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -48,7 +48,7 @@ class Set : protected Pointers {
   int latticeflag;
   class AppLattice *applattice;
   class AppOffLattice *appoff;
-    
+
   void set_single(int, int);
   void set_range(int, int);
   void set_displace(int, int);

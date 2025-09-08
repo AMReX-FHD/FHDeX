@@ -36,14 +36,14 @@ using namespace amrex;
 void main_driver(const char* argv)
 {
     BL_PROFILE_VAR("main_driver()",main_driver);
-    
+
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
 
     amrex::Print() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
-    
+
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
 
@@ -90,7 +90,7 @@ void main_driver(const char* argv)
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     GetHcGas();
-  
+
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -143,7 +143,7 @@ void main_driver(const char* argv)
         Abort("1D simulations in the x-direction requires do_1D=1");
     }
     //**********************************************************************
-    
+
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
     SetupBCStag();
@@ -188,13 +188,13 @@ void main_driver(const char* argv)
 
     // transport properties
     /*
-      Referring to K. Balakrishnan et al., 
+      Referring to K. Balakrishnan et al.,
       "Fluctuating hydrodynamics of multispecies nonreactive mixtures",
       Phys. Rev. E, 89, 1, 2014
 
       "kappa" and "zeta" in the code have opposite meanings from what they
       represent in the paper.  So kappa in the paper is bulk viscosity (see
-      the equation for Pi immediately after (28)), but in the code it's zeta. 
+      the equation for Pi immediately after (28)), but in the code it's zeta.
       Zeta is a thermodiffusion coefficient (see the equation for Q'
       immediately before (25)), but in the code it's kappa... and furthermore
       I believe kappa in the code is actually zeta/T^2.
@@ -219,7 +219,7 @@ void main_driver(const char* argv)
     // staggered momentum
     std::array< MultiFab, AMREX_SPACEDIM > vel;
     std::array< MultiFab, AMREX_SPACEDIM > cumom;
-  
+
     //primative quantaties
     MultiFab prim;
 
@@ -237,15 +237,15 @@ void main_driver(const char* argv)
     std::unique_ptr<MPMD::Copier> mpmd_copier;
 #endif
 
-    //statistics    
+    //statistics
     MultiFab cuMeans;
     MultiFab cuVars;
-    
+
     MultiFab primMeans;
     MultiFab primVars;
 
     MultiFab coVars;
-    
+
     MultiFab mom3;
 
     MultiFab surfcovMeans;  // used in either MFsurfchem or surfchem_mui
@@ -286,15 +286,15 @@ void main_driver(const char* argv)
         amrex::Print() << "Correlations will be done at four equi-distant x* because all_correl = 1" << "\n";
     }
 
-    // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
-    Vector<Real> dataSliceMeans_xcross(2*nvars+8+2*nspecies, 0.0); 
-    
+    // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies
+    Vector<Real> dataSliceMeans_xcross(2*nvars+8+2*nspecies, 0.0);
+
     // see statsStag for the list
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
     int ncross = 37+nspecies+3;
     MultiFab spatialCrossMF;
     Vector<Real> spatialCrossVec(n_cells[0]*ncross, 0.0);
-    
+
     // make BoxArray and Geometry
     BoxArray ba;
     Geometry geom;
@@ -390,17 +390,17 @@ void main_driver(const char* argv)
     ///////////////////////////////////
     // structure factors for do_1D mode
     ///////////////////////////////////
-    
+
     // Structure factor for pencils
     // enabled if do_1D=1
     Vector < StructFact > structFactPrimArray;
     Vector < StructFact > structFactConsArray;
-    
+
 #if defined(TURB)
     // Structure factor for compressible turbulence
     StructFact turbStructFactVelTotal; // total velocity
     StructFact turbStructFactVelDecomp; // decomposed velocity
-    StructFact turbStructFactScalar; // scalars 
+    StructFact turbStructFactScalar; // scalars
 #endif
 
     // "primitive" variable structure factor will contain
@@ -548,9 +548,9 @@ void main_driver(const char* argv)
     /////////////////////////////////////////////
 
     if (restart > 0) {
-        
+
         ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
-                       primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                       primMeans, primVars, cumom, cumomMeans, cumomVars,
                        vel, velMeans, velVars, coVars, mom3,
                        surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                        spatialCrossMF, spatialCrossVec, ncross, turbforce, ba, dmap);
@@ -569,7 +569,7 @@ void main_driver(const char* argv)
         kappa.setVal(1.0,0,1,ngc);
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
-        
+
         if (n_ads_spec>0) {
             dNadsdes.define(ba,dmap,n_ads_spec,0);
             dNads.define(ba,dmap,n_ads_spec,0);
@@ -659,7 +659,7 @@ void main_driver(const char* argv)
         cuVars.define(ba,dmap,nvars,ngc);
         cuMeans.setVal(0.0);
         cuVars.setVal(0.0);
-        
+
         primMeans.define(ba,dmap,nprimvars+3,ngc); // the last three have COM velocity
         primVars.define(ba,dmap,nprimvars+5,ngc);
         primMeans.setVal(0.0);
@@ -703,10 +703,10 @@ void main_driver(const char* argv)
         if (nspec_surfcov>0) {
             surfcovMeans.define(ba,dmap,nspec_surfcov,0);
             surfcovVars.define(ba,dmap,nspec_surfcov,0);
-	    surfcovcoVars.define(ba,dmap,nspec_surfcov*6,0);
+            surfcovcoVars.define(ba,dmap,nspec_surfcov*6,0);
             surfcovMeans.setVal(0.0);
             surfcovVars.setVal(0.0);
-	    surfcovcoVars.setVal(0.0);
+            surfcovcoVars.setVal(0.0);
         }
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -737,7 +737,7 @@ void main_driver(const char* argv)
         if (turbForcing >= 1) { // temporary fab for turbulent
             if (ParallelDescriptor::IOProcessor()) {
                 turboutfile.open(turbfilename);
-                turboutfile << "step " << "time " << "turbKE " << "RMSu " 
+                turboutfile << "step " << "time " << "turbKE " << "RMSu "
                             << "<c> " << "TaylorLen " << "TaylorRe " << "TaylorMa "
                             << "skew " << "kurt "
                             << "eps_s " << "eps_d " << "eps_d/eps_s "
@@ -745,9 +745,9 @@ void main_driver(const char* argv)
                             << std::endl;
 
                 turboutfiledecomp.open(turbfilenamedecomp);
-                turboutfiledecomp << "step " << "time " 
+                turboutfiledecomp << "step " << "time "
                                   << "turbKE_s " << "turbKE_d " << "delta_turbKE "
-                                  << "u_rms_s " << "u_rms_d " << "delta_u_rms " 
+                                  << "u_rms_s " << "u_rms_d " << "delta_u_rms "
                                   << "TaylorMa_d "
                                   << "skew_s " << "kurt_s "
                                   << "skew_d " << "kurt_d "
@@ -798,9 +798,9 @@ void main_driver(const char* argv)
         }
 
         setBCStag(prim, cu, cumom, vel, geom);
-        
+
         if (plot_int > 0) {
-            WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
+            WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
 #if defined(TURB)
             if (turbForcing > 0) {
@@ -839,7 +839,7 @@ void main_driver(const char* argv)
 
 
     } // else restart/non-restart
-    
+
 #if defined(TURB)
     if (turbForcing >= 1) {
         MFTurbVel.define(ba, dmap, 3, 0);
@@ -912,9 +912,7 @@ void main_driver(const char* argv)
             }
 
             if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
-
                 MultiFab Flattened;  // flattened multifab defined below
-
                 // we are only calling ExtractSlice here to obtain
                 // a built version of Flattened so can obtain what we need to build the
                 // structure factor and geometry objects for flattened data
@@ -943,7 +941,7 @@ void main_driver(const char* argv)
             structFactPrimVec.resize(n_cells[project_dir]);
             structFactConsVec.resize(n_cells[project_dir]);
 
-            for (int i = 0; i < n_cells[project_dir]; ++i) { 
+            for (int i=0; i<n_cells[project_dir]; ++i) {
                 structFactPrimVec[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
                 structFactConsVec[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
@@ -963,7 +961,7 @@ void main_driver(const char* argv)
                 structFactPrimFlattenedVec.resize(n_cells[2]);
                 structFactConsFlattenedVec.resize(n_cells[2]);
 
-                for (int i = 0; i < n_cells[2];  ++i) { 
+                for (int i=0; i<n_cells[2];  ++i) {
                     structFactPrimFlattenedVec[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
                     structFactConsFlattenedVec[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
                 }
@@ -974,7 +972,7 @@ void main_driver(const char* argv)
                 // each plane in z will have an x-pencil on the low-y face
                 structFactSurfCovVec.resize(n_cells[2]);
 
-                for (int i = 0; i < n_cells[2];  ++i) { 
+                for (int i=0; i<n_cells[2];  ++i) {
                     structFactSurfCovVec[i].define(ba_pencil,dmap_pencil,surfcov_var_names,surfcov_var_scaling);
                 }
             }
@@ -995,18 +993,18 @@ void main_driver(const char* argv)
             structFactPrimArray.resize(n_cells[1]*n_cells[2]);
             structFactConsArray.resize(n_cells[1]*n_cells[2]);
 
-            for (int i = 0; i < n_cells[1]*n_cells[2];  ++i) { 
+            for (int i=0; i<n_cells[1]*n_cells[2];  ++i) {
                 structFactPrimArray[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
                 structFactConsArray[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
             }
-            
+
         }
     }
 
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
     /////////////////////////////////////////////////
-    
+
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
@@ -1041,7 +1039,7 @@ void main_driver(const char* argv)
 
     edgeflux_x[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0); // 0-2: rhoU, rhoV, rhoW
     edgeflux_x[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-                 
+
     edgeflux_y[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
     edgeflux_y[1].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 
@@ -1056,7 +1054,7 @@ void main_driver(const char* argv)
     AMREX_D_TERM(cenflux[0].define(ba,dmap,1,1);, // 0-2: rhoU, rhoV, rhoW
                  cenflux[1].define(ba,dmap,1,1);,
                  cenflux[2].define(ba,dmap,1,1););
-    
+
 
 #if defined(TURB)
     // Initialize Turbulence Forcing Object
@@ -1064,11 +1062,11 @@ void main_driver(const char* argv)
         turbforce.Initialize(geom);
     }
 #endif
-                
+
     /////////////////////////////////////////////////
     //Time stepping loop
     /////////////////////////////////////////////////
-    
+
     for (int step=step_start;step<=max_step;++step) {
 
         // timer
@@ -1083,19 +1081,19 @@ void main_driver(const char* argv)
         amrex_push(cu, prim, *mpmd_copier);
 #endif
         if (n_ads_spec>0) {
-	    if (splitting_MFsurfchem == 0) {
+            if (splitting_MFsurfchem == 0) {
                 sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt);
             } else if (splitting_MFsurfchem == 1) {
-	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
-		update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
+                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+                update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
-		for (int d=0; d<AMREX_SPACEDIM; d++) {
-		    cumom[d].FillBoundary(geom.periodicity());
-		}
-		cu.FillBoundary(geom.periodicity());
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    cumom[d].FillBoundary(geom.periodicity());
+                }
+                cu.FillBoundary(geom.periodicity());
 
-		conservedToPrimitiveStag(prim, vel, cu, cumom);
-		            // Set BC: 1) fill boundary 2) physical
+                conservedToPrimitiveStag(prim, vel, cu, cumom);
+                            // Set BC: 1) fill boundary 2) physical
                 for (int d=0; d<AMREX_SPACEDIM; d++) {
                     vel[d].FillBoundary(geom.periodicity());
                 }
@@ -1103,10 +1101,10 @@ void main_driver(const char* argv)
                 cu.FillBoundary(geom.periodicity());
 
                 setBCStag(prim, cu, cumom, vel, geom);
-	    } else {
+            } else {
                 Abort("splitting_MFsurfchem can be 0 or 1");
             }
-	}
+        }
 
         // FHD
         if (turbRestartRun) {
@@ -1114,7 +1112,7 @@ void main_driver(const char* argv)
           RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce, trans_parms);
 #else
-          RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
+          RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D,
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
 #endif
         } else {
@@ -1125,7 +1123,7 @@ void main_driver(const char* argv)
 #endif
         }
 
-	if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
+        if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
             sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
         }
 
@@ -1189,7 +1187,7 @@ void main_driver(const char* argv)
 
         // timer
         Real aux1 = ParallelDescriptor::second();
-        
+
         // reset statistics after n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
         if ((n_steps_skip > 0 && step == n_steps_skip) ||
@@ -1214,7 +1212,7 @@ void main_driver(const char* argv)
             if (nspec_surfcov>0) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
-		surfcovcoVars.setVal(0.0);
+                surfcovcoVars.setVal(0.0);
             }
 
             if (do_1D) {
@@ -1235,19 +1233,19 @@ void main_driver(const char* argv)
 
         // Evaluate Statistics
         if (do_1D) {
-            evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+            evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 spatialCrossMF, ncross, statsCount, geom);
         }
         else if (do_2D) {
-            evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+            evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 spatialCrossMF, ncross, statsCount, geom);
         }
         else {
-            evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+            evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 dataSliceMeans_xcross, spatialCrossVec, ncross, domain,
@@ -1255,13 +1253,13 @@ void main_driver(const char* argv)
         }
         statsCount++;
         if (step%100 == 0) {
-            amrex::Print() << "Mean Rho: "      << ComputeSpatialMean(cu, 0) 
+            amrex::Print() << "Mean Rho: "      << ComputeSpatialMean(cu, 0)
                            << " Mean Temp.:"    << ComputeSpatialMean(prim, 4)
                            << " Mean Press.:"   << ComputeSpatialMean(prim, 5)
-                           << " Mean Mom. (x):" << ComputeSpatialMean(cumom[0], 0) 
-                           << " Mean Mom. (y):" << ComputeSpatialMean(cumom[1], 0) 
-                           << " Mean Mom. (z):" << ComputeSpatialMean(cumom[2], 0) 
-                           << " Mean En.:"      << ComputeSpatialMean(cu, 4) 
+                           << " Mean Mom. (x):" << ComputeSpatialMean(cumom[0], 0)
+                           << " Mean Mom. (y):" << ComputeSpatialMean(cumom[1], 0)
+                           << " Mean Mom. (z):" << ComputeSpatialMean(cumom[2], 0)
+                           << " Mean En.:"      << ComputeSpatialMean(cu, 4)
                            << "\n";
         }
 
@@ -1279,13 +1277,13 @@ void main_driver(const char* argv)
 #if defined(TURB)
         if ((turbRestartRun == 0) and (turbForcing >= 1)) writePlt = true;
 #endif
-        
+
         if (writePlt) {
             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
-            
+
             if (plot_cross) {
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCrossMF, step, geom, ncross);
@@ -1316,12 +1314,12 @@ void main_driver(const char* argv)
                 MultiFab::Copy(MFTurbScalar, prim, 0, 0, 1, 0);
                 MultiFab::Copy(MFTurbScalar, prim, 4, 1, 1, 0);
                 MultiFab::Copy(MFTurbScalar, prim, 5, 2, 1, 0);
-                
+
                 // decomposed velocities
                 Vector< std::string > var_names_turbVel{"vel_total","vel_solenoidal","vel_dilation"};
                 Real scaling_turb_veldecomp = dVolinv;
                 TurbSpectrumVelDecomp(MFTurbVel, vel_decomp, geom, step, scaling_turb_veldecomp, var_names_turbVel);
-                
+
                 // scalars
                 Vector< std::string > var_names_turbScalar{"rho","temp","press"};
                 Vector<Real> scaling_turb_scalar(3, dVolinv);
@@ -1351,29 +1349,29 @@ void main_driver(const char* argv)
                        skew, kurt,
                        eps_s, eps_d, eps_ratio,
                        kolm_s, kolm_d, kolm_t);
-            
+
             turboutfile << step << " ";
             turboutfile << time << " ";
             turboutfile << turbKE << " ";
             turboutfile << u_rms << " ";
             turboutfile << c_speed << " ";
             turboutfile << taylor_len << " " ;
-            turboutfile << taylor_Re << " "; 
+            turboutfile << taylor_Re << " ";
             turboutfile << taylor_Ma << " ";
             turboutfile << skew << " ";
             turboutfile << kurt << " ";
             turboutfile << eps_s << " ";
-            turboutfile << eps_d << " "; 
+            turboutfile << eps_d << " ";
             turboutfile << eps_ratio << " ";
             turboutfile << kolm_s << " ";
             turboutfile << kolm_d << " ";
             turboutfile << kolm_t;
             turboutfile << std::endl;
         }
-        
+
         if (((turbForcing >= 1) and (writePlt)) or
             ((turbForcing >= 1) and (turbRestartRun == 0))) {
-            
+
             Real turbKE_s, turbKE_d, delta_turbKE;
             Real u_rms_s, u_rms_d, delta_u_rms;
             Real taylor_Ma_d;
@@ -1385,7 +1383,7 @@ void main_driver(const char* argv)
                              taylor_Ma_d,
                              skew_s, kurt_s,
                              skew_d, kurt_d);
-            
+
             turboutfiledecomp << step << " ";
             turboutfiledecomp << time << " ";
             turboutfiledecomp << turbKE_s << " ";
@@ -1404,17 +1402,17 @@ void main_driver(const char* argv)
 #endif
 
         bool SF_snapshot_taken = false;
-        
+
         // collect a snapshot for structure factor
         if (struct_fact_int > 0 &&
             step > amrex::Math::abs(n_steps_skip) &&
             step%struct_fact_int == 0) {
 
             SF_snapshot_taken = true;
-            
+
             /////////// First structFactPrimMF ////////////////
             cnt = 0;
-            
+
             // copy [rho, vx, vy, vz, T]
             numvars = 5;
             MultiFab::Copy(structFactPrimMF, prim, 0, cnt, numvars, 0);
@@ -1572,7 +1570,7 @@ void main_driver(const char* argv)
                     }
                 }
             }
-            
+
         } // logic for doing structure factor
 
         // write out structure factor
@@ -1622,7 +1620,7 @@ void main_driver(const char* argv)
                     structFactPrimVec[i].AddToExternal(prim_mag,prim_realimag);
                     structFactConsVec[i].AddToExternal(cons_mag,cons_realimag);
                 }
-                    
+
                 Real ncellsinv = 1.0/n_cells[2];
                 prim_mag.mult(ncellsinv);
                 cons_mag.mult(ncellsinv);
@@ -1666,14 +1664,14 @@ void main_driver(const char* argv)
                                     structFactConsFlattenedVec[0].get_names(),"plt_SF_cons_Flattened_2D");
 
             }
-            
+
             // FIXME structFactPrimFlattenedVec;
             // FIXME structFactConsFlattenedVec;
             //
             //
-            // 
+            //
 
-            if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+            if (do_2D && n_ads_spec > 0 && surfCov_has_multiple_cells) {
 
                 MultiFab surfcov_mag, surfcov_realimag;
 
@@ -1713,7 +1711,7 @@ void main_driver(const char* argv)
                     structFactPrimArray[i].AddToExternal(prim_mag,prim_realimag);
                     structFactConsArray[i].AddToExternal(cons_mag,cons_realimag);
                 }
-                    
+
                 Real ncellsinv = 1.0/(n_cells[1]*n_cells[2]);
                 prim_mag.mult(ncellsinv);
                 cons_mag.mult(ncellsinv);
@@ -1726,14 +1724,14 @@ void main_driver(const char* argv)
                                     structFactConsArray[0].get_names(),"plt_SF_cons_1D");
 
             }
-            
+
         }
 
         // write checkpoint file
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                            primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                            primMeans, primVars, cumom, cumomMeans, cumomVars,
                             vel, velMeans, velVars, coVars, mom3,
                             surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                             spatialCrossMF, spatialCrossVec, ncross, turbforce);
@@ -1745,7 +1743,7 @@ void main_driver(const char* argv)
         if (step%100 == 0) {
             amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
         }
-        
+
         time = time + dt;
 
         // MultiFab memory usage

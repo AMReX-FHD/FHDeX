@@ -12,7 +12,7 @@ using namespace amrex;
 void main_driver(const char* argv)
 {
     BL_PROFILE_VAR("main_driver()",main_driver);
-    
+
     amrex::Vector<amrex::IntVect> nodal_flag_dir;
     amrex::IntVect                nodal_flag_x;
     amrex::IntVect                nodal_flag_y;
@@ -30,7 +30,7 @@ void main_driver(const char* argv)
 
     // timer
     Real ts1 = ParallelDescriptor::second();
-    
+
     std::string inputs_file = argv;
 
     ParmParse pp;
@@ -41,7 +41,7 @@ void main_driver(const char* argv)
     amrex::Vector<int>   n_cells(3,0 );
     amrex::Vector<Real>  prob_lo(3,0 );
     amrex::Vector<Real>  prob_hi(3,0 );
-    
+
     if (pp.queryarr("n_cells",temp_int,0,3)) {
         for (int i=0; i<3; ++i) {
             n_cells[i] = temp_int[i];
@@ -84,10 +84,10 @@ void main_driver(const char* argv)
 
     amrex::Real kmax;
     pp.query("kmax",kmax);
-    
+
     std::array< MultiFab, 3 > vel;
     MultiFab prim;
-    
+
     // make BoxArray and Geometry
     BoxArray ba;
     Geometry geom;
@@ -109,7 +109,7 @@ void main_driver(const char* argv)
     const RealBox& realDomain = geom.ProbDomain();
 
     SpectralReadCheckPoint(geom, domain, prim, vel, ba, dmap, n_cells, nprimvars, max_grid_size, ngc, restart);
-    
+
     MultiFab MFTurbScalar;
     MultiFab MFTurbVel;
     MultiFab vel_decomp_filter_heffte;
@@ -131,7 +131,7 @@ void main_driver(const char* argv)
         ShiftFaceToCC(vel[d], 0, MFTurbVel, d, 1);
     }
     MultiFab::Copy(MFTurbScalar, prim, 0, 0, 1, 0);
-    
+
     SpectralVelDecomp(MFTurbVel, vel_decomp_filter_heffte, kmin, kmax, geom, n_cells);
     SpectralScalarDecomp(MFTurbScalar, scalar_filter_heffte, kmin, kmax, geom, n_cells);
 
@@ -166,10 +166,10 @@ void main_driver(const char* argv)
       MultiFab ccTempA;
       AMREX_D_TERM(gradU[0].define(convert(prim.boxArray(),nodal_flag_x), prim.DistributionMap(), 9, 0);,
                    gradU[1].define(convert(prim.boxArray(),nodal_flag_y), prim.DistributionMap(), 9, 0);,
-                   gradU[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 9, 0););   
+                   gradU[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 9, 0););
       AMREX_D_TERM(faceTemp[0].define(convert(prim.boxArray(),nodal_flag_x), prim.DistributionMap(), 1, 0);,
                    faceTemp[1].define(convert(prim.boxArray(),nodal_flag_y), prim.DistributionMap(), 1, 0);,
-                   faceTemp[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 1, 0););   
+                   faceTemp[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 1, 0););
       sound_speed.define(prim.boxArray(),prim.DistributionMap(),1,0);
       ccTemp.define(prim.boxArray(),prim.DistributionMap(),1,0);
       ccTempA.define(prim.boxArray(),prim.DistributionMap(),1,0);
@@ -185,7 +185,7 @@ void main_driver(const char* argv)
       Vector<Real> gradU2_d(3);
       Vector<Real> gradU3_d(3);
       Vector<Real> gradU4_d(3);
-      
+
       Vector<int> comps   {0,1,2};
       Vector<int> comps_s{3,4,5};
       Vector<int> comps_d{6,7,8};
@@ -216,7 +216,7 @@ void main_driver(const char* argv)
       u_rms_d = ccTemp.sum(0)/npts;
       u_rms_d = sqrt(u_rms_d/3.0);
       MultiFab::Multiply(ccTemp,prim,0,0,1,0); // rho*(uu+vv+ww)
-      
+
       // ratio of turbulent kinetic energies
       delta_u_rms  = u_rms_d/u_rms_s;
 
@@ -292,25 +292,25 @@ void main_driver(const char* argv)
       gradU4_d[0] = dProb[0]*(faceTemp[0].sum_unique(0,false,geom.periodicity()));
       gradU4_d[1] = dProb[1]*(faceTemp[1].sum_unique(0,false,geom.periodicity()));
       gradU4_d[2] = dProb[2]*(faceTemp[2].sum_unique(0,false,geom.periodicity()));
-              
+
       // Skewness
       // <\sum_i (du_i/dx_i)^3> / (\sum_i <(du_i/dx_i)^2>^1.5)
       skew   = (gradU3[0] + gradU3[1] + gradU3[2])/
-               (pow(gradU2[0],1.5) + pow(gradU2[1],1.5) + pow(gradU2[2],1.5)); 
+               (pow(gradU2[0],1.5) + pow(gradU2[1],1.5) + pow(gradU2[2],1.5));
       skew_s = (gradU3_s[0] + gradU3_s[1] + gradU3_s[2])/
-               (pow(gradU2_s[0],1.5) + pow(gradU2_s[1],1.5) + pow(gradU2_s[2],1.5)); 
+               (pow(gradU2_s[0],1.5) + pow(gradU2_s[1],1.5) + pow(gradU2_s[2],1.5));
       skew_d = (gradU3_d[0] + gradU3_d[1] + gradU3_d[2])/
-               (pow(gradU2_d[0],1.5) + pow(gradU2_d[1],1.5) + pow(gradU2_d[2],1.5)); 
-              
+               (pow(gradU2_d[0],1.5) + pow(gradU2_d[1],1.5) + pow(gradU2_d[2],1.5));
+
       // Kurtosis
       // <\sum_i (du_i/dx_i)^4> / (\sum_i <(du_i/dx_i)^2>^2)
       kurt   = (gradU4[0] + gradU4[1] + gradU4[2])/
-               (pow(gradU2[0],2.0) + pow(gradU2[1],2.0) + pow(gradU2[2],2.0)); 
+               (pow(gradU2[0],2.0) + pow(gradU2[1],2.0) + pow(gradU2[2],2.0));
       kurt_s = (gradU4_s[0] + gradU4_s[1] + gradU4_s[2])/
-               (pow(gradU2_s[0],2.0) + pow(gradU2_s[1],2.0) + pow(gradU2_s[2],2.0)); 
+               (pow(gradU2_s[0],2.0) + pow(gradU2_s[1],2.0) + pow(gradU2_s[2],2.0));
       kurt_d = (gradU4_d[0] + gradU4_d[1] + gradU4_d[2])/
-               (pow(gradU2_d[0],2.0) + pow(gradU2_d[1],2.0) + pow(gradU2_d[2],2.0)); 
-    
+               (pow(gradU2_d[0],2.0) + pow(gradU2_d[1],2.0) + pow(gradU2_d[2],2.0));
+
       // velocity variances
       for (int i=0;i<9;++i) {
         ccTemp.setVal(0.0);
@@ -345,7 +345,7 @@ void main_driver(const char* argv)
             // curl w2 = u_3,2 - u_2,3
             v_stats(i,j,k,3) = 0.5*( (v_decomp(i,j+1,k,2) - v_decomp(i,j-1,k,2))/dx[1] -
                                   (v_decomp(i,j,k+1,1) - v_decomp(i,j,k-1,1))/dx[2] );
-          
+
         });
       }
       // compute spatial mean
@@ -382,13 +382,13 @@ void main_driver(const char* argv)
     std::ostringstream oss;
     oss << std::setprecision(3) << kmax;
     turbfilename += oss.str();
-    
+
     std::ofstream turboutfile;
     if (ParallelDescriptor::IOProcessor()) {
       turboutfile.open(turbfilename, std::ios::app);
     }
     if (ParallelDescriptor::IOProcessor()) {
-      turboutfile << "u_rms " << "u_rms_s " << "u_rms_d " << "delta_u_rms " 
+      turboutfile << "u_rms " << "u_rms_s " << "u_rms_d " << "delta_u_rms "
                   << "TaylorLen " << "TaylorRe*Eta "
                   << "skew " << "skew_s " << "skew_d "
                   << "kurt " << "kurt_s " << "kurt_d "
@@ -424,7 +424,7 @@ void main_driver(const char* argv)
     Real ts2 = ParallelDescriptor::second() - ts1;
     ParallelDescriptor::ReduceRealMax(ts2,  ParallelDescriptor::IOProcessorNumber());
     amrex::Print() << "Time (spectral filtering) " << ts2 << " seconds\n";
-    
+
     // MultiFab memory usage
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -445,6 +445,6 @@ void main_driver(const char* argv)
 
     amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                    << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-    
+
     if (ParallelDescriptor::IOProcessor()) turboutfile.close();
 }

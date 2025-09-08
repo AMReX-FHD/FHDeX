@@ -2,7 +2,7 @@
  * lib_dispatcher.h
  *
  *  Created on: Mar 10, 2014
- *	  Author: ytang
+ *      Author: ytang
  */
 
 #ifndef LIB_DISPATCHER_H_
@@ -16,31 +16,31 @@ namespace mui
 {
 
 template<
-	typename UUID,
-	class    FPTR,
-	class    EXCEPTION=exception_segv>
+    typename UUID,
+    class    FPTR,
+    class    EXCEPTION=exception_segv>
 struct dispatcher
 {
-	FPTR dispatch( const UUID &id ) {
-		auto i = dtable_.find(id);
-		if ( i == dtable_.end() ) EXCEPTION();
-		return i->second;
-	}
-	bool exist( const UUID &id ) {
-		return dtable_.find(id) != dtable_.end();
-	}
-	FPTR operator [] ( const UUID &id ) {
-		return dispatch(id);
-	}
-	bool link( const UUID &id, FPTR parser ) {
-		return dtable_.insert( std::make_pair(id,parser) ).second;
-	}
-	bool unlink( const UUID &id ) {
-		return dtable_.erase(id) == 1;
-	}
+    FPTR dispatch( const UUID &id ) {
+        auto i = dtable_.find(id);
+        if ( i == dtable_.end() ) EXCEPTION();
+        return i->second;
+    }
+    bool exist( const UUID &id ) {
+        return dtable_.find(id) != dtable_.end();
+    }
+    FPTR operator [] ( const UUID &id ) {
+        return dispatch(id);
+    }
+    bool link( const UUID &id, FPTR parser ) {
+        return dtable_.insert( std::make_pair(id,parser) ).second;
+    }
+    bool unlink( const UUID &id ) {
+        return dtable_.erase(id) == 1;
+    }
 protected:
-	using assoc_table = std::unordered_map<UUID,FPTR>;
-	assoc_table dtable_;
+    using assoc_table = std::unordered_map<UUID,FPTR>;
+    assoc_table dtable_;
 };
 
 }

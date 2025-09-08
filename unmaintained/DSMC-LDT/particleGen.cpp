@@ -12,7 +12,7 @@ void getCellVols(MultiFab & vols, const Geometry & Geom, int samples)
 
         const Box& bx = mfi.validbox();
         get_cell_vols(BL_TO_FORTRAN_3D(vols[mfi]), ZFILL(dx), &samples, plo);
-        
+
     }
 }
 
@@ -28,7 +28,7 @@ void FhdParticleContainer::InitParticlesDSMC(species* particleInfo, int pL, int 
     const Geometry& geom = Geom(lev);
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
-    const Real* phi = geom.ProbHi();  
+    const Real* phi = geom.ProbHi();
 
     //constants used to randomly distribute particles in each box
     const Real xMinL = plo[0];
@@ -38,8 +38,8 @@ void FhdParticleContainer::InitParticlesDSMC(species* particleInfo, int pL, int 
 
     //printf("Procs: %d\n", ParallelDescriptor::NProcs());
 
-    int pcount = 0;  
-        
+    int pcount = 0;
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
@@ -50,7 +50,7 @@ void FhdParticleContainer::InitParticlesDSMC(species* particleInfo, int pL, int 
 
         //Assuming tile=box for now, i.e. no tiling.
         IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();       
+        IntVect bigEnd = tile_box.bigEnd();
 
 
         for(int i_spec=0; i_spec < nspecies; i_spec++)
@@ -77,8 +77,8 @@ void FhdParticleContainer::InitParticlesDSMC(species* particleInfo, int pL, int 
 #if (BL_SPACEDIM == 3)
                 p.pos(2) = plo[2] + get_uniform_func()*(phi[2]-plo[2]);
 #endif
-                
-                
+
+
                 p.rdata(RealData::q) = 0;
 
                 //original position stored for MSD calculations
@@ -128,12 +128,12 @@ void FhdParticleContainer::InitParticlesDSMC(species* particleInfo, int pL, int 
                 p.rdata(RealData::sigma) = 0;
                 p.rdata(RealData::eepsilon) = 0;
                 p.rdata(RealData::potential) = 0;
-                
+
                 particle_tile.push_back(p);
 
                 pcount++;
             }
-//           
+//
         }
     }
 
@@ -183,7 +183,7 @@ void FhdParticleContainer::getParticleMapping(std::map<int,int>& particleMap, in
 
         //Assuming tile=box for now, i.e. no tiling.
         IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();       
+        IntVect bigEnd = tile_box.bigEnd();
 
         //printf("s, b, id = %d %d %d\n", smallEnd[0], bigEnd[0], grid_id);
 
@@ -213,7 +213,7 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
     const Geometry& geom = Geom(lev);
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
-    const Real* phi = geom.ProbHi();  
+    const Real* phi = geom.ProbHi();
 
     //printf("%f \n", phi[0]);
 
@@ -224,12 +224,12 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
 
     //printf("Procs: %d\n", ParallelDescriptor::NProcs());
 
-    int pcount = 0;  
+    int pcount = 0;
     std::map<int,int> particleMap;
     getParticleMapping(particleMap, xCells, num_boxes, pL, pR);
     //MPI_Barrier(MPI_COMM_WORLD);
     ParallelDescriptor::Barrier();
-        
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
@@ -240,7 +240,7 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
 
         //Assuming tile=box for now, i.e. no tiling.
         IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();      
+        IntVect bigEnd = tile_box.bigEnd();
 
         //get bounds and ranges for particle generation
         const Real xRange = (bigEnd[0]-smallEnd[0]+1)*dx[0];
@@ -277,7 +277,7 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
                 p.pos(2) = zMin + get_uniform_func()*zRange;
 #endif
                 printf("%d %f %f\n", i_part,p.pos(0), p.pos(1));
-                
+
                 p.rdata(RealData::q) = 0;
 
                 //original position stored for MSD calculations
@@ -327,12 +327,12 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
                 p.rdata(RealData::sigma) = 0;
                 p.rdata(RealData::eepsilon) = 0;
                 p.rdata(RealData::potential) = 0;
-                
+
                 particle_tile.push_back(p);
 
                 pcount++;
             }
-//           
+//
         }
     }
 
@@ -341,12 +341,12 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
     ReBin();
 }
 
-void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cellVols, 
+void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cellVols,
                                            paramPlane* paramplanes, int ns, Real tL, Real tR) {
     //compute the cell temperatures as variance of velocity. Re-scale to given values
 
     const int lev = 0;
-    const Real Neff = particleInfo->Neff; 
+    const Real Neff = particleInfo->Neff;
     Real vFix; //generate new velocities if 0 variance
     Real varTol = 1e-5; //tolerance for variance to be 0
 
@@ -402,20 +402,20 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     //get mean velocities per side
     if (pL > 0) {
         meanLx = vLx / pL;
-        meanLy = vLy / pL; 
+        meanLy = vLy / pL;
         meanLz = vLz / pL;
     }
     if (pR > 0) {
         meanRx = vRx / pR;
-        meanRy = vRy / pR; 
+        meanRy = vRy / pR;
         meanRz = vRz / pR;
     }
-    
+
 
     //debug line
     //printf("%f %f %f %f %f %f\n", meanLx, meanRx, meanLy, meanRy, meanLz, meanRz);
 
-    Real netV = amrex::Math::abs(meanLx) + amrex::Math::abs(meanRx) + amrex::Math::abs(meanLy) + amrex::Math::abs(meanRy) + 
+    Real netV = amrex::Math::abs(meanLx) + amrex::Math::abs(meanRx) + amrex::Math::abs(meanLy) + amrex::Math::abs(meanRy) +
                 amrex::Math::abs(meanLz) + amrex::Math::abs(meanRz);
 
 
@@ -443,7 +443,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                 ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                 ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                 BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                paramplanes, &ns, &meanLx, &meanRx, &meanLy, &meanRy, 
+                paramplanes, &ns, &meanLx, &meanRx, &meanLy, &meanRy,
                 &meanLz, &meanRz, &varL, &varR);
 
     }
@@ -507,7 +507,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                         parts[i].rdata(RealData::vz) *= C;
                     }
                 }
-                Real rC = sqrt(tR/varR); 
+                Real rC = sqrt(tR/varR);
                 Real lC = 1.0;
                 Real mean0 = 0;
 
@@ -567,14 +567,14 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                                   parts[i].rdata(RealData::vy)*parts[i].rdata(RealData::vy)+
                                   parts[i].rdata(RealData::vz)*parts[i].rdata(RealData::vz);
                         Real C = sqrt(3*particleInfo[0].R*tR/v2); //correction factor
-                        
+
                         parts[i].rdata(RealData::vx) *= C;
                         parts[i].rdata(RealData::vy) *= C;
                         parts[i].rdata(RealData::vz) *= C;
                     }
                 }
 
-                Real lC = sqrt(tL/varL); 
+                Real lC = sqrt(tL/varL);
                 Real rC = 1.0;
                 Real mean0 = 0;
 
@@ -586,7 +586,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                         BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                        paramplanes, &ns, &meanLx, &mean0, &meanLy, &mean0, 
+                        paramplanes, &ns, &meanLx, &mean0, &meanLy, &mean0,
                         &meanLz, &mean0, &lC, &rC);
             }
             return;
@@ -599,7 +599,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
         //compute correction factors
 
         //printf("Vars after conditional: %f %f\n", varL, varR);
-        Real lC = sqrt(tL/varL); 
+        Real lC = sqrt(tL/varL);
         Real rC = sqrt(tR/varR);
 
         //printf("corrections: %f %f\n", lC, rC);
@@ -623,7 +623,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                         BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                        paramplanes, &ns, &meanLx, &meanRx, &meanLy, &meanRy, 
+                        paramplanes, &ns, &meanLx, &meanRx, &meanLy, &meanRy,
                         &meanLz, &meanRz, &lC, &rC);
 
         }
@@ -635,12 +635,12 @@ void FhdParticleContainer::Resample(species* particleInfo, Real tL, Real tR) {
     //regenerate all particle positions and velocities, conserve box counts
 
     const int lev = 0;
-    const Real Neff = particleInfo->Neff; 
+    const Real Neff = particleInfo->Neff;
 
     const Geometry& geom = Geom(lev);
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
-    const Real* phi = geom.ProbHi(); 
+    const Real* phi = geom.ProbHi();
 
     Real temp;
 
@@ -652,7 +652,7 @@ void FhdParticleContainer::Resample(species* particleInfo, Real tL, Real tR) {
 
         //Assuming tile=box for now, i.e. no tiling.
         IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();      
+        IntVect bigEnd = tile_box.bigEnd();
 
         //get bounds and ranges for particle generation
         const Real xRange = (bigEnd[0]-smallEnd[0]+1)*dx[0];
@@ -677,14 +677,14 @@ void FhdParticleContainer::Resample(species* particleInfo, Real tL, Real tR) {
             else {
                 temp = tR;
             }
-            
+
             //regenerate positions
             parts[i].pos(0) = xMin + get_uniform_func()*xRange;
             parts[i].pos(1) = yMin + get_uniform_func()*yRange;
 #if (BL_SPACEDIM == 3)
             parts[i].pos(2) = zMin + get_uniform_func()*zRange;
 #endif
-            
+
 
             //regenerate velocities
             parts[i].rdata(RealData::vx) = sqrt(particleInfo[0].R*temp)*get_particle_normal_func();

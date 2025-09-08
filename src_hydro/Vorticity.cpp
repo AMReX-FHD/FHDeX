@@ -10,7 +10,7 @@ void MagVort(const std::array< MultiFab, AMREX_SPACEDIM >& umac,
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(magvort,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<Real> & vort = magvort.array(mfi);
@@ -20,7 +20,7 @@ void MagVort(const std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-#if (AMREX_SPACEDIM == 2)            
+#if (AMREX_SPACEDIM == 2)
             vort(i,j,k,outcomp) = (v(i+1,j,k) + v(i+1,j+1,k) - v(i-1,j,k) - v(i-1,j+1,k)) / (4.*dx[0]) +
                                   (u(i,j+1,k) + u(i+1,j+1,k) - u(i,j-1,k) - u(i+1,j-1,k)) / (4.*dx[1]);
 #else

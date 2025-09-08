@@ -1,12 +1,12 @@
 module precheck_module
   use amrex_fort_module, only: amrex_real, amrex_particle_real
   use iso_c_binding ,    only: c_int
-  
+
   implicit none
 
   public precheck
 
-contains        
+contains
 
   subroutine precheck(part, paramplanes, ns, delt, flag, phi, plo)
 
@@ -74,7 +74,7 @@ contains
         flag = 1
 
       endif
-    endif    
+    endif
 #endif
 #if (BL_SPACEDIM == 2)
     if(  (part%pos(1) < box1hi(1)) .and. (part%pos(2) < box1hi(2)) .and. (part%pos(1) > box1lo(1)) .and. (part%pos(2) > box1lo(2)) ) then  !started in box1
@@ -118,7 +118,7 @@ contains
 !    if((projrad .ge. 0.95*(2.5e-5)**2) .or. (proj(3) .le. 0) .or. (proj(3) .ge. 0.5e-5)) then
 !      flag = 0
 !    endif
-!    
+!
 !  end subroutine precheck
 
 end module precheck_module

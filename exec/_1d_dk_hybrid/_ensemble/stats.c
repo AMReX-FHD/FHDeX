@@ -68,7 +68,7 @@ BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(double* result);
 /* See the GNU Library General Public License for more details.    */
 /* You should have received a copy of the GNU Library General      */
 /* Public License along with this library; if not, write to the    */
-/* Free Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA   */ 
+/* Free Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA   */
 /* 02111-1307  USA                                                 */
 
 /* Copyright (C) 1997, 1999 Makoto Matsumoto and Takuji Nishimura. */
@@ -83,14 +83,14 @@ BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(double* result);
 /* ACM Transactions on Modeling and Computer Simulation,           */
 /* Vol. 8, No. 1, January 1998, pp 3--30.                          */
 
-/* Period parameters */  
+/* Period parameters */
 #define N 624
 #define M 397
 #define MATRIX_A 0x9908b0df   /* constant vector a */
 #define UPPER_MASK 0x80000000 /* most significant w-r bits */
 #define LOWER_MASK 0x7fffffff /* least significant r bits */
 
-/* Tempering parameters */   
+/* Tempering parameters */
 #define TEMPERING_MASK_B 0x9d2c5680
 #define TEMPERING_MASK_C 0xefc60000
 #define TEMPERING_SHIFT_U(y)  (y >> 11)
@@ -105,12 +105,12 @@ static
 void
 sgenrand (unsigned long seed)
 {
-/*    int mti; */
+    /*    int mti; */
 
     mt[0] = seed & 0xffffffffUL;
-    for ( mti=1; mti<N; mti++ ) 
+    for ( mti=1; mti<N; mti++ )
     {
-        mt[mti] = (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30L)) + mti); 
+        mt[mti] = (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30L)) + mti);
         /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
         /* In the previous versions, MSBs of the seed affect   */
         /* only MSBs of the array mt[].                        */
@@ -148,7 +148,7 @@ genrand ()
 
         mti = 0;
     }
-  
+
     y = mt[mti++];
     y ^= TEMPERING_SHIFT_U(y);
     y ^= TEMPERING_SHIFT_S(y) & TEMPERING_MASK_B;
@@ -195,36 +195,36 @@ InvNormDist (double p)
 {
     static const double a[6] =
     {
-	-3.969683028665376e+01,
+        -3.969683028665376e+01,
         2.209460984245205e+02,
-	-2.759285104469687e+02,
+        -2.759285104469687e+02,
         1.383577518672690e+02,
-	-3.066479806614716e+01,
+        -3.066479806614716e+01,
         2.506628277459239e+00
     };
     static const double b[5] =
     {
-	-5.447609879822406e+01,
+        -5.447609879822406e+01,
         1.615858368580409e+02,
-	-1.556989798598866e+02,
+        -1.556989798598866e+02,
         6.680131188771972e+01,
-	-1.328068155288572e+01
+        -1.328068155288572e+01
     };
     static const double c[6] =
     {
-	-7.784894002430293e-03,
-	-3.223964580411365e-01,
-	-2.400758277161838e+00,
-	-2.549732539343734e+00,
+        -7.784894002430293e-03,
+        -3.223964580411365e-01,
+        -2.400758277161838e+00,
+        -2.549732539343734e+00,
         4.374664141464968e+00,
         2.938163982698783e+00
     };
     static const double d[4] =
     {
-	7.784695709041462e-03,
-	3.224671290700398e-01,
-	2.445134137142996e+00,
-	3.754408661907416e+00
+        7.784695709041462e-03,
+        3.224671290700398e-01,
+        2.445134137142996e+00,
+        3.754408661907416e+00
     };
 
     static const double lo = 0.02425;

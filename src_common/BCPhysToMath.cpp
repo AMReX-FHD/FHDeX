@@ -5,14 +5,14 @@
 // to fill ghost cells in PhysBC routines
 
 void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi) {
-    
+
     BL_PROFILE_VAR("BCPhysToMath()",BCPhysToMath);
 
     // set to interior/periodic by default; overwrite below
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         bc_lo[i] = bc_hi[i] = amrex::BCType::int_dir;
     }
-    
+
     if (bccomp == PRES_BC_COMP) { // PRESSURE
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_vel_lo[i] == 1 || bc_vel_lo[i] == 2) {
@@ -94,4 +94,4 @@ void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_
         }
     }
 }
-   
+

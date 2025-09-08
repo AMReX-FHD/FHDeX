@@ -73,7 +73,7 @@ void WriteCheckPoint(int step,
     // ---- after all directories are built
     // ---- ParallelDescriptor::IOProcessor() creates the directories
     amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
-    
+
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
     // write Header file
@@ -103,7 +103,7 @@ void WriteCheckPoint(int step,
 
         // write out statsCount
         HeaderFile << statsCount << "\n";
-        
+
         // write the BoxArray (fluid)
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
@@ -148,7 +148,7 @@ void WriteCheckPoint(int step,
             // create filename, e.g. chk0000005/rng0000002
             const std::string& rngFileNameBase = (checkpointname + "/rng");
             const std::string& rngFileName = amrex::Concatenate(rngFileNameBase,comm_rank,7);
-        
+
             rngFile.open(rngFileName.c_str(), std::ofstream::out   |
                          std::ofstream::trunc |
                          std::ofstream::binary);
@@ -156,7 +156,7 @@ void WriteCheckPoint(int step,
             if( !rngFile.good()) {
                 amrex::FileOpenFailed(rngFileName);
             }
-    
+
             amrex::SaveRandomState(rngFile);
 
         }
@@ -164,7 +164,7 @@ void WriteCheckPoint(int step,
         ParallelDescriptor::Barrier();
     }
 
-    
+
     // write the MultiFab data to, e.g., chk00010/Level_0/
 
     // cu, cuMeans and cuVars
@@ -239,8 +239,8 @@ void WriteCheckPoint(int step,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovMeans"));
         VisMF::Write(surfcovVars,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovVars"));
-	VisMF::Write(surfcovcoVars,
-		     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovcoVars"));
+        VisMF::Write(surfcovcoVars,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovcoVars"));
     }
 
     if (do_1D || do_2D) {
@@ -299,7 +299,7 @@ void ReadCheckPoint(int& step,
     ba.define(domain);
     ba.maxSize(IntVect(max_grid_size));
     dmap.define(ba, ParallelDescriptor::NProcs());
-    
+
 #if defined(TURB)
     if ((turbForcing > 1) and (turbRestartRun)) {
         turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
@@ -392,13 +392,13 @@ void ReadCheckPoint(int& step,
 
         // mom3
         if (plot_mom3) mom3.define(ba,dmap,nvars+1,0);
-        
+
         if (n_ads_spec>0) {
             // surfcov
             surfcov.define(ba,dmap,n_ads_spec,0);
             surfcovMeans.define(ba,dmap,n_ads_spec,0);
             surfcovVars.define(ba,dmap,n_ads_spec,0);
-	        surfcovcoVars.define(ba,dmap,n_ads_spec*6,0);
+            surfcovcoVars.define(ba,dmap,n_ads_spec*6,0);
         }
 
         // spatialCrossMF
@@ -431,7 +431,7 @@ void ReadCheckPoint(int& step,
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
-    
+
                 // create filename, e.g. chk0000005/rng0000002
                 std::string FileBase(checkpointname + "/rng");
                 std::string File = amrex::Concatenate(FileBase,comm_rank,7);
@@ -452,13 +452,13 @@ void ReadCheckPoint(int& step,
         }
     }
     else if (seed == 0) {
-                
+
         // initializes the seed for C++ random number calls based on the clock
         auto now = time_point_cast<nanoseconds>(system_clock::now());
         int randSeed = now.time_since_epoch().count();
         // broadcast the same root seed to all processors
         ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-        
+
         InitRandom(randSeed+ParallelDescriptor::MyProc(),
                    ParallelDescriptor::NProcs(),
                    randSeed+ParallelDescriptor::MyProc());
@@ -503,7 +503,7 @@ void ReadCheckPoint(int& step,
             for (int m=0;m<n_ads_spec;m++) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
-		        surfcovcoVars.setVal(0.0);
+                surfcovcoVars.setVal(0.0);
             }
         }
         if (plot_mom3) mom3.setVal(0.0);
@@ -540,7 +540,7 @@ void ReadCheckPoint(int& step,
         if (n_ads_spec>0) {
             Read_Copy_MF_Checkpoint(surfcovMeans,"surfcovMeans",checkpointname,ba_old,dmap_old,n_ads_spec,0);
             Read_Copy_MF_Checkpoint(surfcovVars,"surfcovVars",checkpointname,ba_old,dmap_old,n_ads_spec,0);
-	        Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
+            Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
         }
         if (plot_mom3) Read_Copy_MF_Checkpoint(mom3,"mom3",checkpointname,ba_old,dmap_old,nvars+1,0);
     }
@@ -606,7 +606,7 @@ void ReadFile (const std::string& filename, Vector<char>& charBuf,
     charBuf[fileLength] = '\0';
 }
 
-void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, const std::string& checkpointname, 
+void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, const std::string& checkpointname,
                              BoxArray& ba_old, DistributionMapping& dmap_old,
                              int NVARS, int ghost, int nodal_flag)
 {
@@ -630,7 +630,7 @@ void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, const std
     //    }
 
     //}
-    
+
     // Read into temporary MF from file
     MultiFab mf_temp;
     VisMF::Read(mf_temp,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", mf_name));

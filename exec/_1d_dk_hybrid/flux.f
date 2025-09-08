@@ -18,7 +18,7 @@
       double precision  uleft, uright, pi
 
       common /params/ uleft, uright, pi
-       
+
 
 
         if(iper.eq.1)then
@@ -34,12 +34,12 @@
            u(0)      = u(1)
            u(npts+1) = u(npts)
 
-             
+
 
          endif
 
          do j=1,npts+1
-              
+
             flux(j) = 0.5d0*(u(j)-u(j-1))/dx
 
          enddo
@@ -57,14 +57,14 @@
 
 
 
-      do j=1,npts +1 
+      do j=1,npts +1
 
 
          umin =  max(u(j-1),0.d0)
          uplus = max(u(j),0.d0)
 c        uave = 2.d0*(uplus*umin)/(uplus+umin+1.d-16)
          uave = 0.5*(uplus+umin)
-         
+
          factor = 1.d0
 
          if(j.eq.1.or.j.eq.npts+1)then

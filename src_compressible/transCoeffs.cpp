@@ -6,11 +6,11 @@ using namespace compressible;
 
 #if defined(PELEPHYSICS)
 void calculateTransportCoeffs(const MultiFab& prim_in, 
-			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
-			      MultiFab& chi_in, MultiFab& Dij_in,
-                  pele::physics::PeleParams<pele::physics::transport::TransParm<
-                  pele::physics::PhysicsType::eos_type,
-                  pele::physics::PhysicsType::transport_type>>& trans_parms)
+			                  MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
+			                  MultiFab& chi_in, MultiFab& Dij_in,
+                              pele::physics::PeleParams<pele::physics::transport::TransParm<
+                              pele::physics::PhysicsType::eos_type,
+                              pele::physics::PhysicsType::transport_type>>& trans_parms)
 {
     BL_PROFILE_VAR("calculateTransportCoeffs()",calculateTransportCoeffs);
 
@@ -106,9 +106,9 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
     }
 }
 #else
-void calculateTransportCoeffs(const MultiFab& prim_in, 
-			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
-			      MultiFab& chi_in, MultiFab& Dij_in)
+void calculateTransportCoeffs(const MultiFab& prim_in,
+                              MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
+                              MultiFab& chi_in, MultiFab& Dij_in)
 {
     BL_PROFILE_VAR("calculateTransportCoeffs()",calculateTransportCoeffs);
 
@@ -138,14 +138,14 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-        
+
             GpuArray<Real,MAX_SPECIES> Yk_fixed;
             GpuArray<Real,MAX_SPECIES> Xk_fixed;
-            
+
             Real sumYk = 0.;
             for (int n=0; n<nspecies; ++n) {
-	        if (prim(i,j,k,6+n) <= 0.0) amrex::Abort("Negative mass fraction encountered");
-   	        if (prim(i,j,k,6+n) >= 1.0) amrex::Abort("Greater than unity mass fraction encountered");
+                if (prim(i,j,k,6+n) <= 0.0) amrex::Abort("Negative mass fraction encountered");
+                if (prim(i,j,k,6+n) >= 1.0) amrex::Abort("Greater than unity mass fraction encountered");
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+n)));
                 sumYk += Yk_fixed[n];
             }
@@ -196,6 +196,4 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         });
     }
 }
-
 #endif
-

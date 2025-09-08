@@ -64,8 +64,8 @@ int main(int argc, char **argv)
     {
       for (int j=0;j<ny;j++)
       {
-	    double x = (i+0.5)*dx2;
-	    double y = (j+0.5)*dy2;
+        double x = (i+0.5)*dx2;
+        double y = (j+0.5)*dy2;
 
         fprintf(fp,"%e\t%e\t",x,y);
         fprintf(fp,"%e\t",uniface.fetch(rCH1,{x,y},step,u,t));
@@ -86,8 +86,8 @@ int main(int argc, char **argv)
     {
       for (int j=0;j<ny;j++)
       {
-	    double x = (i+0.5)*dx2;
-	    double y = (j+0.5)*dy2;
+        double x = (i+0.5)*dx2;
+        double y = (j+0.5)*dy2;
 
         int ac1 = poiss_dist(rng_eng);
         int ac2 = poiss_dist(rng_eng);
