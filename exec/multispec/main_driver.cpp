@@ -602,60 +602,60 @@ void main_driver(const char* argv)
         }
 
 #if 0
-	Real h_val = 0.5;
+    Real h_val = 0.5;
 
-	if (istep > n_steps_skip && (istep-n_steps_skip)%hstat_int == 0) {
-	    icnt +=1;
-	 //   amrex::Print() << "icnt " << icnt << std::endl;
+    if (istep > n_steps_skip && (istep-n_steps_skip)%hstat_int == 0) {
+        icnt +=1;
+     //   amrex::Print() << "icnt " << icnt << std::endl;
          //   if (ParallelDescriptor::IOProcessor()) {
-		data_onegrid.ParallelCopy(rho_new,0,0,2);
+        data_onegrid.ParallelCopy(rho_new,0,0,2);
                    std::ofstream height_str;
                       std::string heightBaseName = "height";
                       std::string heightName = Concatenate(heightBaseName,istep,9);
                       heightName += ".dat";
                       height_str.open(heightName);
-		      height_str.precision(17);
+              height_str.precision(17);
                       height_str << time+dt << std::endl;
 
-	           for (MFIter mfi(data_onegrid); mfi.isValid(); ++mfi ) {
+               for (MFIter mfi(data_onegrid); mfi.isValid(); ++mfi ) {
 
                    const Array4<Real>& height = data_onegrid.array(mfi);
-		   Real hloc,hloct;
+           Real hloc,hloct;
                    int jsw,jrev;
-		   Real hcor_loc;
+           Real hcor_loc;
 
-		   for (int i=0; i < n_cells[0]; i++){
+           for (int i=0; i < n_cells[0]; i++){
 
-		       hloc = 0.;
+               hloc = 0.;
                        if (height(i,0,0,1) >=h_val) {
-			  for (int j=0; j<n_cells[1]; j++){
-		              jsw = j;
-			      if(height(i,j,0,1) < h_val)break;
-			  }
-		       Real hp = height(i,jsw,0,1);
-		       Real hm = height(i,jsw-1,0,1);
-		       Real xp = (jsw+0.5)*dx[1];
-		       Real xm = (jsw-0.5)*dx[1];
-		       Real slope = (hp-hm)/(xp-xm);
-		       hloc = xm + (h_val-hm)/slope;
-		       }
+              for (int j=0; j<n_cells[1]; j++){
+                      jsw = j;
+                  if(height(i,j,0,1) < h_val)break;
+              }
+               Real hp = height(i,jsw,0,1);
+               Real hm = height(i,jsw-1,0,1);
+               Real xp = (jsw+0.5)*dx[1];
+               Real xm = (jsw-0.5)*dx[1];
+               Real slope = (hp-hm)/(xp-xm);
+               hloc = xm + (h_val-hm)/slope;
+               }
 
-		       hloct = 0.;
+               hloct = 0.;
                        if (height(i,0,0,0) <= 1. - h_val) {
-			  for (int j=0; j<n_cells[1]; j++){
-		              jsw = j;
-			      if(height(i,j,0,0) > 1.-h_val)break;
-			  }
-		       Real hp = height(i,jsw,0,0);
-		       Real hm = height(i,jsw-1,0,0);
-		       Real xp = (jsw+0.5)*dx[1];
-		       Real xm = (jsw-0.5)*dx[1];
-		       Real slope = (hp-hm)/(xp-xm);
-		       hloct = xm + (1.-h_val-hm)/slope;
-		       }
+              for (int j=0; j<n_cells[1]; j++){
+                      jsw = j;
+                  if(height(i,j,0,0) > 1.-h_val)break;
+              }
+               Real hp = height(i,jsw,0,0);
+               Real hm = height(i,jsw-1,0,0);
+               Real xp = (jsw+0.5)*dx[1];
+               Real xm = (jsw-0.5)*dx[1];
+               Real slope = (hp-hm)/(xp-xm);
+               hloct = xm + (1.-h_val-hm)/slope;
+               }
                       height_str << std::setw(20) <<  (i+0.5)*dx[0]  << "     " << std::setw(20) << hloc <<  "    " << std::setw(20) << hloct << std::endl;
-		     // "   " << std::setw(20) << hloct << 
-		    //							"     " << std::setw(20) << 0.5*(hloct+hloc) << std::endl;
+             // "   " << std::setw(20) << hloct <<
+            //                            "     " << std::setw(20) << 0.5*(hloct+hloc) << std::endl;
                    }
                    }
 
@@ -684,16 +684,16 @@ void main_driver(const char* argv)
                              Real z = offset[2] + (k+0.5)*dx[2]);
                 amrex::Real sig_noise = 4.;
                 amrex::Real threshold = fh_ce;
-		//threshold = .3;
+        //threshold = .3;
                 amrex::Real alpha = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-(sig_noise+1.)*c_init_1[0]);
                 alpha = std::max(0.,alpha);
-		alpha = data_arr(i,j,k,1) >= 0.5 ? 1. : 0.;
+        alpha = data_arr(i,j,k,1) >= 0.5 ? 1. : 0.;
                 amrex::Real beta = (data_arr(i,j,k,1)-c_init_1[0])/(1.-2.*c_init_1[0]);
                 if(beta < (sig_noise-1.)*c_init_1[0]/(1.-2.*c_init_1[0])){
                     beta = 0.;
                 }
                 //amrex::Real gam = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-2.*sig_noise*c_init_1[0]);
-		beta = (data_arr(i,j,k,1)-0.3)/(1.-2.*0.3);
+        beta = (data_arr(i,j,k,1)-0.3)/(1.-2.*0.3);
                 beta = std::min(1.,std::max(0.,beta));
                 amrex::Real gam = (data_arr(i,j,k,1)-threshold)/(1.-2.*threshold);
                 gam = std::min(1.,std::max(0.,gam));
@@ -740,7 +740,7 @@ void main_driver(const char* argv)
                 amrex::Print{} << "massC " << time+dt << " " << result[2] << std::endl;
             }
 #endif
-	}
+    }
 #endif
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;

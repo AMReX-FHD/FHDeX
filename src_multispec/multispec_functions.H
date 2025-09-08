@@ -66,28 +66,28 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                             const Geometry& geom);
 
-void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, 
+void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                             const Real& scale, const Real& time = 0.);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in DiffusiveMassFlux.cpp
 
 void DiffusiveMassFluxdiv(const MultiFab& rho,
-			  const MultiFab& rhotot,
-			  MultiFab& molarconc,
-			  const MultiFab& rhoWchi,
-			  const MultiFab& Gamma,
-			  MultiFab& diff_mass_fluxdiv,
-			  std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-			  const Geometry& geom);
+              const MultiFab& rhotot,
+              MultiFab& molarconc,
+              const MultiFab& rhoWchi,
+              const MultiFab& Gamma,
+              MultiFab& diff_mass_fluxdiv,
+              std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+              const Geometry& geom);
 
 void DiffusiveMassFlux(const MultiFab& rho,
-		       const MultiFab& rhotot,
-		       MultiFab& molarconc,
-		       const MultiFab& rhoWchi,
-		       const MultiFab& Gamma,
-		       std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-		       const Geometry& geom);
+               const MultiFab& rhotot,
+               MultiFab& molarconc,
+               const MultiFab& rhoWchi,
+               const MultiFab& Gamma,
+               std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+               const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeMixtureProperties.cpp

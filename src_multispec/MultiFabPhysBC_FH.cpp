@@ -8,11 +8,11 @@
 void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, const Real& scale, const Real& time) {
 
     BL_PROFILE_VAR("MultiFabPhysBCFH()",MultiFabPhysBCFH);
-    
+
     // bccomp definitions are in BCPhysToMath.cpp
 
 //    amrex::Print() << " entering special FH bc routine " << std::endl;
-    
+
     if (geom.isAllPeriodic() || phi.nGrow() == 0) {
         return;
     }
@@ -59,7 +59,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
 
         int lo = dom.smallEnd(0);
         int hi = dom.bigEnd(0);
-        
+
         if (bx.smallEnd(0) < lo) {
             Real x = prob_lo[0];
             if (bc_mass_lo[0] == 1) {
@@ -100,7 +100,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                Abort("Wrong parameter in FH boundary condition");
             }
         }
-        
+
         if (bx.bigEnd(0) > hi) {
             Real x = prob_hi[0];
             if (bc_mass_hi[0] == 1) {
@@ -142,7 +142,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
 
         lo = dom.smallEnd(1);
         hi = dom.bigEnd(1);
-        
+
         if (bx.smallEnd(1) < lo) {
             Real y = prob_lo[1];
             if (bc_mass_lo[1] == 1) {
@@ -166,19 +166,19 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*scratch*(1.-scratch)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
-			if(ncomp == 3){
-			    amrex::Real inc = data(i,j,k,scomp+0) - data(i,lo,k,scomp+0) ;
-			    amrex::Real c1pr = amrex::max(1.e-4,  data(i,lo,k,scomp+1)) ;
-			    amrex::Real c2pr = amrex::max(1.e-4,  data(i,lo,k,scomp+2)) ;
-			    data(i,j,k,scomp+1) = data(i,lo,k,scomp+1)-inc*c1pr/(c1pr+c2pr);
-			    data(i,j,k,scomp+2) = data(i,lo,k,scomp+2)-inc*c2pr/(c1pr+c2pr);
-			}
+            if(ncomp == 3){
+                amrex::Real inc = data(i,j,k,scomp+0) - data(i,lo,k,scomp+0) ;
+                amrex::Real c1pr = amrex::max(1.e-4,  data(i,lo,k,scomp+1)) ;
+                amrex::Real c2pr = amrex::max(1.e-4,  data(i,lo,k,scomp+2)) ;
+                data(i,j,k,scomp+1) = data(i,lo,k,scomp+1)-inc*c1pr/(c1pr+c2pr);
+                data(i,j,k,scomp+2) = data(i,lo,k,scomp+2)-inc*c2pr/(c1pr+c2pr);
+            }
 
-//			if(k == 191)
-//			{
-//			amrex::Real sum_test = data(i,j,k,scomp+0) + data(i,j,k,scomp+1)+ data(i,j,k,scomp+2) ;
-//			amrex::Print() << "in bc bot " << i << " " << data(i,j,k,scomp+0) << " " <<  data(i,j,k,scomp+1) << " " <<  data(i,j,k,scomp+2) << " " << sum_test << std::endl;
-//			}
+//            if(k == 191)
+//            {
+//            amrex::Real sum_test = data(i,j,k,scomp+0) + data(i,j,k,scomp+1)+ data(i,j,k,scomp+2) ;
+//            amrex::Print() << "in bc bot " << i << " " << data(i,j,k,scomp+0) << " " <<  data(i,j,k,scomp+1) << " " <<  data(i,j,k,scomp+2) << " " << sum_test << std::endl;
+//            }
 
 
 //                        if(j == lo-1 && i > 60 && i < 70){
@@ -216,20 +216,20 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         //data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + dx[1]*std::cos(contact_angle_hi[1])*data(i,hi,k,scomp+0)*data(i,hi,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
-			if(ncomp == 3){
-			    amrex::Real inc = data(i,j,k,scomp+0) - data(i,hi,k,scomp+0) ;
-			    amrex::Real c1pr = amrex::max(1.e-4,  data(i,hi,k,scomp+1)) ;
-			    amrex::Real c2pr = amrex::max(1.e-4,  data(i,hi,k,scomp+2)) ;
-			    data(i,j,k,scomp+1) = data(i,hi,k,scomp+1) -inc*c1pr/(c1pr+c2pr);
-			    data(i,j,k,scomp+2) = data(i,hi,k,scomp+1) -inc*c2pr/(c1pr+c2pr);
-			}
+            if(ncomp == 3){
+                amrex::Real inc = data(i,j,k,scomp+0) - data(i,hi,k,scomp+0) ;
+                amrex::Real c1pr = amrex::max(1.e-4,  data(i,hi,k,scomp+1)) ;
+                amrex::Real c2pr = amrex::max(1.e-4,  data(i,hi,k,scomp+2)) ;
+                data(i,j,k,scomp+1) = data(i,hi,k,scomp+1) -inc*c1pr/(c1pr+c2pr);
+                data(i,j,k,scomp+2) = data(i,hi,k,scomp+1) -inc*c2pr/(c1pr+c2pr);
+            }
 
 
-//			if(k == 191)
-//			{
-//			amrex::Real sum_test = data(i,j,k,scomp+0) + data(i,j,k,scomp+1)+ data(i,j,k,scomp+2) ;
-//			amrex::Print() << "in bc top " << i << " " << data(i,j,k,scomp+0) << " " <<  data(i,j,k,scomp+1) << " " <<  data(i,j,k,scomp+2) << " " << sum_test <<  std::endl;
-//			}
+//            if(k == 191)
+//            {
+//            amrex::Real sum_test = data(i,j,k,scomp+0) + data(i,j,k,scomp+1)+ data(i,j,k,scomp+2) ;
+//            amrex::Print() << "in bc top " << i << " " << data(i,j,k,scomp+0) << " " <<  data(i,j,k,scomp+1) << " " <<  data(i,j,k,scomp+2) << " " << sum_test <<  std::endl;
+//            }
 
                         //data(i,j,k,scomp+1) = data(lo,j,k,scomp+1) + 0.5*dx[0]*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
                     }
@@ -249,7 +249,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
 
         lo = dom.smallEnd(2);
         hi = dom.bigEnd(2);
-        
+
         if (bx.smallEnd(2) < lo) {
             Real z = prob_lo[2];
             if (bc_mass_lo[2] == 1) {
@@ -316,7 +316,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
             }
         }
 #endif
-        
+
     } // end MFIter
 }
 

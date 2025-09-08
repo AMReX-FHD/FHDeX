@@ -4,13 +4,13 @@
 // FIXME: Fill ghost cells
 
 void DiffusiveMassFluxdiv(const MultiFab& rho,
-			  const MultiFab& rhotot,
-			  MultiFab& molarconc,
-			  const MultiFab& rhoWchi,
-			  const MultiFab& Gamma,
-			  MultiFab& diff_mass_fluxdiv,
-			  std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-			  const Geometry& geom)
+              const MultiFab& rhotot,
+              MultiFab& molarconc,
+              const MultiFab& rhoWchi,
+              const MultiFab& Gamma,
+              MultiFab& diff_mass_fluxdiv,
+              std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+              const Geometry& geom)
 {
 
     BL_PROFILE_VAR("DiffusiveMassFluxdiv()",DiffusiveMassFluxdiv);
@@ -25,12 +25,12 @@ void DiffusiveMassFluxdiv(const MultiFab& rho,
 }
 
 void DiffusiveMassFlux(const MultiFab& rho,
-		       const MultiFab& rhotot,
-		       MultiFab& molarconc,
-		       const MultiFab& rhoWchi,
-		       const MultiFab& Gamma,
-		       std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-		       const Geometry& geom)
+               const MultiFab& rhotot,
+               MultiFab& molarconc,
+               const MultiFab& rhoWchi,
+               const MultiFab& Gamma,
+               std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+               const Geometry& geom)
 {
 
     BL_PROFILE_VAR("DiffusiveMassFlux()",DiffusiveMassFlux);
@@ -325,7 +325,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
 
     [[maybe_unused]] Real twodxinv = 2.*dxinv;
     [[maybe_unused]] Real sixth = 1./6.;
-    [[maybe unused]] Real third = 1./3.;
+    [[maybe_unused]] Real third = 1./3.;
     [[maybe_unused]] Real twelveinv = 1./12.;
 
     Real one44inv = 1./144.;
@@ -345,10 +345,10 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
 //            lap(i,j,k,n) = ( phi(i+1,j-1,k,n)-2.*phi(i,j-1,k,n)+phi(i-1,j-1,k,n) + phi(i-1,j+1,k,n)-2.*phi(i-1,j,k,n)+phi(i-1,j-1,k,n) ) * (sixth*dxinv*dxinv)
 //                + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
 //                + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
-            lap(i,j,k,n) = (phi(i-1,j-1,k,n) + phi(i,j-1,k,n) + phi(i+1,j-1,k,n) + phi(i-1,j,k,n) - 8.*phi(i,j,k,n) + phi(i+1,j,k,n) 
+            lap(i,j,k,n) = (phi(i-1,j-1,k,n) + phi(i,j-1,k,n) + phi(i+1,j-1,k,n) + phi(i-1,j,k,n) - 8.*phi(i,j,k,n) + phi(i+1,j,k,n)
                          +  phi(i-1,j+1,k,n) + phi(i,j+1,k,n) + phi(i+1,j+1,k,n)) * (third*dxinv*dxinv);
 #if 0
-            lap(i,j,k,n) = (phi(i-1,j-1,k,n) + 4.*phi(i,j-1,k,n) + phi(i+1,j-1,k,n) + 4.* phi(i-1,j,k,n) - 20.*phi(i,j,k,n) +  4.*phi(i+1,j,k,n) 
+            lap(i,j,k,n) = (phi(i-1,j-1,k,n) + 4.*phi(i,j-1,k,n) + phi(i+1,j-1,k,n) + 4.* phi(i-1,j,k,n) - 20.*phi(i,j,k,n) +  4.*phi(i+1,j,k,n)
                          +  phi(i-1,j+1,k,n) + 4.*phi(i,j+1,k,n) + phi(i+1,j+1,k,n)) * (sixth*dxinv*dxinv);
 #endif
 #elif (AMREX_SPACEDIM == 3)

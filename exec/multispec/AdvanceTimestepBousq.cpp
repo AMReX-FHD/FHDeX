@@ -264,7 +264,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     if (use_disjoin_pres == 1) {
 
-	//amrex::Print() << " computing disjoining pressure " << std::endl;
+    //amrex::Print() << " computing disjoining pressure " << std::endl;
         // compute old disjoining pressure
         ComputeDisjoiningPressure(disjoining_pressure,rhotot_old,rho_old,geom);
 
@@ -569,7 +569,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     if (use_disjoin_pres == 1) {
 
-	    //amrex::Print() << " dj for corrector " << std::endl;
+        //amrex::Print() << " dj for corrector " << std::endl;
 
         // compute old disjoining pressure
         ComputeDisjoiningPressure(disjoining_pressure,rhotot_new,rho_new,geom);
@@ -734,7 +734,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     if (use_disjoin_pres == 1) {
 
-	    //amrex::Print() << " add dj in corrector " << std::endl;
+        //amrex::Print() << " add dj in corrector " << std::endl;
         // add dijoining pressure gradient to gmres_rhs_v
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             //Print() <<" BEFORE RHS " << d << " " << std::endl;
