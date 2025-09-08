@@ -179,10 +179,10 @@ void BDS_ComputeSlopes(Box const& bx,
     Vector<int> bc_hi(AMREX_SPACEDIM);
     BCPhysToMath(bccomp,bc_lo,bc_hi);
 
-    bool lo_x_physbc = (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_x_physbc = (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) ? true : false;
-    bool lo_y_physbc = (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_y_physbc = (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) ? true : false;
+    bool lo_x_physbc = (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_x_physbc = (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) ? true : false;
+    bool lo_y_physbc = (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_y_physbc = (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) ? true : false;
 
     // bicubic interpolation to corner points
     // (i,j,k) refers to lower corner of cell
@@ -441,10 +441,10 @@ void BDS_ComputeConc(Box const& bx,
     Vector<int> bc_hi(AMREX_SPACEDIM);
     BCPhysToMath(bccomp,bc_lo,bc_hi);
 
-    bool lo_x_physbc = (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_x_physbc = (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) ? true : false;
-    bool lo_y_physbc = (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_y_physbc = (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) ? true : false;
+    bool lo_x_physbc = (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_x_physbc = (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) ? true : false;
+    bool lo_y_physbc = (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_y_physbc = (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) ? true : false;
 
     // compute cell-centered ux, vy
     ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k){
@@ -913,12 +913,12 @@ void BDS_ComputeSlopes(Box const& bx,
     Vector<int> bc_hi(AMREX_SPACEDIM);
     BCPhysToMath(bccomp,bc_lo,bc_hi);
 
-    bool lo_x_physbc = (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_x_physbc = (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) ? true : false;
-    bool lo_y_physbc = (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_y_physbc = (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) ? true : false;
-    bool lo_z_physbc = (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_z_physbc = (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) ? true : false;
+    bool lo_x_physbc = (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_x_physbc = (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) ? true : false;
+    bool lo_y_physbc = (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_y_physbc = (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) ? true : false;
+    bool lo_z_physbc = (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_z_physbc = (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) ? true : false;
 
     // tricubic interpolation to corner points
     // (i,j,k) refers to lower corner of cell
@@ -1368,12 +1368,12 @@ void BDS_ComputeConc(Box const& bx,
     Vector<int> bc_hi(AMREX_SPACEDIM);
     BCPhysToMath(bccomp,bc_lo,bc_hi);
 
-    bool lo_x_physbc = (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_x_physbc = (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) ? true : false;
-    bool lo_y_physbc = (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_y_physbc = (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) ? true : false;
-    bool lo_z_physbc = (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) ? true : false;
-    bool hi_z_physbc = (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) ? true : false;
+    bool lo_x_physbc = (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_x_physbc = (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) ? true : false;
+    bool lo_y_physbc = (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_y_physbc = (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) ? true : false;
+    bool lo_z_physbc = (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) ? true : false;
+    bool hi_z_physbc = (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) ? true : false;
 
     ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k){
           ux(i,j,k) = (umac(i+1,j,k) - umac(i,j,k)) / hx;
