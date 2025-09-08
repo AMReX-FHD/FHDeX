@@ -290,7 +290,7 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
 {
     BL_PROFILE_VAR("ComputeSqrtLonsagerFC()",ComputeSqrtLonsagerFC);
 
-    const Real* dx_old = geom.CellSize();
+    [[maybe_unused]] const Real* dx_old = geom.CellSize();
 
     // for GPU later
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
@@ -301,10 +301,10 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
         // loop indices in fortran
 
         // Create cell-centered box
-        const Box& validBox = mfi.validbox();
+        [[maybe_unused]] const Box& validBox = mfi.validbox();
 
         const Array4<const Real>& rho = rho_in.array(mfi);
-        const Array4<const Real>& rhotot = rhotot_in.array(mfi);
+        [[maybe_unused]] const Array4<const Real>& rhotot = rhotot_in.array(mfi);
 
         AMREX_D_TERM(const Array4<      Real>& sqrtLOnsager_X = sqrtLonsager_fc[0].array(mfi);,
                      const Array4<      Real>& sqrtLOnsager_Y = sqrtLonsager_fc[1].array(mfi);,

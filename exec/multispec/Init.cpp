@@ -48,7 +48,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real x,y,z;
+              Real x,y;
+              [[maybe_unused]] Real z=0.0;
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
@@ -88,7 +89,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real x,y,z;
+                [[maybe_unused]] Real x;
+                [[maybe_unused]] Real y;
+                [[maybe_unused]] Real z;
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
@@ -134,7 +137,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real x,y,z;
+                [[maybe_unused]] Real x;
+                [[maybe_unused]] Real y;
+                [[maybe_unused]] Real z=0.0;
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
@@ -183,7 +188,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real x,y,z;
+                [[maybe_unused]] Real x;
+                [[maybe_unused]] Real y;
+                [[maybe_unused]] Real z=0.0;
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
@@ -225,7 +232,6 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Real factor = nsub;
             Real dxsub = dx[0]/factor;
             Real dysub = dx[1]/factor;
-            Real x,y,z;
             amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -233,16 +239,17 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = 0.;
                }
-               Real x,y,z;
+               Real x_local,y_local;
+               [[maybe_unused]] Real z_local=0.0; // Cylinder doesn't depend on z, need to check radius
 
                for(int i1=0; i1<nsub; ++i1) {
                for(int j1=0; j1<nsub; ++j1) {
 
-                   AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
-                                y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
-                                z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+                   AMREX_D_TERM(x_local = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
+                                y_local = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
+                                z_local = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
 
-                   Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y);
+                   Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x_local*x_local+y_local*y_local) : std::sqrt(x_local*x_local+y_local*y_local);
 
                    if (smoothing_width == 0.) {
 
@@ -282,16 +289,16 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             amrex::ParallelFor(bx_wmac, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real x,y,z;
+                Real x_local,y_local,z_local;
 
                 for(int i1=0; i1<nsub; ++i1) {
                 for(int j1=0; j1<nsub; ++j1) {
 
-                AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
-                             y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
-                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+                AMREX_D_TERM(x_local = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
+                             y_local = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
+                             z_local = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
 
-                Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y);
+                Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x_local*x_local+y_local*y_local) : std::sqrt(x_local*x_local+y_local*y_local);
 
                 if (smoothing_width == 0.) {
 
@@ -328,7 +335,6 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Real dxsub = dx[0]/factor;
             Real dysub = dx[1]/factor;
             Real dzsub = dx[2]/factor;
-            Real x,y,z;
             amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -336,18 +342,18 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = 0.;
                }
-               Real x,y,z;
+               Real x_local,y_local,z_local;
 
                for(int i1=0; i1<nsub; ++i1) {
                for(int j1=0; j1<nsub; ++j1) {
                for(int k1=0; k1<nsub; ++k1) {
 
-                   AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
-                                y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
-                                z = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - center[2];);
+                   AMREX_D_TERM(x_local = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
+                                y_local = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - center[1];,
+                                z_local = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - center[2];);
 
-                   Real r_ring = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y);
-                   Real r = std::sqrt((r_ring-router)*(r_ring-router)+ z*z);
+                   Real r_ring = (AMREX_SPACEDIM == 2) ? std::sqrt(x_local*x_local+y_local*y_local) : std::sqrt(x_local*x_local+y_local*y_local);
+                   Real r = std::sqrt((r_ring-router)*(r_ring-router)+ z_local*z_local);
 
                    if (smoothing_width == 0.) {
 
@@ -385,10 +391,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             //Real rad = L[0] / 8.;
             int nsub = 10;
             Real factor = nsub;
-            Real dxsub = dx[0]/factor;
+            [[maybe_unused]] Real dxsub = dx[0]/factor;
             Real dysub = dx[1]/factor;
-            Real dzsub = dx[2]/factor;
-            Real x,y,z;
+            [[maybe_unused]] Real dzsub = dx[2]/factor;
             amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -396,17 +401,17 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = 0.;
                }
-               Real x,y,z;
+               Real x_local,y_local,z_local;
 
                for(int j1=0; j1<nsub; ++j1) {
 
-                               y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;
+                               y_local = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;
 
 
                    if (smoothing_width == 0.) {
 
                        // discontinuous interface
-                       if (y < film_thickness) {
+                       if (y_local < film_thickness) {
                            for (int n=0; n<nspecies; ++n) {
                                c(i,j,k,n) += c_init_1[n];
                            }
@@ -420,7 +425,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                        // smooth interface
                        for (int n=0; n<nspecies; ++n) {
                            c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                               0.5*(1. + std::tanh((y-film_thickness)/(smoothing_width*dx[0])));
+                               0.5*(1. + std::tanh((y_local-film_thickness)/(smoothing_width*dx[0])));
                        }
                    }
                 }
@@ -543,8 +548,10 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real x,y,z;
-                Real x2,y2,z2;
+                Real x,y;
+                Real x2,y2;
+                [[maybe_unused]] Real z=0.0;
+                [[maybe_unused]] Real z2=0.0;
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z = prob_lo[2] + (k+0.5)*dx[2] -shift1;);
@@ -593,7 +600,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             amrex::ParallelFor(bx_wmac, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real x2,y2,z2;
+                Real x2,y2;
+                [[maybe_unused]] Real z2=0.0;
                 AMREX_D_TERM(x2 = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y2 = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z2 = prob_lo[2] + (k)*dx[2] - shift2;);
@@ -679,7 +687,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                   lo- and hi-y walls move with prescribed velocity,
                   see inhomogeneous_bc_val.f90
                 */
-                Real x,y,z;
+                Real x,y;
+                [[maybe_unused]] Real z=0.0;
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);

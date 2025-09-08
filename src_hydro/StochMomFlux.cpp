@@ -1112,13 +1112,15 @@ void StochMomFlux::StochMomFluxDivOrder3(std::array< MultiFab, AMREX_SPACEDIM >&
                      bx_y.growHi(1);,
                      bx_z.growHi(2););
 
-        AMREX_D_TERM(const auto xlo = lbound(bx_x);,
-                 const auto ylo = lbound(bx_y);,
-                 const auto zlo = lbound(bx_z););
+        AMREX_D_TERM(
+            [[maybe_unused]] const auto xlo = lbound(bx_x);,
+            [[maybe_unused]] const auto ylo = lbound(bx_y);,
+            [[maybe_unused]] const auto zlo = lbound(bx_z); );
 
-        AMREX_D_TERM(const auto xhi = ubound(bx_x);,
-                 const auto yhi = ubound(bx_y);,
-                 const auto zhi = ubound(bx_z););
+        AMREX_D_TERM(
+            [[maybe_unused]] const auto xhi = ubound(bx_x);,
+            [[maybe_unused]] const auto yhi = ubound(bx_y);,
+            [[maybe_unused]] const auto zhi = ubound(bx_z); );
 
         Real nineOver8 = 9.0/8.0;
         Real oneOver24 = 1.0/24.0;

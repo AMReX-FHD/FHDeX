@@ -33,53 +33,202 @@ jobs:
   #            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
   #        make -j 2
 
-  # Build libamrex and all tests with CUDA 11.0.2
+  # Build libamrex and all tests with CUDA 12.0
+
   tests-cuda11:
-    name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
-    runs-on: ubuntu-20.04
+    name: CUDA@12.0 GNU C++17 Release [${{ matrix.app }}] DIM=${{ matrix.dim }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 3D tests for main applications
+          - app: compressible
+            dim: 3
+            artifact_name: compressible
+          - app: compressible_stag
+            dim: 3
+            artifact_name: compressible_stag
+          - app: immersedIons
+            dim: 3
+            artifact_name: immersedIons
+          # 2D and 3D tests for specified applications
+          - app: structFactTest
+            dim: 2
+            artifact_name: structFactTest
+          - app: structFactTest
+            dim: 3
+            artifact_name: structFactTest
+          - app: reactDiff
+            dim: 2
+            artifact_name: reactDiff
+          - app: reactDiff
+            dim: 3
+            artifact_name: reactDiff
+          - app: multispec
+            dim: 2
+            artifact_name: multispec
+          - app: multispec
+            dim: 3
+            artifact_name: multispec
+          - app: dean_kow/singlelevel
+            dim: 2
+            artifact_name: dean_kow-singlelevel
+          - app: dean_kow/singlelevel
+            dim: 3
+            artifact_name: dean_kow-singlelevel
+          - app: dean_kow/multilevel
+            dim: 2
+            artifact_name: dean_kow-multilevel
+          - app: dean_kow/multilevel
+            dim: 3
+            artifact_name: dean_kow-multilevel
+          - app: hydro
+            dim: 2
+            artifact_name: hydro
+          - app: hydro
+            dim: 3
+            artifact_name: hydro
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
     steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc11.sh
-    - name: Clone AMReX
-      uses: actions/checkout@v2
-      with:
-        repository: AMReX-Codes/amrex
-        ref: development
-        path: amrex
-    - name: Build & Install
+    - uses: actions/checkout@v4
+    - name: Clone AMReX for dependency scripts
       run: |
+        git clone https://github.com/AMReX-Codes/amrex.git ${{runner.workspace}}/amrex
+    - name: Prepare CUDA environment
+      run: ${{runner.workspace}}/amrex/.github/workflows/dependencies/dependencies_nvcc.sh 12.0
+    - name: Install Additional Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libfftw3-dev libfftw3-mpi-dev
+    - name: Install CCache
+      run: ${{runner.workspace}}/amrex/.github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.app }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.app }}-git-
+    - name: Enable Problem Matchers
+      run: echo "::add-matcher::.github/problem-matchers/gcc.json"
+    - name: Build & Install ${{ matrix.app }}
+      continue-on-error: true
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=600M
+        ccache -z
+
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         export LD_LIBRARY_PATH=/usr/local/cuda/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
-        cd exec/multispec
+        cd exec/${{ matrix.app }}
         which nvcc || echo "nvcc not in PATH!"
-        make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=FALSE
+        make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=${{ matrix.dim }} TINY_PROFILE=FALSE 2>&1 | tee ${{runner.workspace}}/build-output.txt
+
+        ccache -s
+        du -hs ~/.cache/ccache
       env:
-        AMREX_HOME: $(GITHUB_WORKSPACE)/amrex
+        AMREX_HOME: ${{runner.workspace}}/amrex
 
+    # Step 10 - hardcoded in summary link below
+    - name: Report
+      id: report
+      if: always()
+      continue-on-error: true
+      run: |
+        # Create empty files first
+        touch ${{runner.workspace}}/build-warnings.txt
+        touch ${{runner.workspace}}/build-errors.txt
 
+        if [ -f "${{runner.workspace}}/build-output.txt" ]; then
+          # Extract warnings - broader patterns (include ALL warnings)
+          egrep -i "(warning|Warning)" ${{runner.workspace}}/build-output.txt | \
+            egrep -v "lto-wrapper:" | \
+            sort | uniq | \
+            awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > ${{runner.workspace}}/build-warnings.txt
 
-        #cmake -S . -B build                              \
-        #    -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-        #    -DAMReX_ENABLE_TESTS=ON                      \
-        #    -DAMReX_FORTRAN=OFF                          \
-        #    -DAMReX_PARTICLES=ON                         \
-        #    -DAMReX_GPU_BACKEND=CUDA                     \
-        #    -DCMAKE_C_COMPILER=$(which gcc)              \
-        #    -DCMAKE_CXX_COMPILER=$(which g++)            \
-        #    -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
-        #    -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-        #    -DCMAKE_CUDA_STANDARD=17                     \
-        #    -DCMAKE_CXX_STANDARD=17                      \
-        #    -DAMReX_CUDA_ARCH=8.0                        \
-        #    -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
-        #    -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+          # Extract errors - match specific compiler error patterns and make errors (include ALL errors)
+          egrep -i "(\): error:|error:|Error:|errors detected|make: \*\*\*)" ${{runner.workspace}}/build-output.txt | \
+            egrep -v "lto-wrapper:" | \
+            sort | uniq | \
+            awk 'BEGIN{i=0}{print $0}{i++}END{print "Errors: "i}' > ${{runner.workspace}}/build-errors.txt
+        else
+          echo "No build output captured" > ${{runner.workspace}}/build-errors.txt
+          echo "Errors: 1" >> ${{runner.workspace}}/build-errors.txt
+        fi
 
-        #cmake --build build -j 2
+        echo "=== WARNINGS ==="
+        cat ${{runner.workspace}}/build-warnings.txt
+        echo "=== ERRORS ==="
+        cat ${{runner.workspace}}/build-errors.txt
 
-  #  # Build 3D libamrex cuda build with configure
+        # Store error and warning counts for later use (but count total, not just displayed)
+        total_errors=$(egrep -i "(\): error:|error:|Error:|errors detected|make: \*\*\*)" ${{runner.workspace}}/build-output.txt 2>/dev/null | egrep -v "lto-wrapper:" | wc -l)
+        total_warnings=$(egrep -i "(warning|Warning)" ${{runner.workspace}}/build-output.txt 2>/dev/null | egrep -v "lto-wrapper:" | wc -l)
+        echo "error_count=${total_errors}" >> $GITHUB_OUTPUT
+        echo "warning_count=${total_warnings}" >> $GITHUB_OUTPUT
+        echo "has_issues=$((total_errors > 0 || total_warnings > 0))" >> $GITHUB_OUTPUT
+    - name: Upload Build Reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-reports-${{ matrix.artifact_name }}-${{ matrix.dim }}d
+        path: |
+          ${{runner.workspace}}/build-warnings.txt
+          ${{runner.workspace}}/build-errors.txt
+        retention-days: 30
+
+    - name: Generate Error Summary
+      if: always() && steps.report.outputs.has_issues == '1'
+      run: |
+        echo "## Build Report 📊" >> $GITHUB_STEP_SUMMARY
+        echo "**Job Details:**" >> $GITHUB_STEP_SUMMARY
+        echo "- App: ${{ matrix.app }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Dimensions: ${{ matrix.dim }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [📁 Download Build Reports](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Add warnings if they exist (show only last 10 lines in summary)
+        if [ "${{ steps.report.outputs.warning_count }}" != "0" ] && [ -f "${{runner.workspace}}/build-warnings.txt" ]; then
+          echo "## ⚠️ Warnings (${{ steps.report.outputs.warning_count }} total, showing last 10)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -10 ${{runner.workspace}}/build-warnings.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Add errors if they exist (show only last 10 lines in summary)
+        if [ "${{ steps.report.outputs.error_count }}" != "0" ] && [ -f "${{runner.workspace}}/build-errors.txt" ]; then
+          echo "## 🚨 Errors (${{ steps.report.outputs.error_count }} total, showing last 10)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -10 ${{runner.workspace}}/build-errors.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Fail if errors detected
+      if: steps.report.outputs.error_count != '0'
+      run: |
+        echo "Build failed with ${{ steps.report.outputs.error_count }} errors"
+        exit 1
+
+  merge-reports:
+    runs-on: ubuntu-latest
+    needs: tests-cuda11
+    if: always()
+    steps:
+      - name: Merge Build Reports
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: build-reports-all
+          pattern: build-reports-*
+          delete-merged: true  # Optional: removes individual artifacts
+          separate-directories: true
+
+  # Build 3D libamrex cuda build with configure
   #  configure-3d-cuda:
   #    name: CUDA@11.2 GNU@9.3.0 [configure 3D]
   #    runs-on: ubuntu-20.04

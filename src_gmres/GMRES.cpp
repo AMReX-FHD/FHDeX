@@ -73,8 +73,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
     // use r_u, tmp_u, r_p, tmp_p as temporary storage
 
     bool inhomogeneous_fix = false;
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (wallspeed_x_lo[i] != 0.) inhomogeneous_fix = true;
+    for (int i_local=0; i_local<AMREX_SPACEDIM; ++i_local) {
+        if (wallspeed_x_lo[i_local] != 0.) inhomogeneous_fix = true;
         if (wallspeed_x_hi[i] != 0.) inhomogeneous_fix = true;
         if (wallspeed_y_lo[i] != 0.) inhomogeneous_fix = true;
         if (wallspeed_y_hi[i] != 0.) inhomogeneous_fix = true;
@@ -96,17 +96,17 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         r_p.setVal(0.);
         MultiFabPhysBC(r_p, geom, 0, 1, PRES_BC_COMP);
 
-        for (int i=0; i<AMREX_SPACEDIM; ++i ) {
-            r_u[i].setVal(0.);
-            MultiFabPhysBCMacVel(r_u[i], geom, i, is_inhomogeneous);
+        for (int i_local=0; i_local<AMREX_SPACEDIM; ++i_local ) {
+            r_u[i_local].setVal(0.);
+            MultiFabPhysBCMacVel(r_u[i_local], geom, i_local, is_inhomogeneous);
         }
 
         ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom,
                     is_inhomogeneous);
 
         MultiFab::Subtract(b_p, tmp_p, 0, 0, 1, 0);
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            MultiFab::Subtract(b_u[i], tmp_u[i], 0, 0, 1, 0);
+        for (int i_local=0; i_local<AMREX_SPACEDIM; ++i_local) {
+            MultiFab::Subtract(b_u[i_local], tmp_u[i_local], 0, 0, 1, 0);
         }
 
     }

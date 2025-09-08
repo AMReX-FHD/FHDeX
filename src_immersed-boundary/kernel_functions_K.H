@@ -13,7 +13,7 @@ struct Kernel1P
         Real kernel_1p;
 
         Real r1 = std::abs(r_in);
-        Real r2 = r1 * r1;
+        [[maybe_unused]] Real r2 = r1 * r1;
 
         if (r1 <= 0.5)
         {
@@ -38,7 +38,7 @@ struct Kernel3P
         Real kernel_3p;
 
         Real r1 = std::abs(r_in);
-        Real r2 = r1 * r1;
+        [[maybe_unused]] Real r2 = r1 * r1;
 
         if (r1 <= 0.5)
         {
@@ -66,7 +66,7 @@ struct Kernel4P
     {
         Real kernel_4p;
 
-        Real r2 = r_in * r_in;
+        [[maybe_unused]] Real r2 = r_in * r_in;
 
         if (r_in <= -2)
         {
@@ -141,7 +141,7 @@ Real phi1 (Real r)
 {
     Real phi1;
     Real K = 59.0 / 60 - std::sqrt(29.0) / 20.0;
-    Real sgn = (3.0 / 2.0 - K) / std::abs(3.0 / 2.0 - K);
+    [[maybe_unused]] Real sgn = (3.0 / 2.0 - K) / std::abs(3.0 / 2.0 - K);
 
     // pre-computed ratios
     Real alpha = 28.0;
@@ -169,7 +169,7 @@ struct Kernel6P
 
         // internal parameters
         Real K = 59.0 / 60 - std::sqrt(29.0) / 20.0;
-        Real sgn = (3.0 / 2 - K) / std::abs(3.0 / 2 - K);
+        [[maybe_unused]] Real sgn = (3.0 / 2 - K) / std::abs(3.0 / 2 - K);
 
         // pre-computed ratios
         Real inv16 = 1.0 / 16.0;

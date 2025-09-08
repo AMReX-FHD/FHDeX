@@ -12,7 +12,7 @@
          Box const& ybx,
          Box const& zbx),
      Array4<Real const> const& betacc,
-     Array4<Real const> const& gammacc,
+    [[maybe_unused]] Array4<Real const> const& gammacc,
      AMREX_D_DECL(Array4<Real const> const& alphax,
          Array4<Real const> const& alphay,
          Array4<Real const> const& alphaz),
@@ -300,7 +300,7 @@
          Box const& ybx,
          Box const& zbx),
      Array4<Real const> const& betacc,
-     Array4<Real const> const& gammacc,
+     [[maybe_unused]] Array4<Real const> const& gammacc,
      AMREX_D_DECL(Array4<Real const> const& alphax,
          Array4<Real const> const& alphay,
          Array4<Real const> const& alphaz),
@@ -686,7 +686,7 @@
      // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
      for (MFIter mfi(beta_cc,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
-         const Box & bx = mfi.tilebox();
+         [[maybe_unused]] const Box & bx = mfi.tilebox();
 
          Array4<Real const> const& betacc = beta_cc.array(mfi);
          Array4<Real const> const& gammacc = gamma_cc.array(mfi);

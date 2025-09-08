@@ -1,6 +1,6 @@
 #include "multispec_functions.H"
 
-void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
+void CorrectionFlux(const MultiFab& rho, const MultiFab& /*rhotot*/,
     std::array< MultiFab, AMREX_SPACEDIM >& flux)
 {
 
@@ -21,7 +21,7 @@ void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
         amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real sum = 0.;
-            Real corr = 0.;
+            [[maybe_unused]] Real corr = 0.;
 
             // sum the fluxes upto nspecies-1
             for (int n=0; n<nspecies-1; ++n) {
@@ -39,7 +39,7 @@ void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
         amrex::ParallelFor(bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real sum = 0.;
-            Real corr = 0.;
+            [[maybe_unused]] Real corr = 0.;
 
             // sum the fluxes upto nspecies-1
             for (int n=0; n<nspecies-1; ++n) {
@@ -58,7 +58,7 @@ void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
         amrex::ParallelFor(bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real sum = 0.;
-            Real corr = 0.;
+            [[maybe_unused]] Real corr = 0.;
 
             // sum the fluxes upto nspecies-1
             for (int n=0; n<nspecies-1; ++n) {
