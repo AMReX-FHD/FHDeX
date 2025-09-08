@@ -41,7 +41,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
     int nspecies = rho.nComp();
     int nspecies2 = nspecies*nspecies;
 
-    const Real* dx = geom.CellSize();
+    [[maybe_unused]] const Real* dx = geom.CellSize();
 
     // build local face-centered multifab with nspecies^2 component, zero ghost cells
     std::array< MultiFab, AMREX_SPACEDIM > rhoWchi_face;    // rho*W*chi*Gamma
@@ -134,8 +134,8 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
     MultiFab laplacian(ba, dmap, nspecies, 1);
 
     Real dxinv = 1./dx[0];
-    Real twodxinv = 2.*dxinv;
-    Real sixth = 1./6.;
+    [[maybe_unused]] Real twodxinv = 2.*dxinv;
+    [[maybe_unused]] Real sixth = 1./6.;
     Real twelveinv = 1./12.;
 
     for ( MFIter mfi(laplacian,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -320,9 +320,9 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
     MultiFab TotMono(ba, dmap, 1, 1);
 
     Real dxinv = 1./dx[0];
-    Real twodxinv = 2.*dxinv;
-    Real sixth = 1./6.;
-    Real twelveinv = 1./12.;
+    [[maybe_unused]] Real twodxinv = 2.*dxinv;
+    [[maybe_unused]] Real sixth = 1./6.;
+    [[maybe_unused]] Real twelveinv = 1./12.;
     Real one44inv = 1./144.;
 
     for ( MFIter mfi(laplacian,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
