@@ -1,3 +1,6 @@
+#if defined(PELEPHYSICS)
+#include "mechanism.H"
+#endif
 namespace common {
 
 //////////////
@@ -6,6 +9,11 @@ namespace common {
 #define WRITE_BUFFER 1000
 #define MAX_BONDS 12
 //////////////
+
+/// MAX_SPECIES and NUM_SPECIES consistency between PELEPHYSICS and FHD /////
+#if defined(PELEPHYSICS)
+#define MAX_SPECIES (NUM_SPECIES)
+#endif
 
     // misc global variables
     extern amrex::IntVect nodal_flag;

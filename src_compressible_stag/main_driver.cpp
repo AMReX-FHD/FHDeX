@@ -84,12 +84,26 @@ void main_driver(const char* argv)
     }
 #endif
 
-    int step_start, statsCount;
-    amrex::Real time;
+#if defined(PELEPHYSICS)
+    // Set nspecies = MAX_SPECIES
+    nspecies = int(MAX_SPECIES);
+    nvars = AMREX_SPACEDIM + 2 + nspecies;
+    nprimvars = AMREX_SPACEDIM + 3 + 2*nspecies;
 
+    // Set molmass
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        molmass[i] = h_global_mw[i];
+    }
+
+    amrex::Print() << "starting simulation with " << nspecies <<  "\n";
+#else
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     GetHcGas();
+#endif
+    
+    int step_start, statsCount;
+    amrex::Real time;
 
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -770,6 +784,13 @@ void main_driver(const char* argv)
         //    vel[d].setVal(0.,ngc);
         //}
         conservedToPrimitiveStag(prim, vel, cu, cumom);
+
+        // get transport coefficients
+#if defined(PELEPHYSICS)
+            calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D, trans_parms);
+#else
+            calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+#endif
 
         if (n_ads_spec>0) {
             init_surfcov(surfcov, geom);
