@@ -175,7 +175,7 @@ void GetMolfrac (const GpuArray<Real,MAX_SPECIES>& Yk,
     amrex::Real Y[NUM_SPECIES];
     for (int i=0;i<NUM_SPECIES;++i) Y[i] = Yk[i];
     eos.Y2X(Y,X);
-    for (int i=0;i<NUM_SPECIES;++i) Xk[i] = Y[i];
+    for (int i=0;i<NUM_SPECIES;++i) Xk[i] = X[i];
 
 }
 #else
