@@ -11,6 +11,8 @@ AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
 AMREX_GPU_MANAGED int compressible::turbRestartRun = 1;
 AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
+AMREX_GPU_MANAGED amrex::Real compressible::p_init = -1.0;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::Xk_init;
 
 
 void InitializeCompressibleNamespace()
@@ -84,6 +86,24 @@ void InitializeCompressibleNamespace()
     pp.query("zeta_ratio",zeta_ratio);
     if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio < 0.0)) amrex::Abort("need non-negative zeta_ratio (ratio of bulk to shear viscosity) for visc_type = 3 (use bulk viscosity)");
     if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio >= 0.0)) amrex::Print() << "bulk viscosity model selected; bulk viscosity ratio is: " << zeta_ratio << "\n";
+
+    // initial pressure
+    pp.query("p_init",p_init);
+    if ((rho0 > 0.0) and (T_init[0] > 0.) and (p_init > 0.0)) amrex::Abort("can not specify initial pressure, temperature and density. Set either p_init negative (to compute p_init), or rho0 negative (to compute rho0)");
+
+    // get initial Mole fractions
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        Xk_init[i] = -1.0;
+    }
+    amrex::Print() << "nspecies: " << nspecies << "\n";
+    if (pp.queryarr("Xk_init",temp,0,nspecies)) {
+        amrex::Print() << "Initial mole fractions are: ";
+        for (int i=0; i<nspecies; ++i) {
+            Xk_init[i] = temp[i];
+            amrex::Print() << Xk_init[i] << " ";
+        }
+        amrex::Print() << "\n";
+    }
 
     return;
 }

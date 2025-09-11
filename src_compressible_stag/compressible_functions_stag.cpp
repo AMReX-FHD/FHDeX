@@ -36,20 +36,47 @@ void InitConsVarStag(MultiFab& cons,
     { // Put the following in a block to avoid warnings on shadowing
         // compute internal energy
         Real intEnergy;
-        GpuArray<Real,MAX_SPECIES  > massvec;
-        for(int i=0;i<nspecies;i++) {
-            massvec[i] = rhobar[i];
+        GpuArray<Real,MAX_SPECIES  > Yk_init;
+
+        if (Xk_init[0] < 0.0) { // use Yk_init = rhobar
+            for(int i=0;i<nspecies;i++) {
+                Yk_init[i] = rhobar[i];
+            }
         }
-        GetEnergy(intEnergy, massvec, T_init[0]);
+        else {
+            GetMassfrac(Xk_init, Yk_init);
+            amrex::Print() << " initial mass, mol fractions:\n";
+            for (int i=0; i<nspecies; ++i) {
+                amrex::Print() << "species k: " << i
+                               << " Yk: " << Yk_init[i]
+                               << " Xk: " << Xk_init[i] << "\n";
+            }
+        }
+        GetEnergy(intEnergy, Yk_init, T_init[0]);
 
         cons.setVal(0.0,0,nvars,ngc);
-        cons.setVal(rho0,0,1,ngc);           // density
-        cons.setVal(0,1,3,ngc);              // x/y/z momentum
-        cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
-        for(int i=0;i<nspecies;i++) {
-            cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
+        if (rho0 > 0.0) {
+            cons.setVal(rho0,0,1,ngc);           // density
+            cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
+            for(int i=0;i<nspecies;i++) {
+                cons.setVal(rho0*Yk_init[i],5+i,1,ngc); // mass densities
+            }
+        }
+        else if (p_init > 0.0) {
+            Real dens;
+            GetDensity(p_init,dens,T_init[0],Yk_init);
+            amrex::Print() << "initial pressure: " << p_init
+                           << " initial temp: " << T_init[0]
+                           << " initial dens: " << dens << "\n";
+            cons.setVal(dens,0,1,ngc);           // density
+            cons.setVal(dens*intEnergy,4,1,ngc); // total energy
+            for(int i=0;i<nspecies;i++) {
+                cons.setVal(dens*Yk_init[i],5+i,1,ngc); // mass densities
+            }
+            amrex::Print() << "\n";
         }
 
+        cons.setVal(0,1,3,ngc);                // x/y/z momentum
         for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
             momStag[d].setVal(0.,ngc);
         }
@@ -184,7 +211,6 @@ void InitConsVarStag(MultiFab& cons,
             GpuArray<Real,AMREX_SPACEDIM> pos;
             GpuArray<Real,AMREX_SPACEDIM> relpos;
 
-            GpuArray<Real,MAX_SPECIES> massvec;
             GpuArray<Real,MAX_SPECIES> Yk;
 
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
@@ -201,24 +227,24 @@ void InitConsVarStag(MultiFab& cons,
             if (prob_type == 2) { // Rayleigh-Taylor
 
                 if (relpos[2] >= 0.) {
-                    massvec[0] = 0.4;
-                    massvec[1] = 0.4;
-                    massvec[2] = 0.1;
-                    massvec[3] = 0.1;
+                    Yk[0] = 0.4;
+                    Yk[1] = 0.4;
+                    Yk[2] = 0.1;
+                    Yk[3] = 0.1;
                 } else {
-                    massvec[0] = 0.1;
-                    massvec[1] = 0.1;
-                    massvec[2] = 0.4;
-                    massvec[3] = 0.4;
+                    Yk[0] = 0.1;
+                    Yk[1] = 0.1;
+                    Yk[2] = 0.4;
+                    Yk[3] = 0.4;
                 }
 
                 Real pamb;
-                GetPressureGas(pamb, massvec, cu(i,j,k,0), T_init[0]);
+                GetPressureGas(pamb, Yk, cu(i,j,k,0), T_init[0]);
 
                 Real molmix = 0.;
 
                 for (int l=0; l<nspecies; ++l) {
-                    molmix = molmix + massvec[l]/molmass[l];
+                    molmix = molmix + Yk[l]/molmass[l];
                 }
                 molmix = 1.0/molmix;
                 Real rgasmix = Runiv/molmix;
@@ -230,11 +256,11 @@ void InitConsVarStag(MultiFab& cons,
                 cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
 
                 for (int l=0; l<nspecies; ++l) {
-                    cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
+                    cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
                 }
 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, T_init[0]);
+                GetEnergy(intEnergy, Yk, T_init[0]);
 
                 cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
@@ -243,12 +269,12 @@ void InitConsVarStag(MultiFab& cons,
 
                 for (int l=0; l<nspecies; ++l) {
                     Real Ygrad = (bc_Yk_y_hi[l] - bc_Yk_y_lo[l])/(realhi[1] - reallo[1]);
-                    massvec[l] = Ygrad*pos[1] + bc_Yk_y_lo[l];
-                    cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
+                    Yk[l] = Ygrad*pos[1] + bc_Yk_y_lo[l];
+                    cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
                 }
 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, T_init[0]);
+                GetEnergy(intEnergy, Yk, T_init[0]);
                 cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
                                                            cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
@@ -289,23 +315,23 @@ void InitConsVarStag(MultiFab& cons,
                 cu(i,j,k,2) = 0;
                 cu(i,j,k,3) = 0;
                 if((prob_lo[1] + itVec[1]) < hy) {
-                    massvec[0] = bc_Yk_x_lo[0];
-                    massvec[1] = bc_Yk_x_lo[1];
-                    GetEnergy(intEnergy, massvec, t_lo_y);
+                    Yk[0] = bc_Yk_x_lo[0];
+                    Yk[1] = bc_Yk_x_lo[1];
+                    GetEnergy(intEnergy, Yk, t_lo_y);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo[0];
                     cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo[1];
                 } else if ((prob_lo[1] + itVec[1]) < 2*hy) {
-                    massvec[0] = bc_Yk_x_hi[0];
-                    massvec[1] = bc_Yk_x_hi[1];
-                    GetEnergy(intEnergy, massvec, t_hi_y);
+                    Yk[0] = bc_Yk_x_hi[0];
+                    Yk[1] = bc_Yk_x_hi[1];
+                    GetEnergy(intEnergy, Yk, t_hi_y);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_hi[0];
                     cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_hi[1];
                 } else {
-                    massvec[0] = bc_Yk_x_lo[0];
-                    massvec[1] = bc_Yk_x_lo[1];
-                    GetEnergy(intEnergy, massvec, t_lo_y);
+                    Yk[0] = bc_Yk_x_lo[0];
+                    Yk[1] = bc_Yk_x_lo[1];
+                    GetEnergy(intEnergy, Yk, t_lo_y);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo[0];
                     cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo[1];
@@ -327,42 +353,42 @@ void InitConsVarStag(MultiFab& cons,
                    Real y = itVec[1];
                    Real Ly = realhi[1] - reallo[0];
 
-                   for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                   for (int ns=0;ns<nspecies;++ns) Yk[ns] = rhobar[ns];
 
                    Real pressure;
-                   GetPressureGas(pressure,massvec,rho0,T_init[0]);
+                   GetPressureGas(pressure,Yk,rho0,T_init[0]);
 
                    Real temperature;
                    temperature = T_init[0] + 0.1*T_init[0]*sin(2.*pi*y/Ly);
 
                    Real density;
-                   GetDensity(pressure,density,temperature,massvec);
+                   GetDensity(pressure,density,temperature,Yk);
                    cu(i,j,k,0) = density;
-                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*Yk[ns];
 
                    Real intEnergy;
-                   GetEnergy(intEnergy, massvec, temperature);
+                   GetEnergy(intEnergy, Yk, temperature);
                    cu(i,j,k,4) = density*intEnergy;
             }
             else if (prob_type == 102) { // two temperature across membrane
 
                     Real intEnergy;
                     cu(i,j,k,0) = rho0;
-                    massvec[0] = 0.25; massvec[1] = 0.25; massvec[2] = 0.25; massvec[3] = 0.25;
+                    Yk[0] = 0.25; Yk[1] = 0.25; Yk[2] = 0.25; Yk[3] = 0.25;
                     if (i < membrane_cell) {
-                        GetEnergy(intEnergy, massvec, t_lo[0]);
+                        GetEnergy(intEnergy, Yk, t_lo[0]);
                         cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     }
                     else {
-                        GetEnergy(intEnergy, massvec, t_hi[0]);
+                        GetEnergy(intEnergy, Yk, t_hi[0]);
                         cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     }
             } // prob type
             else if (prob_type == 103) { // double the pressure in other half
 
-                    for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                    for (int ns=0;ns<nspecies;++ns) Yk[ns] = rhobar[ns];
                     Real pressure;
-                    GetPressureGas(pressure,massvec,rho0,T_init[0]);
+                    GetPressureGas(pressure,Yk,rho0,T_init[0]);
 
                     if (relpos[0] > 0.0) {
                         Real pressure_new = 2.0*pressure;
@@ -370,12 +396,12 @@ void InitConsVarStag(MultiFab& cons,
                         temperature = T_init[0];
 
                         Real density;
-                        GetDensity(pressure_new,density,temperature,massvec);
+                        GetDensity(pressure_new,density,temperature,Yk);
                         cu(i,j,k,0) = density;
-                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*Yk[ns];
 
                         Real intEnergy;
-                        GetEnergy(intEnergy, massvec, temperature);
+                        GetEnergy(intEnergy, Yk, temperature);
                         cu(i,j,k,4) = density*intEnergy;
                     }
 
@@ -384,17 +410,17 @@ void InitConsVarStag(MultiFab& cons,
 
                     if (i==15)
                     {
-                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        for (int ns=0;ns<nspecies;++ns) Yk[ns] = rhobar[ns];
                         Real pamb;
-                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+                        GetPressureGas(pamb,Yk,rho0,T_init[0]);
 
                         Real density;
-                        GetDensity(pamb,density,400.0,massvec);
+                        GetDensity(pamb,density,400.0,Yk);
                         cu(i,j,k,0) = density;
-                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*Yk[ns];
 
                         Real intEnergy;
-                        GetEnergy(intEnergy, massvec, 400.0);
+                        GetEnergy(intEnergy, Yk, 400.0);
                         cu(i,j,k,4) = density*intEnergy;
                     }
 
@@ -403,17 +429,17 @@ void InitConsVarStag(MultiFab& cons,
 
                     if (i==15)
                     {
-                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        for (int ns=0;ns<nspecies;++ns) Yk[ns] = rhobar[ns];
                         Real pamb;
-                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+                        GetPressureGas(pamb,Yk,rho0,T_init[0]);
 
                         Real density;
-                        GetDensity(pamb*1.5,density,T_init[0],massvec);
+                        GetDensity(pamb*1.5,density,T_init[0],Yk);
                         cu(i,j,k,0) = density;
-                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*Yk[ns];
 
                         Real intEnergy;
-                        GetEnergy(intEnergy, massvec, T_init[0]);
+                        GetEnergy(intEnergy, Yk, T_init[0]);
                         cu(i,j,k,4) = density*intEnergy;
                     }
             }
@@ -421,19 +447,19 @@ void InitConsVarStag(MultiFab& cons,
 
                     if (i==15)
                     {
-                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        for (int ns=0;ns<nspecies;++ns) Yk[ns] = rhobar[ns];
                         Real pamb;
-                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+                        GetPressureGas(pamb,Yk,rho0,T_init[0]);
 
-                        massvec[0] = 0.4;
-                        massvec[1] = 0.6;
+                        Yk[0] = 0.4;
+                        Yk[1] = 0.6;
                         Real density;
-                        GetDensity(pamb,density,T_init[0],massvec);
+                        GetDensity(pamb,density,T_init[0],Yk);
                         cu(i,j,k,0) = density;
-                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*Yk[ns];
 
                         Real intEnergy;
-                        GetEnergy(intEnergy, massvec, T_init[0]);
+                        GetEnergy(intEnergy, Yk, T_init[0]);
                         cu(i,j,k,4) = density*intEnergy;
                     }
 
@@ -455,11 +481,11 @@ void InitConsVarStag(MultiFab& cons,
                     cu(i,j,k,5+1) = rhoYk1B*exp(molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]);
                     cu(i,j,k,0) = cu(i,j,k,5+0) + cu(i,j,k,5+1);
 
-                    massvec[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
-                    massvec[1] = cu(i,j,k,5+1)/cu(i,j,k,0);
+                    Yk[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
+                    Yk[1] = cu(i,j,k,5+1)/cu(i,j,k,0);
 
                     Real intEnergy;
-                    GetEnergy(intEnergy, massvec, T_init[0]);
+                    GetEnergy(intEnergy, Yk, T_init[0]);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                                cu(i,j,k,2)*cu(i,j,k,2) +
                                                                cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
@@ -474,11 +500,11 @@ void InitConsVarStag(MultiFab& cons,
                     cu(i,j,k,5+1) = rhoYk0B*(molmass[1]/molmass[0])*exp( (molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[0]-molmass[1])*Lz*grav[2]/2.0/Runiv/T_init[0]) );
                     cu(i,j,k,0) = cu(i,j,k,5+0) + cu(i,j,k,5+1);
 
-                    massvec[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
-                    massvec[1] = cu(i,j,k,5+1)/cu(i,j,k,0);
+                    Yk[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
+                    Yk[1] = cu(i,j,k,5+1)/cu(i,j,k,0);
 
                     Real intEnergy;
-                    GetEnergy(intEnergy, massvec, T_init[0]);
+                    GetEnergy(intEnergy, Yk, T_init[0]);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                                cu(i,j,k,2)*cu(i,j,k,2) +
                                                                cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
@@ -609,8 +635,8 @@ void InitConsVarStag(MultiFab& cons,
                }
 
                Real pressure;
-               for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
-               GetPressureGas(pressure,massvec,rho0,T_init[0]);
+               for (int ns=0;ns<nspecies;++ns) Yk[ns] = rhobar[ns];
+               GetPressureGas(pressure,Yk,rho0,T_init[0]);
 
                Real density;
                GetDensity(pressure,density,T_init[0],Yk);
@@ -625,9 +651,9 @@ void InitConsVarStag(MultiFab& cons,
 
            else if (prob_type == 111) { // pressure and density checkerboard pattern
 
-               for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+               for (int ns=0;ns<nspecies;++ns) Yk[ns] = rhobar[ns];
                Real intEnergy;
-               GetEnergy(intEnergy, massvec, T_init[0]);
+               GetEnergy(intEnergy, Yk, T_init[0]);
 
                // Set checkerboarded density -- will automatically set checkerboarded pressure for same T, Y
                Real rhomin = rho0*0.5;
@@ -635,12 +661,12 @@ void InitConsVarStag(MultiFab& cons,
 
                if ((i+j+k) % 2 == 0) {
                    cu(i,j,k,0) = rhomin;
-                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomin*massvec[ns];
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomin*Yk[ns];
                    cu(i,j,k,4) = rhomin*intEnergy;
                }
                else {
                    cu(i,j,k,0) = rhomax;
-                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomax*massvec[ns];
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomax*Yk[ns];
                    cu(i,j,k,4) = rhomax*intEnergy;
                }
 
