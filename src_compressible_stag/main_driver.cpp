@@ -47,6 +47,24 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
 
+#if defined(PELEPHYSICS)
+    // Set nspecies = MAX_SPECIES
+    nspecies = int(MAX_SPECIES);
+    nvars = AMREX_SPACEDIM + 2 + nspecies;
+    nprimvars = AMREX_SPACEDIM + 3 + 2*nspecies;
+
+    // Set molmass
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        molmass[i] = h_global_mw[i];
+    }
+
+    amrex::Print() << "starting simulation with " << nspecies <<  " species \n";
+#else
+    // if gas heat capacities in the namelist are negative, calculate them using using dofs.
+    // This will only update the Fortran values.
+    GetHcGas();
+#endif
+
     InitializeCompressibleNamespace();
 
     if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
@@ -82,24 +100,6 @@ void main_driver(const char* argv)
     if (restart>0) {
         Abort("restart not supported in compressible_stag_mui");
     }
-#endif
-
-#if defined(PELEPHYSICS)
-    // Set nspecies = MAX_SPECIES
-    nspecies = int(MAX_SPECIES);
-    nvars = AMREX_SPACEDIM + 2 + nspecies;
-    nprimvars = AMREX_SPACEDIM + 3 + 2*nspecies;
-
-    // Set molmass
-    for (int i=0; i<MAX_SPECIES; ++i) {
-        molmass[i] = h_global_mw[i];
-    }
-
-    amrex::Print() << "starting simulation with " << nspecies <<  "\n";
-#else
-    // if gas heat capacities in the namelist are negative, calculate them using using dofs.
-    // This will only update the Fortran values.
-    GetHcGas();
 #endif
     
     int step_start, statsCount;
