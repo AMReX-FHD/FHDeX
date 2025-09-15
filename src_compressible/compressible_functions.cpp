@@ -13,6 +13,12 @@ AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
 AMREX_GPU_MANAGED amrex::Real compressible::p_init = -1.0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::Xk_init;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM + 2 + MAX_SPECIES> cons_SF_pairA;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM + 2 + MAX_SPECIES> cons_SF_pairB;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM + 3 + 2*MAX_SPECIES> prim_SF_pairA;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM + 3 + 2*MAX_SPECIES> prim_SF_pairB;
+AMREX_GPU_MANAGED int do_SF_pair_cons = -1;
+AMREX_GPU_MANAGED int do_SF_pair_prim = -1;
 
 
 void InitializeCompressibleNamespace()
@@ -106,6 +112,16 @@ void InitializeCompressibleNamespace()
             amrex::Print() << Xk_init[i] << " ";
         }
         amrex::Print() << "\n";
+    }
+
+    // Get structure factor pairs
+    for (int i=0; i< AMREX_SPACEDIM + 2 + MAX_SPECIES; ++i) {
+      cons_SF_pairA[i] = -1;
+      cons_SF_pairB[i] = -1;
+    }
+    for (int i=0; i< AMREX_SPACEDIM + 3 + 2*MAX_SPECIES; ++i) {
+      prim_SF_pairA[i] = -1;
+      prim_SF_pairB[i] = -1;
     }
 
     return;
