@@ -82,11 +82,14 @@ void InitializeCompressibleNamespace()
         do_reservoir = true;
     }
 
+#if defined(PELEPHYSICS)
+#else
     // bulk viscosity ratio
     pp.query("zeta_ratio",zeta_ratio);
     if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio < 0.0)) amrex::Abort("need non-negative zeta_ratio (ratio of bulk to shear viscosity) for visc_type = 3 (use bulk viscosity)");
     if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio >= 0.0)) amrex::Print() << "bulk viscosity model selected; bulk viscosity ratio is: " << zeta_ratio << "\n";
-
+#endif
+    
     // initial pressure
     pp.query("p_init",p_init);
     if ((rho0 > 0.0) and (T_init[0] > 0.) and (p_init > 0.0)) amrex::Abort("can not specify initial pressure, temperature and density. Set either p_init negative (to compute p_init), or rho0 negative (to compute rho0)");
