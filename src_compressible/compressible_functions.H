@@ -18,6 +18,13 @@ using namespace compressible;
 // copy contents of compressible_params_module to C++ compressible namespace
 void InitializeCompressibleNamespace();
 
+void InitializeCompressibleSFParams(amrex::Vector< int >& prim_SF_pairA_list,
+                                    amrex::Vector< int >& prim_SF_pairB_list,
+                                    amrex::Vector< int >& cons_SF_pairA_list,
+                                    amrex::Vector< int >& cons_SF_pairB_list,
+                                    const int structVarsPrim,
+                                    const int structVarsCons);
+
 // if gas heat capacities in the namelist are negative, calculate them using using dofs
 void GetHcGas();
 

@@ -13,12 +13,8 @@ AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
 AMREX_GPU_MANAGED amrex::Real compressible::p_init = -1.0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::Xk_init;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM + 2 + MAX_SPECIES> cons_SF_pairA;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM + 2 + MAX_SPECIES> cons_SF_pairB;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM + 3 + 2*MAX_SPECIES> prim_SF_pairA;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM + 3 + 2*MAX_SPECIES> prim_SF_pairB;
-AMREX_GPU_MANAGED int do_SF_pair_cons = -1;
-AMREX_GPU_MANAGED int do_SF_pair_prim = -1;
+AMREX_GPU_MANAGED bool compressible::do_SF_pair_cons = false;
+AMREX_GPU_MANAGED bool compressible::do_SF_pair_prim = false;
 
 
 void InitializeCompressibleNamespace()
@@ -114,17 +110,62 @@ void InitializeCompressibleNamespace()
         amrex::Print() << "\n";
     }
 
+    return;
+}
+
+void InitializeCompressibleSFParams(amrex::Vector< int >& prim_SF_pairA_list,
+                                    amrex::Vector< int >& prim_SF_pairB_list,
+                                    amrex::Vector< int >& cons_SF_pairA_list,
+                                    amrex::Vector< int >& cons_SF_pairB_list,
+                                    const int structVarsPrim,
+                                    const int structVarsCons)
+{
+    // extract inputs parameters
+    ParmParse pp;
+
     // Get structure factor pairs
-    for (int i=0; i< AMREX_SPACEDIM + 2 + MAX_SPECIES; ++i) {
-      cons_SF_pairA[i] = -1;
-      cons_SF_pairB[i] = -1;
+    amrex::Vector<int> temp_prim(structVarsPrim, -1);
+    amrex::Vector<int> temp_cons(structVarsCons, -1);
+    if (pp.queryarr("SF_prim_pairA",temp_prim,0,structVarsPrim)) {
+        for (int i=0; i<structVarsPrim; ++i) {
+            if (temp_prim[i] > structVarsPrim) {
+                amrex::Error("SF_prim_pairA index can not be greater than 2*AMREX_SPACEDIM+2*nspecies+2");
+            }
+            else { if (temp_prim[i] >=0 ) prim_SF_pairA_list.push_back(temp_prim[i]);}
+        }
     }
-    for (int i=0; i< AMREX_SPACEDIM + 3 + 2*MAX_SPECIES; ++i) {
-      prim_SF_pairA[i] = -1;
-      prim_SF_pairB[i] = -1;
+    if (pp.queryarr("SF_prim_pairB",temp_prim,0,structVarsPrim)) {
+        for (int i=0; i<structVarsPrim; ++i) {
+            if (temp_prim[i] > structVarsPrim) {
+                amrex::Error("SF_prim_pairB index can not be greater than 2*AMREX_SPACEDIM+2*nspecies+2");
+            }
+            else { if (temp_prim[i] >=0 ) prim_SF_pairB_list.push_back(temp_prim[i]);}
+        }
     }
 
-    return;
+    if (pp.queryarr("SF_cons_pairA",temp_cons,0,structVarsCons)) {
+        for (int i=0; i<structVarsCons; ++i) {
+            if (temp_cons[i] > structVarsCons) {
+                amrex::Error("SF_cons_pairA index can not be greater than 2*AMREX_SPACEDIM+nspecies+3");
+            }
+            else { if (temp_cons[i] >= 0) cons_SF_pairA_list.push_back(temp_cons[i]);}
+        }
+    }
+    if (pp.queryarr("SF_cons_pairB",temp_cons,0,structVarsCons)) {
+        for (int i=0; i<structVarsPrim; ++i) {
+            if (temp_cons[i] > structVarsCons) {
+                amrex::Error("SF_cons_pairB index can not be greater than 2*AMREX_SPACEDIM+nspecies+3");
+            }
+            else{ if (temp_cons[i] >= 0) cons_SF_pairB_list.push_back(temp_cons[i]);}
+        }
+    }
+
+    if (prim_SF_pairA_list.size()!=prim_SF_pairB_list.size())
+        amrex::Error("SF_prim_pairA and SF_prim_pairB should have the same number of non-negative indices");
+    if (cons_SF_pairA_list.size()!=cons_SF_pairB_list.size())
+        amrex::Error("SF_cons_pairA and SF_cons_pairB should have the same number of non-negative indices");
+    if (prim_SF_pairA_list.size() > 0) do_SF_pair_prim = true;
+    if (cons_SF_pairA_list.size() > 0) do_SF_pair_cons = true;
 }
 
 

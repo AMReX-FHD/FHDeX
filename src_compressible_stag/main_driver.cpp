@@ -426,53 +426,6 @@ void main_driver(const char* argv)
     // rhoYk (copy from cons)
     int structVarsPrim = 2*AMREX_SPACEDIM+2*nspecies+2;
 
-    Vector< std::string > prim_var_names;
-    prim_var_names.resize(structVarsPrim);
-
-    int cnt = 0;
-    int numvars;
-    std::string x;
-
-    // rho
-    prim_var_names[cnt] = "rho";
-    ++cnt;
-
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "velCC";
-        x += (120+d);
-        prim_var_names[cnt] = x;
-        ++cnt;
-    }
-
-    // Temp
-    prim_var_names[cnt] = "Temp";
-    ++cnt;
-
-    // Yk
-    for (int d=0; d<nspecies; d++) {
-        x = "Y";
-        x += (49+d);
-        prim_var_names[cnt] = x;
-        ++cnt;
-    }
-
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "velFACE";
-        x += (120+d);
-        prim_var_names[cnt] = x;
-        ++cnt;
-    }
-
-    // rho*Yk
-    for (int d=0; d<nspecies; d++) {
-        x = "rhoY";
-        x += (49+d);
-        prim_var_names[cnt] = x;
-        ++cnt;
-    }
-
     // "conserved" variable structure factor will contain
     // rho
     // j (averaged)
@@ -482,45 +435,128 @@ void main_driver(const char* argv)
     // j (shifted)
     int structVarsCons = 2*AMREX_SPACEDIM+nspecies+3;
 
-    Vector< std::string > cons_var_names;
-    cons_var_names.resize(structVarsCons);
+    // for specific pairs
+    amrex::Vector< int > prim_SF_pairA_list;
+    amrex::Vector< int > prim_SF_pairB_list;
+    amrex::Vector< int > cons_SF_pairA_list;
+    amrex::Vector< int > cons_SF_pairB_list;
+    InitializeCompressibleSFParams(prim_SF_pairA_list,
+            prim_SF_pairB_list,cons_SF_pairA_list,
+            cons_SF_pairB_list,structVarsPrim,
+            structVarsCons);
+
+    Vector< std::string > prim_var_names_all;
+    prim_var_names_all.resize(structVarsPrim);
+
+    int cnt = 0;
+    int numvars;
+    std::string x;
+
+    // rho
+    prim_var_names_all[cnt] = "rho";
+    ++cnt;
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "velCC";
+        x += (120+d);
+        prim_var_names_all[cnt] = x;
+        ++cnt;
+    }
+
+    // Temp
+    prim_var_names_all[cnt] = "Temp";
+    ++cnt;
+
+    // Yk
+    for (int d=0; d<nspecies; d++) {
+        x = "Y";
+        x += (49+d);
+        prim_var_names_all[cnt] = x;
+        ++cnt;
+    }
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "velFACE";
+        x += (120+d);
+        prim_var_names_all[cnt] = x;
+        ++cnt;
+    }
+
+    // rho*Yk
+    for (int d=0; d<nspecies; d++) {
+        x = "rhoY";
+        x += (49+d);
+        prim_var_names_all[cnt] = x;
+        ++cnt;
+    }
+
+    // for specific pairs
+    Vector< std::string > prim_var_names;
+    if (do_SF_pair_prim) {
+        prim_var_names.resize(prim_SF_pairA_list.size());
+        for (int i=0;i<prim_SF_pairA_list.size(); ++i) {
+            prim_var_names[i] = prim_var_names_all[prim_SF_pairA_list[i]];
+        }
+    }
+    else {
+        prim_var_names.resize(structVarsPrim);
+        std::copy(prim_var_names_all.begin(), prim_var_names_all.end(), std::back_inserter(prim_var_names));
+    }
+
+    Vector< std::string > cons_var_names_all;
+    cons_var_names_all.resize(structVarsCons);
 
     cnt = 0;
 
     // rho
-    cons_var_names[cnt] = "rho";
+    cons_var_names_all[cnt] = "rho";
     ++cnt;
 
     // jx, jy, jz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         x = "jCC";
         x += (120+d);
-        cons_var_names[cnt] = x;
+        cons_var_names_all[cnt] = x;
         ++cnt;
     }
 
     // rho*E
-    cons_var_names[cnt] = "rhoE";
+    cons_var_names_all[cnt] = "rhoE";
     ++cnt;
 
     // rho*Yk
     for (int d=0; d<nspecies; d++) {
         x = "rhoY";
         x += (49+d);
-        cons_var_names[cnt] = x;
+        cons_var_names_all[cnt] = x;
         ++cnt;
     }
 
     // Temp
-    cons_var_names[cnt] = "Temp";
+    cons_var_names_all[cnt] = "Temp";
     ++cnt;
 
     // jx, jy, jz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         x = "jFACE";
         x += (120+d);
-        cons_var_names[cnt] = x;
+        cons_var_names_all[cnt] = x;
         ++cnt;
+    }
+
+    // for specific pairs
+    Vector< std::string > cons_var_names;
+    if (do_SF_pair_cons) {
+        cons_var_names.resize(cons_SF_pairA_list.size());
+        for (int i=0;i<cons_SF_pairA_list.size(); ++i) {
+            cons_var_names[i] = cons_var_names_all[cons_SF_pairA_list[i]];
+        }
+    }
+    else {
+        cons_var_names.resize(structVarsCons);
+        std::copy(cons_var_names_all.begin(), cons_var_names_all.end(), std::back_inserter(cons_var_names));
     }
 
     Vector< std::string > surfcov_var_names;
@@ -535,13 +571,23 @@ void main_driver(const char* argv)
 
     // scale SF results by inverse cell volume
     Vector<Real> var_scaling_prim;
-    var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
+    if (do_SF_pair_prim) {
+        var_scaling_prim.resize(prim_SF_pairA_list.size());
+    }
+    else {
+        var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
+    }
     for (int d=0; d<var_scaling_prim.size(); ++d) {
         var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
+    
     Vector<Real> var_scaling_cons;
-    // scale SF results by inverse cell volume
-    var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
+    if (do_SF_pair_cons) {
+        var_scaling_cons.resize(cons_SF_pairA_list.size());
+    }
+    else {
+        var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
+    }
     for (int d=0; d<var_scaling_cons.size(); ++d) {
         var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
@@ -904,8 +950,18 @@ void main_driver(const char* argv)
         structFactPrimMF.define(ba,dmap,structVarsPrim,0);
 
         if ((do_1D==0) and (do_2D==0)) {
-            structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
-            structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
+            if (do_SF_pair_prim) {
+                structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim,prim_SF_pairA_list,prim_SF_pairB_list);
+            }
+            else {
+                structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
+            }
+            if (do_SF_pair_cons) {
+                structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons,cons_SF_pairA_list,cons_SF_pairB_list);
+            }
+            else {
+                structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
+            }
 
             // planar extractions
             if (project_dir >= 0) {
@@ -921,14 +977,36 @@ void main_driver(const char* argv)
                 dmap_flat = Flattened.DistributionMap();
 
                 if (do_slab_sf == 0) {
-                    structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                    structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                    if (do_SF_pair_prim) {
+                        structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,prim_SF_pairA_list,prim_SF_pairB_list);
+                    }
+                    else {
+                        structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                    }
+                    if (do_SF_pair_cons) {
+                        structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,cons_SF_pairA_list,cons_SF_pairB_list);
+                    }
+                    else {
+                        structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                    }
                 }
                 else {
-                    structFactPrimVerticalAverageMembraneLo.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                    structFactPrimVerticalAverageMembraneHi.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                    structFactConsVerticalAverageMembraneLo.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-                    structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                    if (do_SF_pair_prim) {
+                        structFactPrimVerticalAverageMembraneLo.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,prim_SF_pairA_list,prim_SF_pairB_list);
+                        structFactPrimVerticalAverageMembraneHi.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,prim_SF_pairA_list,prim_SF_pairB_list);
+                    }
+                    else {
+                        structFactPrimVerticalAverageMembraneLo.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                        structFactPrimVerticalAverageMembraneHi.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                    }
+                    if (do_SF_pair_cons) {
+                        structFactConsVerticalAverageMembraneLo.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,cons_SF_pairA_list,cons_SF_pairB_list);
+                        structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,cons_SF_pairA_list,cons_SF_pairB_list);
+                    }
+                    else {
+                        structFactConsVerticalAverageMembraneLo.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                        structFactConsVerticalAverageMembraneHi.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                    }
                 }
             }
 
@@ -963,8 +1041,18 @@ void main_driver(const char* argv)
             structFactConsVec.resize(n_cells[project_dir]);
 
             for (int i=0; i<n_cells[project_dir]; ++i) {
-                structFactPrimVec[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactConsVec[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                if (do_SF_pair_prim) {
+                    structFactPrimVec[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,prim_SF_pairA_list,prim_SF_pairB_list);
+                }
+                else {
+                    structFactPrimVec[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                }
+                if (do_SF_pair_cons) {
+                    structFactConsVec[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,cons_SF_pairA_list,cons_SF_pairB_list);
+                }
+                else {
+                    structFactConsVec[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                }
             }
 
             MultiFab pencil;
@@ -983,8 +1071,18 @@ void main_driver(const char* argv)
                 structFactConsFlattenedVec.resize(n_cells[2]);
 
                 for (int i=0; i<n_cells[2];  ++i) {
-                    structFactPrimFlattenedVec[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
-                    structFactConsFlattenedVec[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
+                    if (do_SF_pair_prim) {
+                        structFactPrimFlattenedVec[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim,prim_SF_pairA_list,prim_SF_pairB_list);
+                    }
+                    else {
+                        structFactPrimFlattenedVec[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
+                    }
+                    if (do_SF_pair_cons) {
+                        structFactConsFlattenedVec[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons,cons_SF_pairA_list,cons_SF_pairB_list);
+                    }
+                    else {
+                        structFactConsFlattenedVec[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
+                    }
                 }
             }
 
@@ -1015,8 +1113,18 @@ void main_driver(const char* argv)
             structFactConsArray.resize(n_cells[1]*n_cells[2]);
 
             for (int i=0; i<n_cells[1]*n_cells[2];  ++i) {
-                structFactPrimArray[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
-                structFactConsArray[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
+                if (do_SF_pair_prim) {
+                    structFactPrimArray[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim,prim_SF_pairA_list,prim_SF_pairB_list);
+                }
+                else {
+                    structFactPrimArray[i].define(ba_pencil,dmap_pencil,prim_var_names,var_scaling_prim);
+                }
+                if (do_SF_pair_cons) {
+                    structFactConsArray[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons,cons_SF_pairA_list,cons_SF_pairB_list);
+                }
+                else {
+                    structFactConsArray[i].define(ba_pencil,dmap_pencil,cons_var_names,var_scaling_cons);
+                }
             }
 
         }
