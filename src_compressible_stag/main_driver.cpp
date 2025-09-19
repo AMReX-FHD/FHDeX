@@ -420,143 +420,98 @@ void main_driver(const char* argv)
     // "primitive" variable structure factor will contain
     // rho
     // vel (shifted)
+    // vel (averaged)
     // T
     // Yk
-    // vel (averaged)
-    // rhoYk (copy from cons)
-    int structVarsPrim = 2*AMREX_SPACEDIM+2*nspecies+2;
-
-    // "conserved" variable structure factor will contain
-    // rho
-    // j (averaged)
-    // rho*E
-    // rho*Yk
-    // Temperature (not in the conserved array; will have to copy it in)
-    // j (shifted)
-    int structVarsCons = 2*AMREX_SPACEDIM+nspecies+3;
-
-    // for specific pairs
-    amrex::Vector< int > prim_SF_pairA_list;
-    amrex::Vector< int > prim_SF_pairB_list;
-    amrex::Vector< int > cons_SF_pairA_list;
-    amrex::Vector< int > cons_SF_pairB_list;
-    InitializeCompressibleSFParams(prim_SF_pairA_list,
-            prim_SF_pairB_list,cons_SF_pairA_list,
-            cons_SF_pairB_list,structVarsPrim,
-            structVarsCons);
-
-    Vector< std::string > prim_var_names_all;
-    prim_var_names_all.resize(structVarsPrim);
+    int structVarsPrim = 2*AMREX_SPACEDIM+nspecies+2;
+    
+    Vector< std::string > prim_var_names;
+    prim_var_names.resize(structVarsPrim);
 
     int cnt = 0;
     int numvars;
     std::string x;
 
     // rho
-    prim_var_names_all[cnt] = "rho";
+    prim_var_names[cnt] = "rho";
     ++cnt;
 
-    // velx, vely, velz
+    // velx, vely, velz [CC]
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         x = "velCC";
         x += (120+d);
-        prim_var_names_all[cnt] = x;
+        prim_var_names[cnt] = x;
+        ++cnt;
+    }
+
+    // velx, vely, velz [FACE]
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "velFACE";
+        x += (120+d);
+        prim_var_names[cnt] = x;
         ++cnt;
     }
 
     // Temp
-    prim_var_names_all[cnt] = "Temp";
+    prim_var_names[cnt] = "Temp";
     ++cnt;
 
     // Yk
     for (int d=0; d<nspecies; d++) {
         x = "Y";
         x += (49+d);
-        prim_var_names_all[cnt] = x;
+        prim_var_names[cnt] = x;
         ++cnt;
     }
 
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "velFACE";
-        x += (120+d);
-        prim_var_names_all[cnt] = x;
-        ++cnt;
-    }
-
+    // "conserved" variable structure factor will contain
+    // rho
+    // j (averaged)
+    // j (shifted)
+    // rho*E
+    // Temperature (not in the conserved array; will have to copy it in)
     // rho*Yk
-    for (int d=0; d<nspecies; d++) {
-        x = "rhoY";
-        x += (49+d);
-        prim_var_names_all[cnt] = x;
-        ++cnt;
-    }
+    int structVarsCons = 2*AMREX_SPACEDIM+nspecies+3;
 
-    // for specific pairs
-    Vector< std::string > prim_var_names;
-    if (do_SF_pair_prim) {
-        prim_var_names.resize(prim_SF_pairA_list.size());
-        for (int i=0;i<prim_SF_pairA_list.size(); ++i) {
-            prim_var_names[i] = prim_var_names_all[prim_SF_pairA_list[i]];
-        }
-    }
-    else {
-        prim_var_names.resize(structVarsPrim);
-        std::copy(prim_var_names_all.begin(), prim_var_names_all.end(), std::back_inserter(prim_var_names));
-    }
-
-    Vector< std::string > cons_var_names_all;
-    cons_var_names_all.resize(structVarsCons);
+    Vector< std::string > cons_var_names;
+    cons_var_names.resize(structVarsCons);
 
     cnt = 0;
 
     // rho
-    cons_var_names_all[cnt] = "rho";
+    cons_var_names[cnt] = "rho";
     ++cnt;
 
-    // jx, jy, jz
+    // jx, jy, jz [CC]
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         x = "jCC";
         x += (120+d);
-        cons_var_names_all[cnt] = x;
+        cons_var_names[cnt] = x;
+        ++cnt;
+    }
+
+    // jx, jy, jz [FACE]
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "jFACE";
+        x += (120+d);
+        cons_var_names[cnt] = x;
         ++cnt;
     }
 
     // rho*E
-    cons_var_names_all[cnt] = "rhoE";
+    cons_var_names[cnt] = "rhoE";
+    ++cnt;
+
+    // Temp
+    cons_var_names[cnt] = "Temp";
     ++cnt;
 
     // rho*Yk
     for (int d=0; d<nspecies; d++) {
         x = "rhoY";
         x += (49+d);
-        cons_var_names_all[cnt] = x;
+        cons_var_names[cnt] = x;
         ++cnt;
-    }
-
-    // Temp
-    cons_var_names_all[cnt] = "Temp";
-    ++cnt;
-
-    // jx, jy, jz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "jFACE";
-        x += (120+d);
-        cons_var_names_all[cnt] = x;
-        ++cnt;
-    }
-
-    // for specific pairs
-    Vector< std::string > cons_var_names;
-    if (do_SF_pair_cons) {
-        cons_var_names.resize(cons_SF_pairA_list.size());
-        for (int i=0;i<cons_SF_pairA_list.size(); ++i) {
-            cons_var_names[i] = cons_var_names_all[cons_SF_pairA_list[i]];
-        }
-    }
-    else {
-        cons_var_names.resize(structVarsCons);
-        std::copy(cons_var_names_all.begin(), cons_var_names_all.end(), std::back_inserter(cons_var_names));
     }
 
     Vector< std::string > surfcov_var_names;
@@ -568,6 +523,16 @@ void main_driver(const char* argv)
             surfcov_var_names[d] = x;
         }
     }
+
+    // for specific pairs
+    amrex::Vector< int > prim_SF_pairA_list;
+    amrex::Vector< int > prim_SF_pairB_list;
+    amrex::Vector< int > cons_SF_pairA_list;
+    amrex::Vector< int > cons_SF_pairB_list;
+    InitializeCompressibleSFParams(prim_SF_pairA_list,
+            prim_SF_pairB_list,cons_SF_pairA_list,
+            cons_SF_pairB_list,structVarsPrim,
+            structVarsCons);
 
     // scale SF results by inverse cell volume
     Vector<Real> var_scaling_prim;
@@ -582,7 +547,7 @@ void main_driver(const char* argv)
     }
     
     Vector<Real> var_scaling_cons;
-    if (do_SF_pair_cons) {
+    if (do_SF_pair_prim) {
         var_scaling_cons.resize(cons_SF_pairA_list.size());
     }
     else {
@@ -1542,45 +1507,55 @@ void main_driver(const char* argv)
             /////////// First structFactPrimMF ////////////////
             cnt = 0;
 
-            // copy [rho, vx, vy, vz, T]
-            numvars = 5;
+            // copy [rho, vxCC, vyCC, vzCC]
+            numvars = 4;
             MultiFab::Copy(structFactPrimMF, prim, 0, cnt, numvars, 0);
-            cnt+=numvars;
-
-            // copy Yk
-            numvars = nspecies;
-            MultiFab::Copy(structFactPrimMF, prim, AMREX_SPACEDIM+3, cnt, numvars, 0);
             cnt+=numvars;
 
             // copy velFACE
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                ShiftFaceToCC(vel[d],0,structFactPrimMF,cnt,1);
-                ++cnt;
+              ShiftFaceToCC(vel[d],0,structFactPrimMF,cnt,1);
+              ++cnt;
             }
 
-            // copy rhoYk
+            // copy T
+            MultiFab::Copy(structFactPrimMF, prim, 4, cnt, 1, 0);
+            ++cnt;
+
+            // copy Yk
             numvars = nspecies;
-            MultiFab::Copy(structFactPrimMF, cu, AMREX_SPACEDIM+2, cnt, numvars, 0);
+            MultiFab::Copy(structFactPrimMF, prim, 6, cnt, numvars, 0);
+            cnt+=numvars;
+
             ////////////////////////////////////////////////////
 
             ////////////// Second structFactConsMF /////////////
             cnt = 0;
 
-            // copy [rho, jx, jy, jz, rhoE, rhoYk]
-            numvars = nvars;
+            // copy [rho, jxCC, jyCC, jzCC]
+            numvars = 4;
             MultiFab::Copy(structFactConsMF, cu, 0, cnt, numvars, 0);
             cnt+=numvars;
 
-            // T
-            numvars = 1;
-            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, cnt, numvars, 0);
-            cnt+=numvars;
-
-            // copy jxFACE
+            // copy jFACE
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 ShiftFaceToCC(cumom[d],0,structFactConsMF,cnt,1);
                 ++cnt;
             }
+
+            // rhoE
+            MultiFab::Copy(structFactConsMF, cu, 4, cnt, 1, 0);
+            ++cnt;
+
+            // T
+            MultiFab::Copy(structFactConsMF, prim, 4, cnt, 1, 0);
+            ++cnt;
+
+            // rho*Yk
+            numvars = nspecies;
+            MultiFab::Copy(structFactConsMF, cu, 5, cnt, numvars, 0);
+            cnt+=numvars;
+
             ////////////////////////////////////////////////////
 
             if ((do_1D==0) and (do_2D==0)) {

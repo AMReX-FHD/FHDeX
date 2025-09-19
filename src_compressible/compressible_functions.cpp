@@ -124,40 +124,51 @@ void InitializeCompressibleSFParams(amrex::Vector< int >& prim_SF_pairA_list,
     ParmParse pp;
 
     // Get structure factor pairs
-    amrex::Vector<int> temp_prim(structVarsPrim, -1);
-    amrex::Vector<int> temp_cons(structVarsCons, -1);
-    if (pp.queryarr("SF_prim_pairA",temp_prim,0,structVarsPrim)) {
-        for (int i=0; i<structVarsPrim; ++i) {
-            if (temp_prim[i] > structVarsPrim) {
-                amrex::Error("SF_prim_pairA index can not be greater than 2*AMREX_SPACEDIM+2*nspecies+2");
-            }
-            else { if (temp_prim[i] >=0 ) prim_SF_pairA_list.push_back(temp_prim[i]);}
-        }
+    {
+      amrex::Vector<int> temp_prim(structVarsPrim,-1);
+      if (pp.queryarr("SF_prim_pairA",temp_prim,0)) {
+          for (int i=0; i<structVarsPrim; ++i) {
+              if (temp_prim[i] > structVarsPrim) {
+                  amrex::Error("SF_prim_pairA index can not be greater than 2*AMREX_SPACEDIM+2*nspecies+2");
+              }
+              else { if (temp_prim[i] >=0 ) prim_SF_pairA_list.push_back(temp_prim[i]);}
+          }
+      }
     }
-    if (pp.queryarr("SF_prim_pairB",temp_prim,0,structVarsPrim)) {
-        for (int i=0; i<structVarsPrim; ++i) {
-            if (temp_prim[i] > structVarsPrim) {
-                amrex::Error("SF_prim_pairB index can not be greater than 2*AMREX_SPACEDIM+2*nspecies+2");
-            }
-            else { if (temp_prim[i] >=0 ) prim_SF_pairB_list.push_back(temp_prim[i]);}
-        }
+    {
+      amrex::Vector<int> temp_prim(structVarsPrim,-1);
+      if (pp.queryarr("SF_prim_pairB",temp_prim,0)) {
+          for (int i=0; i<structVarsPrim; ++i) {
+              if (temp_prim[i] > structVarsPrim) {
+                  amrex::Error("SF_prim_pairB index can not be greater than 2*AMREX_SPACEDIM+2*nspecies+2");
+              }
+              else { if (temp_prim[i] >=0 ) prim_SF_pairB_list.push_back(temp_prim[i]);}
+          }
+      }
     }
 
-    if (pp.queryarr("SF_cons_pairA",temp_cons,0,structVarsCons)) {
-        for (int i=0; i<structVarsCons; ++i) {
-            if (temp_cons[i] > structVarsCons) {
-                amrex::Error("SF_cons_pairA index can not be greater than 2*AMREX_SPACEDIM+nspecies+3");
-            }
-            else { if (temp_cons[i] >= 0) cons_SF_pairA_list.push_back(temp_cons[i]);}
-        }
+    {
+      amrex::Vector<int> temp_cons(structVarsCons,-1);
+      if (pp.queryarr("SF_cons_pairA",temp_cons,0)) {
+          for (int i=0; i<structVarsCons; ++i) {
+              if (temp_cons[i] > structVarsCons) {
+                  amrex::Error("SF_cons_pairA index can not be greater than 2*AMREX_SPACEDIM+nspecies+3");
+              }
+              else { if (temp_cons[i] >= 0) cons_SF_pairA_list.push_back(temp_cons[i]);}
+          }
+      }
     }
-    if (pp.queryarr("SF_cons_pairB",temp_cons,0,structVarsCons)) {
-        for (int i=0; i<structVarsPrim; ++i) {
-            if (temp_cons[i] > structVarsCons) {
-                amrex::Error("SF_cons_pairB index can not be greater than 2*AMREX_SPACEDIM+nspecies+3");
-            }
-            else{ if (temp_cons[i] >= 0) cons_SF_pairB_list.push_back(temp_cons[i]);}
-        }
+
+    {
+      amrex::Vector<int> temp_cons(structVarsCons,-1);
+      if (pp.queryarr("SF_cons_pairB",temp_cons,0)) {
+          for (int i=0; i<structVarsCons; ++i) {
+              if (temp_cons[i] > structVarsCons) {
+                  amrex::Error("SF_cons_pairB index can not be greater than 2*AMREX_SPACEDIM+nspecies+3");
+              }
+              else{ if (temp_cons[i] >= 0) cons_SF_pairB_list.push_back(temp_cons[i]);}
+          }
+      }
     }
 
     if (prim_SF_pairA_list.size()!=prim_SF_pairB_list.size())
