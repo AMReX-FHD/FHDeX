@@ -80,19 +80,39 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
                                  Tloc, rholoc, Yloc, 
                                  Dbinloc, chi_mixloc, muloc, xiloc, lamloc, ltransparm);
             amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES> Dloc;
+            if ((i==32) and (j==32) and (k==32)) std::printf("D binary: \n");
+            if ((i==32) and (j==32) and (k==32)) {
+                for (int ii=0;ii<MAX_SPECIES;++ii) {
+                    for (int jj=0;jj<MAX_SPECIES;++jj) {
+                        std::printf("%d %d %g \n",ii,jj,Dbinloc[ii*MAX_SPECIES+jj]);
+                    }
+                }
+            }
             D_GIO1(Dbinloc,Yk_fixed,Xk_fixed,Dloc,nspecies);
+            if ((i==32) and (j==32) and (k==32)) std::printf("D full: \n");
+            if ((i==32) and (j==32) and (k==32)) {
+                for (int ii=0;ii<MAX_SPECIES;++ii) {
+                    for (int jj=0;jj<MAX_SPECIES;++jj) {
+                        std::printf("%d %d %g \n",ii,jj,Dloc[ii*MAX_SPECIES+jj]);
+                    }
+                }
+            }
             eta(i,j,k) = muloc;
             kappa(i,j,k) = lamloc;
             zeta(i,j,k) = xiloc;
+//            if ((i==32) and (j==32) and (k==32)) std::printf("chitil: \n");
             for (int kk=0; kk<nspecies; ++kk) {
                 chi(i,j,k,kk) = chi_mixloc[kk]/Xloc[kk]; // re-scale thermal diffusion coefficients (pg. 24, Eq. 2.5.24, Giovangigli)
+//                if ((i==32) and (j==32) and (k==32)) std::printf("%d %g %g \n",kk,chi_mixloc[kk],chi(i,j,k,kk));
             }
             
             // want this multiplied by rho for all times (rho*D_tilde = rho*Y*D)
+//            if ((i==32) and (j==32) and (k==32)) std::printf("Dij: \n");
             for (int kk=0; kk<nspecies; ++kk) {
                 for (int ll=0; ll<nspecies; ++ll) {
                     int n = kk*nspecies + ll;
                     Dij(i,j,k,n) = Dloc[n]*prim(i,j,k,0);
+//                    if ((i==32) and (j==32) and (k==32)) std::printf("%d %d %g \n",kk,ll,Dloc[n]);
                 }
             }
 

@@ -419,6 +419,7 @@ void GetCv (const Real& temp,
     eos.TY2Cv(temp, Y, cv);
 }
 #else
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetCv (const Real& /*temp*/,
             const GpuArray<Real,MAX_SPECIES>& Yk,
             Real& cv)
