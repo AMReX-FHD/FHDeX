@@ -141,7 +141,7 @@ void init_phi (int i, int j, int k,
 //
 
 #endif
-#if 1
+#if 0
 
         int ext_pot = a_ext_pot;
         amrex::Real alpha = a_alpha;
@@ -162,6 +162,12 @@ void init_phi (int i, int j, int k,
 
 
 
+#endif
+
+#if 1
+    // Uniform initialization
+    Real avg_ppc = 10.;
+    phi(i,j,k,0) = avg_ppc/cellvol;
 #endif
 
     if (Ncomp == 2){
