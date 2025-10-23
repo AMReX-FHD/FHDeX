@@ -521,7 +521,8 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         // Some asserts for m_ensemble_dir
         for (int idir = 0; idir < AMREX_SPACEDIM; ++idir) {
             if (m_ensemble_dir[idir]) {
-                AMREX_ALWAYS_ASSERT(finest_level == 0);
+                amrex::Print()<<"max_level: "<<max_level<<"\n";
+                AMREX_ALWAYS_ASSERT(max_level == 0);
                 AMREX_ALWAYS_ASSERT(Geom(0).CellSize(idir) == Real(1.0));
             }
         }
