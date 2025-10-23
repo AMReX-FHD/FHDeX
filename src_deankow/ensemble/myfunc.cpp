@@ -12,7 +12,10 @@ void advance_phi (MultiFab& phi_old,
                   Real dt,
                   Real /*npts_scale*/,
                   Geometry const& geom,
-                  Vector<BCRec> const& BoundaryCondition)
+                  Vector<BCRec> const& BoundaryCondition,
+                  Vector<int> const& a_ensemble_dir,
+                  int a_ext_pot, Real a_alpha, Real a_beta,
+                  Real a_gamma)
 {
     int Ncomp = phi_old.nComp();
 
@@ -60,26 +63,35 @@ void advance_phi (MultiFab& phi_old,
 
         auto const& phi = phi_old.array(mfi);
 
-        amrex::ParallelFor(xbx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                compute_flux_x(i,j,k,fluxx,stochfluxx,phi,dxinv,
-                               lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp);
-            });
+        if (a_ensemble_dir[0] == 0) {
+            amrex::ParallelFor(xbx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    compute_flux_x(i,j,k,fluxx,stochfluxx,phi,dxinv,
+                                   lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp,
+                                   a_ext_pot, a_alpha, a_beta, a_gamma);
+                });
+        }
 
-        amrex::ParallelFor(ybx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                compute_flux_y(i,j,k,fluxy,stochfluxy,phi,dyinv,
-                               lo.y, hi.y, dom_lo.y, dom_hi.y, bc.lo(1), bc.hi(1),Ncomp);
-            });
+        if (a_ensemble_dir[1] == 0) {
+            amrex::ParallelFor(ybx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    compute_flux_y(i,j,k,fluxy,stochfluxy,phi,dyinv,
+                                   lo.y, hi.y, dom_lo.y, dom_hi.y, bc.lo(1), bc.hi(1),Ncomp,
+                                   a_ext_pot, a_alpha, a_beta, a_gamma);
+                });
+        }
 #if (AMREX_SPACEDIM > 2)
-        amrex::ParallelFor(zbx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                compute_flux_z(i,j,k,fluxz,stochfluxz,phi,dzinv,
-                               lo.z, hi.z, dom_lo.z, dom_hi.z, bc.lo(2), bc.hi(2),Ncomp);
-            });
+        if (a_ensemble_dir[2] == 0) {
+            amrex::ParallelFor(zbx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    compute_flux_z(i,j,k,fluxz,stochfluxz,phi,dzinv,
+                                   lo.z, hi.z, dom_lo.z, dom_hi.z, bc.lo(2), bc.hi(2),Ncomp,
+                                   a_ext_pot, a_alpha, a_beta, a_gamma);
+                });
+        }
 #endif
     }
 

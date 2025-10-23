@@ -6,20 +6,20 @@ BL_NO_FORT = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-SRC_DIR = ../../../src_deankow/multilevel
+SRC_DIR = ../../../src_deankow/ensemble
 RNG_DIR = ../../../src_rng/
 COM_DIR = ../../../src_common/
 
-include $(SRC_DIR)/Make.package 
-include $(SRC_DIR)/Src_K/Make.package 
-INCLUDE_LOCATIONS += $(SRC_DIR) $(SRC_DIR)/Src_K 
-VPATH_LOCATIONS   += $(SRC_DIR) $(SRC_DIR)/Src_K 
+include $(SRC_DIR)/Make.package
+include $(SRC_DIR)/Src_K/Make.package
+INCLUDE_LOCATIONS += $(SRC_DIR) $(SRC_DIR)/Src_K
+VPATH_LOCATIONS   += $(SRC_DIR) $(SRC_DIR)/Src_K
 
-include $(RNG_DIR)/Make.package 
+include $(RNG_DIR)/Make.package
 INCLUDE_LOCATIONS += $(RNG_DIR)
 VPATH_LOCATIONS   += $(RNG_DIR)
 
-include $(COM_DIR)/Make.package 
+include $(COM_DIR)/Make.package
 INCLUDE_LOCATIONS += $(COM_DIR)
 VPATH_LOCATIONS   += $(COM_DIR)
 

@@ -15,6 +15,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
         BoxArray ba = grids[lev];
         ba.surroundingNodes(i);
         fluxes[i].define(ba, dmap[lev], phi_new[lev].nComp(), 0);
+        fluxes[i].setVal(0.);
         stochFluxes[i].define(ba, dmap[lev], phi_new[lev].nComp(), 0);
         stochFluxes[i].setVal(0.);
     }
@@ -24,7 +25,8 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
     // We do this here so we can print the FABs for debugging
     phi_new[lev].setVal(0.0);
 
-    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, dt_lev, npts_scale, geom[lev], bcs);
+    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, dt_lev, npts_scale, geom[lev], bcs,
+            m_ensemble_dir, m_ext_pot, m_ext_pot_alpha, m_ext_pot_beta, m_ext_pot_gamma);
 
     // Increment or decrement the flux registers by area and time-weighted fluxes
     // Note that the fluxes have already been scaled by dt and area

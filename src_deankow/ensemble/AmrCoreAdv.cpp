@@ -410,6 +410,12 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 
     int Ncomp = phi_new[lev].nComp();
 
+    // External Potential related
+    int a_ext_pot = m_ext_pot;
+    Real a_alpha  = m_ext_pot_alpha;
+    Real a_beta   = m_ext_pot_beta;
+    Real a_gamma  = m_ext_pot_gamma;
+
     if (lev == 0) {
         for (MFIter mfi(phi_new[lev]); mfi.isValid(); ++mfi)
         {
@@ -419,7 +425,8 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
             amrex::ParallelFor(vbx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
-                init_phi(i,j,k,phi_arr,dx,problo,npts_scale_local,Ncomp);
+                init_phi(i,j,k,phi_arr,dx,problo,npts_scale_local,Ncomp,
+                         a_ext_pot, a_alpha, a_beta, a_gamma);
             });
         }
     } else {
@@ -508,6 +515,16 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
 
         seed = 0;
         pp.queryAdd("seed", seed);
+
+        // read in if a direction is ensemble direction
+        pp.queryarr("is_ensemble_dir", m_ensemble_dir, 0, AMREX_SPACEDIM);
+        // Some asserts for m_ensemble_dir
+        for (int idir = 0; idir < AMREX_SPACEDIM; ++idir) {
+            if (m_ensemble_dir[idir]) {
+                AMREX_ALWAYS_ASSERT(finest_level == 0);
+                AMREX_ALWAYS_ASSERT(Geom(0).CellSize(idir) == Real(1.0));
+            }
+        }
     }
 
     {
@@ -527,6 +544,20 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.query("cfl", cfl);
         pp.query("do_reflux", do_reflux);
         pp.query("do_subcycle", do_subcycle);
+    }
+
+    {
+        ParmParse pp("ext_pot");
+
+        pp.query("exists", m_ext_pot);
+        if (m_ext_pot) {
+            if (AMREX_SPACEDIM != 2) {
+                amrex::Abort("External Potential is coded for 2D.\n");
+            }
+            pp.get("alpha", m_ext_pot_alpha);
+            pp.get("beta", m_ext_pot_beta);
+            pp.get("gamma", m_ext_pot_gamma);
+        }
     }
 
 #ifdef AMREX_PARTICLES

@@ -13,5 +13,9 @@ void advance_phi (amrex::MultiFab& phi_old,
                   amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& stochFlux,
                   amrex::Real dt, amrex::Real npts_scale,
                   amrex::Geometry const& geom,
-                  Vector<amrex::BCRec> const& BoundaryCondition);
+                  Vector<amrex::BCRec> const& BoundaryCondition,
+                  Vector<int> const& a_ensemble_dir,
+                  int a_ext_pot, Real a_alpha, Real a_beta,
+                  Real a_gamma);
+
 #endif

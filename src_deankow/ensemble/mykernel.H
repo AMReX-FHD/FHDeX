@@ -8,9 +8,11 @@ void init_phi (int i, int j, int k,
                amrex::Array4<amrex::Real> const& phi,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
-               amrex::Real /*npts_scale*/, int Ncomp)
+               amrex::Real /*npts_scale*/, int Ncomp,
+               int a_ext_pot, amrex::Real a_alpha, amrex::Real a_beta,
+               amrex::Real a_gamma)
 {
-    using amrex::Real;;
+    using amrex::Real;
     Real cellvol = dx[0]*dx[1];
 
 #if(AMREX_SPACEDIM > 2)
@@ -141,10 +143,10 @@ void init_phi (int i, int j, int k,
 #endif
 #if 1
 
-        int ext_pot = 1;
-        amrex::Real alpha = .3;
-        amrex::Real beta = .7;
-        amrex::Real gamma = 5.e-4;
+        int ext_pot = a_ext_pot;
+        amrex::Real alpha = a_alpha;
+        amrex::Real beta = a_beta;
+        amrex::Real gamma = a_gamma;
         Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] ;
         Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] ;
 
@@ -173,16 +175,18 @@ void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxx,
                      amrex::Array4<amrex::Real> const& stochfluxx,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp,
+                     int a_ext_pot, amrex::Real a_alpha, amrex::Real a_beta,
+                     amrex::Real a_gamma)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
-    amrex::Real alpha = .3;
-    amrex::Real beta = .7;
-    amrex::Real gamma = 5.e-4;
+    int ext_pot = a_ext_pot;
+    amrex::Real alpha = a_alpha;
+    amrex::Real beta = a_beta;
+    amrex::Real gamma = a_gamma;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -294,16 +298,18 @@ void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxy,
                      amrex::Array4<amrex::Real> const& stochfluxy,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
+                     int a_ext_pot, amrex::Real a_alpha, amrex::Real a_beta,
+                     amrex::Real a_gamma)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
-    amrex::Real alpha = .3;
-    amrex::Real beta = .7;
-    amrex::Real gamma = 5.e-4;
+    int ext_pot = a_ext_pot;
+    amrex::Real alpha = a_alpha;
+    amrex::Real beta = a_beta;
+    amrex::Real gamma = a_gamma;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -380,8 +386,15 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxz,
                      amrex::Array4<amrex::Real> const& stochfluxz,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
+                     int a_ext_pot, amrex::Real a_alpha, amrex::Real a_beta,
+                     amrex::Real a_gamma)
 {
+    amrex::ignore_unused(a_alpha, a_beta, a_gamma);
+    if (a_ext_pot) {
+        amrex::Abort("External potential not coded in 3D scenario yet.\n");
+    }
+
     int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
         (bc_lo == amrex::BCType::foextrap ||

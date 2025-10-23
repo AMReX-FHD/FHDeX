@@ -177,6 +177,15 @@ private:
     //amrex::Vector<int> bc_lo(AMREX_SPACEDIM,0);
     //amrex::Vector<int> bc_hi(AMREX_SPACEDIM,0);
 
+    // This variable decides if a particular direction is ensemble direction
+    // grid spacing along ensemble directions needs to be UNITY
+    amrex::Vector<int> m_ensemble_dir = {AMREX_D_DECL(0, 0, 0)};
+    // Variables related to external potential (Only 2D for now)
+    int m_ext_pot = 0;
+    amrex::Real m_ext_pot_alpha = 0.;
+    amrex::Real m_ext_pot_beta  = 0.;
+    amrex::Real m_ext_pot_gamma = 0.;
+
     // maximum number of steps and stop time
     int max_step = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
