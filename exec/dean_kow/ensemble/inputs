@@ -23,11 +23,10 @@ alg_type = 0
 # Problem size and geometry
 # *****************************************************************
 geometry.prob_lo     =  0.0    0.0
-geometry.prob_hi     =  1.0  100.0
-geometry.is_periodic =  1    0
+geometry.prob_hi     =  1.0  256.0
+geometry.is_periodic =  1    1
 bc_lo = 0 0
 bc_hi = 0 0
-
 
 is_ensemble_dir = 0 1
 ext_pot.exists = 0
@@ -43,11 +42,10 @@ amr.v              = 1       # verbosity in Amr
 
 amr.max_grid_size_x = 32 32
 amr.max_grid_size_y = 32 32
-amr.n_cell          = 100 100
+amr.n_cell          = 100 256
 
 amr.max_level       = 0
 amr.use_particles   = 0      # Turn particles on or off
-#amr.ref_ratio       = 1
 
 # *****************************************************************
 # Control of grid creation
