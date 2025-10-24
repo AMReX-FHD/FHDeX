@@ -66,14 +66,22 @@ public:
                                    amrex::DefaultAllocator>(geom, dmap, ba)
         {}
 
-    void InitParticles (amrex::MultiFab& phi_fine);
-    void  AddParticles (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude, amrex::Real factor);
+    void InitParticles (amrex::MultiFab& phi_fine, int a_ext_pot,
+                        amrex::Real a_alpha, amrex::Real a_beta,
+                        amrex::Real a_gamma, const int lev = 1);
+    void AddParticles  (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude,
+                        amrex::Real factor, int a_ext_pot, amrex::Real a_alpha,
+                        amrex::Real a_beta, amrex::Real a_gamma,
+                        const int lev = 1);
 
     void ColorParticlesWithPhi (amrex::MultiFab const& phi_fine);
 
-    void AdvectWithRandomWalk (int lev, amrex::Real dt);
+    void AdvectWithRandomWalk (int lev, amrex::Real dt, int a_ext_pot,
+                               amrex::Real a_alpha, amrex::Real a_beta,
+                               amrex::Real a_gamma);
 
-    void RemoveParticlesNotInBA (const amrex::BoxArray& ba_to_keep);
+    void RemoveParticlesNotInBA (const amrex::BoxArray& ba_to_keep,
+                                 const int lev = 1);
     void RefluxCrseToFine (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_for_reflux);
     void RefluxFineToCrse (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_fine_for_reflux);
 

@@ -18,26 +18,47 @@
 
 struct ParticleData {
   public:
-    void init_particle_params(int max_level)
+    void init_particle_params(int max_level, int ensemble_dir_exists)
     {
         amrex::ParmParse pp(pp_prefix);
 
         use_particles = 0;
+        multilevel_run = 1;
         pp.query("use_particles", use_particles);
 
+        if (use_particles && ensemble_dir_exists) {
+            multilevel_run = 0;
+        }
+
         if (use_particles) {
-            if (max_level != 1) {
-                amrex::Abort("When using particles you must have max_level == 1");
+            if (max_level != 1 && multilevel_run) {
+                amrex::Abort("When using particles in multilevel mode you must have max_level == 1");
+            }
+
+            if (max_level != 0 && ensemble_dir_exists) {
+                amrex::Abort("When using particles in ensemble mode you must have max_level == 0");
             }
         }
 
+        {
+            amrex::ParmParse pp_pot("ext_pot");
+            pp_pot.query("exists", m_ext_pot);
+            if (m_ext_pot) {
+                if (AMREX_SPACEDIM != 2) {
+                    amrex::Abort("External Potential is coded for 2D.\n");
+                }
+                pp_pot.get("alpha", m_ext_pot_alpha);
+                pp_pot.get("beta", m_ext_pot_beta);
+                pp_pot.get("gamma", m_ext_pot_gamma);
+            }
+        }
     }
 
     void init_particles(amrex::ParGDBBase* a_gdb, const amrex::BoxArray& grown_fba,
                         amrex::MultiFab& phi_crse, amrex::MultiFab& phi_fine)
     {
         // Initialize stochastic particles and phi at level 1
-        if (use_particles) {
+        if (use_particles && multilevel_run) {
             const amrex::Geometry& geom_fine = a_gdb->Geom(1);
             const auto dx_fine = geom_fine.CellSize();
 #if (AMREX_SPACEDIM == 2)
@@ -65,7 +86,9 @@ struct ParticleData {
             // **********************************************************************
             // Use this grown boxArray to hold the particles
             // **********************************************************************
-            stochastic_particles->InitParticles(phi_grown);
+            stochastic_particles->InitParticles(phi_grown, m_ext_pot,
+                                                m_ext_pot_alpha, m_ext_pot_beta,
+                                                m_ext_pot_gamma);
 
             amrex::Print() << "Before Removal we have  " << stochastic_particles->TotalNumberOfParticles() <<
                               " stochastic particles." << std::endl;
@@ -93,6 +116,53 @@ struct ParticleData {
         }
     }
 
+    // This version initializes particles at level 0
+    // Particles are created using comp_id = 0 of phi_crse,
+    // but comp_id = 1 is again reset based on the initialized particles
+    void init_particles(amrex::ParGDBBase* a_gdb, amrex::MultiFab& phi_crse)
+    {
+        const int lev = 0;
+        // The component of phi_crse that will be modified based on Particles
+        const int comp_id = 1;
+        // Initialize stochastic particles at level 0
+        if (use_particles && multilevel_run == 0) {
+            const amrex::Geometry& geom_crse = a_gdb->Geom(lev);
+            const auto dx_crse = geom_crse.CellSize();
+#if (AMREX_SPACEDIM == 2)
+            amrex::Real cell_vol_crse = dx_crse[0]*dx_crse[1];
+#else
+            amrex::Real cell_vol_crse = dx_crse[0]*dx_crse[1]*dx_crse[2];
+#endif
+            // **********************************************************************
+            // Define the particle class with the default gdb
+            // **********************************************************************
+            stochastic_particles = std::make_unique<StochasticPC>(a_gdb);
+            // **********************************************************************
+            // Use phi_crse to hold the particles
+            // **********************************************************************
+            stochastic_particles->InitParticles(phi_crse, m_ext_pot, m_ext_pot_alpha,
+                                                m_ext_pot_beta, m_ext_pot_gamma, lev);
+            // **********************************************************************
+            // Redistribute so every particle is in the "correct" place
+            // **********************************************************************
+            stochastic_particles->Redistribute();
+            // **********************************************************************
+            // Remove particles that are not in the valid boxArray
+            // **********************************************************************
+            stochastic_particles->RemoveParticlesNotInBA(phi_crse.boxArray(), lev);
+            // **********************************************************************
+            // Define comp_id = 1 of phi_crse based on particles
+            // **********************************************************************
+            amrex::MultiFab phi_from_ptcls(phi_crse, amrex::make_alias, comp_id, 1);
+            phi_from_ptcls.setVal(0.);
+            stochastic_particles->Increment(phi_from_ptcls, lev);
+            phi_from_ptcls.FillBoundary(a_gdb->Geom(lev).periodicity());
+            phi_from_ptcls.mult(1./cell_vol_crse);
+            amrex::Print() << "Initialized " << stochastic_particles->TotalNumberOfParticles() <<
+                              " stochastic particles on level = 0." << std::endl;
+        }
+    }
+
     void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& new_ungrown_ba,
                           const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine)
     {
@@ -102,8 +172,10 @@ struct ParticleData {
 
         stochastic_particles->Redistribute();
         stochastic_particles->RemoveParticlesAtLevel(0);
-        amrex::Real factor = .9;
-        stochastic_particles->AddParticles(phi_fine, old_fine_ba, factor);
+        amrex::Real factor = m_factor;
+        stochastic_particles->AddParticles(phi_fine, old_fine_ba, factor,
+                                           m_ext_pot, m_ext_pot_alpha,
+                                           m_ext_pot_beta, m_ext_pot_gamma);
         phi_fine.setVal(0.0);
         const int lev = 1;
         const auto dx = stochastic_particles->Geom(lev).CellSizeArray();
@@ -123,7 +195,7 @@ struct ParticleData {
 
     void writePlotFile (const std::string& a_fname, amrex::MultiFab const& phi_fine) const
     {
-        if (use_particles) {
+        if (use_particles && multilevel_run) {
             bool is_checkpoint = false;
             amrex::MultiFab phi_grown(stochastic_particles->ParticleBoxArray(1),
                                       stochastic_particles->ParticleDistributionMap(1),1,0);
@@ -157,7 +229,7 @@ struct ParticleData {
                            amrex::MultiFab& phi_fine)
     {
         // Update stochastic particles
-        if (use_particles) {
+        if (use_particles && multilevel_run) {
             AMREX_ALWAYS_ASSERT(lev == 1);
             const amrex::Geometry& geom_fine = stochastic_particles->GetParGDB()->Geom(lev);
 
@@ -178,13 +250,17 @@ struct ParticleData {
 
             amrex::Print() << "Adding particles in advance " << std::endl;
 
-            amrex::Real factor = .9;
-            stochastic_particles->AddParticles(phi_grown, ba_to_exclude,factor);
+            amrex::Real factor = m_factor;
+            stochastic_particles->AddParticles(phi_grown, ba_to_exclude,factor,
+                                               m_ext_pot, m_ext_pot_alpha,
+                                               m_ext_pot_beta, m_ext_pot_gamma);
 
             // **********************************************************************
             // Advect the particles in the valid region and in the ghost region
             // **********************************************************************
-            stochastic_particles->AdvectWithRandomWalk(lev, dt_lev);
+            stochastic_particles->AdvectWithRandomWalk(lev, dt_lev, m_ext_pot,
+                                        m_ext_pot_alpha, m_ext_pot_beta,
+                                        m_ext_pot_gamma);
 
             // **********************************************************************
             // Account for particles that went from crse --> fine BEFORE Redistribute
@@ -196,7 +272,8 @@ struct ParticleData {
 
             phi_grown2.mult(1./cell_vol,0,1,1);
 
-            phi_crse_new.ParallelAdd(phi_grown2, 0, 0, 1, amrex::IntVect::TheUnitVector(), amrex::IntVect::TheUnitVector());
+            phi_crse_new.ParallelAdd(phi_grown2, 0, 0, 1, amrex::IntVect::TheUnitVector(),
+                                     amrex::IntVect::TheUnitVector());
 
             // **********************************************************************
             // Put particles on the correct levels and in the right boxes
@@ -254,6 +331,39 @@ struct ParticleData {
         }
     }
 
+    void advance_particles(int lev, amrex::Real dt_lev, amrex::Real cell_vol,
+                           amrex::MultiFab& phi_crse_new)
+    {
+        // The component of phi_crse_new that will be modified based on Particles
+        const int comp_id = 1;
+        // Update stochastic particles
+        if (use_particles && (multilevel_run == 0)) {
+            // **********************************************************************
+            // Advect the particles in the valid region and in the ghost region
+            // **********************************************************************
+            stochastic_particles->AdvectWithRandomWalk(lev, dt_lev, m_ext_pot,
+                                        m_ext_pot_alpha, m_ext_pot_beta,
+                                        m_ext_pot_gamma);
+            // **********************************************************************
+            // Put particles on the correct levels and in the right boxes
+            // **********************************************************************
+            stochastic_particles->Redistribute();
+            // **********************************************************************
+            // Remove particles that are not in the valid boxArray
+            // **********************************************************************
+            stochastic_particles->RemoveParticlesNotInBA(phi_crse_new.boxArray(), lev);
+            // **********************************************************************
+            // Define comp_id = 1 of phi_crse_new based on particles
+            // **********************************************************************
+            amrex::MultiFab phi_from_ptcls(phi_crse_new, amrex::make_alias, comp_id, 1);
+            phi_from_ptcls.setVal(0.);
+            stochastic_particles->Increment(phi_from_ptcls, lev);
+            phi_from_ptcls.FillBoundary(
+                    stochastic_particles->GetParGDB()->Geom(lev).periodicity());
+            phi_from_ptcls.mult(1./cell_vol);
+        }
+    }
+
     void Redistribute()
     {
         if (use_particles) {
@@ -264,7 +374,14 @@ struct ParticleData {
     std::string pp_prefix {"amr"};
 
     int use_particles;
+    int multilevel_run;
     std::unique_ptr<StochasticPC> stochastic_particles;
     amrex::Vector<std::string> particle_varnames = {"xold", "yold", "zold"};
+    // Variables related to external potential (Only 2D for now)
+    int m_ext_pot = 0;
+    amrex::Real m_ext_pot_alpha = 0.;
+    amrex::Real m_ext_pot_beta  = 0.;
+    amrex::Real m_ext_pot_gamma = 0.;
+    amrex::Real m_factor = 0.9;
 };
 #endif

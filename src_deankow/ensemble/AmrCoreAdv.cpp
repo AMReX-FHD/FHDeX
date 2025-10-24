@@ -205,6 +205,9 @@ AmrCoreAdv::InitData ()
         if (max_level > 0) {
             particleData.init_particles((amrex::ParGDBBase*)GetParGDB(), grown_fba, phi_new[0], phi_new[1]);
         }
+        else {
+            particleData.init_particles((amrex::ParGDBBase*)GetParGDB(), phi_new[0]);
+        }
 #endif
         AverageDown();
         phi_new[0].FillBoundary();
@@ -562,7 +565,15 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
     }
 
 #ifdef AMREX_PARTICLES
-        particleData.init_particle_params(max_level);
+        int a_ensemble_dir_exists = 0;
+        for (int edir : m_ensemble_dir) {
+            a_ensemble_dir_exists += edir;
+        }
+        if (a_ensemble_dir_exists) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(alg_type != 0,
+                "Ensemble mode with particles requires alg_type != 0, i.e., ncomp = 2");
+        }
+        particleData.init_particle_params(max_level, a_ensemble_dir_exists);
 #endif
 }
 

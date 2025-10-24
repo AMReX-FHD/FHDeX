@@ -7,11 +7,14 @@
 using namespace amrex;
 
 void
-StochasticPC::InitParticles (MultiFab& phi_fine)
+StochasticPC::InitParticles (MultiFab& phi_fine, int a_ext_pot,
+                             Real a_alpha, Real a_beta,
+                             Real a_gamma, const int lev)
 {
     amrex::Print() << "calling InitParrticles" << std::endl;
     amrex::Real factor = -1.;
-    AddParticles(phi_fine, BoxArray{},factor);
+    AddParticles(phi_fine, BoxArray{},factor,
+                 a_ext_pot, a_alpha, a_beta, a_gamma, lev);
 }
 
 void
@@ -47,11 +50,13 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
 }
 
 void
-StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, amrex::Real factor)
+StochasticPC::AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude,
+                            amrex::Real factor, int a_ext_pot,
+                            Real a_alpha, Real a_beta, Real a_gamma,
+                            const int lev)
 {
     BL_PROFILE("StochasticPC::AddParticles");
 
-    const int lev = 1;
     const auto dx = Geom(lev).CellSizeArray();
     const auto plo = Geom(lev).ProbLoArray();
 
@@ -140,10 +145,10 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
         amrex::Print() << "INIT: NEW SIZE OF PARTICLES IN TILE BOX " << tile_box << " " << new_size << std::endl;
 
 
-        int ext_pot = 1;
-        amrex::Real alpha = .3;
-        amrex::Real beta = .7;
-        amrex::Real gamma = 5.e-4;
+        int ext_pot = a_ext_pot;
+        amrex::Real alpha = a_alpha;
+        amrex::Real beta = a_beta;
+        amrex::Real gamma = a_gamma;
 
 
         // now fill in the data
@@ -165,7 +170,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
 #elif (AMREX_SPACEDIM == 3)
                 Real r[3] = {amrex::Random(engine), amrex::Random(engine), amrex::Random(engine)};
 #endif
-                if(factor > 0.)
+                if(factor > 0. && ext_pot)
                 {
                     Real xm = plo[0] + i*dx[0];
                     Real xp = xm + dx[0];
@@ -229,10 +234,10 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
 }
 
 void
-StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
+StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep,
+                                      const int lev)
 {
     BL_PROFILE("StochasticPC::RemoveParticles");
-    const int lev = 1;
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -396,7 +401,9 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
 }
 
 void
-StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
+StochasticPC::AdvectWithRandomWalk (int lev, Real dt, int a_ext_pot,
+                                    Real a_alpha, Real a_beta,
+                                    Real a_gamma)
 {
     BL_PROFILE("StochasticPC::AdvectWithRandomWalk");
     const auto dx = Geom(lev).CellSizeArray();
@@ -410,10 +417,10 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
     Real stddev = std::sqrt(dt);
 
-    int ext_pot = 1;
-    amrex::Real alpha = .3;
-    amrex::Real beta = .7;
-    amrex::Real gamma = 5.e-4;
+    int ext_pot = a_ext_pot;
+    amrex::Real alpha = a_alpha;
+    amrex::Real beta = a_beta;
+    amrex::Real gamma = a_gamma;
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
