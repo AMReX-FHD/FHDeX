@@ -78,7 +78,8 @@ public:
 
     void AdvectWithRandomWalk (int lev, amrex::Real dt, int a_ext_pot,
                                amrex::Real a_alpha, amrex::Real a_beta,
-                               amrex::Real a_gamma);
+                               amrex::Real a_gamma,
+                               amrex::Vector<int>& a_ensemble_dir);
 
     void RemoveParticlesNotInBA (const amrex::BoxArray& ba_to_keep,
                                  const int lev = 1);

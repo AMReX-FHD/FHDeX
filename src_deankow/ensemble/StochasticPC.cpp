@@ -403,7 +403,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
 void
 StochasticPC::AdvectWithRandomWalk (int lev, Real dt, int a_ext_pot,
                                     Real a_alpha, Real a_beta,
-                                    Real a_gamma)
+                                    Real a_gamma, Vector<int>& a_ensemble_dir)
 {
     BL_PROFILE("StochasticPC::AdvectWithRandomWalk");
     const auto dx = Geom(lev).CellSizeArray();
@@ -421,6 +421,11 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt, int a_ext_pot,
     amrex::Real alpha = a_alpha;
     amrex::Real beta = a_beta;
     amrex::Real gamma = a_gamma;
+
+    GpuArray<Real, AMREX_SPACEDIM> ens_flag{
+                            AMREX_D_DECL(static_cast<Real>(a_ensemble_dir[0]),
+                                         static_cast<Real>(a_ensemble_dir[1]),
+                                         static_cast<Real>(a_ensemble_dir[2]))};
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -463,6 +468,10 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt, int a_ext_pot,
             //               incy = +dx[1];,
             //               incz = 0.;);
 
+            // Zero out the fluctuation if it is an ensemble direction
+            AMREX_D_TERM(incx *= (1.0 - ens_flag[0]);,
+                         incy *= (1.0 - ens_flag[1]);,
+                         incz *= (1.0 - ens_flag[2]););
 
             AMREX_D_TERM( p.pos(0) += static_cast<ParticleReal> (incx);,
                           p.pos(1) += static_cast<ParticleReal> (incy);,

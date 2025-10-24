@@ -793,8 +793,14 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 #else
     const Real cell_vol = dx[0]*dx[1]*dx[2];
 #endif
-    particleData.advance_particles(lev_for_particles, dt[lev_for_particles], cell_vol,
+    if (finest_level > 0) {
+        particleData.advance_particles(lev_for_particles, dt[lev_for_particles], cell_vol,
                                    phi_old[0], phi_new[0], phi_new[lev_for_particles]);
+    }
+    else {
+        particleData.advance_particles(lev_for_particles, dt[lev_for_particles],
+                                       cell_vol, phi_new[lev_for_particles]);
+    }
     particleData.Redistribute();
 #endif
 
@@ -882,10 +888,20 @@ AmrCoreAdv::WritePlotFile () const
     // Vector of MultiFabs
     Vector<MultiFab> mf(finest_level+1);
     int ncomp_mf = 2; int src_comp = 0;
+    // Check if this is an ensemble run
+    int ensemble_run = 0;
+    for (int edir : m_ensemble_dir) {
+        ensemble_run += edir;
+    }
+    if (ensemble_run) { ncomp_mf += 1;}
+
     for (int lev = 0; lev <= finest_level; ++lev) {
         mf[lev].define(grids[lev], dmap[lev], ncomp_mf, 0);
         MultiFab::Copy(mf[lev],phi_new[lev],src_comp,0,1,0);
         MultiFab::Copy(mf[lev],phi_new[lev],src_comp,1,1,0);
+        if (ensemble_run) {
+            MultiFab::Copy(mf[lev],phi_new[lev],src_comp+1,2,1,0);
+        }
 
         // Set the fine data in "phi0" to -1 so we can test on that value and plot particles over blank space
         if (lev == 1) {
@@ -895,6 +911,9 @@ AmrCoreAdv::WritePlotFile () const
 
 
     Vector<std::string> varnames = {"phi", "phi0"};
+    if (ensemble_run) {
+        varnames.push_back("phi1");
+    }
 
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
 

@@ -52,6 +52,12 @@ struct ParticleData {
                 pp_pot.get("gamma", m_ext_pot_gamma);
             }
         }
+
+        if (ensemble_dir_exists) {
+            amrex::ParmParse pp_ens;
+            // read in if a direction is ensemble direction
+            pp_ens.queryarr("is_ensemble_dir", m_ensemble_dir, 0, AMREX_SPACEDIM);
+        }
     }
 
     void init_particles(amrex::ParGDBBase* a_gdb, const amrex::BoxArray& grown_fba,
@@ -260,7 +266,7 @@ struct ParticleData {
             // **********************************************************************
             stochastic_particles->AdvectWithRandomWalk(lev, dt_lev, m_ext_pot,
                                         m_ext_pot_alpha, m_ext_pot_beta,
-                                        m_ext_pot_gamma);
+                                        m_ext_pot_gamma, m_ensemble_dir);
 
             // **********************************************************************
             // Account for particles that went from crse --> fine BEFORE Redistribute
@@ -343,7 +349,7 @@ struct ParticleData {
             // **********************************************************************
             stochastic_particles->AdvectWithRandomWalk(lev, dt_lev, m_ext_pot,
                                         m_ext_pot_alpha, m_ext_pot_beta,
-                                        m_ext_pot_gamma);
+                                        m_ext_pot_gamma, m_ensemble_dir);
             // **********************************************************************
             // Put particles on the correct levels and in the right boxes
             // **********************************************************************
@@ -377,6 +383,9 @@ struct ParticleData {
     int multilevel_run;
     std::unique_ptr<StochasticPC> stochastic_particles;
     amrex::Vector<std::string> particle_varnames = {"xold", "yold", "zold"};
+    // This variable decides if a particular direction is ensemble direction
+    // grid spacing along ensemble directions needs to be UNITY
+    amrex::Vector<int> m_ensemble_dir = {AMREX_D_DECL(0, 0, 0)};
     // Variables related to external potential (Only 2D for now)
     int m_ext_pot = 0;
     amrex::Real m_ext_pot_alpha = 0.;
