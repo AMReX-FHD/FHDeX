@@ -43,6 +43,7 @@ void WriteCheckPoint(int step,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      const amrex::MultiFab& coVars,
                      const amrex::MultiFab& mom3,
+                     const amrex::MultiFab& mom4,
                      const amrex::MultiFab& surfcov,
                      const amrex::MultiFab& surfcovMeans,
                      const amrex::MultiFab& surfcovVars,
@@ -231,6 +232,11 @@ void WriteCheckPoint(int step,
     VisMF::Write(mom3,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mom3"));
 
+    // mom4
+    if (plot_mom4)
+    VisMF::Write(mom4,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mom4"));
+
     if (n_ads_spec>0) {
         // surfcov
         VisMF::Write(surfcov,
@@ -269,6 +275,7 @@ void ReadCheckPoint(int& step,
                     std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                     amrex::MultiFab& coVars,
                     amrex::MultiFab& mom3,
+                    amrex::MultiFab& mom4,
                     amrex::MultiFab& surfcov,
                     amrex::MultiFab& surfcovMeans,
                     amrex::MultiFab& surfcovVars,
@@ -393,6 +400,9 @@ void ReadCheckPoint(int& step,
         // mom3
         if (plot_mom3) mom3.define(ba,dmap,nvars+1,0);
 
+        // mom4
+        if (plot_mom4) mom4.define(ba,dmap,nvars+1,0);
+
         if (n_ads_spec>0) {
             // surfcov
             surfcov.define(ba,dmap,n_ads_spec,0);
@@ -507,6 +517,7 @@ void ReadCheckPoint(int& step,
             }
         }
         if (plot_mom3) mom3.setVal(0.0);
+        if (plot_mom4) mom4.setVal(0.0);
     }
     else {
         Read_Copy_MF_Checkpoint(cuMeans,"cuMeans",checkpointname,ba_old,dmap_old,nvars,1);
@@ -543,6 +554,7 @@ void ReadCheckPoint(int& step,
             Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
         }
         if (plot_mom3) Read_Copy_MF_Checkpoint(mom3,"mom3",checkpointname,ba_old,dmap_old,nvars+1,0);
+        if (plot_mom4) Read_Copy_MF_Checkpoint(mom3,"mom4",checkpointname,ba_old,dmap_old,nvars+1,0);
     }
 
     // FillBoundaries

@@ -235,6 +235,7 @@ void main_driver(const char* argv)
     MultiFab coVars;
 
     MultiFab mom3;
+    MultiFab mom4;
 
     MultiFab surfcovMeans;  // used in either MFsurfchem or surfchem_mui
     MultiFab surfcovVars;   // used in either MFsurfchem or surfchem_mui
@@ -539,7 +540,7 @@ void main_driver(const char* argv)
 
         ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                        primMeans, primVars, cumom, cumomMeans, cumomVars,
-                       vel, velMeans, velVars, coVars, mom3,
+                       vel, velMeans, velVars, coVars, mom3, mom4,
                        surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                        spatialCrossMF, spatialCrossVec, ncross, turbforce, ba, dmap);
 
@@ -656,6 +657,11 @@ void main_driver(const char* argv)
         if (plot_mom3) {
             mom3.define(ba,dmap,nvars+1,0); // nvars (vel instead of momemtum) with temperature and pressure
             mom3.setVal(0.0);
+        }
+
+        if (plot_mom4) {
+            mom4.define(ba,dmap,nvars+1,0); // nvars (vel instead of momemtum) with temperature and pressure
+            mom4.setVal(0.0);
         }
 
         // List of covariances (all cell centered)
@@ -789,7 +795,7 @@ void main_driver(const char* argv)
 
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
+                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, mom4, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
 #if defined(TURB)
             if (turbForcing > 0) {
                 EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
@@ -1187,6 +1193,8 @@ void main_driver(const char* argv)
             coVars.setVal(0.0);
 
             if (plot_mom3) mom3.setVal(0.0);
+            
+            if (plot_mom4) mom4.setVal(0.0);
 
             if (nspec_surfcov>0) {
                 surfcovMeans.setVal(0.0);
@@ -1213,19 +1221,19 @@ void main_driver(const char* argv)
         // Evaluate Statistics
         if (do_1D) {
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
-                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3,
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3, mom4,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 spatialCrossMF, ncross, statsCount, geom);
         }
         else if (do_2D) {
             evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
-                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3,
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3, mom4,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 spatialCrossMF, ncross, statsCount, geom);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
-                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3,
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3, mom4,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 dataSliceMeans_xcross, spatialCrossVec, ncross, domain,
                                 statsCount, geom);
@@ -1261,7 +1269,7 @@ void main_driver(const char* argv)
             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, mom4, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
 
             if (plot_cross) {
                 if (do_1D) {
@@ -1711,7 +1719,7 @@ void main_driver(const char* argv)
         {
             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                             primMeans, primVars, cumom, cumomMeans, cumomVars,
-                            vel, velMeans, velVars, coVars, mom3,
+                            vel, velMeans, velVars, coVars, mom3, mom4,
                             surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                             spatialCrossMF, spatialCrossVec, ncross, turbforce);
         }
