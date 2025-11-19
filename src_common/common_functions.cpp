@@ -238,7 +238,8 @@ amrex::Vector<amrex::Real> common::body_force_density;
 int                        common::plot_ascii;
 int                        common::plot_means;
 int                        common::plot_vars;
-int                        common::plot_mom3;
+AMREX_GPU_MANAGED int      common::plot_mom3;
+AMREX_GPU_MANAGED int      common::plot_mom4;
 int                        common::plot_covars;
 int                        common::plot_cross;
 int                        common::plot_deltaY_dir;
@@ -609,6 +610,7 @@ void InitializeCommonNamespace() {
     plot_means = 0;
     plot_vars = 0;
     plot_mom3 = 0;
+    plot_mom4 = 0;
     plot_covars = 0;
     plot_cross = 0;
     plot_deltaY_dir = -1;
@@ -1138,6 +1140,7 @@ void InitializeCommonNamespace() {
     pp.query("plot_means",plot_means);
     pp.query("plot_vars",plot_vars);
     pp.query("plot_mom3",plot_mom3);
+    pp.query("plot_mom4",plot_mom4);
     pp.query("plot_covars",plot_covars);
     pp.query("plot_cross",plot_cross);
     pp.query("plot_deltaY_dir",plot_deltaY_dir);

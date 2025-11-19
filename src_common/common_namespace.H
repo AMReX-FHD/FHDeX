@@ -312,7 +312,8 @@ namespace common {
     extern int                        plot_ascii;
     extern int                        plot_means;
     extern int                        plot_vars;
-    extern int                        plot_mom3;
+    extern AMREX_GPU_MANAGED int      plot_mom3;
+    extern AMREX_GPU_MANAGED int      plot_mom4;
     extern int                        plot_covars;
     extern int                        plot_cross;
     extern int                        plot_deltaY_dir;
