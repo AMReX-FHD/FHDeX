@@ -37,55 +37,30 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
-            GpuArray<Real,MAX_SPECIES> Yk_fixed;
-            GpuArray<Real,MAX_SPECIES> Xk_fixed;
-
-            Real sumYk = 0.;
+            GpuArray<Real,MAX_SPECIES> Yk;
             for (int n=0; n<nspecies; ++n) {
-                if (prim(i,j,k,6+n) <= 0.0) amrex::Abort("Negative mass fraction encountered");
-                if (prim(i,j,k,6+n) >= 1.0) amrex::Abort("Greater than unity mass fraction encountered");
-                Yk_fixed[n] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+n)));
-                sumYk += Yk_fixed[n];
+                Yk[n] = prim(i,j,k,6+n);
             }
 
-            for (int n=0; n<nspecies; ++n) {
-                Yk_fixed[n] /= sumYk;
-            }
+            amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES> Dloc;
+            amrex::GpuArray<amrex::Real,MAX_SPECIES> chiloc;
 
-            // compute mole fractions from mass fractions
-            GetMolfrac(Yk_fixed, Xk_fixed);
+            TransportCoeffs(prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+                            Yk, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
+                            Dloc, chiloc);
 
-            if (transport_type == 1) { // Giovangigli
-                IdealMixtureTransportGIO(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
-                                         Yk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
-                                         Dij, chi);
+            for (int kk=0; kk<nspecies; ++kk) {
+                chi(i,j,k,kk) = chiloc[kk];
             }
-
-            else if (transport_type == 2) { // Waldmann-Valk
-                IdealMixtureTransportVW(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
-                                      Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
-                                      Dij, chi);
-            }
-            else if (transport_type == 3) { // Hirschfelder-Curtiss-Bird for binary mixtures
-                IdealMixtureTransportHCBBin(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
-                                            Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
-                                            Dij, chi);
-            }
-
-            // want this multiplied by rho for all times
+            // want this multiplied by rho for all times (rho*D_tilde = rho*Y*D)
             for (int kk=0; kk<nspecies; ++kk) {
                 for (int ll=0; ll<nspecies; ++ll) {
                     int n = kk*nspecies + ll;
-                    Dij(i,j,k,n) *= prim(i,j,k,0);
+                    Dij(i,j,k,n) = Dloc[n];
                 }
             }
-
-            // set bulk viscosity
-            if (amrex::Math::abs(visc_type) == 3) {
-                zeta(i,j,k) = zeta_ratio * eta(i,j,k);
-            }
-
 
         });
     }
 }
+

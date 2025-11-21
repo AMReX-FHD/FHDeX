@@ -11,6 +11,7 @@ AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
 AMREX_GPU_MANAGED int compressible::turbRestartRun = 1;
 AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
+AMREX_GPU_MANAGED int compressible::dirichlet_type = 1;
 
 void InitializeCompressibleNamespace()
 {
@@ -83,6 +84,14 @@ void InitializeCompressibleNamespace()
     pp.query("zeta_ratio",zeta_ratio);
     if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio < 0.0)) amrex::Abort("need non-negative zeta_ratio (ratio of bulk to shear viscosity) for visc_type = 3 (use bulk viscosity)");
     if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio >= 0.0)) amrex::Print() << "bulk viscosity model selected; bulk viscosity ratio is: " << zeta_ratio << "\n";
+
+
+    // dirichlet boundary function
+    // type 1: qty(x=0) [boundary] = dirichlet value
+    // type 2: qty(x=0) [boundary] = 0.5*(dirichlet value + 1st cell in domain)
+    // type 3: qty(x=0) [boundary] = 1st cell in domain
+    dirichlet_type = 1;
+    pp.query("dirichlet_type",dirichlet_type);
 
     return;
 }
