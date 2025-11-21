@@ -3,7 +3,7 @@
 #include <AMReX_ParmParse.H>
 
 // for clock-based random seed
-#include "chrono" 
+#include "chrono"
 using namespace std::chrono;
 
 using namespace amrex;
@@ -16,7 +16,7 @@ Initialize(argc,argv);
     if (AMREX_SPACEDIM != 2) {
         Abort("Must build with DIM=2");
     }
-    
+
     // **********************************
     // DECLARE SIMULATION PARAMETERS
     // **********************************
@@ -60,7 +60,7 @@ Initialize(argc,argv);
 
         pp.query("beta",beta);
         pp.query("pressure",pressure);
-                
+
         pp.query("seed",seed);
 
         pp.query("dt",dt);
@@ -102,7 +102,7 @@ Initialize(argc,argv);
     ba.define(domain);
 
     IntVect max_grid_size(1024000,max_ensembles_per_rank);
-    
+
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize(max_grid_size);
 
@@ -141,11 +141,11 @@ Initialize(argc,argv);
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
         WriteSingleLevelPlotfile(pltfile, state, {"p","r"}, geom, time, 0);
     }
-    
+
     for (int step=0; step<n_steps; ++step) {
 
         time += dt;
-        
+
         // ****************
         // INTEGRATE A STEP
         // ****************
@@ -169,10 +169,10 @@ Initialize(argc,argv);
         //
         //
         //
-        
+
     }
 
-    
+
 
 }
 Finalize();
