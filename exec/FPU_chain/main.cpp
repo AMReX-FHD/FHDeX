@@ -109,8 +109,7 @@ Initialize(argc,argv);
     ba.maxSize(max_grid_size);
 
     // physical box size in this FPU_chain implementation is not relevant
-    RealBox real_box({ 0., 0.,},
-                     { 1., 1.,});
+    RealBox real_box({ 0., 0.,}, { 1., 1.,});
 
     // periodic in all direction
     Array<int,AMREX_SPACEDIM> is_periodic{1,0};
@@ -127,29 +126,29 @@ Initialize(argc,argv);
     // we only need a ghost cell for the x-direction
     IntVect ng_vect(1,0);
 
-    // components are p and q
-    MultiFab state(ba,dm,2,ng_vect);
+    // components are r and p
+    MultiFab state_r(ba,dm,1,ng_vect);
+    MultiFab state_p(ba,dm,1,ng_vect);
+
+    // for plotfile
+    MultiFab plt_mf(ba,dm,2,0);
 
     // ******************************
     // SAMPLE TO OBTAIN INITIAL STATE
     // ******************************
-    //
-    //
-    //
-    init_p(state, beta);
-
-    Real p_avg = state.sum(0) / (n_particles-1 * n_ensembles-1);
-    Print() << "The mean momentum is: " << p_avg << std::endl;
-
-    state.FillBoundary(geom.periodicity());
+    init_r(state_r, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
+    init_p(state_p, beta, n_particles, n_ensembles, geom);
 
     // initial plotfile
     if (plot_int > 0) {
+        MultiFab::Copy(plt_mf, state_r, 0, 0, 1, 0);
+        MultiFab::Copy(plt_mf, state_p, 0, 1, 1, 0);
+        
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
-        WriteSingleLevelPlotfile(pltfile, state, {"p","r"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, plt_mf, {"r","p"}, geom, time, 0);
     }
 
-    for (int step=0; step<n_steps; ++step) {
+    for (int step=1; step<=n_steps; ++step) {
 
         time += dt;
 
@@ -166,8 +165,11 @@ Initialize(argc,argv);
         // PLOTFILE
         // ********
         if (plot_int > 0 && step%plot_int == 0) {
+            MultiFab::Copy(plt_mf, state_r, 0, 0, 1, 0);
+            MultiFab::Copy(plt_mf, state_p, 0, 1, 1, 0);
+
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
-            WriteSingleLevelPlotfile(pltfile, state, {"p","r"}, geom, time, step);
+            WriteSingleLevelPlotfile(pltfile, plt_mf, {"p","r"}, geom, time, step);
         }
 
         // ****************
