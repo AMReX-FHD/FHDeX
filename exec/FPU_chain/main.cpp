@@ -2,6 +2,8 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 
+#include "FPU.H"
+
 // for clock-based random seed
 #include "chrono"
 using namespace std::chrono;
@@ -134,6 +136,11 @@ Initialize(argc,argv);
     //
     //
     //
+    init_p(state, beta);
+
+    Real p_avg = state.sum(0) / (n_particles-1 * n_ensembles-1);
+    Print() << "The mean momentum is: " << p_avg << std::endl;
+
     state.FillBoundary(geom.periodicity());
 
     // initial plotfile
