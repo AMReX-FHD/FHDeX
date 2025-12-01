@@ -18,8 +18,6 @@ void init_r(MultiFab& state_r,
             const Geometry& geom) {
 
 /*
-
-      """
     Overdamped Langevin sampler for π(r) ∝ exp[-β (V(r) + P r)],
     where V(r) = (a/2) r^2 + (b/3) r^3 + (c/4) r^4.
 
@@ -40,43 +38,8 @@ void init_r(MultiFab& state_r,
     -------
     samples : np.ndarray, shape (n_steps,)
         Samples approximately distributed according to π(r).
-    """
-
-    # Set up RNG
-    if isinstance(random_state, np.random.Generator):
-        rng = random_state
-    else:
-        rng = np.random.default_rng(random_state)
-
-    def grad_U(r):
-        """
-        Gradient of U(r) = β (V(r) + P r)
-        with V'(r) = a r + b r^2 + c r^3.
-        """
-        dV = a * r + b * r**2 + c * r**3
-        return beta * (dV + P)
-
-    r = float(r0)
-    total_steps = burn_in + n_steps * thin
-    samples = np.empty(n_steps, dtype=float)
-
-    k_sample = 0
-    sqrt_2dt = np.sqrt(2.0 * step_size)
-
-    for k in range(total_steps):
-        # Langevin update
-        r += -step_size * grad_U(r) + sqrt_2dt * rng.normal()
-
-        # Store samples after burn-in, with thinning
-        if k >= burn_in and ((k - burn_in) % thin == 0):
-            samples[k_sample] = r
-            k_sample += 1
-            if k_sample >= n_steps:
-                break
-
-    return samples
 */
-    
+
     Real sqrt_2dt = std::sqrt(2.*step_size);
 
     for ( MFIter mfi(state_r); mfi.isValid(); ++mfi) {
@@ -93,10 +56,12 @@ void init_r(MultiFab& state_r,
 
             Real r = r0;
             Real random;
+
+            // discard burn random numbers
             for (auto aaa=0; aaa<burn; ++aaa) {
                 random = amrex::RandomNormal(0.,1.);
             }
-            
+
             for (auto i = lo.x; i <= hi.x; ++i) {
                 Real grad_U = beta * (a*r + b*r*r + c*r*r*r + pressure);
                 r += -step_size * grad_U + sqrt_2dt * amrex::RandomNormal(0.,1.);
@@ -104,7 +69,7 @@ void init_r(MultiFab& state_r,
             }
         }
         }
-        
+
     }
         
     state_r.FillBoundary(geom.periodicity());
