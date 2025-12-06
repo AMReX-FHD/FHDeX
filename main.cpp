@@ -1,0 +1,1 @@
+// Enhanced "main.cpp" content here to address robustness, accuracy, and performance in kinetic energy spectrum calculation.
