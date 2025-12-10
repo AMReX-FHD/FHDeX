@@ -129,6 +129,9 @@ Initialize(argc,argv);
     // components are r and p
     MultiFab state(ba,dm,2,ng_vect);
 
+    // diagnostics to compute energy
+    MultiFab energy(ba,dm,1,0);
+
     // for plotfile
     MultiFab plt_mf(ba,dm,2,0);
 
@@ -136,6 +139,7 @@ Initialize(argc,argv);
     // SAMPLE TO OBTAIN INITIAL STATE
     // ******************************
     init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
+    compute_mean_stretch_momentum(state,n_particles,n_ensembles);
 
     // initial plotfile
     if (plot_int > 0) {
@@ -166,9 +170,9 @@ Initialize(argc,argv);
         // ****************
         // TEXT DIAGNOSTICS
         // ****************
-        //
-        //
-        //
+        compute_mean_stretch_momentum(state,n_particles,n_ensembles);
+        compute_energy(energy,state,a_coef,b_coef,c_coef);
+        compute_mean_energy(energy,n_particles,n_ensembles);
 
     }
 
