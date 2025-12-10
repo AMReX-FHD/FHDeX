@@ -1,5 +1,5 @@
 n_particles = 1000
-n_ensembles = 100
+n_ensembles = 10
 n_steps = 1000000
 
 a_coef = 1.0

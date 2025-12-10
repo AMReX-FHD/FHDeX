@@ -29,6 +29,10 @@ void FPU_RK4(MultiFab& state,
              const Geometry& geom);
 
 void rhs(MultiFab& rhs,
-         MultiFab& state);
+         MultiFab& state,
+         const Real& a,
+         const Real& b,
+         const Real& c,
+         const Geometry& geom);
 
 #endif

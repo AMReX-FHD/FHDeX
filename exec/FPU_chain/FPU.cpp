@@ -139,30 +139,30 @@ void FPU_RK4(MultiFab& state,
     MultiFab rhs2(ba,dm,2,0);
     MultiFab rhs3(ba,dm,2,0);
     MultiFab rhs4(ba,dm,2,0);
-
+    
     // compute rhs1 = f(rhs)
-    rhs(rhs1,state);
+    rhs(rhs1,state,a,b,c,geom);
 
     // state2 = state + 0.5*dt*rhs1
     MultiFab::LinComb(state2,1.0,state,0,0.5*dt,rhs1,0,0,2,0);
     state2.FillBoundary(geom.periodicity());
 
     // compute rhs2 = f(rhs2)
-    rhs(rhs2,state2);
+    rhs(rhs2,state2,a,b,c,geom);
 
     // state3 = state + 0.5*dt*rhs2
     MultiFab::LinComb(state3,1.0,state,0,0.5*dt,rhs2,0,0,2,0);
     state3.FillBoundary(geom.periodicity());
 
     // compute rhs3 = f(rhs3)
-    rhs(rhs3,state3);
+    rhs(rhs3,state3,a,b,c,geom);
 
     // state4 = state + dt*rhs3
     MultiFab::LinComb(state4,1.0,state,0,dt,rhs3,0,0,2,0);
     state4.FillBoundary(geom.periodicity());
 
     // compute rhs4 = f(rhs4)
-    rhs(rhs4,state4);
+    rhs(rhs4,state4,a,b,c,geom);
 
     // RK4 update: state += (dt/6.0) * (rhs1 + 2*rhs2 + 2*rhs3 + rhs4)
     MultiFab::Saxpy(state,dt/6.0,rhs1,0,0,2,0);
@@ -175,7 +175,50 @@ void FPU_RK4(MultiFab& state,
 }
 
 void rhs(MultiFab& rhs,
-         MultiFab& state) {
+         MultiFab& state,
+         const Real& a,
+         const Real& b,
+         const Real& c,
+         const Geometry& geom) {
 
+    BoxArray ba = state.boxArray();
+    DistributionMapping dm = state.DistributionMap();
 
+    MultiFab V_prime(ba,dm,1,1);
+
+    // compute V'
+    for (MFIter mfi(state); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<const Real>&   state_fab = state.array(mfi);
+        const Array4<      Real>& V_prime_fab = V_prime.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real r = state_fab(i,j,k,0);
+            V_prime_fab(i,j,k,0) = a*r + b*r*r + c*r*r*r;
+        });
+    }
+
+    V_prime.FillBoundary(geom.periodicity());
+    
+    // compute rhs
+    for (MFIter mfi(state); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<const Real>&   state_fab = state.array(mfi);
+        const Array4<const Real>& V_prime_fab = V_prime.array(mfi);
+        const Array4<      Real>&     rhs_fab = rhs.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            // dr_dt = p(i+1) - p(i)
+            rhs_fab(i,j,k,0) = state_fab(i+1,j,k,1) - state_fab(i,j,k,1);
+
+            // dp_dt = V'(i) - V'(i-1)
+            rhs_fab(i,j,k,1) = V_prime_fab(i,j,k,0) - V_prime_fab(i-1,j,k,0);
+        });
+    }
 }

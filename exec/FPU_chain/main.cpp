@@ -140,6 +140,7 @@ Initialize(argc,argv);
     // initial plotfile
     if (plot_int > 0) {
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
+        amrex::Print() << "Writing plotfile " << pltfile << std::endl;
         WriteSingleLevelPlotfile(pltfile, state, {"r","p"}, geom, time, 0);
     }
 
@@ -151,12 +152,14 @@ Initialize(argc,argv);
         // INTEGRATE A STEP
         // ****************
         FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
+        amrex::Print() << "Completed step " << step << std::endl;
 
         // ********
         // PLOTFILE
         // ********
         if (plot_int > 0 && step%plot_int == 0) {
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
+            amrex::Print() << "Writing plotfile " << pltfile << std::endl;
             WriteSingleLevelPlotfile(pltfile, state, {"p","r"}, geom, time, step);
         }
 
