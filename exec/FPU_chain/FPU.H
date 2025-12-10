@@ -19,4 +19,16 @@ void init(MultiFab& state,
           const int& n_ensembles,
           const Geometry& geom);
 
+void FPU_RK4(MultiFab& state,
+             const Real& a,
+             const Real& b,
+             const Real& c,
+             const Real& dt,
+             const int& n_particles,
+             const int& n_ensembles,
+             const Geometry& geom);
+
+void rhs(MultiFab& rhs,
+         MultiFab& state);
+
 #endif

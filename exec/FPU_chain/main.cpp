@@ -150,11 +150,7 @@ Initialize(argc,argv);
         // ****************
         // INTEGRATE A STEP
         // ****************
-        //
-        //
-        //
-
-
+        FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
 
         // ********
         // PLOTFILE
