@@ -160,7 +160,7 @@ Initialize(argc,argv);
         if (plot_int > 0 && step%plot_int == 0) {
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
             amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-            WriteSingleLevelPlotfile(pltfile, state, {"p","r"}, geom, time, step);
+            WriteSingleLevelPlotfile(pltfile, state, {"r","pr"}, geom, time, step);
         }
 
         // ****************
