@@ -127,8 +127,7 @@ Initialize(argc,argv);
     IntVect ng_vect(1,0);
 
     // components are r and p
-    MultiFab state_r(ba,dm,1,ng_vect);
-    MultiFab state_p(ba,dm,1,ng_vect);
+    MultiFab state(ba,dm,2,ng_vect);
 
     // for plotfile
     MultiFab plt_mf(ba,dm,2,0);
@@ -136,16 +135,12 @@ Initialize(argc,argv);
     // ******************************
     // SAMPLE TO OBTAIN INITIAL STATE
     // ******************************
-    init_r(state_r, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
-    init_p(state_p, beta, n_particles, n_ensembles, geom);
+    init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
 
     // initial plotfile
     if (plot_int > 0) {
-        MultiFab::Copy(plt_mf, state_r, 0, 0, 1, 0);
-        MultiFab::Copy(plt_mf, state_p, 0, 1, 1, 0);
-        
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
-        WriteSingleLevelPlotfile(pltfile, plt_mf, {"r","p"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, state, {"r","p"}, geom, time, 0);
     }
 
     for (int step=1; step<=n_steps; ++step) {
@@ -165,11 +160,8 @@ Initialize(argc,argv);
         // PLOTFILE
         // ********
         if (plot_int > 0 && step%plot_int == 0) {
-            MultiFab::Copy(plt_mf, state_r, 0, 0, 1, 0);
-            MultiFab::Copy(plt_mf, state_p, 0, 1, 1, 0);
-
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
-            WriteSingleLevelPlotfile(pltfile, plt_mf, {"p","r"}, geom, time, step);
+            WriteSingleLevelPlotfile(pltfile, state, {"p","r"}, geom, time, step);
         }
 
         // ****************

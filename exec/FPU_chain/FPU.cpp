@@ -4,52 +4,54 @@
 
 using namespace amrex;
 
-void init_r(MultiFab& state_r,
-            const Real& beta,
-            const Real& pressure,
-            const Real& a,
-            const Real& b,
-            const Real& c,
-            const Real& r0,
-            const int& burn,
-            const Real& step_size,
-            const int& n_particles,
-            const int& n_ensembles,
-            const Geometry& geom) {
+void init(MultiFab& state,
+          const Real& beta,
+          const Real& pressure,
+          const Real& a,
+          const Real& b,
+          const Real& c,
+          const Real& r0,
+          const int& burn,
+          const Real& step_size,
+          const int& n_particles,
+          const int& n_ensembles,
+          const Geometry& geom) {
 
 /*
-    Overdamped Langevin sampler for π(r) ∝ exp[-β (V(r) + P r)],
-    where V(r) = (a/2) r^2 + (b/3) r^3 + (c/4) r^4.
+  Initialize r
+  
+  Overdamped Langevin sampler for π(r) ∝ exp[-β (V(r) + P r)],
+  where V(r) = (a/2) r^2 + (b/3) r^3 + (c/4) r^4.
 
-    Parameters
-    ----------
-    beta : real
-        Inverse temperature β.
-    P : real
-        Linear coefficient in the exponent (acts like a constant force term).
-    a, b, c : real
-        Coefficients in the quartic potential V(r).
-    r0 : real
-        Initial position of the chain.
-    step_size : real
-        Time step Δt for the Langevin discretization.
+  Parameters
+  ----------
+  beta : real
+    Inverse temperature β.
+  P : real
+    Linear coefficient in the exponent (acts like a constant force term).
+  a, b, c : real
+    Coefficients in the quartic potential V(r).
+  r0 : real
+    Initial position of the chain.
+  step_size : real
+    Time step Δt for the Langevin discretization.
 
-    Returns
-    -------
-    samples : np.ndarray, shape (n_steps,)
-        Samples approximately distributed according to π(r).
+  Returns
+  -------
+  samples : np.ndarray, shape (n_steps,)
+  Samples approximately distributed according to π(r).
 */
 
     Real sqrt_2dt = std::sqrt(2.*step_size);
 
-    for ( MFIter mfi(state_r); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(state); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
 
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
 
-        const Array4<Real> r_fab = state_r.array(mfi);
+        const Array4<Real> state_fab = state.array(mfi);
 
         for (auto k = lo.z; k <= hi.z; ++k) {
         for (auto j = lo.y; j <= hi.y; ++j) {
@@ -65,24 +67,48 @@ void init_r(MultiFab& state_r,
             for (auto i = lo.x; i <= hi.x; ++i) {
                 Real grad_U = beta * (a*r + b*r*r + c*r*r*r + pressure);
                 r += -step_size * grad_U + sqrt_2dt * amrex::RandomNormal(0.,1.);
-                r_fab(i,j,k) = r;
+                state_fab(i,j,k,0) = r;
             }
         }
         }
 
     }
-        
-    state_r.FillBoundary(geom.periodicity());
 
-    // compute mean
-    BoxArray ba = state_r.boxArray();
+    // Initialize p
+
+    Real sigma = std::sqrt(1./beta);
+
+    for (MFIter mfi(state); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real>& state_fab = state.array(mfi);
+
+        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
+        {
+            state_fab(i,j,k,1) = amrex::RandomNormal(0.,sigma,engine);
+        });
+    }
+
+    state.FillBoundary(geom.periodicity());
+    
+
+    // compute means
+    BoxArray ba = state.boxArray();
     Box domain = ba.minimalBox().enclosedCells();
     
     Gpu::HostVector<Real> sum_r(n_ensembles);
-    sum_r = sumToLine(state_r, 0, 1, domain, 1);
+    sum_r = sumToLine(state, 0, 1, domain, 1);
 
     for (int i=0; i<n_ensembles; ++i) {
         Print() << "For ensemble " << i << " The mean stretch r is: " << sum_r[i]/n_particles << std::endl;
+    }
+
+    Gpu::HostVector<Real> sum_p(n_ensembles);
+    sum_p = sumToLine(state, 1, 1, domain, 1);
+
+    for (int i=0; i<n_ensembles; ++i) {
+        Print() << "For ensemble " << i << " The mean momentum p is: " << sum_p[i]/n_particles << std::endl;
     }
 }
 
@@ -91,33 +117,6 @@ void init_p(MultiFab& state_p,
             const int& n_particles,
             const int& n_ensembles,
             const Geometry& geom) {
-
-    Real sigma = std::sqrt(1./beta);
-
-    for (MFIter mfi(state_p); mfi.isValid(); ++mfi) {
-
-        const Box& bx = mfi.tilebox();
-
-        const Array4<Real>& p_fab = state_p.array(mfi);
-
-        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
-        {
-            p_fab(i,j,k) = amrex::RandomNormal(0.,sigma,engine);
-        });
-    }
-
-    state_p.FillBoundary(geom.periodicity());
-    
-    // compute mean
-    BoxArray ba = state_p.boxArray();
-    Box domain = ba.minimalBox().enclosedCells();
-
-    Gpu::HostVector<Real> sum_p(n_ensembles);
-    sum_p = sumToLine(state_p, 0, 1, domain, 1);
-
-    for (int i=0; i<n_ensembles; ++i) {
-        Print() << "For ensemble " << i << " The mean momentum p is: " << sum_p[i]/n_particles << std::endl;
-    }
 
     
 }
