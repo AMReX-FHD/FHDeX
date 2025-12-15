@@ -39,11 +39,10 @@ void compute_mean_stretch_momentum(MultiFab& state,
                                    const int& n_particles,
                                    const int& n_ensembles);
 
-void compute_energy(MultiFab& energy,
-                         MultiFab& state,
-                         const Real& a,
-                         const Real& b,
-                         const Real& c);
+void compute_energy(MultiFab& state,
+                    const Real& a,
+                    const Real& b,
+                    const Real& c);
 
 void compute_mean_energy(MultiFab& energy,
                          const int& n_particles,

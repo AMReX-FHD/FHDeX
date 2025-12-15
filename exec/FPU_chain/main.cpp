@@ -126,11 +126,8 @@ Initialize(argc,argv);
     // we only need a ghost cell for the x-direction
     IntVect ng_vect(1,0);
 
-    // components are r and p
-    MultiFab state(ba,dm,2,ng_vect);
-
-    // diagnostics to compute energy
-    MultiFab energy(ba,dm,1,0);
+    // components are r, p, and e
+    MultiFab state(ba,dm,3,ng_vect);
 
     // for plotfile
     MultiFab plt_mf(ba,dm,2,0);
@@ -140,12 +137,14 @@ Initialize(argc,argv);
     // ******************************
     init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
     compute_mean_stretch_momentum(state,n_particles,n_ensembles);
+    compute_energy(state,a_coef,b_coef,c_coef);
+    compute_mean_energy(state,n_particles,n_ensembles);
 
     // initial plotfile
     if (plot_int > 0) {
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-        WriteSingleLevelPlotfile(pltfile, state, {"r","p"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
     }
 
     for (int step=1; step<=n_steps; ++step) {
@@ -164,15 +163,15 @@ Initialize(argc,argv);
         if (plot_int > 0 && step%plot_int == 0) {
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
             amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-            WriteSingleLevelPlotfile(pltfile, state, {"r","pr"}, geom, time, step);
+            WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, step);
         }
 
         // ****************
         // TEXT DIAGNOSTICS
         // ****************
         compute_mean_stretch_momentum(state,n_particles,n_ensembles);
-        compute_energy(energy,state,a_coef,b_coef,c_coef);
-        compute_mean_energy(energy,n_particles,n_ensembles);
+        compute_energy(state,a_coef,b_coef,c_coef);
+        compute_mean_energy(state,n_particles,n_ensembles);
 
     }
 
