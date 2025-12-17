@@ -1,4 +1,5 @@
 #include <AMReX.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 
@@ -126,6 +127,11 @@ Initialize(argc,argv);
     // components are r, p, and e
     MultiFab state(ba,dm,3,ng_vect);
 
+    MultiFab Salphaalpha(ba,dm,6,0);
+    Salphaalpha.setVal(0.);
+    int samples = 0;
+    Gpu::HostVector<Real> S_alphaalpha_00(n_particles);
+
     // BoxArray to store g_alpha(0,0), will use the same distribution map
     IntVect dom_hi_zero(0, n_ensembles-1);
     Box domain_zero(dom_lo, dom_hi_zero);
@@ -167,6 +173,17 @@ Initialize(argc,argv);
         FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
         amrex::Print() << "Completed step " << step << std::endl;
 
+        /*
+        compute_Salphaalpha(state,g_alpha_zero,Salphaalpha);
+        ++samples;
+        S_alphaalpha_00 = sumToLine(Salphaalpha, 0, 0, domain, 1);
+
+        for (int i=0; i<n_particles; ++i) {
+            S_alphaalpha_00[i] /= (samples*n_ensembles);
+            Print() << "S_alphaalpha_00 " << i << " " << S_alphaalpha_00[i] << std::endl;
+        }
+        */        
+        
         // ********
         // PLOTFILE
         // ********
