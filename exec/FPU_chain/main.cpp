@@ -90,9 +90,6 @@ Initialize(argc,argv);
                ParallelDescriptor::NProcs(),
                seed+ParallelDescriptor::MyProc());
 
-    BoxArray ba;
-    Geometry geom;
-
     // define lower and upper indices
     IntVect dom_lo(0,0);
     IntVect dom_hi(n_particles-1, n_ensembles-1);
@@ -101,12 +98,15 @@ Initialize(argc,argv);
     Box domain(dom_lo, dom_hi);
 
     // Initialize the boxarray "ba" from the single box "domain"
-    ba.define(domain);
+    BoxArray ba(domain);
 
     IntVect max_grid_size(1024000,max_ensembles_per_rank);
 
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize(max_grid_size);
+    
+    // How Boxes are distrubuted among MPI processes
+    DistributionMapping dm(ba);
 
     // physical box size in this FPU_chain implementation is not relevant
     RealBox real_box({ 0., 0.,}, { 1., 1.,});
@@ -115,10 +115,7 @@ Initialize(argc,argv);
     Array<int,AMREX_SPACEDIM> is_periodic{1,0};
 
     // This defines a Geometry object
-    geom.define(domain, real_box, CoordSys::cartesian, is_periodic);
-
-    // How Boxes are distrubuted among MPI processes
-    DistributionMapping dm(ba);
+    Geometry geom(domain, real_box, CoordSys::cartesian, is_periodic);
 
     // time = starting time in the simulation
     Real time = 0.0;
@@ -129,8 +126,14 @@ Initialize(argc,argv);
     // components are r, p, and e
     MultiFab state(ba,dm,3,ng_vect);
 
-    // for plotfile
-    MultiFab plt_mf(ba,dm,2,0);
+    // BoxArray to store g_alpha(0,0), will use the same distribution map
+    IntVect dom_hi_zero(0, n_ensembles-1);
+    Box domain_zero(dom_lo, dom_hi_zero);
+    BoxArray ba_zero(domain_zero);
+    ba_zero.maxSize(max_grid_size);
+    Geometry geom_zero(domain_zero, real_box, CoordSys::cartesian, is_periodic);
+
+    MultiFab g_alpha_zero(ba_zero,dm,3,0);
 
     // ******************************
     // SAMPLE TO OBTAIN INITIAL STATE
@@ -140,11 +143,18 @@ Initialize(argc,argv);
     compute_energy(state,a_coef,b_coef,c_coef);
     compute_mean_energy(state,n_particles,n_ensembles);
 
+    g_alpha_zero.ParallelCopy(state, 0, 0, 3);
+
     // initial plotfile
     if (plot_int > 0) {
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-        WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);	
+    }
+    if (plot_int > 0) {
+        const std::string& pltfile = amrex::Concatenate("galphazero",0,7);
+        amrex::Print() << "Writing plotfile " << pltfile << std::endl;
+        WriteSingleLevelPlotfile(pltfile, g_alpha_zero, {"r","p","e"}, geom, time, 0);	
     }
 
     for (int step=1; step<=n_steps; ++step) {
