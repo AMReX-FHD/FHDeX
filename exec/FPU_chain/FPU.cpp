@@ -51,7 +51,7 @@ void init(MultiFab& state,
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
 
-        const Array4<Real> state_fab = state.array(mfi);
+        const Array4<Real>& state_fab = state.array(mfi);
 
         for (auto k = lo.z; k <= hi.z; ++k) {
         for (auto j = lo.y; j <= hi.y; ++j) {
