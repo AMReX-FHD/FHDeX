@@ -154,7 +154,7 @@ Initialize(argc,argv);
     if (plot_int > 0) {
         const std::string& pltfile = amrex::Concatenate("galphazero",0,7);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-        WriteSingleLevelPlotfile(pltfile, g_alpha_zero, {"r","p","e"}, geom, time, 0);	
+        WriteSingleLevelPlotfile(pltfile, g_alpha_zero, {"r","p","e"}, geom_zero, time, 0);
     }
 
     for (int step=1; step<=n_steps; ++step) {
