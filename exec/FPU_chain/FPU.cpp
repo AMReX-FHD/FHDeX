@@ -227,6 +227,8 @@ void compute_means(MultiFab& state,
     sum_e = sumToLine(state, 2, 1, domain, 1);
 
     const std::string meanfile = amrex::Concatenate("mean",step,7);
+    amrex::Print() << "Writing means " << meanfile << std::endl;
+
     std::ofstream meanout;
     if (ParallelDescriptor::IOProcessor()) {
         meanout.open(meanfile, std::ios::out);
