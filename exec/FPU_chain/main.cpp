@@ -188,6 +188,7 @@ Initialize(argc,argv);
             WriteSingleLevelPlotfile(pltfile, S_alphaalpha, {"00","01","02","11","12","22"}, geom, time, step);
 
             const std::string S_alphaalphafile = amrex::Concatenate("S_alphaalpha_avg",step,7);
+            amrex::Print() << "Writing S_alphaalphafile " << S_alphaalphafile << std::endl;
             std::ofstream S_alphaalphaout;
             if (ParallelDescriptor::IOProcessor()) {
                 S_alphaalphaout.open(S_alphaalphafile, std::ios::out);
