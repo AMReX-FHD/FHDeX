@@ -127,10 +127,15 @@ Initialize(argc,argv);
     // components are r, p, and e
     MultiFab state(ba,dm,3,ng_vect);
 
-    MultiFab Salphaalpha(ba,dm,6,0);
-    Salphaalpha.setVal(0.);
+    MultiFab S_alphaalpha(ba,dm,6,0);
+    S_alphaalpha.setVal(0.);
     int samples = 0;
     Gpu::HostVector<Real> S_alphaalpha_00(n_particles);
+    Gpu::HostVector<Real> S_alphaalpha_01(n_particles);
+    Gpu::HostVector<Real> S_alphaalpha_02(n_particles);
+    Gpu::HostVector<Real> S_alphaalpha_11(n_particles);
+    Gpu::HostVector<Real> S_alphaalpha_12(n_particles);
+    Gpu::HostVector<Real> S_alphaalpha_22(n_particles);
 
     // BoxArray to store g_alpha(0,0), will use the same distribution map
     IntVect dom_hi_zero(0, n_ensembles-1);
@@ -157,11 +162,6 @@ Initialize(argc,argv);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
         WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);	
     }
-    if (plot_int > 0) {
-        const std::string& pltfile = amrex::Concatenate("galphazero",0,7);
-        amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-        WriteSingleLevelPlotfile(pltfile, g_alpha_zero, {"r","p","e"}, geom_zero, time, 0);
-    }
 
     for (int step=1; step<=n_steps; ++step) {
 
@@ -173,16 +173,33 @@ Initialize(argc,argv);
         FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
         amrex::Print() << "Completed step " << step << std::endl;
 
-        /*
-        compute_Salphaalpha(state,g_alpha_zero,Salphaalpha);
-        ++samples;
-        S_alphaalpha_00 = sumToLine(Salphaalpha, 0, 0, domain, 1);
+	compute_S_alphaalpha(state,g_alpha_zero,S_alphaalpha);
 
-        for (int i=0; i<n_particles; ++i) {
-            S_alphaalpha_00[i] /= (samples*n_ensembles);
-            Print() << "S_alphaalpha_00 " << i << " " << S_alphaalpha_00[i] << std::endl;
-        }
-        */        
+        ++samples;
+	S_alphaalpha_00 = sumToLine(S_alphaalpha, 0, 1, domain, 0);
+        S_alphaalpha_01 = sumToLine(S_alphaalpha, 1, 1, domain, 0);
+        S_alphaalpha_02 = sumToLine(S_alphaalpha, 2, 1, domain, 0);
+        S_alphaalpha_11 = sumToLine(S_alphaalpha, 3, 1, domain, 0);
+        S_alphaalpha_12 = sumToLine(S_alphaalpha, 4, 1, domain, 0);
+        S_alphaalpha_22 = sumToLine(S_alphaalpha, 5, 1, domain, 0);
+
+        if (plot_int > 0 && step%plot_int == 0) {
+            const std::string& pltfile = amrex::Concatenate("S_alphaalpha",step,7);
+            amrex::Print() << "Writing plotfile " << pltfile << std::endl;
+            WriteSingleLevelPlotfile(pltfile, S_alphaalpha, {"00","01","02","11","12","22"}, geom, time, step);
+
+            for (int i=0; i<n_particles; ++i) {
+                Print() << samples*n_ensembles << std::endl;
+                S_alphaalpha_00[i] /= (samples*n_ensembles);
+                Print() << "At step " << step << " S_alphaalpha " << i << " "
+                        << S_alphaalpha_00[i] << " "
+                        << S_alphaalpha_01[i] << " "
+                        << S_alphaalpha_02[i] << " "
+                        << S_alphaalpha_11[i] << " "
+                        << S_alphaalpha_12[i] << " "
+                        << S_alphaalpha_22[i] << "\n";
+            }
+	}
         
         // ********
         // PLOTFILE

@@ -270,9 +270,9 @@ void compute_mean_energy(MultiFab& state,
 
 }
 
-void compute_Salphaalpha(const MultiFab& state,
-                         const MultiFab& g_alpha_zero,
-                         MultiFab& Salphaalpha) {
+void compute_S_alphaalpha(const MultiFab& state,
+			  const MultiFab& g_alpha_zero,
+			  MultiFab& S_alphaalpha) {
 
     // compute energy
     for (MFIter mfi(state); mfi.isValid(); ++mfi) {
@@ -281,16 +281,16 @@ void compute_Salphaalpha(const MultiFab& state,
 
         const Array4<const Real>& state_fab = state.array(mfi);
         const Array4<const Real>& g_alpha = g_alpha_zero.array(mfi);
-        const Array4<Real> & Salpha = Salphaalpha.array(mfi);
+        const Array4<Real> & S_alpha = S_alphaalpha.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Salpha(i,j,k,0) += state_fab(i,j,k,0)*g_alpha(0,j,k,0) - g_alpha(0,j,k,0)*g_alpha(0,j,k,0);
-            Salpha(i,j,k,1) += state_fab(i,j,k,0)*g_alpha(0,j,k,1) - g_alpha(0,j,k,0)*g_alpha(0,j,k,1);
-            Salpha(i,j,k,2) += state_fab(i,j,k,0)*g_alpha(0,j,k,2) - g_alpha(0,j,k,0)*g_alpha(0,j,k,2);
-            Salpha(i,j,k,3) += state_fab(i,j,k,1)*g_alpha(0,j,k,1) - g_alpha(0,j,k,1)*g_alpha(0,j,k,1);
-            Salpha(i,j,k,4) += state_fab(i,j,k,1)*g_alpha(0,j,k,2) - g_alpha(0,j,k,1)*g_alpha(0,j,k,2);
-            Salpha(i,j,k,5) += state_fab(i,j,k,2)*g_alpha(0,j,k,2) - g_alpha(0,j,k,2)*g_alpha(0,j,k,2);
+            S_alpha(i,j,k,0) += state_fab(i,j,k,0)*g_alpha(0,j,k,0) - g_alpha(0,j,k,0)*g_alpha(0,j,k,0);
+            S_alpha(i,j,k,1) += state_fab(i,j,k,0)*g_alpha(0,j,k,1) - g_alpha(0,j,k,0)*g_alpha(0,j,k,1);
+            S_alpha(i,j,k,2) += state_fab(i,j,k,0)*g_alpha(0,j,k,2) - g_alpha(0,j,k,0)*g_alpha(0,j,k,2);
+            S_alpha(i,j,k,3) += state_fab(i,j,k,1)*g_alpha(0,j,k,1) - g_alpha(0,j,k,1)*g_alpha(0,j,k,1);
+            S_alpha(i,j,k,4) += state_fab(i,j,k,1)*g_alpha(0,j,k,2) - g_alpha(0,j,k,1)*g_alpha(0,j,k,2);
+            S_alpha(i,j,k,5) += state_fab(i,j,k,2)*g_alpha(0,j,k,2) - g_alpha(0,j,k,2)*g_alpha(0,j,k,2);
         });
     }
 

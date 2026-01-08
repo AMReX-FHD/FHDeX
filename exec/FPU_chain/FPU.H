@@ -48,8 +48,8 @@ void compute_mean_energy(MultiFab& energy,
                          const int& n_particles,
                          const int& n_ensembles);
             
-void compute_Salphaalpha(const MultiFab& state,
-                         const MultiFab& g_alpha_zero,
-                         MultiFab& Salphaalpha);
+void compute_S_alphaalpha(const MultiFab& state,
+			  const MultiFab& g_alpha_zero,
+			  MultiFab& Salphaalpha);
 
 #endif
