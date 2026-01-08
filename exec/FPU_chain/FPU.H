@@ -35,19 +35,16 @@ void rhs(MultiFab& rhs,
          const Real& c,
          const Geometry& geom);
 
-void compute_mean_stretch_momentum(MultiFab& state,
-                                   const int& n_particles,
-                                   const int& n_ensembles);
+void compute_means(MultiFab& state,
+                   const int& n_particles,
+                   const int& n_ensembles,
+                   const int& step);
 
 void compute_energy(MultiFab& state,
                     const Real& a,
                     const Real& b,
                     const Real& c);
 
-void compute_mean_energy(MultiFab& energy,
-                         const int& n_particles,
-                         const int& n_ensembles);
-            
 void compute_S_alphaalpha(const MultiFab& state,
 			  const MultiFab& g_alpha_zero,
 			  MultiFab& Salphaalpha);

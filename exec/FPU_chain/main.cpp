@@ -150,9 +150,8 @@ Initialize(argc,argv);
     // SAMPLE TO OBTAIN INITIAL STATE
     // ******************************
     init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
-    compute_mean_stretch_momentum(state,n_particles,n_ensembles);
     compute_energy(state,a_coef,b_coef,c_coef);
-    compute_mean_energy(state,n_particles,n_ensembles);
+    compute_means(state,n_particles,n_ensembles,0);
 
     g_alpha_zero.ParallelCopy(state, 0, 0, 3);
 
@@ -188,16 +187,20 @@ Initialize(argc,argv);
             amrex::Print() << "Writing plotfile " << pltfile << std::endl;
             WriteSingleLevelPlotfile(pltfile, S_alphaalpha, {"00","01","02","11","12","22"}, geom, time, step);
 
-            for (int i=0; i<n_particles; ++i) {
-                Print() << samples*n_ensembles << std::endl;
-                S_alphaalpha_00[i] /= (samples*n_ensembles);
-                Print() << "At step " << step << " S_alphaalpha " << i << " "
-                        << S_alphaalpha_00[i] << " "
-                        << S_alphaalpha_01[i] << " "
-                        << S_alphaalpha_02[i] << " "
-                        << S_alphaalpha_11[i] << " "
-                        << S_alphaalpha_12[i] << " "
-                        << S_alphaalpha_22[i] << "\n";
+            const std::string S_alphaalphafile = amrex::Concatenate("S_alphaalpha_avg",step,7);
+            std::ofstream S_alphaalphaout;
+            if (ParallelDescriptor::IOProcessor()) {
+                S_alphaalphaout.open(S_alphaalphafile, std::ios::out);
+                for (int i=0; i<n_particles; ++i) {
+                    S_alphaalpha_00[i] /= (samples*n_ensembles);
+                    S_alphaalphaout << " S_alphaalpha i = " << i << " "
+                                    << S_alphaalpha_00[i] << " "
+                                    << S_alphaalpha_01[i] << " "
+                                    << S_alphaalpha_02[i] << " "
+                                    << S_alphaalpha_11[i] << " "
+                                    << S_alphaalpha_12[i] << " "
+                                    << S_alphaalpha_22[i] << "\n";
+                }
             }
 	}
         
@@ -213,9 +216,10 @@ Initialize(argc,argv);
         // ****************
         // TEXT DIAGNOSTICS
         // ****************
-        compute_mean_stretch_momentum(state,n_particles,n_ensembles);
         compute_energy(state,a_coef,b_coef,c_coef);
-        compute_mean_energy(state,n_particles,n_ensembles);
+        if (plot_int > 0 && step%diag_int == 0) {
+            compute_means(state,n_particles,n_ensembles,step);
+        }
 
     }
 

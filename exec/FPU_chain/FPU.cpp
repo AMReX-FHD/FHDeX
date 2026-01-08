@@ -206,9 +206,10 @@ void rhs(MultiFab& rhs,
     }
 }
 
-void compute_mean_stretch_momentum(MultiFab& state,
-                                   const int& n_particles,
-                                   const int& n_ensembles) {
+void compute_means(MultiFab& state,
+                   const int& n_particles,
+                   const int& n_ensembles,
+                   const int& step) {
 
     BoxArray ba = state.boxArray();
     Box domain = ba.minimalBox().enclosedCells();
@@ -217,16 +218,24 @@ void compute_mean_stretch_momentum(MultiFab& state,
     Gpu::HostVector<Real> sum_r(n_ensembles);
     sum_r = sumToLine(state, 0, 1, domain, 1);
 
-    for (int i=0; i<n_ensembles; ++i) {
-        Print() << "For ensemble " << i << " the mean stretch r is: " << sum_r[i]/n_particles << std::endl;
-    }
-
     // compute mean p
     Gpu::HostVector<Real> sum_p(n_ensembles);
     sum_p = sumToLine(state, 1, 1, domain, 1);
 
-    for (int i=0; i<n_ensembles; ++i) {
-        Print() << "For ensemble " << i << " the mean momentum p is: " << sum_p[i]/n_particles << std::endl;
+    // compute mean energy
+    Gpu::HostVector<Real> sum_e(n_ensembles);
+    sum_e = sumToLine(state, 2, 1, domain, 1);
+
+    const std::string meanfile = amrex::Concatenate("mean",step,7);
+    std::ofstream meanout;
+    if (ParallelDescriptor::IOProcessor()) {
+        meanout.open(meanfile, std::ios::out);
+        for (int i=0; i<n_ensembles; ++i) {
+            meanout << "For ensemble " << i << " the mean r/p/e is: "
+                    << sum_r[i]/n_particles << " "
+                    << sum_p[i]/n_particles << " "
+                    << sum_e[i]/n_particles << "\n";
+        }
     }
 }
 
@@ -248,24 +257,6 @@ void compute_energy(MultiFab& state,
             state_fab(i,j,k,2) = 0.5*state_fab(i,j,k,1)*state_fab(i,j,k,1) +
                 (1./2.)*a*r*r + (1./3.)*b*r*r*r + (1./4.)*c*r*r*r*r;
         });
-    }
-
-}
-
-
-void compute_mean_energy(MultiFab& state,
-                         const int& n_particles,
-                         const int& n_ensembles) {
-
-    BoxArray ba = state.boxArray();
-    Box domain = ba.minimalBox().enclosedCells();
-
-    // compute mean energy
-    Gpu::HostVector<Real> sum_e(n_ensembles);
-    sum_e = sumToLine(state, 2, 1, domain, 1);
-
-    for (int i=0; i<n_ensembles; ++i) {
-        Print() << "For ensemble " << i << " the mean energy is: " << sum_e[i]/n_particles << std::endl;
     }
 
 }
