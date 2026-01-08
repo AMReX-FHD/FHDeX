@@ -19,7 +19,7 @@ dt = 1.e-3
 max_ensembles_per_rank = 1000
 
 # how often to write out text diagnostics
-diag_int = 1000
+diag_int = 100000
 
 # how often to write out complete state
 plot_int = 100000
