@@ -105,7 +105,7 @@ Initialize(argc,argv);
 
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize(max_grid_size);
-    
+
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
@@ -159,7 +159,7 @@ Initialize(argc,argv);
     if (plot_int > 0) {
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-        WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);	
+        WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
     }
 
     for (int step=1; step<=n_steps; ++step) {
@@ -172,10 +172,10 @@ Initialize(argc,argv);
         FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
         amrex::Print() << "Completed step " << step << std::endl;
 
-	compute_S_alphaalpha(state,g_alpha_zero,S_alphaalpha);
+        compute_S_alphaalpha(state,g_alpha_zero,S_alphaalpha);
 
         ++samples;
-	S_alphaalpha_00 = sumToLine(S_alphaalpha, 0, 1, domain, 0);
+        S_alphaalpha_00 = sumToLine(S_alphaalpha, 0, 1, domain, 0);
         S_alphaalpha_01 = sumToLine(S_alphaalpha, 1, 1, domain, 0);
         S_alphaalpha_02 = sumToLine(S_alphaalpha, 2, 1, domain, 0);
         S_alphaalpha_11 = sumToLine(S_alphaalpha, 3, 1, domain, 0);
@@ -202,8 +202,8 @@ Initialize(argc,argv);
                                     << S_alphaalpha_22[i] << "\n";
                 }
             }
-	}
-        
+    }
+
         // ********
         // PLOTFILE
         // ********

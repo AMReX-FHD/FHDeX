@@ -19,7 +19,7 @@ void init(MultiFab& state,
 
 /*
   Initialize r
-  
+
   Overdamped Langevin sampler for π(r) ∝ exp[-β (V(r) + P r)],
   where V(r) = (a/2) r^2 + (b/3) r^3 + (c/4) r^4.
 
@@ -122,7 +122,7 @@ void FPU_RK4(MultiFab& state,
     MultiFab rhs2(ba,dm,2,0);
     MultiFab rhs3(ba,dm,2,0);
     MultiFab rhs4(ba,dm,2,0);
-    
+
     // compute rhs1 = f(rhs)
     rhs(rhs1,state,a,b,c,geom);
 
@@ -185,7 +185,7 @@ void rhs(MultiFab& rhs,
     }
 
     V_prime.FillBoundary(geom.periodicity());
-    
+
     // compute rhs
     for (MFIter mfi(state); mfi.isValid(); ++mfi) {
 
@@ -262,8 +262,8 @@ void compute_energy(MultiFab& state,
 }
 
 void compute_S_alphaalpha(const MultiFab& state,
-			  const MultiFab& g_alpha_zero,
-			  MultiFab& S_alphaalpha) {
+                          const MultiFab& g_alpha_zero,
+                          MultiFab& S_alphaalpha) {
 
     // compute energy
     for (MFIter mfi(state); mfi.isValid(); ++mfi) {

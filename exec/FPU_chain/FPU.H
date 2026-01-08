@@ -46,7 +46,7 @@ void compute_energy(MultiFab& state,
                     const Real& c);
 
 void compute_S_alphaalpha(const MultiFab& state,
-			  const MultiFab& g_alpha_zero,
-			  MultiFab& Salphaalpha);
+              const MultiFab& g_alpha_zero,
+              MultiFab& Salphaalpha);
 
 #endif
