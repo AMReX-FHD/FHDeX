@@ -151,11 +151,16 @@ Initialize(argc,argv);
     // ******************************
     init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
     compute_energy(state,a_coef,b_coef,c_coef);
-    compute_means(state,n_particles,n_ensembles,0);
 
+    // save g_alpha(0,0)
     g_alpha_zero.ParallelCopy(state, 0, 0, 3);
+ 
+    // write out diagnostics (meaans)
+    if (diag_int > 0) {
+        compute_means(state,n_particles,n_ensembles,0);
+    }
 
-    // initial plotfile
+    // write the initial state (r,p,e) to a plotfile
     if (plot_int > 0) {
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
@@ -170,11 +175,14 @@ Initialize(argc,argv);
         // INTEGRATE A STEP
         // ****************
         FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
+        compute_energy(state,a_coef,b_coef,c_coef);
         amrex::Print() << "Completed step " << step << std::endl;
 
+        // increment S_{alpha alpha'}(j,t) with a snapshot
         compute_S_alphaalpha(state,g_alpha_zero,S_alphaalpha);
-
         ++samples;
+
+        // average the running sum of S_{alpha alpha'}(j,t) over all ensembles
         S_alphaalpha_00 = sumToLine(S_alphaalpha, 0, 1, domain, 0);
         S_alphaalpha_01 = sumToLine(S_alphaalpha, 1, 1, domain, 0);
         S_alphaalpha_02 = sumToLine(S_alphaalpha, 2, 1, domain, 0);
@@ -183,22 +191,40 @@ Initialize(argc,argv);
         S_alphaalpha_22 = sumToLine(S_alphaalpha, 5, 1, domain, 0);
 
         if (plot_int > 0 && step%plot_int == 0) {
-            const std::string& pltfile = amrex::Concatenate("S_alphaalpha",step,7);
-            amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-            WriteSingleLevelPlotfile(pltfile, S_alphaalpha, {"00","01","02","11","12","22"}, geom, time, step);
 
+            // write the current state (r,p,e) to a plotfile
+            const std::string& pltfile = amrex::Concatenate("plt",step,7);
+            amrex::Print() << "Writing plotfile " << pltfile << std::endl;
+            WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, step);
+
+            // write out running sums of S_{alpha alpha'}(j,t) over all ensembles
+            const std::string& pltfile2 = amrex::Concatenate("S_alphaalpha",step,7);
+            amrex::Print() << "Writing plotfile " << pltfile2 << std::endl;
+            WriteSingleLevelPlotfile(pltfile2, S_alphaalpha, {"00","01","02","11","12","22"}, geom, time, step);
+
+            // write out the average S_{alpha alpha'}(j,t) averaged over all ensembles and averaged over the number of snapshots
             const std::string S_alphaalphafile = amrex::Concatenate("S_alphaalpha_avg",step,7);
             amrex::Print() << "Writing S_alphaalphafile " << S_alphaalphafile << std::endl;
             std::ofstream S_alphaalphaout;
             if (ParallelDescriptor::IOProcessor()) {
                 S_alphaalphaout.open(S_alphaalphafile, std::ios::out);
                 for (int i=0; i<n_particles; ++i) {
-                    S_alphaalpha_00[i] /= (samples*n_ensembles);
-                    S_alphaalpha_01[i] /= (samples*n_ensembles);
-                    S_alphaalpha_02[i] /= (samples*n_ensembles);
-                    S_alphaalpha_11[i] /= (samples*n_ensembles);
-                    S_alphaalpha_12[i] /= (samples*n_ensembles);
-                    S_alphaalpha_22[i] /= (samples*n_ensembles);
+
+                    // divide n_ensembles and samples separately to avoid integer overflow
+                    S_alphaalpha_00[i] /= n_ensembles;
+                    S_alphaalpha_01[i] /= n_ensembles;
+                    S_alphaalpha_02[i] /= n_ensembles;
+                    S_alphaalpha_11[i] /= n_ensembles;
+                    S_alphaalpha_12[i] /= n_ensembles;
+                    S_alphaalpha_22[i] /= n_ensembles;
+
+                    S_alphaalpha_00[i] /= samples;
+                    S_alphaalpha_01[i] /= samples;
+                    S_alphaalpha_02[i] /= samples;
+                    S_alphaalpha_11[i] /= samples;
+                    S_alphaalpha_12[i] /= samples;
+                    S_alphaalpha_22[i] /= samples;
+
                     S_alphaalphaout << " S_alphaalpha i = " << i << " "
                                     << S_alphaalpha_00[i] << " "
                                     << S_alphaalpha_01[i] << " "
@@ -208,22 +234,10 @@ Initialize(argc,argv);
                                     << S_alphaalpha_22[i] << "\n";
                 }
             }
-    }
-
-        // ********
-        // PLOTFILE
-        // ********
-        if (plot_int > 0 && step%plot_int == 0) {
-            const std::string& pltfile = amrex::Concatenate("plt",step,7);
-            amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-            WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, step);
         }
 
-        // ****************
-        // TEXT DIAGNOSTICS
-        // ****************
-        compute_energy(state,a_coef,b_coef,c_coef);
-        if (plot_int > 0 && step%diag_int == 0) {
+        // write out diagnostics (meaans)
+        if (diag_int > 0 && step%diag_int == 0) {
             compute_means(state,n_particles,n_ensembles,step);
         }
 

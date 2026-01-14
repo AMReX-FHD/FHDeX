@@ -273,17 +273,17 @@ void compute_S_alphaalpha(const MultiFab& state,
         const Box& bx = mfi.tilebox();
 
         const Array4<const Real>& state_fab = state.array(mfi);
-        const Array4<const Real>& g_alpha = g_alpha_zero.array(mfi);
-        const Array4<Real> & S_alpha = S_alphaalpha.array(mfi);
+        const Array4<const Real>& g_alpha_zero_fab = g_alpha_zero.array(mfi);
+        const Array4<      Real>& S_alphaalpha_fab = S_alphaalpha.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            S_alpha(i,j,k,0) += state_fab(i,j,k,0)*g_alpha(0,j,k,0) - g_alpha(0,j,k,0)*g_alpha(0,j,k,0);
-            S_alpha(i,j,k,1) += state_fab(i,j,k,0)*g_alpha(0,j,k,1) - g_alpha(0,j,k,0)*g_alpha(0,j,k,1);
-            S_alpha(i,j,k,2) += state_fab(i,j,k,0)*g_alpha(0,j,k,2) - g_alpha(0,j,k,0)*g_alpha(0,j,k,2);
-            S_alpha(i,j,k,3) += state_fab(i,j,k,1)*g_alpha(0,j,k,1) - g_alpha(0,j,k,1)*g_alpha(0,j,k,1);
-            S_alpha(i,j,k,4) += state_fab(i,j,k,1)*g_alpha(0,j,k,2) - g_alpha(0,j,k,1)*g_alpha(0,j,k,2);
-            S_alpha(i,j,k,5) += state_fab(i,j,k,2)*g_alpha(0,j,k,2) - g_alpha(0,j,k,2)*g_alpha(0,j,k,2);
+            S_alphaalpha_fab(i,j,k,0) += state_fab(i,j,k,0)*g_alpha_zero_fab(0,j,k,0) - g_alpha_zero_fab(0,j,k,0)*g_alpha_zero_fab(0,j,k,0);
+            S_alphaalpha_fab(i,j,k,1) += state_fab(i,j,k,0)*g_alpha_zero_fab(0,j,k,1) - g_alpha_zero_fab(0,j,k,0)*g_alpha_zero_fab(0,j,k,1);
+            S_alphaalpha_fab(i,j,k,2) += state_fab(i,j,k,0)*g_alpha_zero_fab(0,j,k,2) - g_alpha_zero_fab(0,j,k,0)*g_alpha_zero_fab(0,j,k,2);
+            S_alphaalpha_fab(i,j,k,3) += state_fab(i,j,k,1)*g_alpha_zero_fab(0,j,k,1) - g_alpha_zero_fab(0,j,k,1)*g_alpha_zero_fab(0,j,k,1);
+            S_alphaalpha_fab(i,j,k,4) += state_fab(i,j,k,1)*g_alpha_zero_fab(0,j,k,2) - g_alpha_zero_fab(0,j,k,1)*g_alpha_zero_fab(0,j,k,2);
+            S_alphaalpha_fab(i,j,k,5) += state_fab(i,j,k,2)*g_alpha_zero_fab(0,j,k,2) - g_alpha_zero_fab(0,j,k,2)*g_alpha_zero_fab(0,j,k,2);
         });
     }
 
