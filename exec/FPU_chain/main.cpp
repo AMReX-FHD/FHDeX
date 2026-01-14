@@ -194,6 +194,11 @@ Initialize(argc,argv);
                 S_alphaalphaout.open(S_alphaalphafile, std::ios::out);
                 for (int i=0; i<n_particles; ++i) {
                     S_alphaalpha_00[i] /= (samples*n_ensembles);
+                    S_alphaalpha_01[i] /= (samples*n_ensembles);
+                    S_alphaalpha_02[i] /= (samples*n_ensembles);
+                    S_alphaalpha_11[i] /= (samples*n_ensembles);
+                    S_alphaalpha_12[i] /= (samples*n_ensembles);
+                    S_alphaalpha_22[i] /= (samples*n_ensembles);
                     S_alphaalphaout << " S_alphaalpha i = " << i << " "
                                     << S_alphaalpha_00[i] << " "
                                     << S_alphaalpha_01[i] << " "
