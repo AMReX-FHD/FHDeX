@@ -4,10 +4,10 @@
  *
  */
 
-
 #include <AMReX.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Random.H>
 
 using namespace amrex;
 
@@ -107,9 +107,21 @@ int main (int argc, char* argv[])
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
-    // we allocate two phi multifabs; one will store the old state, the other the new.
+    // we allocate two cell-centered phi multifabs; one will store the old state, the other the new.
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
+
+    // face-centered MultiFabs for noise and flux
+    Array<MultiFab, AMREX_SPACEDIM> noise;
+    Array<MultiFab, AMREX_SPACEDIM> flux;
+    for (int dir=0; dir<AMREX_SPACEDIM; dir++)
+    {
+        // noise[dir] and flux[dir] have one component, zero ghost cells, and is nodal in direction dir
+        BoxArray edge_ba = ba;
+        edge_ba.surroundingNodes(dir);
+        noise[dir].define(edge_ba, dm, 1, 0);
+        flux[dir].define(edge_ba, dm, 1, 0);
+    }
 
     // time = starting time in the simulation
     Real time = 0.0;
@@ -154,27 +166,73 @@ int main (int argc, char* argv[])
         // fill periodic ghost cells
         phi_old.FillBoundary(geom.periodicity());
 
-        // new_phi = old_phi + dt * Laplacian(old_phi)
-        // loop over boxes
+        // fill random numbers
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFabFillRandom(noise[d],0.,1.,geom);
+        }
+        
+        // compute fluxes
+        for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+        {
+            const Array4<const Real>& phi = phi_old.array(mfi);
+
+            const Box& xbx = mfi.nodaltilebox(0);
+            const Array4<Real>& fluxx = flux[0].array(mfi);
+#if (AMREX_SPACEDIM >= 2)
+            const Box& ybx = mfi.nodaltilebox(1);
+            const Array4<Real>& fluxy = flux[1].array(mfi);
+#if (AMREX_SPACEDIM == 3)
+            const Box& zbx = mfi.nodaltilebox(2);
+            const Array4<Real>& fluxz = flux[1].array(mfi);
+#endif
+#endif
+
+            amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                fluxx(i,j,k) = (phi(i,j,k) - phi(i-1,j,k) ) / dx[0];
+            });
+#if (AMREX_SPACEDIM >= 2)
+            amrex::ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                fluxy(i,j,k) = (phi(i,j,k) - phi(i,j-1,k) ) / dx[1];
+            });
+#if (AMREX_SPACEDIM == 3)
+            amrex::ParallelFor(zbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                fluxz(i,j,k) = (phi(i,j,k) - phi(i,j,k-1) ) / dx[2];
+            });
+#endif
+#endif
+        }
+
+        // advance the data by dt
+        // new_phi = old_phi + dt * div(flux)
         for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
         {
             const Box& bx = mfi.validbox();
 
-            const Array4<Real>& phiOld = phi_old.array(mfi);
-            const Array4<Real>& phiNew = phi_new.array(mfi);
+            const Array4<const Real>& phiOld = phi_old.array(mfi);
+            const Array4<      Real>& phiNew = phi_new.array(mfi);
 
-            // advance the data by dt
+            const Array4<Real>& fluxx = flux[0].array(mfi);
+#if (AMREX_SPACEDIM >= 2)
+            const Array4<Real>& fluxy = flux[1].array(mfi);
+#if (AMREX_SPACEDIM == 3)
+            const Array4<Real>& fluxz = flux[1].array(mfi);
+#endif
+#endif
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 phiNew(i,j,k) = phiOld(i,j,k) + dt *
-                    ( (phiOld(i+1,j,k) - 2.*phiOld(i,j,k) + phiOld(i-1,j,k)) / (dx[0]*dx[0])
+                    (fluxx(i+1,j,k) - fluxx(i,j,k)) / dx[0]
 #if (AMREX_SPACEDIM >= 2)
-                     +(phiOld(i,j+1,k) - 2.*phiOld(i,j,k) + phiOld(i,j-1,k)) / (dx[1]*dx[1])
+                    + (fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1]
 #if (AMREX_SPACEDIM >= 3)
-                     +(phiOld(i,j,k+1) - 2.*phiOld(i,j,k) + phiOld(i,j,k-1)) / (dx[2]*dx[2])
+                    + (fluxz(i,j,k+1) - fluxz(i,j,k)) / dx[2]
 #endif
 #endif
-                        );
+                        ;
             });
         }
 
