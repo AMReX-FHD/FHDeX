@@ -187,8 +187,8 @@ amrex::Initialize(argc,argv);
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine)
         {
             Real x = (i+0.5) * dx[0];
-            Temp_fab(i,j,k) = T_Left + (T_Right - T_Left) * x / Length;
-            Temp0_fab(i,j,k) = Temp_fab(i,j,k);
+            Temp0_fab(i,j,k) = T_Left + (T_Right - T_Left) * x / Length;
+            Temp_fab(i,j,k) = Temp0_fab(i,j,k);
 
             if (PERTURB_FLAG == 1) {
                 Temp_fab(i,j,k) += Tref_SD*amrex::RandomNormal(0.,1.,engine);
@@ -236,7 +236,7 @@ amrex::Initialize(argc,argv);
             amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 Real det = kappa*(Temp_fab(i,j,k) - Temp_fab(i-1,j,k) ) / dx[0];
-                Real sto = alpha*0.5*(Temp_fab(i,j,k) + Temp_fab(i-1,j,k))*noisex(i,j,k)*dx[0];
+                Real sto = alpha*0.5*(Temp_fab(i,j,k) + Temp_fab(i-1,j,k))*noisex(i,j,k);
                 fluxx(i,j,k) = det + sto;
             });
 #if (AMREX_SPACEDIM >= 2)
