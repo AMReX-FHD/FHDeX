@@ -4,6 +4,9 @@
  *
  */
 
+#include "common_functions.H"
+#include "rng_functions.H"
+
 #include <AMReX.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
