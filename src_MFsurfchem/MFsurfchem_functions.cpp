@@ -249,7 +249,7 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 
                 for (int m=0;m<n_ads_spec;m++) {
                     if (conversion_MFsurfchem > 0) {
-                        amrex::Real mconv = m + conversion_MFsurfchem;
+                        int mconv = m + conversion_MFsurfchem;
                         amrex::Real dNads = dNads_arr(i,j,k,m);
                         amrex::Real dNdes = dNdes_arr(i,j,k,m);
                         amrex::Real factor1 = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
