@@ -128,6 +128,27 @@ amrex::Initialize(argc,argv);
     MultiFab Temp (ba, dm, 1, 1);
     MultiFab Temp0(ba, dm, 1, 0);
 
+    // diagnostics
+    MultiFab sumT(ba,dm,1,0);
+    MultiFab sumT2(ba,dm,1,0);
+    MultiFab sumTT(ba,dm,1,0);
+    MultiFab sumSk(ba,dm,1,0);
+    sumT.setVal(0.);
+    sumT2.setVal(0.);
+    sumTT.setVal(0.);
+    sumSk.setVal(0.);
+
+    MultiFab aveT(ba,dm,1,0);
+    MultiFab varT(ba,dm,1,0);
+    MultiFab corrT(ba,dm,1,0);
+    aveT.setVal(0.);
+    varT.setVal(0.);
+    corrT.setVal(0.);
+
+    MultiFab plotfile(ba,dm,3,0);
+    
+    int iCorr = n_cell/4;
+
     // This defines the physical box, [0,1] in each direction.
     RealBox real_box({AMREX_D_DECL(    0.,    0.,    0.)},
                      {AMREX_D_DECL(Length,Length,Length)});
@@ -196,14 +217,23 @@ amrex::Initialize(argc,argv);
         });
     }
 
+    // normalize initial noise perturbation
+    Real avgT = Temp.sum(0) / n_cell;
+    Temp.plus(-(avgT-0.5*(T_Left+T_Right)),0);
+
     // Write a plotfile of the initial data if plot_int > 0
     if (plot_int > 0)
     {
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,7);
-        WriteSingleLevelPlotfile(pltfile, Temp, {"Temp"}, geom, time, 0);
+        MultiFab::Copy(plotfile,Temp,0,0,1,0);
+        MultiFab::Copy(plotfile,aveT,0,1,1,0);
+        MultiFab::Copy(plotfile,varT,0,2,1,0);
+        WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT"}, geom, time, 0);
     }
 
+    int Nsamp = 0;
+    
     for (int step = 1; step <= nsteps; ++step)
     {        
         // fill periodic ghost cells
@@ -265,6 +295,10 @@ amrex::Initialize(argc,argv);
 
             const Array4<Real>& Temp_fab = Temp.array(mfi);
 
+            const Array4<Real>& sumT_fab = sumT.array(mfi);
+            const Array4<Real>& sumT2_fab = sumT2.array(mfi);
+            const Array4<Real>& sumTT_fab = sumTT.array(mfi);
+            
             const Array4<Real>& fluxx = flux[0].array(mfi);
 #if (AMREX_SPACEDIM >= 2)
             const Array4<Real>& fluxy = flux[1].array(mfi);
@@ -283,9 +317,56 @@ amrex::Initialize(argc,argv);
 #endif
 #endif
                         ;
+
+                sumT_fab(i,j,k) += Temp_fab(i,j,k);
+                sumT2_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(i,j,k);
+                sumTT_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(iCorr,j,k);
+
             });
         }
 
+        // increment number of samples
+        Nsamp++;
+
+        // diagnostics - average and variance
+        for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
+        {
+            const Box& bx = mfi.validbox();
+
+            const Array4<Real>& sumT_fab = sumT.array(mfi);
+            const Array4<Real>& sumT2_fab = sumT2.array(mfi);
+            const Array4<Real>& sumTT_fab = sumTT.array(mfi);
+
+            const Array4<Real>& aveT_fab = aveT.array(mfi);
+            const Array4<Real>& varT_fab = varT.array(mfi);
+            const Array4<Real>& corrT_fab = corrT.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                aveT_fab(i,j,k) = sumT_fab(i,j,k) / Nsamp;
+                varT_fab(i,j,k) = sumT2_fab(i,j,k) / Nsamp - aveT_fab(i,j,k)*aveT_fab(i,j,k);
+            });
+        }
+
+        // diagnostics - correlation (need averages first)
+        for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
+        {
+            const Box& bx = mfi.validbox();
+
+            const Array4<Real>& sumT_fab = sumT.array(mfi);
+            const Array4<Real>& sumT2_fab = sumT.array(mfi);
+            const Array4<Real>& sumTT_fab = sumT.array(mfi);
+
+            const Array4<Real>& aveT_fab = aveT.array(mfi);
+            const Array4<Real>& varT_fab = varT.array(mfi);
+            const Array4<Real>& corrT_fab = corrT.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                corrT_fab(i,j,k) = sumTT_fab(i,j,k) / Nsamp - aveT_fab(i,j,k)*aveT_fab(iCorr,j,k);
+            });
+        }
+        
         // update time
         time = time + dt;
 
@@ -296,7 +377,10 @@ amrex::Initialize(argc,argv);
         if (plot_int > 0 && step%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
-            WriteSingleLevelPlotfile(pltfile, Temp, {"Temp"}, geom, time, step);
+            MultiFab::Copy(plotfile,Temp,0,0,1,0);
+            MultiFab::Copy(plotfile,aveT,0,1,1,0);
+            MultiFab::Copy(plotfile,varT,0,2,1,0);
+            WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT"}, geom, time, step);
         }
     }
 
