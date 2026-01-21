@@ -1,7 +1,13 @@
 n_cell = 32
-max_grid_size = 32
 
-nsteps = 1000
-plot_int = 100
+nsteps = 8000000
+nsteps = 10
 
-dt = 1.e-5
+plot_int = 100000
+plot_int = 1
+
+seed = 1
+
+NONEQ_FLAG = 0
+PERTURB_FLAG = 1
+STOCH_FLAG = 1

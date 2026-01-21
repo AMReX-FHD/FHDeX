@@ -12,31 +12,39 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Random.H>
 
+#include "chrono"
+
+using namespace std::chrono;
 using namespace amrex;
 
 int main (int argc, char* argv[])
 {
-    amrex::Initialize(argc,argv);
-    {
 
-
+amrex::Initialize(argc,argv);
+{
     // **********************************
     // SIMULATION PARAMETERS
-
+        
     // number of cells on each side of the domain
-    int n_cell;
-
-    // size of each box (or grid)
-    int max_grid_size;
+    int n_cell = 32;
 
     // total steps in simulation
-    int nsteps;
+    int nsteps = 8000000;
 
     // how often to write a plotfile
-    int plot_int;
+    int plot_int = -1;
 
-    // time step
-    Real dt;
+    // random number seed (1=fixed seed; 0=clock-based seed)
+    int seed = 1;
+
+    // Non-equilibrium flag (0: Thermodynamic equilibrium; 1: Temperature gradient)
+    int NONEQ_FLAG = 1;
+
+    // Start from perturbed initial condition (0: No; 1: Yes)
+    int PERTURB_FLAG = 1;
+
+    // Thermal fluctuations? (0: No, deterministic; 1: Yes, stochastic)
+    int STOCH_FLAG = 1;
 
     // inputs parameters
     {
@@ -45,24 +53,48 @@ int main (int argc, char* argv[])
         // pp.query means we optionally need the inputs file to have it - but we must supply a default here
         ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of
-        //   a square (or cubic) domain.
-        pp.get("n_cell",n_cell);
-
-        // The domain is broken into boxes of size max_grid_size
-        pp.get("max_grid_size",max_grid_size);
-
-        // Default nsteps to 10, allow us to set it to something else in the inputs file
-        nsteps = 10;
+        // override defaults set above
+        pp.query("n_cell",n_cell);
         pp.query("nsteps",nsteps);
-
-        // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be written
-        plot_int = -1;
         pp.query("plot_int",plot_int);
+        pp.query("seed",seed);
+        pp.query("NONEQ_FLAG",NONEQ_FLAG);
+        pp.query("PERTURB_FLAG",PERTURB_FLAG);
+        pp.query("STOCH_FLAG",STOCH_FLAG);
+    }
 
-        // time step
-        pp.get("dt",dt);
+    //* Set physical parameters for the system (iron bar)
+    Real kB = 1.38e-23;              // Boltzmann constant (J/K)
+    Real mAtom = 9.27e-26;           // Mass of iron atom (kg)
+    Real rho = 7870.;                // Mass density of iron (kg/m^3)
+    Real c_V = 450.;                 // Specific heat capacity of iron (J/(kg K))
+    Real ThCond = 70.;               // Thermal conductivity of iron (W/(m K))
+    Real Length = 2.0e-8;            // System length (m)
+    Real Area = std::pow(2.0e-9,2);  // System cross-sectional area (m^2)
+
+    Real kappa = ThCond / (rho*c_V); // Coefficient in deterministic heat equation
+
+    // Coefficient in stochastic heat equation
+    Real alpha = (STOCH_FLAG==1) ? std::sqrt(2.*kB*kappa / (rho*c_V)) : 0.;
+
+    Real stabilityFactor = 0.1;      // Numerical stability if stabilityFactor < 1.
+
+    if (seed > 0) {
+        // initializes the seed for C++ random number calls
+        InitRandom(seed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   seed+ParallelDescriptor::MyProc());
+    } else if (seed == 0) {
+        // initializes the seed for C++ random number calls based on the clock
+        auto now = time_point_cast<nanoseconds>(system_clock::now());
+        int randSeed = now.time_since_epoch().count();
+        // broadcast the same root seed to all processors
+        ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+        InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   randSeed+ParallelDescriptor::MyProc());
+    } else {
+        Abort("Must supply non-negative seed");
     }
 
     // **********************************
@@ -85,12 +117,9 @@ int main (int argc, char* argv[])
     // Initialize the boxarray "ba" from the single box "domain"
     ba.define(domain);
 
-    // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-    ba.maxSize(max_grid_size);
-
     // This defines the physical box, [0,1] in each direction.
-    RealBox real_box({AMREX_D_DECL( 0., 0., 0.)},
-                     {AMREX_D_DECL( 1., 1., 1.)});
+    RealBox real_box({AMREX_D_DECL(    0.,    0.,    0.)},
+                     {AMREX_D_DECL(Length,Length,Length)});
 
     // periodic in all direction
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
@@ -101,6 +130,27 @@ int main (int argc, char* argv[])
     // extract dx from the geometry object
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
+    // volume of grid cell
+    Real dV = Area*dx[0];
+#if (AMREX_SPACEDIM != 1)
+    Abort("Fix dV for multidimensional case");
+#endif
+
+    Real dt = stabilityFactor * dx[0] * dx[0] / (2.*kappa);
+
+    Real Tref = 300.;                // Reference temperature (K)
+    Real Tdiff = 400.;               // Temperature difference across the system for NONEQ_FLAG=1
+
+    Real T_Left  = (NONEQ_FLAG==1) ? Tref - Tdiff/2. : Tref;
+    Real T_Right = (NONEQ_FLAG==1) ? Tref + Tdiff/2. : Tref;
+
+    // Standard deviation of temperature in a cell at the reference temperature
+    Real Tref_SD = std::sqrt(kB*Tref*Tref / (rho*c_V*dV));
+
+    Real coeffDetFE = kappa * dt / (dx[0]*dx[0]);
+    Real coeffStoFE = alpha * dt / dx[0];
+    Real coeffZnoise = 1. / std::sqrt( dt * dV );
+    
     // Nghost = number of ghost cells for each array
     int Nghost = 1;
 
@@ -110,9 +160,9 @@ int main (int argc, char* argv[])
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
-    // we allocate two cell-centered phi multifabs; one will store the old state, the other the new.
-    MultiFab phi_old(ba, dm, Ncomp, Nghost);
-    MultiFab phi_new(ba, dm, Ncomp, Nghost);
+    // we allocate two cell-centered Temp multifabs; one will store the old state, the other the new.
+    MultiFab Temp (ba, dm, Ncomp, Nghost);
+    MultiFab Temp0(ba, dm, Ncomp, Nghost);
 
     // face-centered MultiFabs for noise and flux
     Array<MultiFab, AMREX_SPACEDIM> noise;
@@ -133,26 +183,22 @@ int main (int argc, char* argv[])
     // INITIALIZE DATA
 
     // loop over boxes
-    for (MFIter mfi(phi_old); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Temp); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
 
-        const Array4<Real>& phiOld = phi_old.array(mfi);
+        const Array4<Real>& Temp_fab = Temp.array(mfi);
+        const Array4<Real>& Temp0_fab = Temp0.array(mfi);
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine)
         {
             Real x = (i+0.5) * dx[0];
-#if (AMREX_SPACEDIM == 1)
-            Real rsquared = ((x-0.5)*(x-0.5))/0.01;
-#elif (AMREX_SPACEDIM == 2)
-            Real y = (j+0.5) * dx[1];
-            Real rsquared = ((x-0.5)*(x-0.5)+(y-0.5)*(y-0.5))/0.01;
-#elif (AMREX_SPACEDIM == 3)
-            Real y = (j+0.5) * dx[1];
-            Real z = (k+0.5) * dx[2];
-            Real rsquared = ((x-0.5)*(x-0.5)+(y-0.5)*(y-0.5)+(z-0.5)*(z-0.5))/0.01;
-#endif
-            phiOld(i,j,k) = 1. + std::exp(-rsquared);
+            Temp_fab(i,j,k) = T_Left + (T_Right - T_Left) * x / Length;
+            Temp0_fab(i,j,k) = Temp_fab(i,j,k);
+
+            if (PERTURB_FLAG == 1) {
+                Temp_fab(i,j,k) += Tref_SD*amrex::RandomNormal(0.,1.,engine);
+            }
         });
     }
 
@@ -160,14 +206,14 @@ int main (int argc, char* argv[])
     if (plot_int > 0)
     {
         int step = 0;
-        const std::string& pltfile = amrex::Concatenate("plt",step,5);
-        WriteSingleLevelPlotfile(pltfile, phi_old, {"phi"}, geom, time, 0);
+        const std::string& pltfile = amrex::Concatenate("plt",step,7);
+        WriteSingleLevelPlotfile(pltfile, Temp, {"Temp"}, geom, time, 0);
     }
 
     for (int step = 1; step <= nsteps; ++step)
     {
         // fill periodic ghost cells
-        phi_old.FillBoundary(geom.periodicity());
+        Temp.FillBoundary(geom.periodicity());
 
         // fill random numbers
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -175,9 +221,9 @@ int main (int argc, char* argv[])
         }
         
         // compute fluxes
-        for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
         {
-            const Array4<const Real>& phi = phi_old.array(mfi);
+            const Array4<const Real>& Temp_fab = Temp.array(mfi);
 
             const Box& xbx = mfi.nodaltilebox(0);
             const Array4<Real>& fluxx = flux[0].array(mfi);
@@ -189,33 +235,31 @@ int main (int argc, char* argv[])
             const Array4<Real>& fluxz = flux[1].array(mfi);
 #endif
 #endif
-
             amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                fluxx(i,j,k) = (phi(i,j,k) - phi(i-1,j,k) ) / dx[0];
+                fluxx(i,j,k) = coeffDetFE*(Temp_fab(i,j,k) - Temp_fab(i-1,j,k) ) / dx[0];
             });
 #if (AMREX_SPACEDIM >= 2)
             amrex::ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                fluxy(i,j,k) = (phi(i,j,k) - phi(i,j-1,k) ) / dx[1];
+                fluxy(i,j,k) = coeffDetFE*(Temp_fab(i,j,k) - Temp_fab(i,j-1,k) ) / dx[1];
             });
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor(zbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                fluxz(i,j,k) = (phi(i,j,k) - phi(i,j,k-1) ) / dx[2];
+                fluxz(i,j,k) = coeffDetFE*(Temp_fab(i,j,k) - Temp_fab(i,j,k-1) ) / dx[2];
             });
 #endif
 #endif
         }
 
         // advance the data by dt
-        // new_phi = old_phi + dt * div(flux)
-        for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+        // new_Temp = old_Temp + dt * div(flux)
+        for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
         {
             const Box& bx = mfi.validbox();
 
-            const Array4<const Real>& phiOld = phi_old.array(mfi);
-            const Array4<      Real>& phiNew = phi_new.array(mfi);
+            const Array4<Real>& Temp_fab = Temp.array(mfi);
 
             const Array4<Real>& fluxx = flux[0].array(mfi);
 #if (AMREX_SPACEDIM >= 2)
@@ -224,10 +268,9 @@ int main (int argc, char* argv[])
             const Array4<Real>& fluxz = flux[1].array(mfi);
 #endif
 #endif
-
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                phiNew(i,j,k) = phiOld(i,j,k) + dt *
+                Temp_fab(i,j,k) = Temp_fab(i,j,k) + dt *
                     (fluxx(i+1,j,k) - fluxx(i,j,k)) / dx[0]
 #if (AMREX_SPACEDIM >= 2)
                     + (fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1]
@@ -242,23 +285,21 @@ int main (int argc, char* argv[])
         // update time
         time = time + dt;
 
-        // copy new solution into old solution
-        MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
-
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << step << "\n";
 
         // Write a plotfile of the current data (plot_int was defined in the inputs file)
         if (plot_int > 0 && step%plot_int == 0)
         {
-            const std::string& pltfile = amrex::Concatenate("plt",step,5);
-            WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, step);
+            const std::string& pltfile = amrex::Concatenate("plt",step,7);
+            WriteSingleLevelPlotfile(pltfile, Temp, {"Temp"}, geom, time, step);
         }
     }
 
-    }
-    amrex::Finalize();
-    return 0;
+}
+amrex::Finalize();
+return 0;
+
 }
 
 
