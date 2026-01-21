@@ -145,7 +145,7 @@ amrex::Initialize(argc,argv);
     varT.setVal(0.);
     corrT.setVal(0.);
 
-    MultiFab plotfile(ba,dm,3,0);
+    MultiFab plotfile(ba,dm,4,0);
     
     int iCorr = n_cell/4;
 
@@ -229,7 +229,8 @@ amrex::Initialize(argc,argv);
         MultiFab::Copy(plotfile,Temp,0,0,1,0);
         MultiFab::Copy(plotfile,aveT,0,1,1,0);
         MultiFab::Copy(plotfile,varT,0,2,1,0);
-        WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT"}, geom, time, 0);
+        MultiFab::Copy(plotfile,corrT,0,3,1,0);
+        WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT","corrT"}, geom, time, 0);
     }
 
     int Nsamp = 0;
@@ -354,8 +355,8 @@ amrex::Initialize(argc,argv);
             const Box& bx = mfi.validbox();
 
             const Array4<Real>& sumT_fab = sumT.array(mfi);
-            const Array4<Real>& sumT2_fab = sumT.array(mfi);
-            const Array4<Real>& sumTT_fab = sumT.array(mfi);
+            const Array4<Real>& sumT2_fab = sumT2.array(mfi);
+            const Array4<Real>& sumTT_fab = sumTT.array(mfi);
 
             const Array4<Real>& aveT_fab = aveT.array(mfi);
             const Array4<Real>& varT_fab = varT.array(mfi);
@@ -380,7 +381,8 @@ amrex::Initialize(argc,argv);
             MultiFab::Copy(plotfile,Temp,0,0,1,0);
             MultiFab::Copy(plotfile,aveT,0,1,1,0);
             MultiFab::Copy(plotfile,varT,0,2,1,0);
-            WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT"}, geom, time, step);
+            MultiFab::Copy(plotfile,corrT,0,3,1,0);
+            WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT","corrT"}, geom, time, step);
         }
     }
 
