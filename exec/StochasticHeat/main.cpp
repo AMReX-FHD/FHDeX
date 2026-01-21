@@ -38,7 +38,7 @@ amrex::Initialize(argc,argv);
     int seed = 1;
 
     // Non-equilibrium flag (0: Thermodynamic equilibrium; 1: Temperature gradient)
-    int NONEQ_FLAG = 1;
+    int NONEQ_FLAG = 0;
 
     // Start from perturbed initial condition (0: No; 1: Yes)
     int PERTURB_FLAG = 1;
@@ -63,6 +63,10 @@ amrex::Initialize(argc,argv);
         pp.query("STOCH_FLAG",STOCH_FLAG);
     }
 
+    if (NONEQ_FLAG == 1) {
+        Abort("NONEQ_FLAG=1 requires non-periodic boundaries");
+    }
+    
     //* Set physical parameters for the system (iron bar)
     Real kB = 1.38e-23;              // Boltzmann constant (J/K)
     Real mAtom = 9.27e-26;           // Mass of iron atom (kg)
@@ -117,6 +121,13 @@ amrex::Initialize(argc,argv);
     // Initialize the boxarray "ba" from the single box "domain"
     ba.define(domain);
 
+    // How Boxes are distrubuted among MPI processes
+    DistributionMapping dm(ba);
+
+    // Temperature and initial temperature
+    MultiFab Temp (ba, dm, 1, 1);
+    MultiFab Temp0(ba, dm, 1, 0);
+
     // This defines the physical box, [0,1] in each direction.
     RealBox real_box({AMREX_D_DECL(    0.,    0.,    0.)},
                      {AMREX_D_DECL(Length,Length,Length)});
@@ -146,23 +157,6 @@ amrex::Initialize(argc,argv);
 
     // Standard deviation of temperature in a cell at the reference temperature
     Real Tref_SD = std::sqrt(kB*Tref*Tref / (rho*c_V*dV));
-
-    Real coeffDetFE = kappa * dt / (dx[0]*dx[0]);
-    Real coeffStoFE = alpha * dt / dx[0];
-    Real coeffZnoise = 1. / std::sqrt( dt * dV );
-    
-    // Nghost = number of ghost cells for each array
-    int Nghost = 1;
-
-    // Ncomp = number of components for each array
-    int Ncomp = 1;
-
-    // How Boxes are distrubuted among MPI processes
-    DistributionMapping dm(ba);
-
-    // we allocate two cell-centered Temp multifabs; one will store the old state, the other the new.
-    MultiFab Temp (ba, dm, Ncomp, Nghost);
-    MultiFab Temp0(ba, dm, Ncomp, Nghost);
 
     // face-centered MultiFabs for noise and flux
     Array<MultiFab, AMREX_SPACEDIM> noise;
@@ -211,13 +205,14 @@ amrex::Initialize(argc,argv);
     }
 
     for (int step = 1; step <= nsteps; ++step)
-    {
+    {        
         // fill periodic ghost cells
         Temp.FillBoundary(geom.periodicity());
 
         // fill random numbers
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFabFillRandom(noise[d],0.,1.,geom);
+            noise[d].mult( 1./std::sqrt(dt*dV), 0, 1);
         }
         
         // compute fluxes
@@ -227,27 +222,36 @@ amrex::Initialize(argc,argv);
 
             const Box& xbx = mfi.nodaltilebox(0);
             const Array4<Real>& fluxx = flux[0].array(mfi);
+            const Array4<Real>& noisex = noise[0].array(mfi);
 #if (AMREX_SPACEDIM >= 2)
             const Box& ybx = mfi.nodaltilebox(1);
             const Array4<Real>& fluxy = flux[1].array(mfi);
+            const Array4<Real>& noisey = noise[1].array(mfi);
 #if (AMREX_SPACEDIM == 3)
             const Box& zbx = mfi.nodaltilebox(2);
             const Array4<Real>& fluxz = flux[1].array(mfi);
+            const Array4<Real>& noisez = noise[1].array(mfi);
 #endif
 #endif
             amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                fluxx(i,j,k) = coeffDetFE*(Temp_fab(i,j,k) - Temp_fab(i-1,j,k) ) / dx[0];
+                Real det = kappa*(Temp_fab(i,j,k) - Temp_fab(i-1,j,k) ) / dx[0];
+                Real sto = alpha*0.5*(Temp_fab(i,j,k) + Temp_fab(i-1,j,k))*noisex(i,j,k)*dx[0];
+                fluxx(i,j,k) = det + sto;
             });
 #if (AMREX_SPACEDIM >= 2)
             amrex::ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                fluxy(i,j,k) = coeffDetFE*(Temp_fab(i,j,k) - Temp_fab(i,j-1,k) ) / dx[1];
+                Real det = kappa*(Temp_fab(i,j,k) - Temp_fab(i,j-1,k) ) / dx[1];
+                Real sto = alpha*0.5*(Temp_fab(i,j,k) + Temp_fab(i,j-1,k))*noisey(i,j,k)*dx[1];
+                fluxy(i,j,k) = det + sto;
             });
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor(zbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                fluxz(i,j,k) = coeffDetFE*(Temp_fab(i,j,k) - Temp_fab(i,j,k-1) ) / dx[2];
+                Real det = kappa*(Temp_fab(i,j,k) - Temp_fab(i,j,k-1) ) / dx[2];
+                Real sto = alpha*0.5*(Temp_fab(i,j,k) + Temp_fab(i,j,k-1))*noisez(i,j,k)*dx[2];
+                fluxz(i,j,k) = det + sto;
             });
 #endif
 #endif

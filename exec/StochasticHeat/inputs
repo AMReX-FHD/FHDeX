@@ -1,10 +1,8 @@
 n_cell = 32
 
 nsteps = 8000000
-nsteps = 10
 
 plot_int = 100000
-plot_int = 1
 
 seed = 1
 
