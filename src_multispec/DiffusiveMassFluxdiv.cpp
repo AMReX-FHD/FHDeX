@@ -4,13 +4,13 @@
 // FIXME: Fill ghost cells
 
 void DiffusiveMassFluxdiv(const MultiFab& rho,
-                          const MultiFab& rhotot,
-                          const MultiFab& molarconc,
-                          const MultiFab& rhoWchi,
-                          const MultiFab& Gamma,
-                          MultiFab& diff_mass_fluxdiv,
-                          std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-                          const Geometry& geom)
+              const MultiFab& rhotot,
+              MultiFab& molarconc,
+              const MultiFab& rhoWchi,
+              const MultiFab& Gamma,
+              MultiFab& diff_mass_fluxdiv,
+              std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+              const Geometry& geom)
 {
 
     BL_PROFILE_VAR("DiffusiveMassFluxdiv()",DiffusiveMassFluxdiv);
@@ -25,12 +25,12 @@ void DiffusiveMassFluxdiv(const MultiFab& rho,
 }
 
 void DiffusiveMassFlux(const MultiFab& rho,
-                       const MultiFab& rhotot,
-                       const MultiFab& molarconc,
-                       const MultiFab& rhoWchi,
-                       const MultiFab& Gamma,
-                       std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-                       const Geometry& geom)
+               const MultiFab& rhotot,
+               MultiFab& molarconc,
+               const MultiFab& rhoWchi,
+               const MultiFab& Gamma,
+               std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+               const Geometry& geom)
 {
 
     BL_PROFILE_VAR("DiffusiveMassFlux()",DiffusiveMassFlux);
@@ -102,7 +102,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
 
 }
 
-void ComputeHigherOrderTerm(const MultiFab& molarconc,
+void ComputeHigherOrderTerm(MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                             const Geometry& geom)
 {
@@ -212,7 +212,7 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
 #endif
 
         // boundary conditions
-        if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) {
+        if (bc_lo[0] == BCType::foextrap || bc_lo[0] == BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) {
             if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
                 int lo = dom.smallEnd(0);
                 amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -223,8 +223,7 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
                 });
             }
         }
-
-        if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) {
+        if (bc_hi[0] == BCType::foextrap || bc_hi[0] == BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) {
             if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
                 int hi = dom.bigEnd(0)+1;
                 amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -235,8 +234,7 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
                 });
             }
         }
-
-        if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
+        if (bc_lo[1] == BCType::foextrap || bc_lo[1] == BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
                 amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -247,8 +245,7 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
                 });
             }
         }
-
-        if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) {
+        if (bc_hi[1] == BCType::foextrap || bc_hi[1] == BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) {
             if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
                 int hi = dom.bigEnd(1)+1;
                 amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -261,7 +258,7 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
         }
 
 #if (AMREX_SPACEDIM == 3)
-        if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) {
+        if (bc_lo[2] == BCType::foextrap || bc_lo[2] == BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) {
             if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
                 amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -272,8 +269,7 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
                 });
             }
         }
-
-        if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) {
+        if (bc_hi[2] == BCType::foextrap || bc_hi[2] == BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) {
             if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
                 int hi = dom.bigEnd(2)+1;
                 amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -287,9 +283,9 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
 #endif
     }
 }
-void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
-                              std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
-                              const Geometry& geom)
+void ComputeFHHigherOrderTerm(MultiFab& molarconc,
+                            std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                            const Geometry& geom)
 {
 
     BoxArray ba = molarconc.boxArray();
@@ -313,6 +309,12 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
     // compute mathematical boundary conditions
     BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi); // fix for mole fractions
 
+    Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
+    // fill conc ghost cells
+    molarconc.FillBoundary(geom.periodicity());
+
+    MultiFabPhysBCFH(molarconc, geom, 0, nspecies, scale_factor);
+
     // Physical Domain
     Box dom(geom.Domain());
 
@@ -320,9 +322,12 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
     MultiFab TotMono(ba, dmap, 1, 1);
 
     Real dxinv = 1./dx[0];
+
     [[maybe_unused]] Real twodxinv = 2.*dxinv;
     [[maybe_unused]] Real sixth = 1./6.;
+    [[maybe_unused]] Real third = 1./3.;
     [[maybe_unused]] Real twelveinv = 1./12.;
+
     Real one44inv = 1./144.;
 
     for ( MFIter mfi(laplacian,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -337,9 +342,15 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
         amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
 #if (AMREX_SPACEDIM == 2)
-            lap(i,j,k,n) = ( phi(i+1,j-1,k,n)-2.*phi(i,j-1,k,n)+phi(i-1,j-1,k,n) + phi(i-1,j+1,k,n)-2.*phi(i-1,j,k,n)+phi(i-1,j-1,k,n) ) * (sixth*dxinv*dxinv)
-                + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
-                + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
+//            lap(i,j,k,n) = ( phi(i+1,j-1,k,n)-2.*phi(i,j-1,k,n)+phi(i-1,j-1,k,n) + phi(i-1,j+1,k,n)-2.*phi(i-1,j,k,n)+phi(i-1,j-1,k,n) ) * (sixth*dxinv*dxinv)
+//                + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
+//                + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
+            lap(i,j,k,n) = (phi(i-1,j-1,k,n) + phi(i,j-1,k,n) + phi(i+1,j-1,k,n) + phi(i-1,j,k,n) - 8.*phi(i,j,k,n) + phi(i+1,j,k,n)
+                         +  phi(i-1,j+1,k,n) + phi(i,j+1,k,n) + phi(i+1,j+1,k,n)) * (third*dxinv*dxinv);
+#if 0
+            lap(i,j,k,n) = (phi(i-1,j-1,k,n) + 4.*phi(i,j-1,k,n) + phi(i+1,j-1,k,n) + 4.* phi(i-1,j,k,n) - 20.*phi(i,j,k,n) +  4.*phi(i+1,j,k,n)
+                         +  phi(i-1,j+1,k,n) + 4.*phi(i,j+1,k,n) + phi(i+1,j+1,k,n)) * (sixth*dxinv*dxinv);
+#endif
 #elif (AMREX_SPACEDIM == 3)
 #if 0
             lap(i,j,k,n) =
@@ -449,7 +460,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
 #endif
 
         // boundary conditions
-        if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) {
+        if (bc_lo[0] == BCType::foextrap || bc_lo[0] == BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) {
             if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
                 int lo = dom.smallEnd(0);
                 amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -460,8 +471,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 });
             }
         }
-
-        if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) {
+        if (bc_hi[0] == BCType::foextrap || bc_hi[0] == BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) {
             if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
                 int hi = dom.bigEnd(0)+1;
                 amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -472,8 +482,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 });
             }
         }
-
-        if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
+        if (bc_lo[1] == BCType::foextrap || bc_lo[1] == BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
                 amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -484,8 +493,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 });
             }
         }
-
-        if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) {
+        if (bc_hi[1] == BCType::foextrap || bc_hi[1] == BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) {
             if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
                 int hi = dom.bigEnd(1)+1;
                 amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -498,7 +506,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
         }
 
 #if (AMREX_SPACEDIM == 3)
-        if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) {
+        if (bc_lo[2] == BCType::foextrap || bc_lo[2] == BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) {
             if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
                 amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -509,8 +517,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 });
             }
         }
-
-        if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) {
+        if (bc_hi[2] == BCType::foextrap || bc_hi[2] == BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) {
             if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
                 int hi = dom.bigEnd(2)+1;
                 amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept

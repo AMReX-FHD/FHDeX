@@ -8,6 +8,7 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_Print.H>
 
 
 // argv contains the name of the inputs file entered at the command line
@@ -39,6 +40,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 {
 
     BL_PROFILE_VAR("AdvanceTimestepBousq()",AdvanceTimestepBousq);
+
+   // int use_disjoin_pres = 0;
 
     BoxArray ba = rho_old.boxArray();
     DistributionMapping dmap = rho_old.DistributionMap();
@@ -87,6 +90,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // only used when use_charged_fluid=1
     std::array< MultiFab, AMREX_SPACEDIM > Lorentz_force;
 
+    std::array< MultiFab, AMREX_SPACEDIM > disjoining_pressure;
+
     // only used when use_multiphase=1
     std::array< MultiFab, AMREX_SPACEDIM > div_reversible_stress;
 
@@ -124,6 +129,11 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (use_multiphase || use_flory_huggins) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             div_reversible_stress[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        }
+    }
+    if (use_disjoin_pres == 1) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            disjoining_pressure[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
     }
 
@@ -248,6 +258,28 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // add Lorentz force to gmres_rhs_v
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Saxpy(gmres_rhs_v[d],1.0,Lorentz_force[d],0,0,1,0);
+        }
+
+    }
+
+    if (use_disjoin_pres == 1) {
+
+    //amrex::Print() << " computing disjoining pressure " << std::endl;
+        // compute old disjoining pressure
+        ComputeDisjoiningPressure(disjoining_pressure,rhotot_old,rho_old,geom);
+
+        // add dijoining pressure gradient to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            //Print() <<" BEFORE RHS PRED " << d << " " << std::endl;
+            //print_state(gmres_rhs_v[d],IntVect(255,25));
+            //Print() <<" PRES GRAD BEFORE PRED " << std::endl;
+            //print_state(disjoining_pressure[d],IntVect(255,25));
+
+            MultiFab::Saxpy(gmres_rhs_v[d],1.0,disjoining_pressure[d],0,0,1,0);
+
+            //Print() <<" RHS AFTER PRED " << std::endl;
+            //print_state(gmres_rhs_v[d],IntVect(255,25));
+            //Print() <<" " << std::endl;
         }
 
     }
@@ -535,6 +567,15 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     }
 
+    if (use_disjoin_pres == 1) {
+
+        //amrex::Print() << " dj for corrector " << std::endl;
+
+        // compute old disjoining pressure
+        ComputeDisjoiningPressure(disjoining_pressure,rhotot_new,rho_new,geom);
+
+    }
+
     // compute chemical rates m_i*R^{n+1/2}_i
     /*
     if (nreactions > 0) then
@@ -690,6 +731,25 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
     }
+
+    if (use_disjoin_pres == 1) {
+
+        //amrex::Print() << " add dj in corrector " << std::endl;
+        // add dijoining pressure gradient to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            //Print() <<" BEFORE RHS " << d << " " << std::endl;
+            //print_state(gmres_rhs_v[d],IntVect(255,25));
+            //Print() <<" PRES GRAD BEFORE " << std::endl;
+            //print_state(disjoining_pressure[d],IntVect(255,25));
+
+            MultiFab::Saxpy(gmres_rhs_v[d],1.0,disjoining_pressure[d],0,0,1,0);
+
+            //Print() <<" RHS AFTER " << std::endl;
+            //print_state(gmres_rhs_v[d],IntVect(255,25));
+            //Print() <<" " << std::endl;
+        }
+
+     }
 
     // compute grad pi^{n+1/2,*}
     ComputeGrad(pi,gradpi,0,0,1,PRES_BC_COMP,geom);
