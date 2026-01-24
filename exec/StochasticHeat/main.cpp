@@ -25,7 +25,7 @@ amrex::Initialize(argc,argv);
 {
     // **********************************
     // SIMULATION PARAMETERS
-        
+
     // number of cells in each spatial direction
     int n_cell = 32;
 
@@ -119,7 +119,7 @@ amrex::Initialize(argc,argv);
 
     // **********************************
     // Create MultiFab data structures needed for simulation and diagonstics
-    
+
     // Temperature and initial temperature
     MultiFab Temp (ba, dm, 1, 1);
     MultiFab Temp0(ba, dm, 1, 0);
@@ -161,7 +161,7 @@ amrex::Initialize(argc,argv);
 
     // **********************************
     // Set up geometry
-    
+
     Real Length = 2.0e-8;            // System length (m)
     Real Area = std::pow(2.0e-9,2);  // System cross-sectional area (m^2)
 
@@ -197,7 +197,7 @@ amrex::Initialize(argc,argv);
     Real alpha = (STOCH_FLAG==1) ? std::sqrt(2.*kB*kappa / (rho*c_V)) : 0.;
 
     Real stabilityFactor = 0.1;      // Numerical stability if stabilityFactor < 1.
-    
+
     Real dt = stabilityFactor * dx[0] * dx[0] / (2.*kappa);
 
     Real Tref = 300.;                // Reference temperature (K)
@@ -224,7 +224,7 @@ amrex::Initialize(argc,argv);
     MultiFab Sk_sum(cba,cdm,1,0);
     MultiFab Sk(cba,cdm,1,0);
     Sk_sum.setVal(0.);
-    
+
     // **********************************
     // INITIALIZE DATA
 
@@ -264,11 +264,11 @@ amrex::Initialize(argc,argv);
         MultiFab::Copy(plotfile,Temp,0,0,1,0);
         WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT","corrT"}, geom, time, 0);
     }
-    
+
     // **********************************
     // Time step loop
     for (int step = 1; step <= nsteps; ++step)
-    {        
+    {
         // fill periodic ghost cells
         Temp.FillBoundary(geom.periodicity());
 
@@ -277,7 +277,7 @@ amrex::Initialize(argc,argv);
             MultiFabFillRandom(noise[d],0.,1.,geom);
             noise[d].mult( 1./std::sqrt(dt*dV), 0, 1);
         }
-        
+
         // compute fluxes
         for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
         {
@@ -327,7 +327,7 @@ amrex::Initialize(argc,argv);
             const Box& bx = mfi.validbox();
 
             const Array4<Real>& Temp_fab = Temp.array(mfi);
-            
+
             const Array4<Real>& fluxx = flux[0].array(mfi);
 #if (AMREX_SPACEDIM >= 2)
             const Array4<Real>& fluxy = flux[1].array(mfi);
@@ -454,7 +454,7 @@ amrex::Initialize(argc,argv);
             Sk.mult(1./Nsamp);
             const std::string& pltfile2 = amrex::Concatenate("Sk",step,7);
             WriteSingleLevelPlotfile(pltfile2, Sk, {"Sk"}, cgeom, time, step);
-            
+
         }
     }
 

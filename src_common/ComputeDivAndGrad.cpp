@@ -77,7 +77,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
         {
             gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
         }
-#if (AMREX_SPACEDIM >= 2)            
+#if (AMREX_SPACEDIM >= 2)
                          , bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
@@ -122,7 +122,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
             }
         }
 
-#if (AMREX_SPACEDIM >= 2)        
+#if (AMREX_SPACEDIM >= 2)
         if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
