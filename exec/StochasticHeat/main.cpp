@@ -210,7 +210,7 @@ amrex::Initialize(argc,argv);
     Real Tref_SD = std::sqrt(kB*Tref*Tref / (rho*c_V*dV));
 
     // **********************************
-    // FFT setup
+    // FFT setup for structure factor
 
     amrex::FFT::R2C my_fft(domain);
 
@@ -248,9 +248,11 @@ amrex::Initialize(argc,argv);
         });
     }
 
-    // normalize initial noise perturbation
-    Real avgT = Temp.sum(0) / n_cell;
-    Temp.plus(-(avgT-0.5*(T_Left+T_Right)),0);
+    // ensure random perturbation sums to zero
+    if (PERTURB_FLAG == 1) {
+        Real avgT = Temp.sum(0) / n_cell;
+        Temp.plus(-(avgT-0.5*(T_Left+T_Right)),0);
+    }
 
     // time = starting time in the simulation
     Real time = 0.0;
@@ -359,6 +361,9 @@ amrex::Initialize(argc,argv);
         // **********************************
         // DIAGNOSTICS
 
+        // increment number of samples
+        Nsamp++;
+
         // compute running sums of T, T^2, and T*T_iCorr
         for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
         {
@@ -375,12 +380,8 @@ amrex::Initialize(argc,argv);
                 sumT_fab(i,j,k) += Temp_fab(i,j,k);
                 sumT2_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(i,j,k);
                 sumTT_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(iCorr,j,k);
-
             });
         }
-
-        // increment number of samples
-        Nsamp++;
 
         // diagnostics - average and variance
         for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
@@ -389,11 +390,9 @@ amrex::Initialize(argc,argv);
 
             const Array4<Real>& sumT_fab = sumT.array(mfi);
             const Array4<Real>& sumT2_fab = sumT2.array(mfi);
-            const Array4<Real>& sumTT_fab = sumTT.array(mfi);
 
             const Array4<Real>& aveT_fab = aveT.array(mfi);
             const Array4<Real>& varT_fab = varT.array(mfi);
-            const Array4<Real>& corrT_fab = corrT.array(mfi);
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
@@ -408,11 +407,9 @@ amrex::Initialize(argc,argv);
             const Box& bx = mfi.validbox();
 
             const Array4<Real>& sumT_fab = sumT.array(mfi);
-            const Array4<Real>& sumT2_fab = sumT2.array(mfi);
             const Array4<Real>& sumTT_fab = sumTT.array(mfi);
 
             const Array4<Real>& aveT_fab = aveT.array(mfi);
-            const Array4<Real>& varT_fab = varT.array(mfi);
             const Array4<Real>& corrT_fab = corrT.array(mfi);
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -421,6 +418,7 @@ amrex::Initialize(argc,argv);
             });
         }
 
+        // diagnostics - structure factor
         // take FFT and then add to running sum of structure factor snapshot
         my_fft.forward(Temp,Temp_fft);
 
