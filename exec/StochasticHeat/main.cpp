@@ -11,6 +11,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Random.H>
+#include <AMReX_FFT.H>
 
 #include "chrono"
 
@@ -209,6 +210,22 @@ amrex::Initialize(argc,argv);
     Real Tref_SD = std::sqrt(kB*Tref*Tref / (rho*c_V*dV));
 
     // **********************************
+    // FFT setup
+
+    amrex::FFT::R2C my_fft(domain);
+
+    // create storage for the FFT
+    auto const& [cba, cdm] = my_fft.getSpectralDataLayout();
+    FabArray<BaseFab<GpuComplex<amrex::Real> > > Temp_fft(cba, cdm, 1, 0);
+
+    Box cdomain = cba.minimalBox();
+    Geometry cgeom(cdomain, real_box, CoordSys::cartesian, is_periodic);
+
+    MultiFab Sk_sum(cba,cdm,1,0);
+    MultiFab Sk(cba,cdm,1,0);
+    Sk_sum.setVal(0.);
+    
+    // **********************************
     // INITIALIZE DATA
 
     // loop over boxes
@@ -248,6 +265,8 @@ amrex::Initialize(argc,argv);
         WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT","corrT"}, geom, time, 0);
     }
     
+    // **********************************
+    // Time step loop
     for (int step = 1; step <= nsteps; ++step)
     {        
         // fill periodic ghost cells
@@ -331,6 +350,15 @@ amrex::Initialize(argc,argv);
             });
         }
 
+        // update time
+        time = time + dt;
+
+        // Tell the I/O Processor to write out which step we're doing
+        amrex::Print() << "Advanced step " << step << "\n";
+
+        // **********************************
+        // DIAGNOSTICS
+
         // compute running sums of T, T^2, and T*T_iCorr
         for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
         {
@@ -392,12 +420,24 @@ amrex::Initialize(argc,argv);
                 corrT_fab(i,j,k) = sumTT_fab(i,j,k) / Nsamp - aveT_fab(i,j,k)*aveT_fab(iCorr,j,k);
             });
         }
-        
-        // update time
-        time = time + dt;
 
-        // Tell the I/O Processor to write out which step we're doing
-        amrex::Print() << "Advanced step " << step << "\n";
+        // take FFT and then add to running sum of structure factor snapshot
+        my_fft.forward(Temp,Temp_fft);
+
+        for (MFIter mfi(Temp_fft); mfi.isValid(); ++mfi) {
+
+            Array4<GpuComplex<Real>> const& Temp_fft_ptr = Temp_fft.array(mfi);
+            Array4<Real> Sk_sum_ptr = Sk_sum.array(mfi);
+
+            const Box& bx = mfi.fabbox();
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i != 0) {
+                    Sk_sum_ptr(i,j,k,0) += Temp_fft_ptr(i,j,k).real()*Temp_fft_ptr(i,j,k).real() + Temp_fft_ptr(i,j,k).imag()*Temp_fft_ptr(i,j,k).imag();
+                }
+            });
+        }
 
         // Write a plotfile of the current data (plot_int was defined in the inputs file)
         if (plot_int > 0 && step%plot_int == 0)
@@ -408,6 +448,13 @@ amrex::Initialize(argc,argv);
             MultiFab::Copy(plotfile,varT,0,2,1,0);
             MultiFab::Copy(plotfile,corrT,0,3,1,0);
             WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT","corrT"}, geom, time, step);
+
+            // structure factor
+            MultiFab::Copy(Sk,Sk_sum,0,0,1,0);
+            Sk.mult(1./Nsamp);
+            const std::string& pltfile2 = amrex::Concatenate("Sk",step,7);
+            WriteSingleLevelPlotfile(pltfile2, Sk, {"Sk"}, cgeom, time, step);
+            
         }
     }
 
