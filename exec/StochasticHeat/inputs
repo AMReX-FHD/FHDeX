@@ -1,11 +1,23 @@
+# number of cells in each spatial direction
 n_cell = 32
 
+# total steps in simulation
 nsteps = 8000000
 
-plot_int = 100000
+# how often to write a plotfile
+plot_int = 1000000
 
+# random number seed (1=fixed seed 0=clock-based seed)
 seed = 1
 
+# Boundary condition flag (0: Periodic 1: Dirichlet)
+BC_FLAG = 0
+
+# Non-equilibrium flag (0: Thermodynamic equilibrium 1: Temperature gradient)
 NONEQ_FLAG = 0
+
+# Start from perturbed initial condition (0: No 1: Yes)
 PERTURB_FLAG = 1
+
+# Thermal fluctuations? (0: No, deterministic 1: Yes, stochastic)
 STOCH_FLAG = 1

@@ -25,17 +25,20 @@ amrex::Initialize(argc,argv);
     // **********************************
     // SIMULATION PARAMETERS
         
-    // number of cells on each side of the domain
+    // number of cells in each spatial direction
     int n_cell = 32;
 
     // total steps in simulation
     int nsteps = 8000000;
 
     // how often to write a plotfile
-    int plot_int = -1;
+    int plot_int = 1000000;
 
-    // random number seed (1=fixed seed; 0=clock-based seed)
+    // random number seed (positive integer=fixed seed; 0=clock-based seed)
     int seed = 1;
+
+    // Boundary condition flag (0: Periodic; 1: Dirichlet)
+    int BC_FLAG = 0;
 
     // Non-equilibrium flag (0: Thermodynamic equilibrium; 1: Temperature gradient)
     int NONEQ_FLAG = 0;
@@ -58,31 +61,21 @@ amrex::Initialize(argc,argv);
         pp.query("nsteps",nsteps);
         pp.query("plot_int",plot_int);
         pp.query("seed",seed);
+        pp.query("BC_FLAG",BC_FLAG);
         pp.query("NONEQ_FLAG",NONEQ_FLAG);
         pp.query("PERTURB_FLAG",PERTURB_FLAG);
         pp.query("STOCH_FLAG",STOCH_FLAG);
     }
 
-    if (NONEQ_FLAG == 1) {
-        Abort("NONEQ_FLAG=1 requires non-periodic boundaries");
+    if (BC_FLAG != 0) {
+        Abort("Only periodic boundary conditions are presently supported");
     }
-    
-    //* Set physical parameters for the system (iron bar)
-    Real kB = 1.38e-23;              // Boltzmann constant (J/K)
-    Real mAtom = 9.27e-26;           // Mass of iron atom (kg)
-    Real rho = 7870.;                // Mass density of iron (kg/m^3)
-    Real c_V = 450.;                 // Specific heat capacity of iron (J/(kg K))
-    Real ThCond = 70.;               // Thermal conductivity of iron (W/(m K))
-    Real Length = 2.0e-8;            // System length (m)
-    Real Area = std::pow(2.0e-9,2);  // System cross-sectional area (m^2)
 
-    Real kappa = ThCond / (rho*c_V); // Coefficient in deterministic heat equation
+    if (BC_FLAG == 0 && NONEQ_FLAG == 1) {
+        Abort("ERROR: Periodic boundary conditions are only for thermodynamic equilibrium");
+    }
 
-    // Coefficient in stochastic heat equation
-    Real alpha = (STOCH_FLAG==1) ? std::sqrt(2.*kB*kappa / (rho*c_V)) : 0.;
-
-    Real stabilityFactor = 0.1;      // Numerical stability if stabilityFactor < 1.
-
+    // initialize AMReX random seed (positive integer=fixed seed; 0=clock-based seed)
     if (seed > 0) {
         // initializes the seed for C++ random number calls
         InitRandom(seed+ParallelDescriptor::MyProc(),
@@ -102,8 +95,7 @@ amrex::Initialize(argc,argv);
     }
 
     // **********************************
-    // SIMULATION SETUP
-
+    // Set up simulation grid
     // make BoxArray and Geometry
     // ba will contain a list of boxes that cover the domain
     // geom contains information such as the physical domain size,
@@ -124,30 +116,53 @@ amrex::Initialize(argc,argv);
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
+    // **********************************
+    // Create MultiFab data structures needed for simulation and diagonstics
+    
     // Temperature and initial temperature
     MultiFab Temp (ba, dm, 1, 1);
     MultiFab Temp0(ba, dm, 1, 0);
 
+    // face-centered MultiFabs for noise and flux
+    Array<MultiFab, AMREX_SPACEDIM> noise;
+    Array<MultiFab, AMREX_SPACEDIM> flux;
+    for (int dir=0; dir<AMREX_SPACEDIM; dir++)
+    {
+        // noise[dir] and flux[dir] have one component, zero ghost cells, and is nodal in direction dir
+        BoxArray edge_ba = ba;
+        edge_ba.surroundingNodes(dir);
+        noise[dir].define(edge_ba, dm, 1, 0);
+        flux[dir].define(edge_ba, dm, 1, 0);
+    }
+
     // diagnostics
+    // keep running sums of T, T^2 and T*T_iCorr
     MultiFab sumT(ba,dm,1,0);
     MultiFab sumT2(ba,dm,1,0);
     MultiFab sumTT(ba,dm,1,0);
-    MultiFab sumSk(ba,dm,1,0);
     sumT.setVal(0.);
     sumT2.setVal(0.);
     sumTT.setVal(0.);
-    sumSk.setVal(0.);
 
+    // keep track of how many samples have been taken
+    int Nsamp = 0;
+
+    // cell-index for correlation calculation
+    int iCorr = n_cell/4;
+
+    // storage for mean, variance, and correlation diagnostics
     MultiFab aveT(ba,dm,1,0);
     MultiFab varT(ba,dm,1,0);
     MultiFab corrT(ba,dm,1,0);
-    aveT.setVal(0.);
-    varT.setVal(0.);
-    corrT.setVal(0.);
 
+    // storage for plotfile variables
     MultiFab plotfile(ba,dm,4,0);
+
+    // **********************************
+    // Set up geometry
     
-    int iCorr = n_cell/4;
+    Real Length = 2.0e-8;            // System length (m)
+    Real Area = std::pow(2.0e-9,2);  // System cross-sectional area (m^2)
 
     // This defines the physical box, [0,1] in each direction.
     RealBox real_box({AMREX_D_DECL(    0.,    0.,    0.)},
@@ -168,6 +183,20 @@ amrex::Initialize(argc,argv);
     Abort("Fix dV for multidimensional case");
 #endif
 
+    // **********************************
+    // Set physical parameters for the system (iron bar)
+    Real kB = 1.38e-23;              // Boltzmann constant (J/K)
+    Real mAtom = 9.27e-26;           // Mass of iron atom (kg)
+    Real rho = 7870.;                // Mass density of iron (kg/m^3)
+    Real c_V = 450.;                 // Specific heat capacity of iron (J/(kg K))
+    Real ThCond = 70.;               // Thermal conductivity of iron (W/(m K))
+    Real kappa = ThCond / (rho*c_V); // Coefficient in deterministic heat equation
+
+    // Coefficient in stochastic heat equation
+    Real alpha = (STOCH_FLAG==1) ? std::sqrt(2.*kB*kappa / (rho*c_V)) : 0.;
+
+    Real stabilityFactor = 0.1;      // Numerical stability if stabilityFactor < 1.
+    
     Real dt = stabilityFactor * dx[0] * dx[0] / (2.*kappa);
 
     Real Tref = 300.;                // Reference temperature (K)
@@ -178,21 +207,6 @@ amrex::Initialize(argc,argv);
 
     // Standard deviation of temperature in a cell at the reference temperature
     Real Tref_SD = std::sqrt(kB*Tref*Tref / (rho*c_V*dV));
-
-    // face-centered MultiFabs for noise and flux
-    Array<MultiFab, AMREX_SPACEDIM> noise;
-    Array<MultiFab, AMREX_SPACEDIM> flux;
-    for (int dir=0; dir<AMREX_SPACEDIM; dir++)
-    {
-        // noise[dir] and flux[dir] have one component, zero ghost cells, and is nodal in direction dir
-        BoxArray edge_ba = ba;
-        edge_ba.surroundingNodes(dir);
-        noise[dir].define(edge_ba, dm, 1, 0);
-        flux[dir].define(edge_ba, dm, 1, 0);
-    }
-
-    // time = starting time in the simulation
-    Real time = 0.0;
 
     // **********************************
     // INITIALIZE DATA
@@ -221,19 +235,18 @@ amrex::Initialize(argc,argv);
     Real avgT = Temp.sum(0) / n_cell;
     Temp.plus(-(avgT-0.5*(T_Left+T_Right)),0);
 
+    // time = starting time in the simulation
+    Real time = 0.0;
+
     // Write a plotfile of the initial data if plot_int > 0
     if (plot_int > 0)
     {
+        plotfile.setVal(0.); // zero out all variables (we don't have avgT, varT, corrT yet)
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,7);
         MultiFab::Copy(plotfile,Temp,0,0,1,0);
-        MultiFab::Copy(plotfile,aveT,0,1,1,0);
-        MultiFab::Copy(plotfile,varT,0,2,1,0);
-        MultiFab::Copy(plotfile,corrT,0,3,1,0);
         WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT","corrT"}, geom, time, 0);
     }
-
-    int Nsamp = 0;
     
     for (int step = 1; step <= nsteps; ++step)
     {        
@@ -295,10 +308,6 @@ amrex::Initialize(argc,argv);
             const Box& bx = mfi.validbox();
 
             const Array4<Real>& Temp_fab = Temp.array(mfi);
-
-            const Array4<Real>& sumT_fab = sumT.array(mfi);
-            const Array4<Real>& sumT2_fab = sumT2.array(mfi);
-            const Array4<Real>& sumTT_fab = sumTT.array(mfi);
             
             const Array4<Real>& fluxx = flux[0].array(mfi);
 #if (AMREX_SPACEDIM >= 2)
@@ -310,7 +319,7 @@ amrex::Initialize(argc,argv);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 Temp_fab(i,j,k) = Temp_fab(i,j,k) + dt *
-                    (fluxx(i+1,j,k) - fluxx(i,j,k)) / dx[0]
+                      (fluxx(i+1,j,k) - fluxx(i,j,k)) / dx[0]
 #if (AMREX_SPACEDIM >= 2)
                     + (fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1]
 #if (AMREX_SPACEDIM >= 3)
@@ -319,6 +328,22 @@ amrex::Initialize(argc,argv);
 #endif
                         ;
 
+            });
+        }
+
+        // compute running sums of T, T^2, and T*T_iCorr
+        for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
+        {
+            const Box& bx = mfi.validbox();
+
+            const Array4<Real>& Temp_fab = Temp.array(mfi);
+
+            const Array4<Real>& sumT_fab = sumT.array(mfi);
+            const Array4<Real>& sumT2_fab = sumT2.array(mfi);
+            const Array4<Real>& sumTT_fab = sumTT.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
                 sumT_fab(i,j,k) += Temp_fab(i,j,k);
                 sumT2_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(i,j,k);
                 sumTT_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(iCorr,j,k);
