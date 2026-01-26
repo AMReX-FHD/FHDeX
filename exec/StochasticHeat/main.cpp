@@ -1,7 +1,7 @@
 /*
- * A simplified single file version of the HeatEquation_EX0_C exmaple.
- * This code is designed to be used with Demo_Tutorial.rst.
- *
+ * An AMReX-based version of the StochasticHeat python code:
+ * Intro FHD paper: https://arxiv.org/abs/2406.12157
+ * Original python version: https://github.com/AlejGarcia/IntroFHD
  */
 
 #include "common_functions.H"
@@ -25,6 +25,7 @@ amrex::Initialize(argc,argv);
 {
     // **********************************
     // SIMULATION PARAMETERS
+    // defaults are given here and can be overridden via an inputs files and/or command line
 
     // number of cells in each spatial direction
     int n_cell = 32;
@@ -96,13 +97,10 @@ amrex::Initialize(argc,argv);
     }
 
     // **********************************
-    // Set up simulation grid
-    // make BoxArray and Geometry
-    // ba will contain a list of boxes that cover the domain
-    // geom contains information such as the physical domain size,
-    //               number of points in the domain, and periodicity
+    // Set up simulation grid, which requires a BoxArray and Distribution Mapping
+    // BoxArray ba will contain a list of boxes that cover the domain
+    // DistributionMapping dm is a mapping of individual boxes to MPI ranks
     BoxArray ba;
-    Geometry geom;
 
     // AMREX_D_DECL means "do the first X of these, where X is the dimensionality of the simulation"
     IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
@@ -161,6 +159,8 @@ amrex::Initialize(argc,argv);
 
     // **********************************
     // Set up geometry
+    // geom contains information such as the physical domain size,
+    //               number of points in the domain, and periodicity
 
     Real Length = 2.0e-8;            // System length (m)
     Real Area = std::pow(2.0e-9,2);  // System cross-sectional area (m^2)
@@ -173,6 +173,7 @@ amrex::Initialize(argc,argv);
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
 
     // This defines a Geometry object
+    Geometry geom;
     geom.define(domain, real_box, CoordSys::cartesian, is_periodic);
 
     // extract dx from the geometry object
@@ -186,6 +187,7 @@ amrex::Initialize(argc,argv);
 
     // **********************************
     // Set physical parameters for the system (iron bar)
+
     Real kB = 1.38e-23;              // Boltzmann constant (J/K)
     Real mAtom = 9.27e-26;           // Mass of iron atom (kg)
     Real rho = 7870.;                // Mass density of iron (kg/m^3)
