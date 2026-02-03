@@ -360,13 +360,13 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     }
 
                     for (int ns=0; ns<nspecies; ++ns) {
-                        yy[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
-                        yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        yy[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i-1,j,k,6+ns)));
+                        yyp[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j,k,6+ns)));
                         if ((i == 0) and is_lo_x_dirichlet_mass) {
-                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
+                            yyp[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i-1,j,k,6+ns)));
                         }
                         if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                            yy[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j,k,6+ns)));
                         }
                     }
 
@@ -523,13 +523,13 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         }
 
                         for (int ns=0; ns<nspecies; ++ns) {
-                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
-                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                            yy[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j-1,k,6+ns)));
+                            yyp[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j,k,6+ns)));
                             if ((j == 0) and is_lo_y_dirichlet_mass) {
-                                yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
+                                yyp[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j-1,k,6+ns)));
                             }
                             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                                yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                                yy[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j,k,6+ns)));
                             }
                         }
 
@@ -686,13 +686,13 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         }
 
                         for (int ns=0; ns<nspecies; ++ns) {
-                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
-                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                            yy[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j,k-1,6+ns)));
+                            yyp[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j,k,6+ns)));
                             if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
+                                yyp[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j,k-1,6+ns)));
                             }
                             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                                yy[ns] = amrex::max(Real(0.0),amrex::min(Real(1.0),prim(i,j,k,6+ns)));
                             }
                         }
 

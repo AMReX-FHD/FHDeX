@@ -794,6 +794,7 @@ void main_driver(const char* argv)
         setBCStag(prim, cu, cumom, vel, geom);
 
         if (plot_int > 0) {
+            calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, mom4, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
 #if defined(TURB)

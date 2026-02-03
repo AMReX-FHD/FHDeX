@@ -98,7 +98,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     cross[l] = fac3[l]*(sqrtTL*TL*rhoL[l] + sqrtTR*TR*rhoR[l]);
                     corr[l] = cross[l]/(sqrt(delUvar[l])*sqrt(delNvar[l]));
 
-                    double rn1, rn2, rn3;
+                    Real rn1, rn2, rn3;
                     if (stoch_stress_form == 1) {
                         //rn1 = get_fhd_normal_func();
                         //rn2 = get_fhd_normal_func();

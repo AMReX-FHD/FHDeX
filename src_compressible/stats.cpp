@@ -9,9 +9,9 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 {
     BL_PROFILE_VAR("evaluateStats()",evaluateStats);
 
-    double totalMass = 0.;
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real totalMass = 0.;
+    Real stepsminusone = steps - 1.;
+    Real stepsinv = 1./steps;
 
     GpuArray<Real,MAX_SPECIES> fracvec;
 

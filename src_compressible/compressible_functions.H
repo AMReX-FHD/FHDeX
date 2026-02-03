@@ -144,7 +144,7 @@ void GetMolfrac (const GpuArray<Real,MAX_SPECIES>& Yk,
     for (int n=0; n<nspecies; ++n) {
         molmix += Yk[n]/molmass[n];
     }
-    molmix = 1./molmix;
+    molmix = Real(1.0)/molmix;
     for (int n=0; n<nspecies; ++n) {
         Xk[n] = Yk[n]*molmix/molmass[n];
     }
@@ -193,7 +193,7 @@ void GetPressureGas ( Real& pressure,
     for (int n=0; n<nspecies; ++n) {
         molmix += Yk[n]/molmass[n];
     }
-    molmix = 1./molmix;
+    molmix = Real(1.0)/molmix;
 
     pressure = density*(Runiv/molmix)*temp;
 }
@@ -212,7 +212,7 @@ void GetSoundSpeed (Real& c,
         cvmix += Yk[n]*hcv[n];
         cpmix += Yk[n]*hcp[n];
     }
-    molmix = 1./molmix;
+    molmix = Real(1.0)/molmix;
     Real gamma = cpmix/cvmix;
 
     c = sqrt(gamma*(Runiv/molmix)*temp);
@@ -536,7 +536,7 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
                 term2 = term2 + Xkp[j]/Dbin[i*nspecies+j];
             }
         }
-        Di[i] = (1.-Ykp[i])/term2;
+        Di[i] = (Real(1.0)-Ykp[i])/term2;
     }
 
     // Compute Mmat and Minv
@@ -550,7 +550,7 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
         for (j=0; j<nspecies; ++j) {
             Pmat[i*nspecies+j] = - Ykp[j];
             if (i == j) {
-                Pmat[i*nspecies+j] =  Pmat[i*nspecies+j] + 1.;
+                Pmat[i*nspecies+j] =  Pmat[i*nspecies+j] + Real(1.0);
             }
        }
     }
@@ -670,7 +670,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
                 term2 = term2 + Xkp[j]/Dbin(i,j);
             }
         }
-        Di[i] = (1.-Ykp[i])/term2;
+        Di[i] = (Real(1.0)-Ykp[i])/term2;
     }
 
     // Compute Mmat and Minv
@@ -684,7 +684,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
         for (j=0; j<nspecies; ++j) {
             Pmat[i*nspecies+j] = - Ykp[j];
             if (i == j) {
-                Pmat[i*nspecies+j] =  Pmat[i*nspecies+j] + 1.;
+                Pmat[i*nspecies+j] =  Pmat[i*nspecies+j] + Real(1.0);
             }
        }
     }
@@ -817,13 +817,13 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
             if (k != i) {
                 diag2[i] = diag2[i]+nk[k]*mk[k]/(mk[i]+mk[k])*omega11[i*nspecies+k];
             }
-            diag3[i] = diag3[i] + nk[i]*nk[k]*pow(mk[k],2.)/pow(mk[i]+mk[k],2.)
-                *  .5*omega11[i*nspecies+k];
+            diag3[i] = diag3[i] + nk[i]*nk[k]*pow(mk[k],Real(2.0))/pow(mk[i]+mk[k],Real(2.0))
+                *  Real(0.5)*omega11[i*nspecies+k];
 
-            diag4[i] = diag4[i]+ nk[i]*nk[k]*mk[k]/pow(mk[i]+mk[k],3.) *
-                ((5./4.*(6.*pow(mk[i],2.)+5.*pow(mk[k],2.))*omega11[i*nspecies+k]
-                  - 3.*pow(mk[k],2.)*omega11[i*nspecies+k] )
-                 +  4.*mk[i]*mk[k]*omega11[i*nspecies+k] );
+            diag4[i] = diag4[i]+ nk[i]*nk[k]*mk[k]/pow(mk[i]+mk[k],Real(3.0)) *
+                ((Real(5.0/4.0)*(Real(6.0)*pow(mk[i],Real(2.0))+Real(5.0)*pow(mk[k],Real(2.0)))*omega11[i*nspecies+k]
+                  - Real(3.0)*pow(mk[k],Real(2.0))*omega11[i*nspecies+k] )
+                 +  Real(4.0)*mk[i]*mk[k]*omega11[i*nspecies+k] );
        }
     }
 
@@ -835,10 +835,10 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
             sum01 = - nk[i]*nk[j]*pow(mk[j],2.)/pow(mk[i]+mk[j],2.) *
                 .5*omega11[i*nspecies+j];
 
-            sum11 =  nk[i]*nk[j]*mk[j]/pow(mk[i]+mk[j],3.) *
-                ( -(5./4.*(6.*pow(mk[j],2.)+5.*pow(mk[j],2.))*omega11[i*nspecies+j]
-                    - 3.*pow(mk[j],2)*omega11[i*nspecies+j] )
-                  +  4.*mk[j]*mk[j]*omega11[i*nspecies+j] );
+            sum11 =  nk[i]*nk[j]*mk[j]/pow(mk[i]+mk[j],Real(3.0)) *
+                ( -(Real(5.0/4.0)*(Real(6.0)*pow(mk[j],Real(2.0))+Real(5.0)*pow(mk[j],Real(2.0)))*omega11[i*nspecies+j]
+                    - Real(3.0)*pow(mk[j],2)*omega11[i*nspecies+j] )
+                  +  Real(4.0)*mk[j]*mk[j]*omega11[i*nspecies+j] );
 
             if (i == j) {
                 sum00 = sum00+diag1[i];
@@ -1015,7 +1015,7 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
             QoR[ii*nspecies+jj] = -(16./15.)*(mk[ii]/mk[jj])*sum1;
             // HCB 7.4-62,63
         }
-        bSonine[ii] = -1.;
+        bSonine[ii] = Real(-1.0);
     }
 
     // print*, "Hack (visc_lin): original QoR = ", QoR
@@ -1070,7 +1070,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
     GpuArray<Real,MAX_SPECIES> molecular_mass;
 
     Real sigma11bar, diamat, mu, Fijstar, Fij, MWmix, sqrtT;
-    Real pi = 3.1415926535897932;
+    Real pi = Real(3.1415926535897932);
 
     // compute molecular_mass by dividing molmass by Avogadro's
     for (int n=0; n<nspecies; ++n) {
@@ -1084,7 +1084,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
             sumXk += Xk[jj];
         }
         // GM: Why this factor of 1E-15???
-        xxtr[ii] = Xk[ii] + 1.e-15*(sumXk/nspecies - Xk[ii]);
+        xxtr[ii] = Xk[ii] + Real(1.e-15)*(sumXk/nspecies - Xk[ii]);
     }
 
     // molecular weight of mixture - EGLIB
@@ -1110,9 +1110,11 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
             // These matrices are computed in init_chemistry in FluctHydro code
 
             diamat = 0.5*(diameter[i] + diameter[j]);
-            mu = molecular_mass[i]*molecular_mass[j]/(molecular_mass[i] + molecular_mass[j]);
-            Fij = (6.0*molecular_mass[i]*molecular_mass[i] + 13.0/5.0*molecular_mass[j]*molecular_mass[j] +
-                   16.0/5.0*molecular_mass[i]*molecular_mass[j])/(pow(molecular_mass[i]+molecular_mass[j],2.));
+            Real denom = (molecular_mass[i] + molecular_mass[j]);
+            mu = (molecular_mass[i]/denom)*molecular_mass[j];
+            denom = pow(molecular_mass[i]+molecular_mass[j],2.);
+            Fij = (6.0*(molecular_mass[i]/denom)*molecular_mass[i] + (13.0/5.0)*(molecular_mass[j]/denom)*molecular_mass[j] +
+                   (16.0/5.0)*(molecular_mass[i]/denom)*molecular_mass[j]);
 
             sigma11bar = sqrt( k_B/(2.0*pi*mu) )*pi*pow(diamat,2.);
 
@@ -1177,7 +1179,7 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
     GpuArray<Real,MAX_SPECIES> Bi;
 
     Real mbar, Xksum, kT, AKL, BKL, CKL, fact1, sum1;
-    Real pi = 3.1415926535897932;
+    Real pi = Real(3.1415926535897932);
 
     // compute molecular_mass by dividing molmass by Avogadro's
     for (int n=0; n<nspecies; ++n) {
@@ -1189,10 +1191,10 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
     for (int n=0; n<nspecies; ++n) {
         mbar += Yk[n]/molecular_mass[n];
     }
-    mbar = 1.0/mbar;
+    mbar = Real(1.0)/mbar;
 
     // mole fracions
-    Xksum = 0.0;
+    Xksum = Real(0.0);
     for (int n=0; n<nspecies; ++n) {
         Xk[n] = Yk[n]*mbar/molecular_mass[n];
         Xksum += Xk[n];
@@ -1200,7 +1202,7 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
 
     // Perturb Xk for zero or negative values -- store in Xkp
     for (int n=0; n<nspecies; ++n) {
-        Xkp[n] = Xk[n] + 1.0e-16*(Xksum/double(nspecies) - Xk[n]);
+        Xkp[n] = Xk[n] + 1.0e-16*(Xksum/Real(nspecies) - Xk[n]);
     }
 
     // Perturbed mass fractions Ykp
@@ -1210,8 +1212,9 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
 
     for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
-            diam(i,j) = 0.5*(diameter[i] + diameter[j]);
-            mu(i,j)   = molecular_mass[i]*molecular_mass[j]/(molecular_mass[i] + molecular_mass[j]);
+            diam(i,j) = Real(0.5)*(diameter[i] + diameter[j]);
+            Real denom = molecular_mass[i] + molecular_mass[j];
+            mu(i,j)   = (molecular_mass[i]/denom)*molecular_mass[j];
         }
     }
 
@@ -1219,17 +1222,17 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
     kT = k_B*temperature;
     for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
-            Dbin(i,j) = (3.0/16.0)*sqrt(2.0*pi*kT*kT*kT/mu(i,j))/(pressure*pi*diam(i,j)*diam(i,j));
+            Dbin(i,j) = Real(3.0/16.0)*kT*sqrt(Real(2.0)*pi*kT/mu(i,j))/(pressure*pi*diam(i,j)*diam(i,j));
         }
     }
 
-    AKL = 1.0;
+    AKL = Real(1.0);
     BKL = 1.0;
     CKL = 1.0;
 
     // Viscosity
     for (int i=0; i<nspecies; ++i) {
-        eta1[i] = 5.0/(16.0*diam(i,i)*diam(i,i))*sqrt(molecular_mass[i]*k_B*temperature/pi);
+        eta1[i] = 5.0/(16.0*diam(i,i)*diam(i,i))*sqrt(molecular_mass[i])*sqrt(k_B*temperature/pi);
     }
 
     for (int i=0; i<nspecies; ++i) {
@@ -1276,7 +1279,7 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
     }
 
     // zero bulk viscosity for monoatomic HS
-    zeta = 0.;
+    zeta = Real(0.0);
 
     // Thermal Conductivity
     for (int i=0; i<nspecies; ++i) {
@@ -1322,7 +1325,9 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
     for (int i=0; i<nspecies; ++i) {
         kappa += rhs[i]*Bi[i];
     }
+    //std::printf("kappa0: %e\n",kappa);
     kappa *= pressure/temperature;
+    //std::printf("kappa1: %e\n",kappa);
 
     // Thermal Diffusion Ratios
     for (int i=0; i<nspecies; ++i) {

@@ -208,8 +208,8 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
 {
     BL_PROFILE_VAR("EvaluateStatsMeans()",EvaluateStatsMeans);
 
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real stepsminusone = steps - 1.;
+    Real stepsinv = 1./steps;
 
     // Loop over boxes
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -380,8 +380,8 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
 {
     BL_PROFILE_VAR("EvaluateVarsCoVarsMom3()",EvaluateVarsCoVarsMom3);
 
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real stepsminusone = steps - 1.;
+    Real stepsinv = 1./steps;
 
     // Loop over boxes
     for ( MFIter mfi(cons,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -878,8 +878,8 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
 
     BL_PROFILE_VAR("EvaluateSpatialCorrelations3D()",EvaluateSpatialCorrelations3D);
 
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real stepsminusone = steps - 1.;
+    Real stepsinv = 1./steps;
 
     int nprims = nspecies + 4;
 
@@ -1109,8 +1109,8 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
 //    OLDER VERSION
 //    BL_PROFILE_VAR("EvaluateSpatialCorrelations3D()",EvaluateSpatialCorrelations3D);
 //
-//    double stepsminusone = steps - 1.;
-//    double stepsinv = 1./steps;
+//    Real stepsminusone = steps - 1.;
+//    Real stepsinv = 1./steps;
 //
 //    // Get mean values
 //    Real meanrhocross = data_xcross[1];
@@ -1326,8 +1326,8 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
     BL_PROFILE_VAR("EvaluateSpatialCorrelations1D()",EvaluateSpatialCorrelations1D);
 
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real stepsminusone = steps - 1.;
+    Real stepsinv = 1./steps;
 
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 

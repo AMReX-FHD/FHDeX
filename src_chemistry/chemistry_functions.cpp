@@ -92,7 +92,7 @@ void InitializeChemistryNamespace()
     pp.getarr("rate_const",k_tmp,0,nreaction);
     for (int m=0; m<nreaction; m++) rate_const[m] = k_tmp[m];
 
-    rate_multiplier = 1.;
+    rate_multiplier = Real(1.);
     pp.query("rate_multiplier",rate_multiplier);
 
     include_discrete_LMA_correction = 0;
@@ -117,7 +117,7 @@ void InitializeChemistryNamespace()
     pp.queryarr("beta_param",beta_tmp,0,nreaction);
     for (int m=0; m<nreaction; m++) beta_param[m] = beta_tmp[m];
 
-    T0_chem = 0.;
+    T0_chem = Real(0.);
     // get temperature T0 for rate constants for compressible code
     pp.query("T0_chem",T0_chem);
 
@@ -132,7 +132,7 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
         amrex::Abort("ERROR: compute_compressible_chemistry_source_CLE only works for reaction_type = 0 or 1");
     }
 
-    if (T0_chem<=0.) amrex::Abort("ERROR: T0_chem>0 expected");
+    if (T0_chem<=Real(0.)) amrex::Abort("ERROR: T0_chem>0 expected");
 
     for (MFIter mfi(prim); mfi.isValid(); ++mfi)
     {
@@ -169,11 +169,11 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
             }
 
             GpuArray<amrex::Real,MAX_SPECIES> sourceArr;
-            for (int n=0; n<nspecies; n++) sourceArr[n] = 0.;
+            for (int n=0; n<nspecies; n++) sourceArr[n] = Real(0.);
 
             for (int m=0; m<nreaction; m++)
             {
-                avg_react_rate[m] = std::max(0.,avg_react_rate[m]);
+                avg_react_rate[m] = amrex::max(Real(0.0),avg_react_rate[m]);
 
                 amrex::Real W = ranchem_arr(i,j,k,m)/sqrt(dt*dV);
 
@@ -197,12 +197,12 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                    const MultiFab& n_interm, Vector<Real>& lin_comb_coef_in, Real volume_factor_in)
 {
     if (nreaction == 1) {
-        chem_rate.setVal(0.);
+        chem_rate.setVal(Real(0.));
         return;
     }
 
     int lin_comb_avg_react_rate = 1;
-    if (lin_comb_coef_in[0] == 1. && lin_comb_coef_in[1] == 0.) {
+    if (lin_comb_coef_in[0] == Real(1.) && lin_comb_coef_in[1] == Real(0.)) {
         lin_comb_avg_react_rate = 0;
     }
 
@@ -232,7 +232,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                 GpuArray<Real,MAX_SPECIES> n_new;
                 GpuArray<Real,MAX_REACTION> avg_reaction_rate;
 
-                Real t_local = 0.;
+                Real t_local = Real(0.);
 
                 for (int n=0; n<nspecies; ++n) {
                     n_old[n] = n_arr(i,j,k,n);
@@ -243,15 +243,15 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                 {
                     compute_reaction_rates(n_new,avg_reaction_rate,dv);
 
-                    Real rTotal = 0.;
+                    Real rTotal = Real(0.);
                     for (int m=0; m<nreaction; m++)
                     {
                         // convert reation rates to propensities
-                        avg_reaction_rate[m] = std::max(0.,avg_reaction_rate[m]*dv);
+                        avg_reaction_rate[m] = amrex::max(Real(0.0),avg_reaction_rate[m]*dv);
                         rTotal += avg_reaction_rate[m];
                     }
 
-                    if (rTotal==0.) break;
+                    if (rTotal==Real(0.)) break;
 
                     Real u1 = amrex::Random(engine);
                     Real tau = -log(1-u1)/rTotal;
@@ -264,7 +264,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
 
                     // find which reaction has occured
                     int which_reaction=0;
-                    Real rSum = 0.;
+                    Real rSum = Real(0.);
                     for (int m=0; m<nreaction; m++)
                     {
                         rSum = rSum + avg_reaction_rate[m];
@@ -294,7 +294,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                 GpuArray<Real,MAX_REACTION> num_reactions;
 
                 for (int n=0; n<nspecies; ++n) {
-                    rate(i,j,k,n) = 0.;
+                    rate(i,j,k,n) = Real(0.);
                     n_in[n]     = n_arr(i,j,k,n);
                     n_int_in[n] = n_int(i,j,k,n);
                 }
@@ -310,7 +310,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                 }
 
                 for (int r=0; r<nreaction; ++r) {
-                    avg_num_reactions[r] = std::max(0.,avg_reaction_rate[r]*dv*dt);
+                    avg_num_reactions[r] = amrex::max(Real(0.0),avg_reaction_rate[r]*dv*dt);
                 }
                 sample_num_reactions(n_in,num_reactions,avg_num_reactions,engine);
                 for (int r=0; r<nreaction; ++r) {
@@ -329,13 +329,13 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
 {
     GpuArray<Real,MAX_SPECIES> n_nonneg;
 
-    Real n_sum = 0.;
+    Real n_sum = Real(0.);
     for (int n=0; n<nspecies; ++n) {
-        n_nonneg[n] = std::max(0.,n_in[n]);
+        n_nonneg[n] = amrex::max(Real(0.0),n_in[n]);
         n_sum += n_nonneg[n];
     }
-    if (n_sum < 0.) {
-        n_sum = 1./dv;
+    if (n_sum < Real(0.)) {
+        n_sum = Real(1.)/dv;
         Abort("compute_reaction_rates() - n_sum < 0, is this right?");
     }
 
@@ -417,9 +417,9 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
                     } else if (coef == 1) {
                         reaction_rates[r] *= n_nonneg[n];
                     } else if (coef == 2) {
-                        reaction_rates[r] *= n_nonneg[n]*std::max(0.,n_nonneg[n]-1./dv);
+                        reaction_rates[r] *= n_nonneg[n]*amrex::max(Real(0.0),n_nonneg[n]-Real(1.)/dv);
                     } else if (coef == 3) {
-                        reaction_rates[r] *= n_nonneg[n]*std::max(0.,n_nonneg[n]-1./dv)*std::max(0.,n_nonneg[n]-2./dv);
+                        reaction_rates[r] *= n_nonneg[n]*amrex::max(Real(0.0),n_nonneg[n]-Real(1.)/dv)*amrex::max(Real(0.0),n_nonneg[n]-Real(2.)/dv);
                     } else {
                         // This is essentially impossible in practice and won't happen
                         Abort("Stochiometric coefficients larger then 3 not supported");
@@ -445,7 +445,7 @@ AMREX_GPU_HOST_DEVICE void sample_num_reactions(GpuArray<Real,MAX_SPECIES>& n_in
         }
     } else if (reaction_type == 1) { // CLE
         for (int n=0; n<nreaction; ++n) {
-            Real rand = RandomNormal(0.,1.,engine);
+            Real rand = RandomNormal(Real(0.),Real(1.),engine);
             num_reactions[n] = avg_num_reactions[n] + std::sqrt(avg_num_reactions[n])*rand;
         }
     } else if (reaction_type == 3) { // tau leaping
