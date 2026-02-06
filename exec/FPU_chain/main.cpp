@@ -154,7 +154,7 @@ Initialize(argc,argv);
 
     // save g_alpha(0,0)
     g_alpha_zero.ParallelCopy(state, 0, 0, 3);
- 
+
     // write out diagnostics (meaans)
     if (diag_int > 0) {
         compute_means(state,n_particles,n_ensembles,0);

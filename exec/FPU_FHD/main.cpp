@@ -39,7 +39,7 @@ amrex::Initialize(argc,argv);
     int seed;
 
     Real dt;
-    
+
     Real Length;  // System length (m)
     Real Area;    // System cross-sectional area (m^2)
 
@@ -66,7 +66,7 @@ amrex::Initialize(argc,argv);
     Real B_11;
     Real B_22;
 
-    
+
     // inputs parameters
     {
         // ParmParse is way of reading inputs from the inputs file
@@ -263,7 +263,7 @@ amrex::Initialize(argc,argv);
                 fluxx(i,j,k,2) = A_20 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i-1,j,k,0))
                                + A_21 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i-1,j,k,1))
                                + A_22 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i-1,j,k,2));
-                
+
                 // deterministic diffusion
                 // n=0; D_00 d/dx(var0) + D_01 d/dx(var1) + D_02 d/dx(var2)
                 // n=1; D_10 d/dx(var0) + D_11 d/dx(var1) + D_12 d/dx(var2)
@@ -277,7 +277,7 @@ amrex::Initialize(argc,argv);
                 fluxx(i,j,k,2) += (  D_20 * (vars_fab(i,j,k,0) - vars_fab(i-1,j,k,0))
                                    + D_21 * (vars_fab(i,j,k,1) - vars_fab(i-1,j,k,1))
                                    + D_22 * (vars_fab(i,j,k,2) - vars_fab(i-1,j,k,2)) ) / dx[0];
-                
+
                 // stochastic
                 // n=0; add nothing
                 // n=1; B_11 noise1
