@@ -348,5 +348,3 @@ amrex::Finalize();
 return 0;
 
 }
-
-
