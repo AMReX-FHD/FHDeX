@@ -3,8 +3,8 @@ amrex.the_arena_is_managed=1 # required by serial r init
 n_particles = 1000
 n_steps = 1000000
 
-n_ensembles = 100
-max_ensembles_per_rank = 25  # for parallelization purposes
+n_ensembles = 1000
+max_ensembles_per_rank = 250  # for parallelization purposes
 
 a_coef = 1.0
 b_coef = 2.0
@@ -32,7 +32,7 @@ seed = 1
 dt = 1.e-3
 
 # how often to write out text diagnostics
-diag_int = 100000
+diag_int = 10000
 
 # how often to write out complete state
-plot_int = 100000
+plot_int = 10000

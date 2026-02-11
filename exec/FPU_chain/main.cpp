@@ -85,14 +85,14 @@ Initialize(argc,argv);
         pp.query("e_eq",e_eq);
 
         pp.query("R_00",R_00);
-        pp.query("R_00",R_01);
-        pp.query("R_00",R_02);
-        pp.query("R_00",R_10);
-        pp.query("R_00",R_11);
-        pp.query("R_00",R_12);
-        pp.query("R_00",R_20);
-        pp.query("R_00",R_21);
-        pp.query("R_00",R_22);
+        pp.query("R_01",R_01);
+        pp.query("R_02",R_02);
+        pp.query("R_10",R_10);
+        pp.query("R_11",R_11);
+        pp.query("R_12",R_12);
+        pp.query("R_20",R_20);
+        pp.query("R_21",R_21);
+        pp.query("R_22",R_22);
 
         pp.query("seed",seed);
 
@@ -155,6 +155,18 @@ Initialize(argc,argv);
     // components are r, p, and e
     MultiFab state(ba,dm,3,ng_vect);
 
+    // storage for phi = R*state
+    MultiFab phi (ba,dm,3,0);
+    MultiFab phi0(ba,dm,3,0);
+
+    // diagonal elements of C_alphaalpha
+    MultiFab C_alphaalpha(ba,dm,3,0);
+
+    Gpu::HostVector<Real> C_alphaalpha_00(n_particles);
+    Gpu::HostVector<Real> C_alphaalpha_11(n_particles);
+    Gpu::HostVector<Real> C_alphaalpha_22(n_particles);
+
+/*
     MultiFab S_alphaalpha(ba,dm,6,0);
     S_alphaalpha.setVal(0.);
     int samples = 0;
@@ -173,6 +185,7 @@ Initialize(argc,argv);
     Geometry geom_zero(domain_zero, real_box, CoordSys::cartesian, is_periodic);
 
     MultiFab g_alpha_zero(ba_zero,dm,3,0);
+*/
 
     // ******************************
     // SAMPLE TO OBTAIN INITIAL STATE
@@ -180,8 +193,13 @@ Initialize(argc,argv);
     init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
     compute_energy(state,a_coef,b_coef,c_coef);
 
+    Copy(phi0,state,0,0,3,0);
+    ComputePhiFromState(phi0,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+    
+/*
     // save g_alpha(0,0)
     g_alpha_zero.ParallelCopy(state, 0, 0, 3);
+*/
 
     // write out diagnostics (meaans)
     if (diag_int > 0) {
@@ -206,6 +224,7 @@ Initialize(argc,argv);
         compute_energy(state,a_coef,b_coef,c_coef);
         amrex::Print() << "Completed step " << step << std::endl;
 
+/*
         // increment S_{alpha alpha'}(j,t) with a snapshot
         compute_S_alphaalpha(state,g_alpha_zero,S_alphaalpha);
         ++samples;
@@ -217,6 +236,7 @@ Initialize(argc,argv);
         S_alphaalpha_11 = sumToLine(S_alphaalpha, 3, 1, domain, 0);
         S_alphaalpha_12 = sumToLine(S_alphaalpha, 4, 1, domain, 0);
         S_alphaalpha_22 = sumToLine(S_alphaalpha, 5, 1, domain, 0);
+*/
 
         if (plot_int > 0 && step%plot_int == 0) {
 
@@ -225,6 +245,28 @@ Initialize(argc,argv);
             amrex::Print() << "Writing plotfile " << pltfile << std::endl;
             WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, step);
 
+            Copy(phi,state,0,0,3,0);
+            ComputePhiFromState(phi,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+
+            ComputeCalphaalpha(C_alphaalpha,phi,phi0);
+            C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
+            C_alphaalpha_11 = sumToLine(C_alphaalpha, 1, 1, domain, 0);
+            C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
+            
+            const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
+            amrex::Print() << "Writing C_alphaalphafile " << C_alphaalphafile << std::endl;
+            std::ofstream C_alphaalphaout;
+            if (ParallelDescriptor::IOProcessor()) {
+                C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
+                for (int i=0; i<n_particles; ++i) {
+
+                    C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
+                                    << C_alphaalpha_00[i] << " "
+                                    << C_alphaalpha_11[i] << " "
+                                    << C_alphaalpha_22[i] << "\n";
+                }
+            }
+/*
             // write out running sums of S_{alpha alpha'}(j,t) over all ensembles
             const std::string& pltfile2 = amrex::Concatenate("S_alphaalpha",step,7);
             amrex::Print() << "Writing plotfile " << pltfile2 << std::endl;
@@ -262,6 +304,7 @@ Initialize(argc,argv);
                                     << S_alphaalpha_22[i] << "\n";
                 }
             }
+*/
         }
 
         // write out diagnostics (meaans)
