@@ -319,11 +319,11 @@ void ComputePhiFromState(MultiFab& phi,
             Real R0 = R_00*phi_fab(i,j,k,0) + R_01*phi_fab(i,j,k,1) + R_02*phi_fab(i,j,k,2);
             Real R1 = R_10*phi_fab(i,j,k,0) + R_11*phi_fab(i,j,k,1) + R_12*phi_fab(i,j,k,2);
             Real R2 = R_20*phi_fab(i,j,k,0) + R_21*phi_fab(i,j,k,1) + R_22*phi_fab(i,j,k,2);
-            
+
             phi_fab(i,j,k,0) = R0;
             phi_fab(i,j,k,1) = R1;
             phi_fab(i,j,k,2) = R2;
-               
+
         });
     }
 
@@ -345,10 +345,10 @@ void ComputeCalphaalpha(MultiFab& C_alphaalpha,
         {
             C_alphaalpha_fab(i,j,k,0) = phi_fab(i,j,k,0) * phi0_fab(0,j,k,0);
             C_alphaalpha_fab(i,j,k,1) = phi_fab(i,j,k,1) * phi0_fab(0,j,k,1);
-            C_alphaalpha_fab(i,j,k,2) = phi_fab(i,j,k,2) * phi0_fab(0,j,k,2);               
+            C_alphaalpha_fab(i,j,k,2) = phi_fab(i,j,k,2) * phi0_fab(0,j,k,2);
         });
     }
 
 }
-    
-                         
+
+

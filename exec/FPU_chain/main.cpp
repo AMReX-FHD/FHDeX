@@ -50,7 +50,7 @@ Initialize(argc,argv);
     Real R_20 = 0.;
     Real R_21 = 0.;
     Real R_22 = 1.;
-    
+
     int seed = 1;
 
     Real dt = 1.e-3;
@@ -195,7 +195,7 @@ Initialize(argc,argv);
 
     Copy(phi0,state,0,0,3,0);
     ComputePhiFromState(phi0,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
-    
+
 /*
     // save g_alpha(0,0)
     g_alpha_zero.ParallelCopy(state, 0, 0, 3);
@@ -252,7 +252,7 @@ Initialize(argc,argv);
             C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
             C_alphaalpha_11 = sumToLine(C_alphaalpha, 1, 1, domain, 0);
             C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
-            
+
             const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
             amrex::Print() << "Writing C_alphaalphafile " << C_alphaalphafile << std::endl;
             std::ofstream C_alphaalphaout;
