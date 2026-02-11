@@ -25,8 +25,10 @@ Initialize(argc,argv);
     // **********************************
 
     int n_particles = 8000;
-    int n_ensembles = 10;
     int n_steps = 1000000;
+
+    int n_ensembles = 10;
+    int max_ensembles_per_rank = 1000;  // for parallelizatoin purposes
 
     Real a_coef = 1.0;
     Real b_coef = 0.0;
@@ -35,11 +37,23 @@ Initialize(argc,argv);
     Real beta = 1.0;
     Real pressure = 1.0;
 
+    Real r_eq = 1.;
+    Real p_eq = 0.;
+    Real e_eq = 1.;
+
+    Real R_00 = 1.;
+    Real R_01 = 0.;
+    Real R_02 = 0.;
+    Real R_10 = 0.;
+    Real R_11 = 1.;
+    Real R_12 = 0.;
+    Real R_20 = 0.;
+    Real R_21 = 0.;
+    Real R_22 = 1.;
+    
     int seed = 1;
 
     Real dt = 1.e-3;
-
-    int max_ensembles_per_rank = 1000;
 
     int diag_int = 1000;
     int plot_int = 10000;
@@ -54,8 +68,10 @@ Initialize(argc,argv);
         ParmParse pp;
 
         pp.query("n_particles",n_particles);
-        pp.query("n_ensembles",n_ensembles);
         pp.query("n_steps",n_steps);
+
+        pp.query("n_ensembles",n_ensembles);
+        pp.query("max_ensembles_per_rank",max_ensembles_per_rank);
 
         pp.query("a_coef",a_coef);
         pp.query("b_coef",b_coef);
@@ -64,11 +80,23 @@ Initialize(argc,argv);
         pp.query("beta",beta);
         pp.query("pressure",pressure);
 
+        pp.query("r_eq",r_eq);
+        pp.query("p_eq",p_eq);
+        pp.query("e_eq",e_eq);
+
+        pp.query("R_00",R_00);
+        pp.query("R_00",R_01);
+        pp.query("R_00",R_02);
+        pp.query("R_00",R_10);
+        pp.query("R_00",R_11);
+        pp.query("R_00",R_12);
+        pp.query("R_00",R_20);
+        pp.query("R_00",R_21);
+        pp.query("R_00",R_22);
+
         pp.query("seed",seed);
 
         pp.query("dt",dt);
-
-        pp.query("max_ensembles_per_rank",max_ensembles_per_rank);
 
         pp.query("diag_int",diag_int);
         pp.query("plot_int",plot_int);
