@@ -261,9 +261,9 @@ Initialize(argc,argv);
                 for (int i=0; i<n_particles; ++i) {
 
                     C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
-                                    << C_alphaalpha_00[i] << " "
-                                    << C_alphaalpha_11[i] << " "
-                                    << C_alphaalpha_22[i] << "\n";
+                                    << C_alphaalpha_00[(i+n_particles/2)%n_particles] << " "
+                                    << C_alphaalpha_11[(i+n_particles/2)%n_particles] << " "
+                                    << C_alphaalpha_22[(i+n_particles/2)%n_particles] << "\n";
                 }
             }
 /*
