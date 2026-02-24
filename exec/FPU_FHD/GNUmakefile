@@ -5,7 +5,7 @@ DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_OMP      = FALSE
 COMP         = gnu
-DIM          = 1
+DIM          = 2
 USE_FFT      = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

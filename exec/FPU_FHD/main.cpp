@@ -23,14 +23,21 @@ int main (int argc, char* argv[])
 
 amrex::Initialize(argc,argv);
 {
+
+#if (AMREX_SPACEDIM != 2)
+    amrex::Abort("Only works with DIM=2 (indepdendent 1D pencils in x)");
+#endif
     // **********************************
     // SIMULATION PARAMETERS
 
     // number of cells in each spatial direction
-    int n_cell;
+    int n_particles;
+    int n_ensembles;
+    int max_ensembles_per_rank; // for parallelization purposes
 
-    // total steps in simulation
+    // total steps in simulation and time step
     int nsteps;
+    Real dt;
 
     // how often to write a plotfile
     int plot_int;
@@ -38,11 +45,15 @@ amrex::Initialize(argc,argv);
     // random number seed (positive integer=fixed seed; 0=clock-based seed)
     int seed;
 
-    Real dt;
+    // size of each finite volume cell - all 3 must defined regardless of dimensionality
+    Real cell_dx;
+    Real cell_dy;
+    Real cell_dz;
 
-    Real Length;  // System length (m)
-    Real Area;    // System cross-sectional area (m^2)
-
+    Real r0;
+    Real p0;
+    Real e0;
+    
     Real A_00;
     Real A_01;
     Real A_02;
@@ -63,7 +74,14 @@ amrex::Initialize(argc,argv);
     Real D_21;
     Real D_22;
 
+    Real B_00;
+    Real B_01;
+    Real B_02;
+    Real B_10;
     Real B_11;
+    Real B_12;
+    Real B_20;
+    Real B_21;
     Real B_22;
 
 
@@ -75,13 +93,25 @@ amrex::Initialize(argc,argv);
         ParmParse pp;
 
         // override defaults set above
-        pp.get("n_cell",n_cell);
+        pp.get("n_particles",n_particles);
+        pp.get("n_ensembles",n_ensembles);
+        pp.get("max_ensembles_per_rank",max_ensembles_per_rank);
+
         pp.get("nsteps",nsteps);
-        pp.get("plot_int",plot_int);
-        pp.get("seed",seed);
         pp.get("dt",dt);
-        pp.get("Length",Length);
-        pp.get("Area",Area);
+
+        pp.get("plot_int",plot_int);
+
+        pp.get("seed",seed);
+
+        pp.get("cell_dx",cell_dx);
+        pp.get("cell_dy",cell_dy);
+        pp.get("cell_dz",cell_dz);
+
+        pp.get("r0",r0);
+        pp.get("p0",p0);
+        pp.get("e0",e0);
+
         pp.get("A_00",A_00);
         pp.get("A_01",A_01);
         pp.get("A_02",A_02);
@@ -91,6 +121,7 @@ amrex::Initialize(argc,argv);
         pp.get("A_20",A_20);
         pp.get("A_21",A_21);
         pp.get("A_22",A_22);
+
         pp.get("D_00",D_00);
         pp.get("D_01",D_01);
         pp.get("D_02",D_02);
@@ -100,7 +131,15 @@ amrex::Initialize(argc,argv);
         pp.get("D_20",D_20);
         pp.get("D_21",D_21);
         pp.get("D_22",D_22);
+
+        pp.get("B_00",B_00);
+        pp.get("B_01",B_01);
+        pp.get("B_02",B_02);
+        pp.get("B_10",B_10);
         pp.get("B_11",B_11);
+        pp.get("B_12",B_12);
+        pp.get("B_20",B_20);
+        pp.get("B_21",B_21);
         pp.get("B_22",B_22);
     }
 
@@ -130,14 +169,24 @@ amrex::Initialize(argc,argv);
     BoxArray ba;
 
     // AMREX_D_DECL means "do the first X of these, where X is the dimensionality of the simulation"
-    IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+#if (AMREX_SPACEDIM == 2)
+    IntVect dom_lo(            0,             0);
+    IntVect dom_hi(n_particles-1, n_ensembles-1);
+    IntVect max_grid_size(1024000,max_ensembles_per_rank);
+#elif (AMREX_SPACEDIM == 3)
+    IntVect dom_lo(            0,             0,             0);
+    IntVect dom_hi(n_particles-1, n_particles-1, n_ensembles-1);
+    IntVect max_grid_size(1024000,1024000,max_ensembles_per_rank);
+#endif
 
     // Make a single box that is the entire domain
     Box domain(dom_lo, dom_hi);
 
     // Initialize the boxarray "ba" from the single box "domain"
     ba.define(domain);
+
+    // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+    ba.maxSize(max_grid_size);
 
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
@@ -148,11 +197,12 @@ amrex::Initialize(argc,argv);
     MultiFab vars(ba, dm, 3, 1);
 
     // face-centered MultiFabs for noise and flux
-    Array<MultiFab, AMREX_SPACEDIM> noise;
-    Array<MultiFab, AMREX_SPACEDIM> flux;
-    for (int dir=0; dir<AMREX_SPACEDIM; dir++)
+    // dimension is one less than compile dimension (independent pencils or planes)
+    Array<MultiFab, AMREX_SPACEDIM-1> noise;
+    Array<MultiFab, AMREX_SPACEDIM-1> flux;
+    for (int dir=0; dir<AMREX_SPACEDIM-1; dir++)
     {
-        // noise[dir] and flux[dir] have one component, zero ghost cells, and is nodal in direction dir
+        // noise[dir] and flux[dir] have three components, zero ghost cells, and is nodal in direction dir
         BoxArray edge_ba = ba;
         edge_ba.surroundingNodes(dir);
         noise[dir].define(edge_ba, dm, 3, 0);
@@ -166,12 +216,22 @@ amrex::Initialize(argc,argv);
     // geom contains information such as the physical domain size,
     //               number of points in the domain, and periodicity
 
-    // This defines the physical box, [0,1] in each direction.
-    RealBox real_box({AMREX_D_DECL(    0.,    0.,    0.)},
-                     {AMREX_D_DECL(Length,Length,Length)});
+#if (AMREX_SPACEDIM == 2)
+    RealBox real_box({                 0.,                  0.},
+                     {cell_dx*n_particles, cell_dy*n_ensembles});
+#elif (AMREX_SPACEDIM == 3)
+    RealBox real_box({0.,                                   0.,                  0.},
+                     {cell_dx*n_particles, cell_dy*n_particles, cell_dz*n_ensembles});
 
-    // periodic in all direction
-    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
+#endif
+
+#if (AMREX_SPACEDIM == 2)
+    // periodic in x direction
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,0,0)};
+#elif (AMREX_SPACEDIM == 3)
+    // periodic in x and y directions
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,0)};
+#endif
 
     // This defines a Geometry object
     Geometry geom;
@@ -181,9 +241,11 @@ amrex::Initialize(argc,argv);
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     // volume of grid cell
-    Real dV = Area*dx[0];
-#if (AMREX_SPACEDIM != 1)
-    Abort("Fix dV for multidimensional case");
+    Real dV;
+#if (AMREX_SPACEDIM == 2)
+    dV = dx[0] * dx[1] * cell_dz;
+#elif (AMREX_SPACEDIM == 3)
+    dV = dx[0] * dx[1] * dx[2];
 #endif
 
     // **********************************
@@ -198,9 +260,9 @@ amrex::Initialize(argc,argv);
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine)
         {
-            vars_fab(i,j,k,0) = 0.;
-            vars_fab(i,j,k,1) = 0.;
-            vars_fab(i,j,k,2) = 0.;
+            vars_fab(i,j,k,0) = r0;
+            vars_fab(i,j,k,1) = p0;
+            vars_fab(i,j,k,2) = e0;
         });
     }
 
@@ -223,7 +285,7 @@ amrex::Initialize(argc,argv);
         vars.FillBoundary(geom.periodicity());
 
         // fill random numbers
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        for (int d=0; d<AMREX_SPACEDIM-1; ++d) {
             // no noise for component 0; fill components 1 and 2 only
             MultiFabFillRandom(noise[d],1,1.,geom);
             MultiFabFillRandom(noise[d],2,1.,geom);
@@ -238,17 +300,12 @@ amrex::Initialize(argc,argv);
             const Box& xbx = mfi.nodaltilebox(0);
             const Array4<Real>& fluxx = flux[0].array(mfi);
             const Array4<Real>& noisex = noise[0].array(mfi);
-#if (AMREX_SPACEDIM >= 2)
+#if (AMREX_SPACEDIM == 3)
             const Box& ybx = mfi.nodaltilebox(1);
             const Array4<Real>& fluxy = flux[1].array(mfi);
             const Array4<Real>& noisey = noise[1].array(mfi);
-#if (AMREX_SPACEDIM == 3)
-            const Box& zbx = mfi.nodaltilebox(2);
-            const Array4<Real>& fluxz = flux[1].array(mfi);
-            const Array4<Real>& noisez = noise[1].array(mfi);
 #endif
-#endif
-            amrex::ParallelFor(xbx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+            amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 // advection
                 // n=0; A_00 (var0) + A_01 (var1) + A_02 (var2)
@@ -279,23 +336,52 @@ amrex::Initialize(argc,argv);
                                    + D_22 * (vars_fab(i,j,k,2) - vars_fab(i-1,j,k,2)) ) / dx[0];
 
                 // stochastic
-                // n=0; add nothing
-                // n=1; B_11 noise1
-                // n=1; B_22 noise2
-                fluxx(i,j,k,1) += B_11 * noisex(i,j,k,1);
-                fluxx(i,j,k,2) += B_22 * noisex(i,j,k,2);
-            });
-#if (AMREX_SPACEDIM >= 2)
-            Abort("Fix y-fluxes for multidimensional case");
-            amrex::ParallelFor(ybx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
-            {
+                // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
+                // n=1; B_10*noise0 + B_11*noise1 + B_12*noise2
+                // n=1; B_20*noise0 + B_21*noise1 + B_22*noise2
+                fluxx(i,j,k,0) += B_00 * noisex(i,j,k,0) + B_01 * noisex(i,j,k,1) + B_02 * noisex(i,j,k,2);
+                fluxx(i,j,k,1) += B_10 * noisex(i,j,k,0) + B_11 * noisex(i,j,k,1) + B_12 * noisex(i,j,k,2);
+                fluxx(i,j,k,2) += B_20 * noisex(i,j,k,0) + B_21 * noisex(i,j,k,1) + B_22 * noisex(i,j,k,2);
             });
 #if (AMREX_SPACEDIM == 3)
-            Abort("Fix z-fluxes for multidimensional case");
-            amrex::ParallelFor(zbx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+            amrex::ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
+                // advection
+                // n=0; A_00 (var0) + A_01 (var1) + A_02 (var2)
+                // n=1; A_10 (var0) + A_11 (var1) + A_12 (var2)
+                // n=2; A_20 (var0) + A_21 (var1) + A_22 (var2)
+                fluxy(i,j,k,0) = A_00 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i,j-1,k,0))
+                               + A_01 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i,j-1,k,1))
+                               + A_02 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i,j-1,k,2));
+                fluxy(i,j,k,1) = A_10 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i,j-1,k,0))
+                               + A_11 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i,j-1,k,1))
+                               + A_12 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i,j-1,k,2));
+                fluxy(i,j,k,2) = A_20 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i,j-1,k,0))
+                               + A_21 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i,j-1,k,1))
+                               + A_22 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i,j-1,k,2));
+
+                // deterministic diffusion
+                // n=0; D_00 d/dy(var0) + D_01 d/dy(var1) + D_02 d/dy(var2)
+                // n=1; D_10 d/dy(var0) + D_11 d/dy(var1) + D_12 d/dy(var2)
+                // n=2; D_20 d/dy(var0) + D_21 d/dy(var1) + D_22 d/dy(var2)
+                fluxy(i,j,k,0) += (  D_00 * (vars_fab(i,j,k,0) - vars_fab(i,j-1,k,0))
+                                   + D_01 * (vars_fab(i,j,k,1) - vars_fab(i,j-1,k,1))
+                                   + D_02 * (vars_fab(i,j,k,2) - vars_fab(i,j-1,k,2)) ) / dx[1];
+                fluxy(i,j,k,1) += (  D_10 * (vars_fab(i,j,k,0) - vars_fab(i,j-1,k,0))
+                                   + D_11 * (vars_fab(i,j,k,1) - vars_fab(i,j-1,k,1))
+                                   + D_12 * (vars_fab(i,j,k,2) - vars_fab(i,j-1,k,2)) ) / dx[1];
+                fluxy(i,j,k,2) += (  D_20 * (vars_fab(i,j,k,0) - vars_fab(i,j-1,k,0))
+                                   + D_21 * (vars_fab(i,j,k,1) - vars_fab(i,j-1,k,1))
+                                   + D_22 * (vars_fab(i,j,k,2) - vars_fab(i,j-1,k,2)) ) / dx[1];
+
+                // stochastic
+                // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
+                // n=1; B_10*noise0 + B_11*noise1 + B_12*noise2
+                // n=1; B_20*noise0 + B_21*noise1 + B_22*noise2
+                fluxy(i,j,k,0) += B_00 * noisey(i,j,k,0) + B_01 * noisey(i,j,k,1) + B_02 * noisey(i,j,k,2);
+                fluxy(i,j,k,1) += B_10 * noisey(i,j,k,0) + B_11 * noisey(i,j,k,1) + B_12 * noisey(i,j,k,2);
+                fluxy(i,j,k,2) += B_20 * noisey(i,j,k,0) + B_21 * noisey(i,j,k,1) + B_22 * noisey(i,j,k,2);
             });
-#endif
 #endif
         }
 
@@ -308,21 +394,15 @@ amrex::Initialize(argc,argv);
             const Array4<Real>& vars_fab = vars.array(mfi);
 
             const Array4<Real>& fluxx = flux[0].array(mfi);
-#if (AMREX_SPACEDIM >= 2)
-            const Array4<Real>& fluxy = flux[1].array(mfi);
 #if (AMREX_SPACEDIM == 3)
-            const Array4<Real>& fluxz = flux[1].array(mfi);
-#endif
+            const Array4<Real>& fluxy = flux[1].array(mfi);
 #endif
             amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
             {
                 vars_fab(i,j,k,n) = vars_fab(i,j,k,n) + dt *
                       (fluxx(i+1,j,k,n) - fluxx(i,j,k,n)) / dx[0]
-#if (AMREX_SPACEDIM >= 2)
+#if (AMREX_SPACEDIM == 3)
                     + (fluxy(i,j+1,k,n) - fluxy(i,j,k,n)) / dx[1]
-#if (AMREX_SPACEDIM >= 3)
-                    + (fluxz(i,j,k+1,n) - fluxz(i,j,k,n)) / dx[2]
-#endif
 #endif
                         ;
 
