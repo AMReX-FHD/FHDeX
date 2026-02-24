@@ -28,7 +28,7 @@ Initialize(argc,argv);
     int n_steps = 1000000;
 
     int n_ensembles = 10;
-    int max_ensembles_per_rank = 1000;  // for parallelizatoin purposes
+    int max_ensembles_per_rank = 1000;  // for parallelization purposes
 
     Real a_coef = 1.0;
     Real b_coef = 0.0;
@@ -134,13 +134,13 @@ Initialize(argc,argv);
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize(max_grid_size);
 
-    // How Boxes are distrubuted among MPI processes
+    // How Boxes are distributed among MPI processes
     DistributionMapping dm(ba);
 
     // physical box size in this FPU_chain implementation is not relevant
     RealBox real_box({ 0., 0.,}, { 1., 1.,});
 
-    // periodic in all direction
+    // periodic in x only
     Array<int,AMREX_SPACEDIM> is_periodic{1,0};
 
     // This defines a Geometry object
@@ -201,7 +201,7 @@ Initialize(argc,argv);
     g_alpha_zero.ParallelCopy(state, 0, 0, 3);
 */
 
-    // write out diagnostics (meaans)
+    // write out diagnostics (means)
     if (diag_int > 0) {
         compute_means(state,n_particles,n_ensembles,0);
     }
@@ -319,7 +319,7 @@ Initialize(argc,argv);
             amrex::Print() << "Wrote out plot data for step " << step << " in " << plot_stop_time << " seconds\n";
         }
 
-        // write out diagnostics (meaans)
+        // write out diagnostics (means)
         if (diag_int > 0 && step%diag_int == 0) {
 
             Real diag_strt_time = ParallelDescriptor::second();
@@ -340,4 +340,3 @@ Initialize(argc,argv);
 Finalize();
 return 0;
 }
-
