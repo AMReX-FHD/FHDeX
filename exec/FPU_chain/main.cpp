@@ -215,6 +215,8 @@ Initialize(argc,argv);
 
     for (int step=1; step<=n_steps; ++step) {
 
+        Real step_strt_time = ParallelDescriptor::second();
+
         time += dt;
 
         // ****************
@@ -222,7 +224,11 @@ Initialize(argc,argv);
         // ****************
         FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
         compute_energy(state,a_coef,b_coef,c_coef);
-        amrex::Print() << "Completed step " << step << std::endl;
+
+        Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
+        ParallelDescriptor::ReduceRealMax(step_stop_time);
+
+        amrex::Print() << "Completed step " << step << " in " << step_stop_time << " seconds " << std::endl;
 
 /*
         // increment S_{alpha alpha'}(j,t) with a snapshot
@@ -239,6 +245,8 @@ Initialize(argc,argv);
 */
 
         if (plot_int > 0 && step%plot_int == 0) {
+
+            Real plot_strt_time = ParallelDescriptor::second();
 
             // write the current state (r,p,e) to a plotfile
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
@@ -305,11 +313,23 @@ Initialize(argc,argv);
                 }
             }
 */
+            Real plot_stop_time = ParallelDescriptor::second() - plot_strt_time;
+            ParallelDescriptor::ReduceRealMax(plot_stop_time);
+
+            amrex::Print() << "Wrote out plot data for step " << step << " in " << plot_stop_time << " seconds\n";
         }
 
         // write out diagnostics (meaans)
         if (diag_int > 0 && step%diag_int == 0) {
+
+            Real diag_strt_time = ParallelDescriptor::second();
+
             compute_means(state,n_particles,n_ensembles,step);
+
+            Real diag_stop_time = ParallelDescriptor::second() - diag_strt_time;
+            ParallelDescriptor::ReduceRealMax(diag_stop_time);
+
+            amrex::Print() << "Wrote out diag data for step " << step << " in " << diag_stop_time << " seconds\n";
         }
 
     }
