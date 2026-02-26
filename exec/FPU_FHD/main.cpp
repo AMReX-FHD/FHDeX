@@ -25,7 +25,7 @@ amrex::Initialize(argc,argv);
 {
 
 #if (AMREX_SPACEDIM != 2)
-    amrex::Abort("Only works with DIM=2 (indepdendent 1D pencils in x)");
+    amrex::Abort("Only works with DIM=2 (independent 1D pencils in x)");
 #endif
     // **********************************
     // SIMULATION PARAMETERS
@@ -45,7 +45,7 @@ amrex::Initialize(argc,argv);
     // random number seed (positive integer=fixed seed; 0=clock-based seed)
     int seed;
 
-    // size of each finite volume cell - all 3 must defined regardless of dimensionality
+    // size of each finite volume cell - all 3 must be defined regardless of dimensionality
     Real cell_dx;
     Real cell_dy;
     Real cell_dz;
@@ -85,7 +85,7 @@ amrex::Initialize(argc,argv);
     Real B_22;
 
 
-    // inputs parameters
+    // input parameters
     {
         // ParmParse is way of reading inputs from the inputs file
         // pp.get means we require the inputs file to have it
@@ -188,11 +188,11 @@ amrex::Initialize(argc,argv);
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize(max_grid_size);
 
-    // How Boxes are distrubuted among MPI processes
+    // How Boxes are distributed among MPI processes
     DistributionMapping dm(ba);
 
     // **********************************
-    // Create MultiFab data structures needed for simulation and diagonstics
+    // Create MultiFab data structures needed for simulation and diagnostics
 
     MultiFab vars(ba, dm, 3, 1);
 
@@ -286,10 +286,10 @@ amrex::Initialize(argc,argv);
 
         // fill random numbers
         for (int d=0; d<AMREX_SPACEDIM-1; ++d) {
-            // no noise for component 0; fill components 1 and 2 only
+            MultiFabFillRandom(noise[d],0,1.,geom);
             MultiFabFillRandom(noise[d],1,1.,geom);
             MultiFabFillRandom(noise[d],2,1.,geom);
-            noise[d].mult( 1./std::sqrt(dt*dV), 0, 1);
+            noise[d].mult( 1./std::sqrt(dt*dV), 0, 3);
         }
 
         // compute fluxes
@@ -338,7 +338,7 @@ amrex::Initialize(argc,argv);
                 // stochastic
                 // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
                 // n=1; B_10*noise0 + B_11*noise1 + B_12*noise2
-                // n=1; B_20*noise0 + B_21*noise1 + B_22*noise2
+                // n=2; B_20*noise0 + B_21*noise1 + B_22*noise2
                 fluxx(i,j,k,0) += B_00 * noisex(i,j,k,0) + B_01 * noisex(i,j,k,1) + B_02 * noisex(i,j,k,2);
                 fluxx(i,j,k,1) += B_10 * noisex(i,j,k,0) + B_11 * noisex(i,j,k,1) + B_12 * noisex(i,j,k,2);
                 fluxx(i,j,k,2) += B_20 * noisex(i,j,k,0) + B_21 * noisex(i,j,k,1) + B_22 * noisex(i,j,k,2);
@@ -377,7 +377,7 @@ amrex::Initialize(argc,argv);
                 // stochastic
                 // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
                 // n=1; B_10*noise0 + B_11*noise1 + B_12*noise2
-                // n=1; B_20*noise0 + B_21*noise1 + B_22*noise2
+                // n=2; B_20*noise0 + B_21*noise1 + B_22*noise2
                 fluxy(i,j,k,0) += B_00 * noisey(i,j,k,0) + B_01 * noisey(i,j,k,1) + B_02 * noisey(i,j,k,2);
                 fluxy(i,j,k,1) += B_10 * noisey(i,j,k,0) + B_11 * noisey(i,j,k,1) + B_12 * noisey(i,j,k,2);
                 fluxy(i,j,k,2) += B_20 * noisey(i,j,k,0) + B_21 * noisey(i,j,k,1) + B_22 * noisey(i,j,k,2);
