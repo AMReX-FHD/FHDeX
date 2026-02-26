@@ -54,7 +54,7 @@ amrex::Initialize(argc,argv);
     Real r0;
     Real p0;
     Real e0;
-    
+
     Real A_00;
     Real A_01;
     Real A_02;
