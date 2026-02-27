@@ -19,5 +19,5 @@ NONEQ_FLAG = 0
 # Start from perturbed initial condition (0: No 1: Yes)
 PERTURB_FLAG = 1
 
-# Thermal fluctuations? (0: No, deterministic 1: Yes, stochastic)
+# Thermal fluctuations? (0: No, deterministic 1: Yes, stochastic; -1: Yes, stochastic but add noise to temperature instead of flux)
 STOCH_FLAG = 1

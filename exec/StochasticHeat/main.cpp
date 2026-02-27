@@ -48,7 +48,7 @@ amrex::Initialize(argc,argv);
     // Start from perturbed initial condition (0: No; 1: Yes)
     int PERTURB_FLAG = 1;
 
-    // Thermal fluctuations? (0: No, deterministic; 1: Yes, stochastic)
+    // Thermal fluctuations? (0: No, deterministic; 1: Yes, stochastic; -1: Yes, stochastic but add noise to temperature instead of flux)
     int STOCH_FLAG = 1;
 
     // inputs parameters
@@ -352,6 +352,15 @@ amrex::Initialize(argc,argv);
                         ;
 
             });
+
+            // add random temperature increment if STOCH_FLAG = -1
+            if (STOCH_FLAG == -1)
+            {
+                amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine)
+                {
+                    Temp_fab(i,j,k) = Temp_fab(i,j,k) + 0.01*Tref_SD*amrex::RandomNormal(0.,1.,engine);
+                });
+            }
         }
 
         // update time
