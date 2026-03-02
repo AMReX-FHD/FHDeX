@@ -286,10 +286,10 @@ amrex::Initialize(argc,argv);
 
         // fill random numbers
         for (int d=0; d<AMREX_SPACEDIM-1; ++d) {
-            // no noise for component 0; fill components 1 and 2 only
+            MultiFabFillRandom(noise[d],0,1.,geom);
             MultiFabFillRandom(noise[d],1,1.,geom);
             MultiFabFillRandom(noise[d],2,1.,geom);
-            noise[d].mult( 1./std::sqrt(dt*dV), 0, 1);
+            noise[d].mult( 1./std::sqrt(dt*dV), 0, 3);
         }
 
         // compute fluxes
