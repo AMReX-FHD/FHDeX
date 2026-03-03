@@ -2,20 +2,23 @@
 n_particles = 1000
 
 # number of ensembles
-n_ensembles = 32
+n_ensembles = 6400
 
-max_ensembles_per_rank = 8
+# for parallelization purposes
+max_ensembles_per_rank = 1600
 
-# total steps in simulation
-nsteps = 100
+# total steps in simulation and time step
+nsteps = 10000
+dt = 0.1
+
+# how many steps to skip before defining t=0
+n_steps_skip = 500
 
 # how often to write a plotfile
-plot_int = 10
+plot_int = 100
 
 # random number seed (1=fixed seed 0=clock-based seed)
 seed = 1
-
-dt = 0.1
 
 # size of each finite volume cell - all 3 must defined regardless of dimensionality
 cell_dx = 1
@@ -55,3 +58,13 @@ B_12 = 0.
 B_20 = 0.
 B_21 = 0.
 B_22 = 1.
+
+R_00 = -0.7935
+R_01 = -1.
+R_02 = 0.66118
+R_10 = 1.89594
+R_11 = 0.
+R_12 = 1.89594
+R_20 = -0.7935
+R_21 = 1.0
+R_22 = 0.66118

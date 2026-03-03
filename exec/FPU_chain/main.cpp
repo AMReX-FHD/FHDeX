@@ -166,27 +166,6 @@ Initialize(argc,argv);
     Gpu::HostVector<Real> C_alphaalpha_11(n_particles);
     Gpu::HostVector<Real> C_alphaalpha_22(n_particles);
 
-/*
-    MultiFab S_alphaalpha(ba,dm,6,0);
-    S_alphaalpha.setVal(0.);
-    int samples = 0;
-    Gpu::HostVector<Real> S_alphaalpha_00(n_particles);
-    Gpu::HostVector<Real> S_alphaalpha_01(n_particles);
-    Gpu::HostVector<Real> S_alphaalpha_02(n_particles);
-    Gpu::HostVector<Real> S_alphaalpha_11(n_particles);
-    Gpu::HostVector<Real> S_alphaalpha_12(n_particles);
-    Gpu::HostVector<Real> S_alphaalpha_22(n_particles);
-
-    // BoxArray to store g_alpha(0,0), will use the same distribution map
-    IntVect dom_hi_zero(0, n_ensembles-1);
-    Box domain_zero(dom_lo, dom_hi_zero);
-    BoxArray ba_zero(domain_zero);
-    ba_zero.maxSize(max_grid_size);
-    Geometry geom_zero(domain_zero, real_box, CoordSys::cartesian, is_periodic);
-
-    MultiFab g_alpha_zero(ba_zero,dm,3,0);
-*/
-
     // ******************************
     // SAMPLE TO OBTAIN INITIAL STATE
     // ******************************
@@ -230,20 +209,6 @@ Initialize(argc,argv);
 
         amrex::Print() << "Completed step " << step << " in " << step_stop_time << " seconds " << std::endl;
 
-/*
-        // increment S_{alpha alpha'}(j,t) with a snapshot
-        compute_S_alphaalpha(state,g_alpha_zero,S_alphaalpha);
-        ++samples;
-
-        // average the running sum of S_{alpha alpha'}(j,t) over all ensembles
-        S_alphaalpha_00 = sumToLine(S_alphaalpha, 0, 1, domain, 0);
-        S_alphaalpha_01 = sumToLine(S_alphaalpha, 1, 1, domain, 0);
-        S_alphaalpha_02 = sumToLine(S_alphaalpha, 2, 1, domain, 0);
-        S_alphaalpha_11 = sumToLine(S_alphaalpha, 3, 1, domain, 0);
-        S_alphaalpha_12 = sumToLine(S_alphaalpha, 4, 1, domain, 0);
-        S_alphaalpha_22 = sumToLine(S_alphaalpha, 5, 1, domain, 0);
-*/
-
         if (plot_int > 0 && step%plot_int == 0) {
 
             Real plot_strt_time = ParallelDescriptor::second();
@@ -274,45 +239,7 @@ Initialize(argc,argv);
                                     << C_alphaalpha_22[(i+n_particles/2)%n_particles] << "\n";
                 }
             }
-/*
-            // write out running sums of S_{alpha alpha'}(j,t) over all ensembles
-            const std::string& pltfile2 = amrex::Concatenate("S_alphaalpha",step,7);
-            amrex::Print() << "Writing plotfile " << pltfile2 << std::endl;
-            WriteSingleLevelPlotfile(pltfile2, S_alphaalpha, {"00","01","02","11","12","22"}, geom, time, step);
 
-            // write out the average S_{alpha alpha'}(j,t) averaged over all ensembles and averaged over the number of snapshots
-            const std::string S_alphaalphafile = amrex::Concatenate("S_alphaalpha_avg",step,7);
-            amrex::Print() << "Writing S_alphaalphafile " << S_alphaalphafile << std::endl;
-            std::ofstream S_alphaalphaout;
-            if (ParallelDescriptor::IOProcessor()) {
-                S_alphaalphaout.open(S_alphaalphafile, std::ios::out);
-                for (int i=0; i<n_particles; ++i) {
-
-                    // divide n_ensembles and samples separately to avoid integer overflow
-                    S_alphaalpha_00[i] /= n_ensembles;
-                    S_alphaalpha_01[i] /= n_ensembles;
-                    S_alphaalpha_02[i] /= n_ensembles;
-                    S_alphaalpha_11[i] /= n_ensembles;
-                    S_alphaalpha_12[i] /= n_ensembles;
-                    S_alphaalpha_22[i] /= n_ensembles;
-
-                    S_alphaalpha_00[i] /= samples;
-                    S_alphaalpha_01[i] /= samples;
-                    S_alphaalpha_02[i] /= samples;
-                    S_alphaalpha_11[i] /= samples;
-                    S_alphaalpha_12[i] /= samples;
-                    S_alphaalpha_22[i] /= samples;
-
-                    S_alphaalphaout << " S_alphaalpha i = " << i << " "
-                                    << S_alphaalpha_00[i] << " "
-                                    << S_alphaalpha_01[i] << " "
-                                    << S_alphaalpha_02[i] << " "
-                                    << S_alphaalpha_11[i] << " "
-                                    << S_alphaalpha_12[i] << " "
-                                    << S_alphaalpha_22[i] << "\n";
-                }
-            }
-*/
             Real plot_stop_time = ParallelDescriptor::second() - plot_strt_time;
             ParallelDescriptor::ReduceRealMax(plot_stop_time);
 

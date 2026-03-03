@@ -7,6 +7,8 @@
 #include "common_functions.H"
 #include "rng_functions.H"
 
+#include "FPU.H"
+
 #include <AMReX.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
@@ -40,6 +42,9 @@ amrex::Initialize(argc,argv);
     int nsteps;
     Real dt;
 
+    // how many steps to skip before defining t=0
+    int n_steps_skip;
+    
     // how often to write a plotfile
     int plot_int;
 
@@ -85,6 +90,15 @@ amrex::Initialize(argc,argv);
     Real B_21;
     Real B_22;
 
+    Real R_00;
+    Real R_01;
+    Real R_02;
+    Real R_10;
+    Real R_11;
+    Real R_12;
+    Real R_20;
+    Real R_21;
+    Real R_22;
 
     // input parameters
     {
@@ -100,6 +114,8 @@ amrex::Initialize(argc,argv);
 
         pp.get("nsteps",nsteps);
         pp.get("dt",dt);
+
+        pp.get("n_steps_skip",n_steps_skip);
 
         pp.get("plot_int",plot_int);
 
@@ -142,6 +158,16 @@ amrex::Initialize(argc,argv);
         pp.get("B_20",B_20);
         pp.get("B_21",B_21);
         pp.get("B_22",B_22);
+
+        pp.get("R_00",R_00);
+        pp.get("R_01",R_01);
+        pp.get("R_02",R_02);
+        pp.get("R_10",R_10);
+        pp.get("R_11",R_11);
+        pp.get("R_12",R_12);
+        pp.get("R_20",R_20);
+        pp.get("R_21",R_21);
+        pp.get("R_22",R_22);
     }
 
     // initialize AMReX random seed (positive integer=fixed seed; 0=clock-based seed)
@@ -195,7 +221,18 @@ amrex::Initialize(argc,argv);
     // **********************************
     // Create MultiFab data structures needed for simulation and diagnostics
 
-    MultiFab vars(ba, dm, 3, 1);
+    MultiFab state(ba, dm, 3, 1);
+
+    // storage for phi = R*state
+    MultiFab phi (ba,dm,3,0);
+    MultiFab phi0(ba,dm,3,0);
+
+    // diagonal elements of C_alphaalpha
+    MultiFab C_alphaalpha(ba,dm,3,0);
+
+    Gpu::HostVector<Real> C_alphaalpha_00(n_particles);
+    Gpu::HostVector<Real> C_alphaalpha_11(n_particles);
+    Gpu::HostVector<Real> C_alphaalpha_22(n_particles);
 
     // face-centered MultiFabs for noise and flux
     // dimension is one less than compile dimension (independent pencils or planes)
@@ -250,22 +287,10 @@ amrex::Initialize(argc,argv);
 #endif
 
     // **********************************
-    // INITIALIZE DATA
-
-    // loop over boxes
-    for (MFIter mfi(vars); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.validbox();
-
-        const Array4<Real>& vars_fab = vars.array(mfi);
-
-        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine)
-        {
-            vars_fab(i,j,k,0) = r0;
-            vars_fab(i,j,k,1) = p0;
-            vars_fab(i,j,k,2) = e0;
-        });
-    }
+    // INITIALIZE DATA TO ZERO MEAN UNIT VARIANCE RNG
+    MultiFabFillRandom(state,0,1.,geom);
+    MultiFabFillRandom(state,1,1.,geom);
+    MultiFabFillRandom(state,2,1.,geom);
 
     // time = starting time in the simulation
     Real time = 0.0;
@@ -275,15 +300,20 @@ amrex::Initialize(argc,argv);
     {
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,7);
-        WriteSingleLevelPlotfile(pltfile, vars, {"r","p","e"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
     }
 
     // **********************************
     // Time step loop
     for (int step = 1; step <= nsteps; ++step)
     {
+        if (step == n_steps_skip) {
+            Copy(phi0,state,0,0,3,0);
+            ComputePhiFromState(phi0,0.,0.,0.,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+        }
+
         // fill periodic ghost cells
-        vars.FillBoundary(geom.periodicity());
+        state.FillBoundary(geom.periodicity());
 
         // fill random numbers
         for (int d=0; d<AMREX_SPACEDIM-1; ++d) {
@@ -294,9 +324,9 @@ amrex::Initialize(argc,argv);
         }
 
         // compute fluxes
-        for ( MFIter mfi(vars); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(state); mfi.isValid(); ++mfi )
         {
-            const Array4<const Real>& vars_fab = vars.array(mfi);
+            const Array4<const Real>& state_fab = state.array(mfi);
 
             const Box& xbx = mfi.nodaltilebox(0);
             const Array4<Real>& fluxx = flux[0].array(mfi);
@@ -312,29 +342,29 @@ amrex::Initialize(argc,argv);
                 // n=0; A_00 (var0) + A_01 (var1) + A_02 (var2)
                 // n=1; A_10 (var0) + A_11 (var1) + A_12 (var2)
                 // n=2; A_20 (var0) + A_21 (var1) + A_22 (var2)
-                fluxx(i,j,k,0) = A_00 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i-1,j,k,0))
-                               + A_01 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i-1,j,k,1))
-                               + A_02 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i-1,j,k,2));
-                fluxx(i,j,k,1) = A_10 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i-1,j,k,0))
-                               + A_11 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i-1,j,k,1))
-                               + A_12 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i-1,j,k,2));
-                fluxx(i,j,k,2) = A_20 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i-1,j,k,0))
-                               + A_21 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i-1,j,k,1))
-                               + A_22 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i-1,j,k,2));
+                fluxx(i,j,k,0) = A_00 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
+                               + A_01 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
+                               + A_02 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
+                fluxx(i,j,k,1) = A_10 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
+                               + A_11 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
+                               + A_12 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
+                fluxx(i,j,k,2) = A_20 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
+                               + A_21 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
+                               + A_22 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
 
                 // deterministic diffusion
                 // n=0; D_00 d/dx(var0) + D_01 d/dx(var1) + D_02 d/dx(var2)
                 // n=1; D_10 d/dx(var0) + D_11 d/dx(var1) + D_12 d/dx(var2)
                 // n=2; D_20 d/dx(var0) + D_21 d/dx(var1) + D_22 d/dx(var2)
-                fluxx(i,j,k,0) += (  D_00 * (vars_fab(i,j,k,0) - vars_fab(i-1,j,k,0))
-                                   + D_01 * (vars_fab(i,j,k,1) - vars_fab(i-1,j,k,1))
-                                   + D_02 * (vars_fab(i,j,k,2) - vars_fab(i-1,j,k,2)) ) / dx[0];
-                fluxx(i,j,k,1) += (  D_10 * (vars_fab(i,j,k,0) - vars_fab(i-1,j,k,0))
-                                   + D_11 * (vars_fab(i,j,k,1) - vars_fab(i-1,j,k,1))
-                                   + D_12 * (vars_fab(i,j,k,2) - vars_fab(i-1,j,k,2)) ) / dx[0];
-                fluxx(i,j,k,2) += (  D_20 * (vars_fab(i,j,k,0) - vars_fab(i-1,j,k,0))
-                                   + D_21 * (vars_fab(i,j,k,1) - vars_fab(i-1,j,k,1))
-                                   + D_22 * (vars_fab(i,j,k,2) - vars_fab(i-1,j,k,2)) ) / dx[0];
+                fluxx(i,j,k,0) += (  D_00 * (state_fab(i,j,k,0) - state_fab(i-1,j,k,0))
+                                   + D_01 * (state_fab(i,j,k,1) - state_fab(i-1,j,k,1))
+                                   + D_02 * (state_fab(i,j,k,2) - state_fab(i-1,j,k,2)) ) / dx[0];
+                fluxx(i,j,k,1) += (  D_10 * (state_fab(i,j,k,0) - state_fab(i-1,j,k,0))
+                                   + D_11 * (state_fab(i,j,k,1) - state_fab(i-1,j,k,1))
+                                   + D_12 * (state_fab(i,j,k,2) - state_fab(i-1,j,k,2)) ) / dx[0];
+                fluxx(i,j,k,2) += (  D_20 * (state_fab(i,j,k,0) - state_fab(i-1,j,k,0))
+                                   + D_21 * (state_fab(i,j,k,1) - state_fab(i-1,j,k,1))
+                                   + D_22 * (state_fab(i,j,k,2) - state_fab(i-1,j,k,2)) ) / dx[0];
 
                 // stochastic
                 // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
@@ -351,29 +381,29 @@ amrex::Initialize(argc,argv);
                 // n=0; A_00 (var0) + A_01 (var1) + A_02 (var2)
                 // n=1; A_10 (var0) + A_11 (var1) + A_12 (var2)
                 // n=2; A_20 (var0) + A_21 (var1) + A_22 (var2)
-                fluxy(i,j,k,0) = A_00 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i,j-1,k,0))
-                               + A_01 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i,j-1,k,1))
-                               + A_02 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i,j-1,k,2));
-                fluxy(i,j,k,1) = A_10 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i,j-1,k,0))
-                               + A_11 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i,j-1,k,1))
-                               + A_12 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i,j-1,k,2));
-                fluxy(i,j,k,2) = A_20 * 0.5 * (vars_fab(i,j,k,0) + vars_fab(i,j-1,k,0))
-                               + A_21 * 0.5 * (vars_fab(i,j,k,1) + vars_fab(i,j-1,k,1))
-                               + A_22 * 0.5 * (vars_fab(i,j,k,2) + vars_fab(i,j-1,k,2));
+                fluxy(i,j,k,0) = A_00 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
+                               + A_01 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
+                               + A_02 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
+                fluxy(i,j,k,1) = A_10 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
+                               + A_11 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
+                               + A_12 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
+                fluxy(i,j,k,2) = A_20 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
+                               + A_21 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
+                               + A_22 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
 
                 // deterministic diffusion
                 // n=0; D_00 d/dy(var0) + D_01 d/dy(var1) + D_02 d/dy(var2)
                 // n=1; D_10 d/dy(var0) + D_11 d/dy(var1) + D_12 d/dy(var2)
                 // n=2; D_20 d/dy(var0) + D_21 d/dy(var1) + D_22 d/dy(var2)
-                fluxy(i,j,k,0) += (  D_00 * (vars_fab(i,j,k,0) - vars_fab(i,j-1,k,0))
-                                   + D_01 * (vars_fab(i,j,k,1) - vars_fab(i,j-1,k,1))
-                                   + D_02 * (vars_fab(i,j,k,2) - vars_fab(i,j-1,k,2)) ) / dx[1];
-                fluxy(i,j,k,1) += (  D_10 * (vars_fab(i,j,k,0) - vars_fab(i,j-1,k,0))
-                                   + D_11 * (vars_fab(i,j,k,1) - vars_fab(i,j-1,k,1))
-                                   + D_12 * (vars_fab(i,j,k,2) - vars_fab(i,j-1,k,2)) ) / dx[1];
-                fluxy(i,j,k,2) += (  D_20 * (vars_fab(i,j,k,0) - vars_fab(i,j-1,k,0))
-                                   + D_21 * (vars_fab(i,j,k,1) - vars_fab(i,j-1,k,1))
-                                   + D_22 * (vars_fab(i,j,k,2) - vars_fab(i,j-1,k,2)) ) / dx[1];
+                fluxy(i,j,k,0) += (  D_00 * (state_fab(i,j,k,0) - state_fab(i,j-1,k,0))
+                                   + D_01 * (state_fab(i,j,k,1) - state_fab(i,j-1,k,1))
+                                   + D_02 * (state_fab(i,j,k,2) - state_fab(i,j-1,k,2)) ) / dx[1];
+                fluxy(i,j,k,1) += (  D_10 * (state_fab(i,j,k,0) - state_fab(i,j-1,k,0))
+                                   + D_11 * (state_fab(i,j,k,1) - state_fab(i,j-1,k,1))
+                                   + D_12 * (state_fab(i,j,k,2) - state_fab(i,j-1,k,2)) ) / dx[1];
+                fluxy(i,j,k,2) += (  D_20 * (state_fab(i,j,k,0) - state_fab(i,j-1,k,0))
+                                   + D_21 * (state_fab(i,j,k,1) - state_fab(i,j-1,k,1))
+                                   + D_22 * (state_fab(i,j,k,2) - state_fab(i,j-1,k,2)) ) / dx[1];
 
                 // stochastic
                 // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
@@ -387,12 +417,12 @@ amrex::Initialize(argc,argv);
         }
 
         // advance the data by dt
-        // new_vars = old_vars + dt * div(flux)
-        for ( MFIter mfi(vars); mfi.isValid(); ++mfi )
+        // new_state = old_state + dt * div(flux)
+        for ( MFIter mfi(state); mfi.isValid(); ++mfi )
         {
             const Box& bx = mfi.validbox();
 
-            const Array4<Real>& vars_fab = vars.array(mfi);
+            const Array4<Real>& state_fab = state.array(mfi);
 
             const Array4<Real>& fluxx = flux[0].array(mfi);
 #if (AMREX_SPACEDIM == 3)
@@ -400,7 +430,7 @@ amrex::Initialize(argc,argv);
 #endif
             amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
             {
-                vars_fab(i,j,k,n) = vars_fab(i,j,k,n) + dt *
+                state_fab(i,j,k,n) = state_fab(i,j,k,n) + dt *
                       (fluxx(i+1,j,k,n) - fluxx(i,j,k,n)) / dx[0]
 #if (AMREX_SPACEDIM == 3)
                     + (fluxy(i,j+1,k,n) - fluxy(i,j,k,n)) / dx[1]
@@ -420,7 +450,31 @@ amrex::Initialize(argc,argv);
         if (plot_int > 0 && step%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
-            WriteSingleLevelPlotfile(pltfile, vars, {"r","p","e"}, geom, time, 0);
+            WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
+
+            if (step > n_steps_skip) {
+                Copy(phi,state,0,0,3,0);
+                ComputePhiFromState(phi,0.,0.,0.,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+
+                ComputeCalphaalpha(C_alphaalpha,phi,phi0);
+                C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
+                C_alphaalpha_11 = sumToLine(C_alphaalpha, 1, 1, domain, 0);
+                C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
+
+                const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
+                amrex::Print() << "Writing C_alphaalphafile " << C_alphaalphafile << std::endl;
+                std::ofstream C_alphaalphaout;
+                if (ParallelDescriptor::IOProcessor()) {
+                    C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
+                    for (int i=0; i<n_particles; ++i) {
+                        
+                        C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
+                                        << C_alphaalpha_00[(i+n_particles/2)%n_particles] << " "
+                                        << C_alphaalpha_11[(i+n_particles/2)%n_particles] << " "
+                                        << C_alphaalpha_22[(i+n_particles/2)%n_particles] << "\n";
+                    }
+                }
+            }
         }
     }
 

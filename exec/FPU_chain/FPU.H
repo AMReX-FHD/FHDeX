@@ -45,10 +45,6 @@ void compute_energy(MultiFab& state,
                     const Real& b,
                     const Real& c);
 
-void compute_S_alphaalpha(const MultiFab& state,
-                          const MultiFab& g_alpha_zero,
-                          MultiFab& Salphaalpha);
-
 void ComputePhiFromState(MultiFab& phi,
                          const Real& r_eq,
                          const Real& p_eq,
