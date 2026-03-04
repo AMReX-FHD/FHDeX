@@ -2,22 +2,20 @@
 n_particles = 1000
 
 # number of ensembles
-n_ensembles = 6400
+n_ensembles = 160000
 
 # for parallelization purposes
-max_ensembles_per_rank = 1600
+max_ensembles_per_rank = 80000
 
 # total steps in simulation and time step
 nsteps = 10000
-dt = 0.1
+dt = 0.01
 
 # how many steps to skip before defining t=0
 n_steps_skip = 500
 
 # how often to write a plotfile
-plot_int = 100
-
-# how often to write correlation diagnostics
+plot_int = -1
 diag_int = 100
 
 # random number seed (1=fixed seed 0=clock-based seed)
