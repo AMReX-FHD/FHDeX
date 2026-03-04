@@ -48,6 +48,9 @@ amrex::Initialize(argc,argv);
     // how often to write a plotfile
     int plot_int;
 
+    // how often to write out correlation diagnostics
+    int diag_int;
+
     // random number seed (positive integer=fixed seed; 0=clock-based seed)
     int seed;
 
@@ -452,30 +455,32 @@ amrex::Initialize(argc,argv);
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
             WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
 
-            if (step > n_steps_skip) {
-                Copy(phi,state,0,0,3,0);
-                ComputePhiFromState(phi,0.,0.,0.,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+        }
 
-                ComputeCalphaalpha(C_alphaalpha,phi,phi0);
-                C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
-                C_alphaalpha_11 = sumToLine(C_alphaalpha, 1, 1, domain, 0);
-                C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
+        if (diag_int > 0 && step%diag_int == 0 && step > n_steps_skip) {
+            Copy(phi,state,0,0,3,0);
+            ComputePhiFromState(phi,0.,0.,0.,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
 
-                const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
-                amrex::Print() << "Writing C_alphaalphafile " << C_alphaalphafile << std::endl;
-                std::ofstream C_alphaalphaout;
-                if (ParallelDescriptor::IOProcessor()) {
-                    C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
-                    for (int i=0; i<n_particles; ++i) {
+            ComputeCalphaalpha(C_alphaalpha,phi,phi0);
+            C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
+            C_alphaalpha_11 = sumToLine(C_alphaalpha, 1, 1, domain, 0);
+            C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
+
+            const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
+            amrex::Print() << "Writing C_alphaalphafile " << C_alphaalphafile << std::endl;
+            std::ofstream C_alphaalphaout;
+            if (ParallelDescriptor::IOProcessor()) {
+                C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
+                for (int i=0; i<n_particles; ++i) {
                         
-                        C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
-                                        << C_alphaalpha_00[(i+n_particles/2)%n_particles] << " "
-                                        << C_alphaalpha_11[(i+n_particles/2)%n_particles] << " "
-                                        << C_alphaalpha_22[(i+n_particles/2)%n_particles] << "\n";
-                    }
+                    C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
+                                    << C_alphaalpha_00[(i+n_particles/2)%n_particles] << " "
+                                    << C_alphaalpha_11[(i+n_particles/2)%n_particles] << " "
+                                    << C_alphaalpha_22[(i+n_particles/2)%n_particles] << "\n";
                 }
             }
         }
+
     }
 
 }

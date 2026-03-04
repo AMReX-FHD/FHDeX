@@ -17,6 +17,9 @@ n_steps_skip = 500
 # how often to write a plotfile
 plot_int = 100
 
+# how often to write correlation diagnostics
+diag_int = 100
+
 # random number seed (1=fixed seed 0=clock-based seed)
 seed = 1
 
