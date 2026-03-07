@@ -51,6 +51,9 @@ amrex::Initialize(argc,argv);
     // Thermal fluctuations? (0: No, deterministic; 1: Yes, stochastic; -1: Yes, stochastic but add noise to temperature instead of flux)
     int STOCH_FLAG = 1;
 
+    // Structure Factor Mode (1: <T*T>; 2: <dT*dT>)
+    int SF_MODE = 1;
+
     // inputs parameters
     {
         // ParmParse is way of reading inputs from the inputs file
@@ -67,6 +70,8 @@ amrex::Initialize(argc,argv);
         pp.query("NONEQ_FLAG",NONEQ_FLAG);
         pp.query("PERTURB_FLAG",PERTURB_FLAG);
         pp.query("STOCH_FLAG",STOCH_FLAG);
+        pp.query("SF_MODE",SF_MODE);
+        pp.query("CFL",cfl);
     }
 
     if (BC_FLAG != 0) {
@@ -198,9 +203,14 @@ amrex::Initialize(argc,argv);
     // Coefficient in stochastic heat equation
     Real alpha = (STOCH_FLAG==1) ? std::sqrt(2.*kB*kappa / (rho*c_V)) : 0.;
 
-    Real stabilityFactor = 0.1;      // Numerical stability if stabilityFactor < 1.
+    Real cfl = 0.1;      // Numerical stability if cfl < 1.
+    {
+        ParmParse pp;
 
-    Real dt = stabilityFactor * dx[0] * dx[0] / (2.*kappa);
+        pp.query("CFL",cfl);
+    }
+
+    Real dt = cfl * dx[0] * dx[0] / (2.*kappa);
 
     Real Tref = 300.;                // Reference temperature (K)
     Real Tdiff = 400.;               // Temperature difference across the system for NONEQ_FLAG=1
@@ -358,7 +368,7 @@ amrex::Initialize(argc,argv);
             {
                 amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine)
                 {
-                    Temp_fab(i,j,k) = Temp_fab(i,j,k) + 0.01*Tref_SD*amrex::RandomNormal(0.,1.,engine);
+                    Temp_fab(i,j,k) = Temp_fab(i,j,k) + Tref_SD*std::sqrt(dt)*amrex::RandomNormal(0.0,1.0,engine);
                 });
             }
         }
@@ -431,7 +441,13 @@ amrex::Initialize(argc,argv);
 
         // diagnostics - structure factor
         // take FFT and then add to running sum of structure factor snapshot
-        my_fft.forward(Temp,Temp_fft);
+        if (SF_MODE == 1) {
+            my_fft.forward(Temp,Temp_fft);
+        }
+        else if (SF_MODE == 2) {
+            Temp.minus(aveT,0,1,0);
+            my_fft.forward(Temp,Temp_fft);
+        }
 
         for (MFIter mfi(Temp_fft); mfi.isValid(); ++mfi) {
 
@@ -445,6 +461,11 @@ amrex::Initialize(argc,argv);
                 if (i != 0) {
                     Sk_sum_ptr(i,j,k,0) += Temp_fft_ptr(i,j,k).real()*Temp_fft_ptr(i,j,k).real() + Temp_fft_ptr(i,j,k).imag()*Temp_fft_ptr(i,j,k).imag();
                 }
+                //else {
+                //    if (SF_MODE == 2) {
+                //        Sk_sum_ptr(i,j,k,0) += Temp_fft_ptr(i,j,k).real()*Temp_fft_ptr(i,j,k).real() + Temp_fft_ptr(i,j,k).imag()*Temp_fft_ptr(i,j,k).imag();
+                //    }
+                //}
             });
         }
 
