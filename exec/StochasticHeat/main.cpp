@@ -48,7 +48,11 @@ amrex::Initialize(argc,argv);
     // Start from perturbed initial condition (0: No; 1: Yes)
     int PERTURB_FLAG = 1;
 
-    // Thermal fluctuations? (0: No, deterministic; 1: Yes, stochastic; -1: Yes, stochastic but add noise to temperature instead of flux)
+    // Thermal fluctuations? 
+    // 0: No, deterministic 
+    // 1: Yes, stochastic; 
+    // -1: Yes, stochastic but add noise to temperature instead of flux with eq. variance around T_ref
+    // -2: Yes, stochastic but add noise to temperature instead of flux with eq. variance around T(i,j,k)
     int STOCH_FLAG = 1;
 
     // Structure Factor Mode (1: <T*T>; 2: <dT*dT>)
@@ -363,12 +367,21 @@ amrex::Initialize(argc,argv);
 
             });
 
-            // add random temperature increment if STOCH_FLAG = -1
+            // add random temperature increment if STOCH_FLAG = -1 with eq. variance around T_ref
             if (STOCH_FLAG == -1)
             {
                 amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine)
                 {
                     Temp_fab(i,j,k) = Temp_fab(i,j,k) + Tref_SD*std::sqrt(dt)*amrex::RandomNormal(0.0,1.0,engine);
+                });
+            }
+            // add random temperature increment if STOCH_FLAG = -1 with eq. variance around T(i,j,k)
+            else if (STOCH_FLAG == -2)
+            {
+                amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine)
+                {
+                    Real Tref_SD_ijk = std::sqrt(kB*Temp_fab(i,j,k)*Temp_fab(i,j,k) / (rho*c_V*dV));
+                    Temp_fab(i,j,k) = Temp_fab(i,j,k) + Tref_SD_ijk*std::sqrt(dt)*amrex::RandomNormal(0.0,1.0,engine);
                 });
             }
         }

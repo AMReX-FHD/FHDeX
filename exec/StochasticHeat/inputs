@@ -19,7 +19,11 @@ NONEQ_FLAG = 0
 # Start from perturbed initial condition (0: No 1: Yes)
 PERTURB_FLAG = 1
 
-# Thermal fluctuations? (0: No, deterministic 1: Yes, stochastic; -1: Yes, stochastic but add noise to temperature instead of flux)
+# Thermal fluctuations? 
+# 0: No, deterministic 
+# 1: Yes, stochastic; 
+# -1: Yes, stochastic but add noise to temperature instead of flux with eq. variance around T_ref
+# -2: Yes, stochastic but add noise to temperature instead of flux with eq. variance around T(i,j,k)
 STOCH_FLAG = 1
 
 # Structure Factor Mode (1: <T*T>; 2: <dT*dT>)
