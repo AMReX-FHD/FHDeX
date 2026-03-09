@@ -1,5 +1,5 @@
-# number of particles on each side
-n_particles = 1000
+# number of cells in the x direction
+n_cells = 1000
 
 # number of ensembles
 n_ensembles = 1280000

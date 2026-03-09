@@ -34,7 +34,7 @@ amrex::Initialize(argc,argv);
     // SIMULATION PARAMETERS
 
     // number of cells in each spatial direction
-    int n_particles;
+    int n_cells;
     int n_ensembles;
     int max_ensembles_per_rank; // for parallelization purposes
 
@@ -111,7 +111,7 @@ amrex::Initialize(argc,argv);
         ParmParse pp;
 
         // override defaults set above
-        pp.get("n_particles",n_particles);
+        pp.get("n_cells",n_cells);
         pp.get("n_ensembles",n_ensembles);
         pp.get("max_ensembles_per_rank",max_ensembles_per_rank);
 
@@ -202,11 +202,11 @@ amrex::Initialize(argc,argv);
     // AMREX_D_DECL means "do the first X of these, where X is the dimensionality of the simulation"
 #if (AMREX_SPACEDIM == 2)
     IntVect dom_lo(            0,             0);
-    IntVect dom_hi(n_particles-1, n_ensembles-1);
+    IntVect dom_hi(n_cells-1, n_ensembles-1);
     IntVect max_grid_size(1024000,max_ensembles_per_rank);
 #elif (AMREX_SPACEDIM == 3)
     IntVect dom_lo(            0,             0,             0);
-    IntVect dom_hi(n_particles-1, n_particles-1, n_ensembles-1);
+    IntVect dom_hi(n_cells-1, n_cells-1, n_ensembles-1);
     IntVect max_grid_size(1024000,1024000,max_ensembles_per_rank);
 #endif
 
@@ -234,9 +234,9 @@ amrex::Initialize(argc,argv);
     // diagonal elements of C_alphaalpha
     MultiFab C_alphaalpha(ba,dm,3,0);
 
-    Gpu::HostVector<Real> C_alphaalpha_00(n_particles);
-    Gpu::HostVector<Real> C_alphaalpha_11(n_particles);
-    Gpu::HostVector<Real> C_alphaalpha_22(n_particles);
+    Gpu::HostVector<Real> C_alphaalpha_00(n_cells);
+    Gpu::HostVector<Real> C_alphaalpha_11(n_cells);
+    Gpu::HostVector<Real> C_alphaalpha_22(n_cells);
 
     // face-centered MultiFabs for noise and flux
     // dimension is one less than compile dimension (independent pencils or planes)
@@ -260,10 +260,10 @@ amrex::Initialize(argc,argv);
 
 #if (AMREX_SPACEDIM == 2)
     RealBox real_box({                 0.,                  0.},
-                     {cell_dx*n_particles, cell_dy*n_ensembles});
+                     {cell_dx*n_cells, cell_dy*n_ensembles});
 #elif (AMREX_SPACEDIM == 3)
     RealBox real_box({0.,                                   0.,                  0.},
-                     {cell_dx*n_particles, cell_dy*n_particles, cell_dz*n_ensembles});
+                     {cell_dx*n_cells, cell_dy*n_cells, cell_dz*n_ensembles});
 
 #endif
 
@@ -302,15 +302,24 @@ amrex::Initialize(argc,argv);
     // Write a plotfile of the initial data if plot_int > 0
     if (plot_int > 0)
     {
+        Real plot_strt_time = ParallelDescriptor::second();
+
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,7);
         WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
+
+        Real plot_stop_time = ParallelDescriptor::second() - plot_strt_time;
+        ParallelDescriptor::ReduceRealMax(plot_stop_time);
+        amrex::Print() << "Writing plotfile 0 in " << plot_stop_time << " seconds\n";
+        
     }
 
     // **********************************
     // Time step loop
     for (int step = 1; step <= nsteps; ++step)
     {
+        Real step_strt_time = ParallelDescriptor::second();
+
         if (step == n_steps_skip) {
             Copy(phi0,state,0,0,3,0);
             ComputePhiFromState(phi0,0.,0.,0.,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
@@ -447,18 +456,30 @@ amrex::Initialize(argc,argv);
         // update time
         time = time + dt;
 
+        Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
+        ParallelDescriptor::ReduceRealMax(step_stop_time);
+
         // Tell the I/O Processor to write out which step we're doing
-        amrex::Print() << "Advanced step " << step << "\n";
+        amrex::Print() << "Advanced step " << step << " in " << step_stop_time << " seconds\n";
 
         // Write a plotfile of the current data (plot_int was defined in the inputs file)
         if (plot_int > 0 && step%plot_int == 0)
         {
+            Real plot_strt_time = ParallelDescriptor::second();
+
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
             WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
+
+            Real plot_stop_time = ParallelDescriptor::second() - plot_strt_time;
+            ParallelDescriptor::ReduceRealMax(plot_stop_time);
+            amrex::Print() << "Writing plotfile " << step << " in " << plot_stop_time << " seconds\n";
 
         }
 
         if (diag_int > 0 && step%diag_int == 0 && step > n_steps_skip) {
+
+            Real diag_strt_time = ParallelDescriptor::second();
+
             Copy(phi,state,0,0,3,0);
             ComputePhiFromState(phi,0.,0.,0.,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
 
@@ -468,18 +489,20 @@ amrex::Initialize(argc,argv);
             C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
 
             const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
-            amrex::Print() << "Writing C_alphaalphafile " << C_alphaalphafile << std::endl;
             std::ofstream C_alphaalphaout;
             if (ParallelDescriptor::IOProcessor()) {
                 C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
-                for (int i=0; i<n_particles; ++i) {
+                for (int i=0; i<n_cells; ++i) {
                         
                     C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
-                                    << C_alphaalpha_00[(i+n_particles/2)%n_particles] << " "
-                                    << C_alphaalpha_11[(i+n_particles/2)%n_particles] << " "
-                                    << C_alphaalpha_22[(i+n_particles/2)%n_particles] << "\n";
+                                    << C_alphaalpha_00[(i+n_cells/2)%n_cells] << " "
+                                    << C_alphaalpha_11[(i+n_cells/2)%n_cells] << " "
+                                    << C_alphaalpha_22[(i+n_cells/2)%n_cells] << "\n";
                 }
             }
+            Real diag_stop_time = ParallelDescriptor::second() - diag_strt_time;
+            ParallelDescriptor::ReduceRealMax(diag_stop_time);
+            amrex::Print() << "Writing " << C_alphaalphafile << " in " << diag_stop_time << " seconds\n";
         }
 
     }

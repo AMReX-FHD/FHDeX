@@ -1,9 +1,9 @@
-# number of particles on each side
-n_particles = 1000
+# number of cells in the x direction
+n_cells = 1000
 
 # number of ensembles
 n_ensembles = 1280000
-
+n_ensembles = 100
 # for parallelization purposes
 max_ensembles_per_rank = 80000
 
