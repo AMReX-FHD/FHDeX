@@ -221,11 +221,16 @@ void main_driver(const char* argv)
         eta_cc.define(ba, dmap, 1, 1);
         // temperature cell-centered
         temp_cc.define(ba, dmap, 1, 1);
+        // temperature face-centered
+        std::array< MultiFab, AMREX_SPACEDIM >  temp_face;
 #if (AMREX_SPACEDIM == 2)
         // eta nodal
         eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
         // temperature nodal
         temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+        // temperature face
+        temp_face[0].define(convert(ba, nodal_flag_x), dmap, 1, 0);
+        temp_face[1].define(convert(ba, nodal_flag_y), dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
         // eta nodal
         eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
@@ -235,6 +240,10 @@ void main_driver(const char* argv)
         temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
         temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
         temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+        // temperature face
+        temp_face[0].define(convert(ba, nodal_flag_x), dmap, 1, 0);
+        temp_face[1].define(convert(ba, nodal_flag_y), dmap, 1, 0);
+        temp_face[2].define(convert(ba, nodal_flag_z), dmap, 1, 0);
 #endif
 
         // Initalize eta & temperature multifabs
@@ -247,6 +256,9 @@ void main_driver(const char* argv)
         eta_ed[0].setVal(eta_const);
         // temperature nodal
         temp_ed[0].setVal(T_init[0]);
+        // temperature face
+        temp_face[0].setVal(T_init[0]);
+        temp_face[1].setVal(T_init[0]);
 #elif (AMREX_SPACEDIM == 3)
         // eta nodal
         eta_ed[0].setVal(eta_const);
@@ -256,6 +268,10 @@ void main_driver(const char* argv)
         temp_ed[0].setVal(T_init[0]);
         temp_ed[1].setVal(T_init[0]);
         temp_ed[2].setVal(T_init[0]);
+        // temperature face
+        temp_face[0].setVal(T_init[0]);
+        temp_face[1].setVal(T_init[0]);
+        temp_face[2].setVal(T_init[0]);
 #endif
         ///////////////////////////////////////////
 
@@ -270,6 +286,18 @@ void main_driver(const char* argv)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 mfluxdiv_stoch[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
                 mfluxdiv_stoch[d].setVal(0.0);
+        }
+        
+        ///////////////////////////////////////////
+        // random momentum (for the case when added directly):
+        ///////////////////////////////////////////
+        // staggered in x,y,z
+
+        // Define rand_mom_add multifabs
+        std::array< MultiFab, AMREX_SPACEDIM >  rand_mom_add;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                rand_mom_add[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+                rand_mom_add[d].setVal(0.0);
         }
 
         Vector< amrex::Real > weights;
@@ -421,7 +449,7 @@ void main_driver(const char* argv)
                 if (plot_int > 0) {
                         WritePlotFile(0,time,geom,umac,pres);
                         if (n_steps_skip == 0 && struct_fact_int > 0) {
-                                structFact.WritePlotFile(0,0.,"plt_SF");
+                                structFact.WritePlotFile(0,0.,"plt_SF",0);
                                 if(project_dir >= 0) {
                                         structFactFlattened.WritePlotFile(0,time,"plt_SF_Flattened");
                                 }
@@ -474,7 +502,7 @@ void main_driver(const char* argv)
 
                 Real step_strt_time = ParallelDescriptor::second();
 
-                if(variance_coef_mom != 0.0) {
+                if(variance_coef_mom > 0.0) {
 
                         // Fill stochastic terms
                         sMflux.fillMomStochastic();
@@ -483,9 +511,14 @@ void main_driver(const char* argv)
                         sMflux.StochMomFluxDiv(mfluxdiv_stoch,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
                 }
 
+                else if (variance_coef_mom < 0.0) { // directly add noise to vel field
+                        // Create random momentum field
+                        RandomMomField(rand_mom_add,temp_face,geom,dt);
+                }
+
                 // Advance umac
                 advance(umac,umacTemp,pres,mfluxdiv_stoch,
-                        alpha_fc,beta,gamma,beta_ed,geom,dt,turbforce);
+                        alpha_fc,beta,gamma,beta_ed,geom,dt,turbforce,rand_mom_add);
 
                 //////////////////////////////////////////////////
 
@@ -523,10 +556,11 @@ void main_driver(const char* argv)
 
                         // write out structure factor to plotfile
                         if (step > n_steps_skip && struct_fact_int > 0) {
-                                structFact.WritePlotFile(step,time,"plt_SF");
+                                structFact.WritePlotFile(step,time,"plt_SF",0);
                                 if(project_dir >= 0) {
                                         structFactFlattened.WritePlotFile(step,time,"plt_SF_Flattened");
                                 }
+                                structFact.IntegratekShells(step,"Ek_integrate");
                         }
 
                         // snapshot of instantaneous energy spectra

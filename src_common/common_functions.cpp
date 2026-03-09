@@ -63,6 +63,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
 
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom;
+AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom_scaling;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mass;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_ener;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
@@ -425,6 +426,7 @@ void InitializeCommonNamespace() {
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     variance_coef_mom = 1.;
+    variance_coef_mom_scaling = 1.;
     variance_coef_mass = 1.;
     variance_coef_ener = 1.;
     k_B = 1.38064852e-16;
@@ -763,6 +765,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("variance_coef_mom",variance_coef_mom);
+    pp.query("variance_coef_mom_scaling",variance_coef_mom_scaling);
     pp.query("variance_coef_mass",variance_coef_mass);
     pp.query("variance_coef_ener",variance_coef_ener);
     pp.query("k_B",k_B);

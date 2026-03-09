@@ -16,7 +16,8 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
         amrex::MultiFab& beta, amrex::MultiFab& gamma,
         std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
         const amrex::Geometry& geom, const amrex::Real& dt,
-        TurbForcing& turbforce);
+        TurbForcing& turbforce,
+        const std::array< amrex::MultiFab, AMREX_SPACEDIM >& rand_mom_add);
 
 ///////////////////////////
 
@@ -63,5 +64,15 @@ void ReadFile(const std::string& filename, Vector<char>& charBuf,
 
 void ExternalForce(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
         MultiFab& gmres_rhs_p);
+
+///////////////////////////
+
+///////////////////////////
+// in RandomMomField.cpp
+
+void RandomMomField(std::array< MultiFab, AMREX_SPACEDIM >& rand_mom_add,
+                    const std::array< MultiFab, AMREX_SPACEDIM >& temp_face,
+                    const amrex::Geometry& geom,
+                    const amrex::Real& dt);
 
 #endif

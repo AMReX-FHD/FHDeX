@@ -20,7 +20,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              MultiFab& beta, MultiFab& gamma,
              std::array< MultiFab, NUM_EDGE >& beta_ed,
              const Geometry& geom, const Real& dt,
-             TurbForcing& turbforce)
+             TurbForcing& turbforce,
+             const std::array< MultiFab, AMREX_SPACEDIM >& rand_mom_add)
 {
 
   BL_PROFILE_VAR("advance()",advance);
@@ -116,6 +117,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           gmres_rhs_u[d].setVal(0.);
       }
       MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
+      MultiFab::Add(gmres_rhs_u[d], rand_mom_add[d],   0, 0, 1, 0);
   }
 
   ExternalForce(gmres_rhs_u,gmres_rhs_p);
@@ -203,6 +205,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           gmres_rhs_u[d].setVal(0.);
       }
       MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
+      MultiFab::Add(gmres_rhs_u[d], rand_mom_add[d],   0, 0, 1, 0);
   }
 
   ExternalForce(gmres_rhs_u,gmres_rhs_p);
