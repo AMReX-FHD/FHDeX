@@ -121,6 +121,7 @@ amrex::Initialize(argc,argv);
         pp.get("n_steps_skip",n_steps_skip);
 
         pp.get("plot_int",plot_int);
+        pp.get("diag_int",diag_int);
 
         pp.get("seed",seed);
 
