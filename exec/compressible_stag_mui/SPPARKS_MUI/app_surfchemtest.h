@@ -51,14 +51,14 @@ class AppSurfchemtest : public AppLattice {
   int firsttime;
   // variables on each lattice site
   int *type,*element,*ac1,*ac2,*ac3,*ac4,*ac5,*dc1,*dc2,*dc3,*dc4,*dc5,*dac1,*dac2,*dac3,*dac4,*dac5,*adc1,*adc2,*adc3,*adc4,*adc5;
-  double *density1,*density2,*density3,*density4,*density5,*temp,*Vz;
+  double *pressure1,*pressure2,*pressure3,*pressure4,*pressure5,*temp,*Vz;
 
   int *esites;
   int *echeck;
 
   // adding adsorption reactions
   // basically the same structure to first-order reactions
-  // however, propensity for adsorption depends on number density of gas phase
+  // however, propensity for adsorption depends on partial pressure of gas phase
   // hence different in each cell and we do not use propensity variable
   // adding desorption reactions is exactly same as the first-order reaction case
   int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes,nreaction,rxnsumcount;
