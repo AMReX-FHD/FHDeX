@@ -419,12 +419,12 @@ double AppLotkavolterra::site_propensity(int i)
         if (element[j] == preyinput[m][1]) {
           if (prey_is_rate[m]) {
             add_event(i,1,m,preyrate[m],-1,-1);
-	    proball += preyrate[m];
-	  }
-	  else {
+            proball += preyrate[m];
+          }
+          else {
             if (prey[m] == SPEC1) preypropensity = preyrate[m]*pressure1[i]*pow(tempratio,-0.5);
             else if (prey[m] == SPEC2) preypropensity = preyrate[m]*pressure2[i]*pow(tempratio,-0.5);
-	    add_event(i,1,m,preypropensity,-1,-1);
+            add_event(i,1,m,preypropensity,-1,-1);
             proball += preypropensity;
           }
         }
@@ -438,7 +438,7 @@ double AppLotkavolterra::site_propensity(int i)
       for (m = 0; m < npredation; m++) {
         if (element[j] == predationinput[m][1]) {
           add_event(i,2,m,predationrate[m],-1,-1);
-	  proball += predationrate[m];
+          proball += predationrate[m];
         }
       }
     }
