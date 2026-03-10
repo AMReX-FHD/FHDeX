@@ -52,8 +52,8 @@ AppLotkavolterra::AppLotkavolterra(SPPARKS *spk, int narg, char **arg) :
 {
   ninteger = 6;   // type: site type
                   // element: site element
-		  // ac1, ac2 : adsorption count
-		  // dc1, dc2 : desorption count
+                  // ac1, ac2 : adsorption count
+                  // dc1, dc2 : desorption count
   ndouble = 3;    // pressure1/pressure2: partial of the contacting FHD cell
                   // temp: temperature of the contacting FHD cell
   delpropensity = 1;
@@ -71,7 +71,7 @@ AppLotkavolterra::AppLotkavolterra(SPPARKS *spk, int narg, char **arg) :
   events = NULL;
   maxevent = 0;
   firstevent = NULL;
- 
+
   nprey = npredation = npredator = 0;
   preyrate = predationrate = predatorrate = NULL;
   prey_is_rate = NULL;
@@ -162,7 +162,7 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[4],"spec1") == 0) preyinput[nprey][1] = SPEC1;
       else if (strcmp(arg[4],"spec2") == 0) preyinput[nprey][1] = SPEC2;
       else error->all(FLERR,"Illegal event command - input");
-      
+
       preyrate[nprey] = atof(arg[5]);
 
       if (strcmp(arg[6],"vac") == 0) preyoutput[nprey][0] = VACANCY;
@@ -173,7 +173,7 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[7],"spec1") == 0) preyoutput[nprey][1] = SPEC1;
       else if (strcmp(arg[7],"spec2") == 0) preyoutput[nprey][1] = SPEC2;
       else error->all(FLERR,"Illegal event command - output");
-      
+
       prey_is_rate[nprey] = true;
 
       if (narg == 10) {
@@ -182,7 +182,7 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
           if (strcmp(arg[9],"spec1") == 0) prey[nprey] = SPEC1;
           else if (strcmp(arg[9],"spec2") == 0) prey[nprey] = SPEC2;
           else error->all(FLERR, "Illegal event command - species");
-	}
+        }
       }
 
       nprey++;
@@ -201,7 +201,7 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[4],"spec1") == 0) predationinput[npredation][1] = SPEC1;
       else if (strcmp(arg[4],"spec2") == 0) predationinput[npredation][1] = SPEC2;
       else error->all(FLERR,"Illegal event command - input");
-      
+
       predationrate[npredation] = atof(arg[5]);
 
       if (strcmp(arg[6],"vac") == 0) predationoutput[npredation][0] = VACANCY;
@@ -212,7 +212,7 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[7],"spec1") == 0) predationoutput[npredation][1] = SPEC1;
       else if (strcmp(arg[7],"spec2") == 0) predationoutput[npredation][1] = SPEC2;
       else error->all(FLERR,"Illegal event command - output");
-      
+
       npredation++;
 
     } else if (rstyle == 3) { // event for predator - B -> O
@@ -222,7 +222,7 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
       else error->all(FLERR,"Illegal event command - site");
       if (strcmp(arg[2],"spec2") == 0) predatorinput[npredator] = SPEC2;
       else error->all(FLERR,"Illegal event command - spec2 for predator");
-      
+
       predatorrate[npredator] = atof(arg[3]);
 
       if (strcmp(arg[4],"vac") == 0) predatoroutput[npredator] = VACANCY;
@@ -233,9 +233,9 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
       if (narg == 7) {
         if (strcmp(arg[5],"FHD") == 0) {
           if (strcmp(arg[6],"spec1") == 0) predator[npredator] = SPEC1;
-	  else if (strcmp(arg[6],"spec2") == 0) predator[npredator] = SPEC2;
-	  else error->all(FLERR, "Illegal event command - species");
-	}
+          else if (strcmp(arg[6],"spec2") == 0) predator[npredator] = SPEC2;
+          else error->all(FLERR, "Illegal event command - species");
+        }
       }
 
       npredator++;
@@ -423,9 +423,9 @@ double AppLotkavolterra::site_propensity(int i)
 	  }
 	  else {
             if (prey[m] == SPEC1) preypropensity = preyrate[m]*pressure1[i]*pow(tempratio,-0.5);
-	    else if (prey[m] == SPEC2) preypropensity = preyrate[m]*pressure2[i]*pow(tempratio,-0.5);
+            else if (prey[m] == SPEC2) preypropensity = preyrate[m]*pressure2[i]*pow(tempratio,-0.5);
 	    add_event(i,1,m,preypropensity,-1,-1);
-	    proball += preypropensity;
+            proball += preypropensity;
           }
         }
       }
@@ -1320,7 +1320,7 @@ void AppLotkavolterra::amrex_push_agg(int narg, char **arg)
                 ac1[i] = 0;
             }
             amrex_send_intval();
-	} else if (std::strcmp(arg[k],"ac2") == 0) {
+        } else if (std::strcmp(arg[k],"ac2") == 0) {
             // compute the sum over each FHD domain
             for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
             for (int i=0;i<nlocal;i++) {
@@ -1393,7 +1393,7 @@ void AppLotkavolterra::amrex_fetch_agg(int narg, char **arg)
             for (int i=0;i<nlocal;i++)
                 pressure1[i] = dblval[localFHDcell[i]];
       } else if (std::strcmp(arg[k],"pressure2") == 0) {
-	    amrex_recv_dblval();
+            amrex_recv_dblval();
             // distribute info to each KMC site
             for (int i=0;i<nlocal;i++)
                 pressure2[i] = dblval[localFHDcell[i]];
