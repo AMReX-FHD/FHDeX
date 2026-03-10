@@ -12,12 +12,12 @@
 ------------------------------------------------------------------------- */
 
 #ifdef APP_CLASS
-AppStyle(surfchemtest,AppSurfchemtest)
+AppStyle(lotkavolterra,AppLotkavolterra)
 
 #else
 
-#ifndef SPK_APP_SURFCHEMTEST_H
-#define SPK_APP_SURFCHEMTEST_H
+#ifndef SPK_APP_LOTKAVOLTERRA_H
+#define SPK_APP_LOTKAVOLTERRA_H
 
 #include "app_lattice.h"
 
@@ -29,12 +29,12 @@ AppStyle(surfchemtest,AppSurfchemtest)
 
 namespace SPPARKS_NS {
 
-class AppSurfchemtest : public AppLattice {
-  friend class DiagSurfchemtest;
+class AppLotkavolterra : public AppLattice {
+  friend class DiagLotkavolterra;
 
  public:
-  AppSurfchemtest(class SPPARKS *, int, char **);
-  ~AppSurfchemtest();
+  AppLotkavolterra(class SPPARKS *, int, char **);
+  ~AppLotkavolterra();
   void input_app(char *, int, char **);
   void grow_app();
   void init_app();
@@ -50,8 +50,8 @@ class AppSurfchemtest : public AppLattice {
   int engstyle;
   int firsttime;
   // variables on each lattice site
-  int *type,*element,*ac1,*ac2,*ac3,*ac4,*ac5,*dc1,*dc2,*dc3,*dc4,*dc5,*dac1,*dac2,*dac3,*dac4,*dac5,*adc1,*adc2,*adc3,*adc4,*adc5;
-  double *pressure1,*pressure2,*pressure3,*pressure4,*pressure5,*temp,*Vz;
+  int *type,*element,*ac1,*ac2,*dc1,*dc2;
+  double *pressure1,*pressure2,*temp;
 
   int *esites;
   int *echeck;
@@ -61,18 +61,14 @@ class AppSurfchemtest : public AppLattice {
   // however, propensity for adsorption depends on partial pressure of gas phase
   // hence different in each cell and we do not use propensity variable
   // adding desorption reactions is exactly same as the first-order reaction case
-  int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes,nreaction,rxnsumcount;
-  double *srate,*drate,*trate,*adsrate,*ads_beta,*dads_beta,*desrate,*dadsrate,*adesrate,*rxnrate; // beta implementation
-  bool ads_is_rate,dads_is_rate;
-  double *spropensity,*dpropensity,*tpropensity,*adespropensity,*rxnpropensity;
-  int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype,**rxntype;
-  int *sinput,**dinput,**tinput,*adsinput,*desinput,**dadsinput,**adesinput,**rxninput;
-  int *soutput,**doutput,**toutput,*adsoutput,*desoutput,**dadsoutput,**adesoutput,**rxnoutput;
-  int *scount,*dcount,*tcount,*adscount,*descount,*dadscount,*adescount,*rxncount;
-  int *dadsadsorbate,*adesdesorbate,*reactionsorbate;
-
-  bool *neighboring_diff,*neighboring_des,*neighboring_ades,*neighboring_rxn;
-  double V_neighbor[4][4][6][6];
+  int nprey,npredation,npredator;
+  double *preyrate,*predationrate,*predatorrate; // beta implementation
+  bool *prey_is_rate;
+  int **preytype,**predationtype,*predatortype;
+  int **preyinput,**predationinput,*predatorinput;
+  int **preyoutput,**predationoutput,*predatoroutput;
+  int *preycount,*predationcount,*predatorcount;
+  int *prey,*predator;
 
   struct Event {           // one event for an owned site
     int style;             // reaction style = SINGLE,DOUBLE,TRIPLE
@@ -171,7 +167,7 @@ E: One or more sites have invalid values
 The application only allows sites to be initialized with specific
 values.
 
-E: Temperature cannot be 0.0 for app surfchemtest
+E: Temperature cannot be 0.0 for app lotkavolterra
 
 UNDOCUMENTED
 
