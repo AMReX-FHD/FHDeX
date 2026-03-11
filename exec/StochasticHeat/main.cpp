@@ -69,6 +69,7 @@ amrex::Initialize(argc,argv);
         pp.query("n_cell",n_cell);
         pp.query("nsteps",nsteps);
         pp.query("plot_int",plot_int);
+        pp.query("n_steps_skip",n_steps_skip);
         pp.query("seed",seed);
         pp.query("BC_FLAG",BC_FLAG);
         pp.query("NONEQ_FLAG",NONEQ_FLAG);
@@ -395,109 +396,112 @@ amrex::Initialize(argc,argv);
         // **********************************
         // DIAGNOSTICS
 
-        // increment number of samples
-        Nsamp++;
+        if (step >= n_steps_skip) {
+            // increment number of samples
+            amrex::Print() << "Collecting stats for: " << step << "\n";
+            Nsamp++;
 
-        // compute running sums of T, T^2, and T*T_iCorr
-        for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
-        {
-            const Box& bx = mfi.validbox();
-
-            const Array4<Real>& Temp_fab = Temp.array(mfi);
-
-            const Array4<Real>& sumT_fab = sumT.array(mfi);
-            const Array4<Real>& sumT2_fab = sumT2.array(mfi);
-            const Array4<Real>& sumTT_fab = sumTT.array(mfi);
-
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            // compute running sums of T, T^2, and T*T_iCorr
+            for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
             {
-                sumT_fab(i,j,k) += Temp_fab(i,j,k);
-                sumT2_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(i,j,k);
-                sumTT_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(iCorr,j,k);
-            });
-        }
+                const Box& bx = mfi.validbox();
 
-        // diagnostics - average and variance
-        for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
-        {
-            const Box& bx = mfi.validbox();
+                const Array4<Real>& Temp_fab = Temp.array(mfi);
 
-            const Array4<Real>& sumT_fab = sumT.array(mfi);
-            const Array4<Real>& sumT2_fab = sumT2.array(mfi);
+                const Array4<Real>& sumT_fab = sumT.array(mfi);
+                const Array4<Real>& sumT2_fab = sumT2.array(mfi);
+                const Array4<Real>& sumTT_fab = sumTT.array(mfi);
 
-            const Array4<Real>& aveT_fab = aveT.array(mfi);
-            const Array4<Real>& varT_fab = varT.array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    sumT_fab(i,j,k) += Temp_fab(i,j,k);
+                    sumT2_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(i,j,k);
+                    sumTT_fab(i,j,k) += Temp_fab(i,j,k)*Temp_fab(iCorr,j,k);
+                });
+            }
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            // diagnostics - average and variance
+            for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
             {
-                aveT_fab(i,j,k) = sumT_fab(i,j,k) / Nsamp;
-                varT_fab(i,j,k) = sumT2_fab(i,j,k) / Nsamp - aveT_fab(i,j,k)*aveT_fab(i,j,k);
-            });
-        }
+                const Box& bx = mfi.validbox();
 
-        // diagnostics - correlation (need averages first)
-        for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
-        {
-            const Box& bx = mfi.validbox();
+                const Array4<Real>& sumT_fab = sumT.array(mfi);
+                const Array4<Real>& sumT2_fab = sumT2.array(mfi);
 
-            const Array4<Real>& sumT_fab = sumT.array(mfi);
-            const Array4<Real>& sumTT_fab = sumTT.array(mfi);
+                const Array4<Real>& aveT_fab = aveT.array(mfi);
+                const Array4<Real>& varT_fab = varT.array(mfi);
 
-            const Array4<Real>& aveT_fab = aveT.array(mfi);
-            const Array4<Real>& corrT_fab = corrT.array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    aveT_fab(i,j,k) = sumT_fab(i,j,k) / Nsamp;
+                    varT_fab(i,j,k) = sumT2_fab(i,j,k) / Nsamp - aveT_fab(i,j,k)*aveT_fab(i,j,k);
+                });
+            }
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            // diagnostics - correlation (need averages first)
+            for ( MFIter mfi(Temp); mfi.isValid(); ++mfi )
             {
-                corrT_fab(i,j,k) = sumTT_fab(i,j,k) / Nsamp - aveT_fab(i,j,k)*aveT_fab(iCorr,j,k);
-            });
-        }
+                const Box& bx = mfi.validbox();
 
-        // diagnostics - structure factor
-        // take FFT and then add to running sum of structure factor snapshot
-        if (SF_MODE == 1) {
-            my_fft.forward(Temp,Temp_fft);
-        }
-        else if (SF_MODE == 2) {
-            Temp.minus(aveT,0,1,0);
-            my_fft.forward(Temp,Temp_fft);
-        }
+                const Array4<Real>& sumT_fab = sumT.array(mfi);
+                const Array4<Real>& sumTT_fab = sumTT.array(mfi);
 
-        for (MFIter mfi(Temp_fft); mfi.isValid(); ++mfi) {
+                const Array4<Real>& aveT_fab = aveT.array(mfi);
+                const Array4<Real>& corrT_fab = corrT.array(mfi);
 
-            Array4<GpuComplex<Real>> const& Temp_fft_ptr = Temp_fft.array(mfi);
-            Array4<Real> Sk_sum_ptr = Sk_sum.array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    corrT_fab(i,j,k) = sumTT_fab(i,j,k) / Nsamp - aveT_fab(i,j,k)*aveT_fab(iCorr,j,k);
+                });
+            }
 
-            const Box& bx = mfi.fabbox();
+            // diagnostics - structure factor
+            // take FFT and then add to running sum of structure factor snapshot
+            if (SF_MODE == 1) {
+                my_fft.forward(Temp,Temp_fft);
+            }
+            else if (SF_MODE == 2) {
+                Temp.minus(aveT,0,1,0);
+                my_fft.forward(Temp,Temp_fft);
+            }
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            for (MFIter mfi(Temp_fft); mfi.isValid(); ++mfi) {
+
+                Array4<GpuComplex<Real>> const& Temp_fft_ptr = Temp_fft.array(mfi);
+                Array4<Real> Sk_sum_ptr = Sk_sum.array(mfi);
+
+                const Box& bx = mfi.fabbox();
+
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i != 0) {
+                        Sk_sum_ptr(i,j,k,0) += Temp_fft_ptr(i,j,k).real()*Temp_fft_ptr(i,j,k).real() + Temp_fft_ptr(i,j,k).imag()*Temp_fft_ptr(i,j,k).imag();
+                    }
+                    //else {
+                    //    if (SF_MODE == 2) {
+                    //        Sk_sum_ptr(i,j,k,0) += Temp_fft_ptr(i,j,k).real()*Temp_fft_ptr(i,j,k).real() + Temp_fft_ptr(i,j,k).imag()*Temp_fft_ptr(i,j,k).imag();
+                    //    }
+                    //}
+                });
+            }
+
+            // Write a plotfile of the current data (plot_int was defined in the inputs file)
+            if (plot_int > 0 && step%plot_int == 0)
             {
-                if (i != 0) {
-                    Sk_sum_ptr(i,j,k,0) += Temp_fft_ptr(i,j,k).real()*Temp_fft_ptr(i,j,k).real() + Temp_fft_ptr(i,j,k).imag()*Temp_fft_ptr(i,j,k).imag();
-                }
-                //else {
-                //    if (SF_MODE == 2) {
-                //        Sk_sum_ptr(i,j,k,0) += Temp_fft_ptr(i,j,k).real()*Temp_fft_ptr(i,j,k).real() + Temp_fft_ptr(i,j,k).imag()*Temp_fft_ptr(i,j,k).imag();
-                //    }
-                //}
-            });
-        }
+                const std::string& pltfile = amrex::Concatenate("plt",step,7);
+                MultiFab::Copy(plotfile,Temp,0,0,1,0);
+                MultiFab::Copy(plotfile,aveT,0,1,1,0);
+                MultiFab::Copy(plotfile,varT,0,2,1,0);
+                MultiFab::Copy(plotfile,corrT,0,3,1,0);
+                WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT","corrT"}, geom, time, step);
 
-        // Write a plotfile of the current data (plot_int was defined in the inputs file)
-        if (plot_int > 0 && step%plot_int == 0)
-        {
-            const std::string& pltfile = amrex::Concatenate("plt",step,7);
-            MultiFab::Copy(plotfile,Temp,0,0,1,0);
-            MultiFab::Copy(plotfile,aveT,0,1,1,0);
-            MultiFab::Copy(plotfile,varT,0,2,1,0);
-            MultiFab::Copy(plotfile,corrT,0,3,1,0);
-            WriteSingleLevelPlotfile(pltfile, plotfile, {"Temp","avgT","varT","corrT"}, geom, time, step);
+                // structure factor
+                MultiFab::Copy(Sk,Sk_sum,0,0,1,0);
+                Sk.mult(1./Nsamp);
+                const std::string& pltfile2 = amrex::Concatenate("Sk",step,7);
+                WriteSingleLevelPlotfile(pltfile2, Sk, {"Sk"}, cgeom, time, step);
 
-            // structure factor
-            MultiFab::Copy(Sk,Sk_sum,0,0,1,0);
-            Sk.mult(1./Nsamp);
-            const std::string& pltfile2 = amrex::Concatenate("Sk",step,7);
-            WriteSingleLevelPlotfile(pltfile2, Sk, {"Sk"}, cgeom, time, step);
-
+            }
         }
     }
 
