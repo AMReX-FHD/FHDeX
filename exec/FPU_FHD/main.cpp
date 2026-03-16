@@ -42,6 +42,9 @@ amrex::Initialize(argc,argv);
     int nsteps;
     Real dt;
 
+    // enable fluctuations
+    int enable_fluctuations;
+    
     // how many steps to skip before defining t=0
     int n_steps_skip;
     
@@ -117,6 +120,8 @@ amrex::Initialize(argc,argv);
 
         pp.get("nsteps",nsteps);
         pp.get("dt",dt);
+
+        pp.get("enable_fluctuations",enable_fluctuations);
 
         pp.get("n_steps_skip",n_steps_skip);
 
@@ -329,11 +334,13 @@ amrex::Initialize(argc,argv);
         state.FillBoundary(geom.periodicity());
 
         // fill random numbers
-        for (int d=0; d<AMREX_SPACEDIM-1; ++d) {
-            MultiFabFillRandom(noise[d],0,1.,geom);
-            MultiFabFillRandom(noise[d],1,1.,geom);
-            MultiFabFillRandom(noise[d],2,1.,geom);
-            noise[d].mult( 1./std::sqrt(dt*dV), 0, 3);
+        if (enable_fluctuations) {
+            for (int d=0; d<AMREX_SPACEDIM-1; ++d) {
+                MultiFabFillRandom(noise[d],0,1.,geom);
+                MultiFabFillRandom(noise[d],1,1.,geom);
+                MultiFabFillRandom(noise[d],2,1.,geom);
+                noise[d].mult( 1./std::sqrt(dt*dV), 0, 3);
+            }
         }
 
         // compute fluxes
@@ -383,9 +390,11 @@ amrex::Initialize(argc,argv);
                 // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
                 // n=1; B_10*noise0 + B_11*noise1 + B_12*noise2
                 // n=2; B_20*noise0 + B_21*noise1 + B_22*noise2
-                fluxx(i,j,k,0) += B_00 * noisex(i,j,k,0) + B_01 * noisex(i,j,k,1) + B_02 * noisex(i,j,k,2);
-                fluxx(i,j,k,1) += B_10 * noisex(i,j,k,0) + B_11 * noisex(i,j,k,1) + B_12 * noisex(i,j,k,2);
-                fluxx(i,j,k,2) += B_20 * noisex(i,j,k,0) + B_21 * noisex(i,j,k,1) + B_22 * noisex(i,j,k,2);
+                if (enable_fluctuations) {
+                    fluxx(i,j,k,0) += B_00 * noisex(i,j,k,0) + B_01 * noisex(i,j,k,1) + B_02 * noisex(i,j,k,2);
+                    fluxx(i,j,k,1) += B_10 * noisex(i,j,k,0) + B_11 * noisex(i,j,k,1) + B_12 * noisex(i,j,k,2);
+                    fluxx(i,j,k,2) += B_20 * noisex(i,j,k,0) + B_21 * noisex(i,j,k,1) + B_22 * noisex(i,j,k,2);
+                }
             });
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -422,9 +431,11 @@ amrex::Initialize(argc,argv);
                 // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
                 // n=1; B_10*noise0 + B_11*noise1 + B_12*noise2
                 // n=2; B_20*noise0 + B_21*noise1 + B_22*noise2
-                fluxy(i,j,k,0) += B_00 * noisey(i,j,k,0) + B_01 * noisey(i,j,k,1) + B_02 * noisey(i,j,k,2);
-                fluxy(i,j,k,1) += B_10 * noisey(i,j,k,0) + B_11 * noisey(i,j,k,1) + B_12 * noisey(i,j,k,2);
-                fluxy(i,j,k,2) += B_20 * noisey(i,j,k,0) + B_21 * noisey(i,j,k,1) + B_22 * noisey(i,j,k,2);
+                if (enable_fluctuations) {
+                    fluxy(i,j,k,0) += B_00 * noisey(i,j,k,0) + B_01 * noisey(i,j,k,1) + B_02 * noisey(i,j,k,2);
+                    fluxy(i,j,k,1) += B_10 * noisey(i,j,k,0) + B_11 * noisey(i,j,k,1) + B_12 * noisey(i,j,k,2);
+                    fluxy(i,j,k,2) += B_20 * noisey(i,j,k,0) + B_21 * noisey(i,j,k,1) + B_22 * noisey(i,j,k,2);
+                }
             });
 #endif
         }
