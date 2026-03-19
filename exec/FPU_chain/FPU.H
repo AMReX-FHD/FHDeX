@@ -45,6 +45,14 @@ void compute_energy(MultiFab& state,
                     const Real& b,
                     const Real& c);
 
+void compute_heat_flux(MultiFab& heat_flux,
+                       const MultiFab& state,
+                       const Real& a,
+                       const Real& b,
+                       const Real& c,
+                       const Real& rest,
+                       const Geometry& geom);
+
 void ComputePhiFromState(MultiFab& phi,
                          const Real& r_eq,
                          const Real& p_eq,

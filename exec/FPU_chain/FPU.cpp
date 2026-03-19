@@ -263,6 +263,49 @@ void compute_energy(MultiFab& state,
 
 }
 
+void compute_heat_flux(MultiFab& heat_flux,
+                       const MultiFab& state,
+                       const Real& a,
+                       const Real& b,
+                       const Real& c,
+                       const Real& rest,
+                       const Geometry& geom) {
+
+    // compute heat flux
+    // convective: flux[0] = (ke + pe) * v
+    // conductive: flux[1] = (stress) * v
+    for (MFIter mfi(state); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real const>&  state_fab     = state.array(mfi);
+        const Array4<Real      >&  heat_flux_fab = heat_flux.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real r_r      = state_fab(i,j,k,0);
+            Real r_l      = state_fab(i-1,j,k,0);
+            Real v        = state_fab(i,j,k,1);
+            Real pe_r     = (1./2.)*a*r_r*r_r + (1./3.)*b*r_r*r_r*r_r + (1./4.)*c*r_r*r_r*r_r*r_r;
+            Real pe_l     = (1./2.)*a*r_l*r_l + (1./3.)*b*r_l*r_l*r_l + (1./4.)*c*r_l*r_l*r_l*r_l;
+            Real ke       = 0.5*v*v;
+
+            // convective
+            heat_flux_fab(i,j,k,0) = v*(0.5*(pe_l+pe_r)+ke);
+
+            // conductive
+            Real dx_r     = state_fab(i,j,k,0) + rest;
+            Real dx_l     = state_fab(i-1,j,k,0) + rest;
+            Real fbond_r  = a*r_r + b*r_r*r_r + c*r_r*r_r*r_r; 
+            Real fbond_l  = a*r_l + b*r_l*r_l + c*r_l*r_l*r_l; 
+
+            heat_flux_fab(i,j,k,1) = 0.5*(fbond_r * dx_r - fbond_l * dx_l)*v;
+
+        });
+    }
+    heat_flux.FillBoundary(geom.periodicity());
+}
+
 void ComputePhiFromState(MultiFab& phi,
                          const Real& r_eq,
                          const Real& p_eq,

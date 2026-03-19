@@ -33,6 +33,7 @@ Initialize(argc,argv);
     Real a_coef = 1.0;
     Real b_coef = 0.0;
     Real c_coef = 1.0;
+    Real rest   = 1.0;
 
     Real beta = 1.0;
     Real pressure = 1.0;
@@ -76,6 +77,7 @@ Initialize(argc,argv);
         pp.query("a_coef",a_coef);
         pp.query("b_coef",b_coef);
         pp.query("c_coef",c_coef);
+        pp.query("rest",rest);
 
         pp.query("beta",beta);
         pp.query("pressure",pressure);
@@ -155,6 +157,9 @@ Initialize(argc,argv);
     // components are r, p, and e
     MultiFab state(ba,dm,3,ng_vect);
 
+    // heat flux: 2 components: 1. convective; 2. conductive
+    MultiFab heat_flux(ba,dm,2,ng_vect);
+
     // storage for phi = R*state
     MultiFab phi (ba,dm,3,0);
     MultiFab phi0(ba,dm,3,0);
@@ -171,6 +176,7 @@ Initialize(argc,argv);
     // ******************************
     init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
     compute_energy(state,a_coef,b_coef,c_coef);
+    compute_heat_flux(heat_flux,state,a_coef,b_coef,c_coef,rest,geom);
 
     Copy(phi0,state,0,0,3,0);
     ComputePhiFromState(phi0,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
@@ -187,9 +193,12 @@ Initialize(argc,argv);
 
     // write the initial state (r,p,e) to a plotfile
     if (plot_int > 0) {
+        MultiFab plotdata(ba,dm,5,0);
+        MultiFab::Copy(plotdata,state,0,0,3,0);
+        MultiFab::Copy(plotdata,heat_flux,0,3,2,0);
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-        WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, plotdata, {"r","p","e","heat_flux_conv","heat_flux_cond"}, geom, time, 0);
     }
 
     for (int step=1; step<=n_steps; ++step) {
@@ -203,6 +212,7 @@ Initialize(argc,argv);
         // ****************
         FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
         compute_energy(state,a_coef,b_coef,c_coef);
+        compute_heat_flux(heat_flux,state,a_coef,b_coef,c_coef,rest,geom);
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -213,10 +223,13 @@ Initialize(argc,argv);
 
             Real plot_strt_time = ParallelDescriptor::second();
 
-            // write the current state (r,p,e) to a plotfile
+            // write the current state (r,p,e,heat_flux_conv,heat_flux_cond) to a plotfile
+            MultiFab plotdata(ba,dm,5,0);
+            MultiFab::Copy(plotdata,state,0,0,3,0);
+            MultiFab::Copy(plotdata,heat_flux,0,3,2,0);
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
             amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-            WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, step);
+            WriteSingleLevelPlotfile(pltfile, plotdata, {"r","p","e","heat_flux_conv","heat_flux_cond"}, geom, time, step);
 
             Copy(phi,state,0,0,3,0);
             ComputePhiFromState(phi,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
