@@ -301,6 +301,8 @@ void compute_heat_flux(MultiFab& heat_flux,
 
             heat_flux_fab(i,j,k,1) = 0.5*(fbond_r * dx_r - fbond_l * dx_l)*v;
 
+            heat_flux_fab(i,j,k,2) = heat_flux_fab(i,j,k,0) + heat_flux_fab(i,j,k,1);
+
         });
     }
     heat_flux.FillBoundary(geom.periodicity());

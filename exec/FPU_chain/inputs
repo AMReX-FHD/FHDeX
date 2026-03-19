@@ -1,10 +1,15 @@
 amrex.the_arena_is_managed=1 # required by serial r init
 
 n_particles = 1000
-n_steps = 50000
+n_steps = 1000000
+plot_int = 1000
 
-n_ensembles = 64000
-max_ensembles_per_rank = 4000  # for parallelization purposes
+hf_nevery = 10
+hf_nrepeat = 2000
+hf_nfreq = 20000
+
+n_ensembles = 200
+max_ensembles_per_rank = 25  # for parallelization purposes
 
 a_coef = 1.0
 b_coef = 2.0
