@@ -1,6 +1,23 @@
 #include "hydro_test_functions.H"
+#include "AMReX_ParmParse.H"
 
 using namespace amrex;
+    
+AMREX_GPU_MANAGED int hydro::sf_restart = -1;
+AMREX_GPU_MANAGED int hydro::variance_coef_mom_scaling = 1.0;
+
+void InitializeHydroNamespace() {
+    
+    // extract inputs parameters
+    ParmParse pp;
+
+    // read sf restart file?
+    pp.query("sf_restart",sf_restart);
+    
+    // setup scaling of varaince of noise
+    pp.query("variance_coef_mom_scaling",variance_coef_mom_scaling);
+
+}
 
 void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              const Geometry& geom) {

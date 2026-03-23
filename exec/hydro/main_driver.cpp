@@ -349,7 +349,7 @@ void main_driver(const char* argv)
 
         StructFact structFact;
 
-        if (restart < 0) {
+        if (sf_restart < 0) {
 
                 if (compute_all_pairs) {
                         // option to compute all pairs

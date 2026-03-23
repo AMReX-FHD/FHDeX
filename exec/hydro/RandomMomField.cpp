@@ -1,4 +1,5 @@
 #include "common_functions.H"
+#include "hydro_test_functions.H"
 
 void RandomMomField(std::array< MultiFab, AMREX_SPACEDIM >& rand_mom_add,
                     const std::array< MultiFab, AMREX_SPACEDIM >& temp_face,

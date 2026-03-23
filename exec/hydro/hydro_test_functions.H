@@ -5,6 +5,13 @@
 #include "gmres_functions.H"
 
 #include "TurbForcing.H"
+#include "hydro_namespace.H"
+
+using namespace hydro;
+
+///////////////////////////
+// setup hydro namespace in Init.cpp
+void InitializeHydroNamespace();
 
 ///////////////////////////
 // in advance.cpp
