@@ -343,6 +343,9 @@ amrex::Initialize(argc,argv);
             }
         }
 
+        /*
+          dphi/dt = d/dx( -A phi + D dphi/dx - B xi)
+        */
         // compute fluxes
         for ( MFIter mfi(state); mfi.isValid(); ++mfi )
         {
@@ -359,18 +362,18 @@ amrex::Initialize(argc,argv);
             amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 // advection
-                // n=0; A_00 (var0) + A_01 (var1) + A_02 (var2)
-                // n=1; A_10 (var0) + A_11 (var1) + A_12 (var2)
-                // n=2; A_20 (var0) + A_21 (var1) + A_22 (var2)
-                fluxx(i,j,k,0) = A_00 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
-                               + A_01 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
-                               + A_02 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
-                fluxx(i,j,k,1) = A_10 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
-                               + A_11 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
-                               + A_12 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
-                fluxx(i,j,k,2) = A_20 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
-                               + A_21 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
-                               + A_22 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
+                // n=0; -( A_00 (var0) + A_01 (var1) + A_02 (var2) )
+                // n=1; -( A_10 (var0) + A_11 (var1) + A_12 (var2) )
+                // n=2; -( A_20 (var0) + A_21 (var1) + A_22 (var2) )
+                fluxx(i,j,k,0) = - A_00 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
+                                 - A_01 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
+                                 - A_02 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
+                fluxx(i,j,k,1) = - A_10 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
+                                 - A_11 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
+                                 - A_12 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
+                fluxx(i,j,k,2) = - A_20 * 0.5 * (state_fab(i,j,k,0) + state_fab(i-1,j,k,0))
+                                 - A_21 * 0.5 * (state_fab(i,j,k,1) + state_fab(i-1,j,k,1))
+                                 - A_22 * 0.5 * (state_fab(i,j,k,2) + state_fab(i-1,j,k,2));
 
                 // deterministic diffusion
                 // n=0; D_00 d/dx(var0) + D_01 d/dx(var1) + D_02 d/dx(var2)
@@ -387,31 +390,32 @@ amrex::Initialize(argc,argv);
                                    + D_22 * (state_fab(i,j,k,2) - state_fab(i-1,j,k,2)) ) / dx[0];
 
                 // stochastic
-                // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
-                // n=1; B_10*noise0 + B_11*noise1 + B_12*noise2
-                // n=2; B_20*noise0 + B_21*noise1 + B_22*noise2
+                // n=0; -( B_00*noise0 + B_01*noise1 + B_02*noise2 )
+                // n=1; -( B_10*noise0 + B_11*noise1 + B_12*noise2 )
+                // n=2; -( B_20*noise0 + B_21*noise1 + B_22*noise2 )
                 if (enable_fluctuations) {
-                    fluxx(i,j,k,0) += B_00 * noisex(i,j,k,0) + B_01 * noisex(i,j,k,1) + B_02 * noisex(i,j,k,2);
-                    fluxx(i,j,k,1) += B_10 * noisex(i,j,k,0) + B_11 * noisex(i,j,k,1) + B_12 * noisex(i,j,k,2);
-                    fluxx(i,j,k,2) += B_20 * noisex(i,j,k,0) + B_21 * noisex(i,j,k,1) + B_22 * noisex(i,j,k,2);
+                    fluxx(i,j,k,0) -= B_00 * noisex(i,j,k,0) + B_01 * noisex(i,j,k,1) + B_02 * noisex(i,j,k,2);
+                    fluxx(i,j,k,1) -= B_10 * noisex(i,j,k,0) + B_11 * noisex(i,j,k,1) + B_12 * noisex(i,j,k,2);
+                    fluxx(i,j,k,2) -= B_20 * noisex(i,j,k,0) + B_21 * noisex(i,j,k,1) + B_22 * noisex(i,j,k,2);
                 }
             });
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 // advection
-                // n=0; A_00 (var0) + A_01 (var1) + A_02 (var2)
-                // n=1; A_10 (var0) + A_11 (var1) + A_12 (var2)
+                // n=0; -( A_00 (var0) + A_01 (var1) + A_02 (var2) )
+                // n=1; -( A_10 (var0) + A_11 (var1) + A_12 (var2) )
+                // n=2; -( A_20 (var0) + A_21 (var1) + A_22 (var2) )
                 // n=2; A_20 (var0) + A_21 (var1) + A_22 (var2)
-                fluxy(i,j,k,0) = A_00 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
-                               + A_01 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
-                               + A_02 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
-                fluxy(i,j,k,1) = A_10 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
-                               + A_11 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
-                               + A_12 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
-                fluxy(i,j,k,2) = A_20 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
-                               + A_21 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
-                               + A_22 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
+                fluxy(i,j,k,0) = - A_00 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
+                                 - A_01 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
+                                 - A_02 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
+                fluxy(i,j,k,1) = - A_10 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
+                                 - A_11 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
+                                 - A_12 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
+                fluxy(i,j,k,2) = - A_20 * 0.5 * (state_fab(i,j,k,0) + state_fab(i,j-1,k,0))
+                                 - A_21 * 0.5 * (state_fab(i,j,k,1) + state_fab(i,j-1,k,1))
+                                 - A_22 * 0.5 * (state_fab(i,j,k,2) + state_fab(i,j-1,k,2));
 
                 // deterministic diffusion
                 // n=0; D_00 d/dy(var0) + D_01 d/dy(var1) + D_02 d/dy(var2)
@@ -428,13 +432,13 @@ amrex::Initialize(argc,argv);
                                    + D_22 * (state_fab(i,j,k,2) - state_fab(i,j-1,k,2)) ) / dx[1];
 
                 // stochastic
-                // n=0; B_00*noise0 + B_01*noise1 + B_02*noise2
-                // n=1; B_10*noise0 + B_11*noise1 + B_12*noise2
-                // n=2; B_20*noise0 + B_21*noise1 + B_22*noise2
+                // n=0; -( B_00*noise0 + B_01*noise1 + B_02*noise2 )
+                // n=1; -( B_10*noise0 + B_11*noise1 + B_12*noise2 )
+                // n=2; -( B_20*noise0 + B_21*noise1 + B_22*noise2 )
                 if (enable_fluctuations) {
-                    fluxy(i,j,k,0) += B_00 * noisey(i,j,k,0) + B_01 * noisey(i,j,k,1) + B_02 * noisey(i,j,k,2);
-                    fluxy(i,j,k,1) += B_10 * noisey(i,j,k,0) + B_11 * noisey(i,j,k,1) + B_12 * noisey(i,j,k,2);
-                    fluxy(i,j,k,2) += B_20 * noisey(i,j,k,0) + B_21 * noisey(i,j,k,1) + B_22 * noisey(i,j,k,2);
+                    fluxy(i,j,k,0) -= B_00 * noisey(i,j,k,0) + B_01 * noisey(i,j,k,1) + B_02 * noisey(i,j,k,2);
+                    fluxy(i,j,k,1) -= B_10 * noisey(i,j,k,0) + B_11 * noisey(i,j,k,1) + B_12 * noisey(i,j,k,2);
+                    fluxy(i,j,k,2) -= B_20 * noisey(i,j,k,0) + B_21 * noisey(i,j,k,1) + B_22 * noisey(i,j,k,2);
                 }
             });
 #endif
