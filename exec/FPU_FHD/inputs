@@ -1,5 +1,5 @@
 # number of cells in the x direction
-n_cells = 1000
+n_cell_x = 1000
 
 #####################
 # number of ensembles and parallelization

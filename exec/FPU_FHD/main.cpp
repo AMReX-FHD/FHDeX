@@ -1,25 +1,9 @@
-/*
- * An AMReX-based version of the StochasticHeat python code:
- * Intro FHD paper: https://arxiv.org/abs/2406.12157
- * Original python version: https://github.com/AlejGarcia/IntroFHD
- */
-
-#include "common_functions.H"
-#include "rng_functions.H"
-
 #include "FPU.H"
 
-#include <AMReX.H>
-#include <AMReX_PlotFileUtil.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_Random.H>
-#include <AMReX_FFT.H>
-
-#include <chrono>
-#include <cmath>
-
 using namespace std::chrono;
+
 using namespace amrex;
+using namespace FPU;
 
 int main (int argc, char* argv[])
 {
@@ -30,81 +14,6 @@ amrex::Initialize(argc,argv);
 #if (AMREX_SPACEDIM != 2)
     amrex::Abort("Only works with DIM=2 (independent 1D pencils in x)");
 #endif
-    // **********************************
-    // SIMULATION PARAMETERS
-
-    // number of cells in each spatial direction
-    int n_cells;
-    int n_ensembles;
-    int max_ensembles_per_rank; // for parallelization purposes
-
-    // total steps in simulation and time step
-    int nsteps;
-    Real dt;
-
-    // enable fluctuations
-    int enable_fluctuations;
-    
-    // how many steps to skip before defining t=0
-    int n_steps_skip;
-    
-    // how often to write a plotfile
-    int plot_int;
-
-    // how often to write out correlation diagnostics
-    int diag_int;
-
-    // random number seed (positive integer=fixed seed; 0=clock-based seed)
-    int seed;
-
-    // size of each finite volume cell - all 3 must be defined regardless of dimensionality
-    Real cell_dx;
-    Real cell_dy;
-    Real cell_dz;
-
-    Real r0;
-    Real p0;
-    Real e0;
-
-    Real A_00;
-    Real A_01;
-    Real A_02;
-    Real A_10;
-    Real A_11;
-    Real A_12;
-    Real A_20;
-    Real A_21;
-    Real A_22;
-
-    Real D_00;
-    Real D_01;
-    Real D_02;
-    Real D_10;
-    Real D_11;
-    Real D_12;
-    Real D_20;
-    Real D_21;
-    Real D_22;
-
-    Real B_00;
-    Real B_01;
-    Real B_02;
-    Real B_10;
-    Real B_11;
-    Real B_12;
-    Real B_20;
-    Real B_21;
-    Real B_22;
-
-    Real R_00;
-    Real R_01;
-    Real R_02;
-    Real R_10;
-    Real R_11;
-    Real R_12;
-    Real R_20;
-    Real R_21;
-    Real R_22;
 
     // input parameters
     {
@@ -114,7 +23,7 @@ amrex::Initialize(argc,argv);
         ParmParse pp;
 
         // override defaults set above
-        pp.get("n_cells",n_cells);
+        pp.get("n_cell_x",n_cell_x);
         pp.get("n_ensembles",n_ensembles);
         pp.get("max_ensembles_per_rank",max_ensembles_per_rank);
 
@@ -177,6 +86,15 @@ amrex::Initialize(argc,argv);
         pp.get("R_20",R_20);
         pp.get("R_21",R_21);
         pp.get("R_22",R_22);
+
+        DFS_n_steps_skip = -1;
+        pp.query("DFS_n_steps_skip",DFS_n_steps_skip);
+
+        if (DFS_n_steps_skip >= 0) {
+            pp.get("DFS_stats_int",DFS_stats_int);
+            pp.get("DFS_num_snapshots",DFS_num_snapshots);
+            pp.get("DFS_num_padding",DFS_num_padding);
+        }
     }
 
     // initialize AMReX random seed (positive integer=fixed seed; 0=clock-based seed)
@@ -207,11 +125,11 @@ amrex::Initialize(argc,argv);
     // AMREX_D_DECL means "do the first X of these, where X is the dimensionality of the simulation"
 #if (AMREX_SPACEDIM == 2)
     IntVect dom_lo(            0,             0);
-    IntVect dom_hi(n_cells-1, n_ensembles-1);
+    IntVect dom_hi(n_cell_x-1, n_ensembles-1);
     IntVect max_grid_size(1024000,max_ensembles_per_rank);
 #elif (AMREX_SPACEDIM == 3)
     IntVect dom_lo(            0,             0,             0);
-    IntVect dom_hi(n_cells-1, n_cells-1, n_ensembles-1);
+    IntVect dom_hi(n_cell_x-1, n_cell_x-1, n_ensembles-1);
     IntVect max_grid_size(1024000,1024000,max_ensembles_per_rank);
 #endif
 
@@ -239,9 +157,9 @@ amrex::Initialize(argc,argv);
     // diagonal elements of C_alphaalpha
     MultiFab C_alphaalpha(ba,dm,3,0);
 
-    Gpu::HostVector<Real> C_alphaalpha_00(n_cells);
-    Gpu::HostVector<Real> C_alphaalpha_11(n_cells);
-    Gpu::HostVector<Real> C_alphaalpha_22(n_cells);
+    Gpu::HostVector<Real> C_alphaalpha_00(n_cell_x);
+    Gpu::HostVector<Real> C_alphaalpha_11(n_cell_x);
+    Gpu::HostVector<Real> C_alphaalpha_22(n_cell_x);
 
     // face-centered MultiFabs for noise and flux
     // dimension is one less than compile dimension (independent pencils or planes)
@@ -265,10 +183,10 @@ amrex::Initialize(argc,argv);
 
 #if (AMREX_SPACEDIM == 2)
     RealBox real_box({                 0.,                  0.},
-                     {cell_dx*n_cells, cell_dy*n_ensembles});
+                     {cell_dx*n_cell_x, cell_dy*n_ensembles});
 #elif (AMREX_SPACEDIM == 3)
     RealBox real_box({0.,                                   0.,                  0.},
-                     {cell_dx*n_cells, cell_dy*n_cells, cell_dz*n_ensembles});
+                     {cell_dx*n_cell_x, cell_dy*n_cell_x, cell_dz*n_ensembles});
 
 #endif
 
@@ -327,7 +245,7 @@ amrex::Initialize(argc,argv);
 
         if (step == n_steps_skip) {
             Copy(phi0,state,0,0,3,0);
-            ComputePhiFromState(phi0,0.,0.,0.,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+            ComputePhiFromState(phi0);
         }
 
         // fill periodic ghost cells
@@ -496,7 +414,7 @@ amrex::Initialize(argc,argv);
             Real diag_strt_time = ParallelDescriptor::second();
 
             Copy(phi,state,0,0,3,0);
-            ComputePhiFromState(phi,0.,0.,0.,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+            ComputePhiFromState(phi);
 
             ComputeCalphaalpha(C_alphaalpha,phi,phi0);
             C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
@@ -507,12 +425,12 @@ amrex::Initialize(argc,argv);
             std::ofstream C_alphaalphaout;
             if (ParallelDescriptor::IOProcessor()) {
                 C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
-                for (int i=0; i<n_cells; ++i) {
+                for (int i=0; i<n_cell_x; ++i) {
                         
                     C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
-                                    << C_alphaalpha_00[(i+n_cells/2)%n_cells] << " "
-                                    << C_alphaalpha_11[(i+n_cells/2)%n_cells] << " "
-                                    << C_alphaalpha_22[(i+n_cells/2)%n_cells] << "\n";
+                                    << C_alphaalpha_00[(i+n_cell_x/2)%n_cell_x] << " "
+                                    << C_alphaalpha_11[(i+n_cell_x/2)%n_cell_x] << " "
+                                    << C_alphaalpha_22[(i+n_cell_x/2)%n_cell_x] << "\n";
                 }
             }
             Real diag_stop_time = ParallelDescriptor::second() - diag_strt_time;

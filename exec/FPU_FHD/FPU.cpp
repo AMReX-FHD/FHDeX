@@ -1,27 +1,90 @@
 #include "FPU.H"
 
-#include <AMReX_MultiFabUtil.H>
+// number of cells in each spatial direction
+int FPU::n_cell_x;
+int FPU::n_ensembles;
+int FPU::max_ensembles_per_rank; // for parallelization purposes
 
-using namespace amrex;
+// total steps in simulation and time step
+int FPU::nsteps;
+amrex::Real FPU::dt;
 
-void ComputePhiFromState(MultiFab& phi,
-                         const Real& r_eq,
-                         const Real& p_eq,
-                         const Real& e_eq,
-                         const Real& R_00,
-                         const Real& R_01,
-                         const Real& R_02,
-                         const Real& R_10,
-                         const Real& R_11,
-                         const Real& R_12,
-                         const Real& R_20,
-                         const Real& R_21,
-                         const Real& R_22) {
+// enable fluctuations
+int FPU::enable_fluctuations;
+    
+// how many steps to skip before defining t=0
+int FPU::n_steps_skip;
+    
+// how often to write a plotfile
+int FPU::plot_int;
+
+// how often to write out correlation diagnostics
+int FPU::diag_int;
+
+// random number seed (positive integer=fixed seed; 0=clock-based seed)
+int FPU::seed;
+
+// size of each finite volume cell - all 3 must be defined regardless of dimensionality
+amrex::Real FPU::cell_dx;
+amrex::Real FPU::cell_dy;
+amrex::Real FPU::cell_dz;
+
+AMREX_GPU_MANAGED amrex::Real FPU::r0;
+AMREX_GPU_MANAGED amrex::Real FPU::p0;
+AMREX_GPU_MANAGED amrex::Real FPU::e0;
+
+AMREX_GPU_MANAGED amrex::Real FPU::A_00;
+AMREX_GPU_MANAGED amrex::Real FPU::A_01;
+AMREX_GPU_MANAGED amrex::Real FPU::A_02;
+AMREX_GPU_MANAGED amrex::Real FPU::A_10;
+AMREX_GPU_MANAGED amrex::Real FPU::A_11;
+AMREX_GPU_MANAGED amrex::Real FPU::A_12;
+AMREX_GPU_MANAGED amrex::Real FPU::A_20;
+AMREX_GPU_MANAGED amrex::Real FPU::A_21;
+AMREX_GPU_MANAGED amrex::Real FPU::A_22;
+
+AMREX_GPU_MANAGED amrex::Real FPU::D_00;
+AMREX_GPU_MANAGED amrex::Real FPU::D_01;
+AMREX_GPU_MANAGED amrex::Real FPU::D_02;
+AMREX_GPU_MANAGED amrex::Real FPU::D_10;
+AMREX_GPU_MANAGED amrex::Real FPU::D_11;
+AMREX_GPU_MANAGED amrex::Real FPU::D_12;
+AMREX_GPU_MANAGED amrex::Real FPU::D_20;
+AMREX_GPU_MANAGED amrex::Real FPU::D_21;
+AMREX_GPU_MANAGED amrex::Real FPU::D_22;
+
+AMREX_GPU_MANAGED amrex::Real FPU::B_00;
+AMREX_GPU_MANAGED amrex::Real FPU::B_01;
+AMREX_GPU_MANAGED amrex::Real FPU::B_02;
+AMREX_GPU_MANAGED amrex::Real FPU::B_10;
+AMREX_GPU_MANAGED amrex::Real FPU::B_11;
+AMREX_GPU_MANAGED amrex::Real FPU::B_12;
+AMREX_GPU_MANAGED amrex::Real FPU::B_20;
+AMREX_GPU_MANAGED amrex::Real FPU::B_21;
+AMREX_GPU_MANAGED amrex::Real FPU::B_22;
+
+AMREX_GPU_MANAGED amrex::Real FPU::R_00;
+AMREX_GPU_MANAGED amrex::Real FPU::R_01;
+AMREX_GPU_MANAGED amrex::Real FPU::R_02;
+AMREX_GPU_MANAGED amrex::Real FPU::R_10;
+AMREX_GPU_MANAGED amrex::Real FPU::R_11;
+AMREX_GPU_MANAGED amrex::Real FPU::R_12;
+AMREX_GPU_MANAGED amrex::Real FPU::R_20;
+AMREX_GPU_MANAGED amrex::Real FPU::R_21;
+AMREX_GPU_MANAGED amrex::Real FPU::R_22;
+
+// dynamic structure factor control
+int FPU::DFS_n_steps_skip;       // how many steps before we start recording (t0)
+int FPU::DFS_stats_int;          // how often to take a snapshop
+int FPU::DFS_num_snapshots;      // how many total snapshots
+int FPU::DFS_num_padding;        // how much zero padding in time
+
+void ComputePhiFromState(MultiFab& phi) {
 
     // convert state to state-state_eq
-    phi.plus(-r_eq,0,1,0);
-    phi.plus(-p_eq,1,1,0);
-    phi.plus(-e_eq,2,1,0);
+    phi.plus(-r0,0,1,0);
+    phi.plus(-p0,1,1,0);
+    phi.plus(-e0,2,1,0);
 
     // phi = R(state-state_eq)
     for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
