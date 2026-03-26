@@ -11,10 +11,10 @@ amrex::Real FPU::dt;
 
 // enable fluctuations
 int FPU::enable_fluctuations;
-    
+
 // how many steps to skip before defining t=0
 int FPU::n_steps_skip;
-    
+
 // how often to write a plotfile
 int FPU::plot_int;
 

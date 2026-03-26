@@ -234,7 +234,7 @@ amrex::Initialize(argc,argv);
         Real plot_stop_time = ParallelDescriptor::second() - plot_strt_time;
         ParallelDescriptor::ReduceRealMax(plot_stop_time);
         amrex::Print() << "Writing plotfile 0 in " << plot_stop_time << " seconds\n";
-        
+
     }
 
     // **********************************
@@ -426,7 +426,7 @@ amrex::Initialize(argc,argv);
             if (ParallelDescriptor::IOProcessor()) {
                 C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
                 for (int i=0; i<n_cell_x; ++i) {
-                        
+
                     C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
                                     << C_alphaalpha_00[(i+n_cell_x/2)%n_cell_x] << " "
                                     << C_alphaalpha_11[(i+n_cell_x/2)%n_cell_x] << " "
