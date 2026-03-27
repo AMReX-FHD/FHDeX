@@ -7,10 +7,10 @@ int FPU::max_ensembles_per_rank; // for parallelization purposes
 
 // total steps in simulation and time step
 int FPU::nsteps;
-amrex::Real FPU::dt;
+AMREX_GPU_MANAGED amrex::Real FPU::dt;
 
 // enable fluctuations
-int FPU::enable_fluctuations;
+AMREX_GPU_MANAGED int FPU::enable_fluctuations;
 
 // how many steps to skip before defining t=0
 int FPU::n_steps_skip;

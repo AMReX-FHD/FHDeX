@@ -9,9 +9,9 @@ namespace FPU {
     extern int max_ensembles_per_rank;
 
     extern int nsteps;
-    extern amrex::Real dt;
+    extern AMREX_GPU_MANAGED amrex::Real dt;
 
-    extern int enable_fluctuations;
+    extern AMREX_GPU_MANAGED int enable_fluctuations;
 
     extern int n_steps_skip;
 
