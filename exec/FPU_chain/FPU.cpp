@@ -65,7 +65,7 @@ void init(MultiFab& state,
             }
 
             for (auto i = lo.x; i <= hi.x; ++i) {
-                for (int kkk=0; kkk<1000; kkk++) {
+                for (int kkk=0; kkk<100; kkk++) {
                     Real grad_U = (a*r + b*r*r + c*r*r*r + pressure);
                     r += -step_size * beta * grad_U + sqrt_2dt * amrex::RandomNormal(0.,1.);
                 }
