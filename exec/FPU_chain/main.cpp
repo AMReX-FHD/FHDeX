@@ -24,22 +24,32 @@ Initialize(argc,argv);
     // DECLARE SIMULATION PARAMETERS
     // **********************************
 
-    int n_particles = 8000;
-    int n_steps = 1000000;
+    int n_particles = 1000;
 
-    int n_ensembles = 10;
-    int max_ensembles_per_rank = 1000;  // for parallelization purposes
+    int n_ensembles = 8000;
+    int max_ensembles_per_rank = 8000;  // for parallelization purposes
+
+    int n_steps = 200000;
+    Real dt = 1.e-3;
+
+    int n_steps_skip = 5000;
+
+    int plot_int = 10000;
+
+    int diag_int = 1000;
+
+    int seed = 1;
 
     Real a_coef = 1.0;
-    Real b_coef = 0.0;
+    Real b_coef = 2.0;
     Real c_coef = 1.0;
 
-    Real beta = 1.0;
+    Real beta = 2.0;
     Real pressure = 1.0;
 
-    Real r_eq = 1.;
+    Real r_eq = -1.5169605961086972;
     Real p_eq = 0.;
-    Real e_eq = 1.;
+    Real e_eq = 0.6241564546430696;
 
     Real R_00 = 1.;
     Real R_01 = 0.;
@@ -51,13 +61,6 @@ Initialize(argc,argv);
     Real R_21 = 0.;
     Real R_22 = 1.;
 
-    int seed = 1;
-
-    Real dt = 1.e-3;
-
-    int diag_int = 1000;
-    int plot_int = 10000;
-
     // ***************************************************************
     // READ INPUT PARAMETER VALUES FROM INPUT FILE AND/OR COMMAND LINE
     // ***************************************************************
@@ -68,10 +71,20 @@ Initialize(argc,argv);
         ParmParse pp;
 
         pp.query("n_particles",n_particles);
-        pp.query("n_steps",n_steps);
 
         pp.query("n_ensembles",n_ensembles);
         pp.query("max_ensembles_per_rank",max_ensembles_per_rank);
+
+        pp.query("n_steps",n_steps);
+        pp.query("dt",dt);
+
+        pp.query("n_steps_skip",n_steps_skip);
+
+        pp.query("plot_int",plot_int);
+
+        pp.query("diag_int",diag_int);
+
+        pp.query("seed",seed);
 
         pp.query("a_coef",a_coef);
         pp.query("b_coef",b_coef);
@@ -93,13 +106,6 @@ Initialize(argc,argv);
         pp.query("R_20",R_20);
         pp.query("R_21",R_21);
         pp.query("R_22",R_22);
-
-        pp.query("seed",seed);
-
-        pp.query("dt",dt);
-
-        pp.query("diag_int",diag_int);
-        pp.query("plot_int",plot_int);
     }
 
     int the_seed;
@@ -169,16 +175,13 @@ Initialize(argc,argv);
     // ******************************
     // SAMPLE TO OBTAIN INITIAL STATE
     // ******************************
+    Real init_strt_time = ParallelDescriptor::second();
     init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
+    Real init_stop_time = ParallelDescriptor::second() - init_strt_time;
+    ParallelDescriptor::ReduceRealMax(init_stop_time);
+    amrex::Print() << "Completed init in " << init_stop_time << " seconds " << std::endl;
+
     compute_energy(state,a_coef,b_coef,c_coef);
-
-    Copy(phi0,state,0,0,3,0);
-    ComputePhiFromState(phi0,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
-
-/*
-    // save g_alpha(0,0)
-    g_alpha_zero.ParallelCopy(state, 0, 0, 3);
-*/
 
     // write out diagnostics (means)
     if (diag_int > 0) {
@@ -195,6 +198,11 @@ Initialize(argc,argv);
     for (int step=1; step<=n_steps; ++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
+
+        if (step == n_steps_skip) {
+            Copy(phi0,state,0,0,3,0);
+            ComputePhiFromState(phi0,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+        }
 
         time += dt;
 
@@ -218,25 +226,27 @@ Initialize(argc,argv);
             amrex::Print() << "Writing plotfile " << pltfile << std::endl;
             WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, step);
 
-            Copy(phi,state,0,0,3,0);
-            ComputePhiFromState(phi,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
+            if (step > n_steps_skip) {
+                Copy(phi,state,0,0,3,0);
+                ComputePhiFromState(phi,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
 
-            ComputeCalphaalpha(C_alphaalpha,phi,phi0);
-            C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
-            C_alphaalpha_11 = sumToLine(C_alphaalpha, 1, 1, domain, 0);
-            C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
+                ComputeCalphaalpha(C_alphaalpha,phi,phi0);
+                C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
+                C_alphaalpha_11 = sumToLine(C_alphaalpha, 1, 1, domain, 0);
+                C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
 
-            const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
-            amrex::Print() << "Writing C_alphaalphafile " << C_alphaalphafile << std::endl;
-            std::ofstream C_alphaalphaout;
-            if (ParallelDescriptor::IOProcessor()) {
-                C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
-                for (int i=0; i<n_particles; ++i) {
+                const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
+                amrex::Print() << "Writing C_alphaalphafile " << C_alphaalphafile << std::endl;
+                std::ofstream C_alphaalphaout;
+                if (ParallelDescriptor::IOProcessor()) {
+                    C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
+                    for (int i=0; i<n_particles; ++i) {
 
-                    C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
-                                    << C_alphaalpha_00[(i+n_particles/2)%n_particles] << " "
-                                    << C_alphaalpha_11[(i+n_particles/2)%n_particles] << " "
-                                    << C_alphaalpha_22[(i+n_particles/2)%n_particles] << "\n";
+                        C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
+                                        << C_alphaalpha_00[(i+n_particles/2)%n_particles] << " "
+                                        << C_alphaalpha_11[(i+n_particles/2)%n_particles] << " "
+                                        << C_alphaalpha_22[(i+n_particles/2)%n_particles] << "\n";
+                    }
                 }
             }
 
