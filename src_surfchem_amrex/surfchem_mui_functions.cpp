@@ -16,6 +16,9 @@ void InitializeSurfChemMUINamespace()
     // number of species involved in mui (via adsorption/desorption)
     pp.get("nspec_mui",surfchem_mui::nspec_mui);
 
+    MFsurfchem::ads_wall_dir = 2;
+    pp.get("ads_wall_dir",MFsurfchem::ads_wall_dir);
+
     return;
 }
 
