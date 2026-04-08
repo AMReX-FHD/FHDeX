@@ -17,7 +17,7 @@ subroutine advect_2d(time, lo, hi, &
      &            flxx2, fx2_lo, fx2_hi, &
      &            flxy2, fy2_lo, fy2_hi, &
      &            dx,dt,nu, correct) bind(C, name="advect_2d")
-  
+
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module_2d, only : compute_flux_2d
 
@@ -67,9 +67,9 @@ subroutine advect_2d(time, lo, hi, &
   double precision, intent(in   ) :: vx_f  (vxf_lo(1):vxf_hi(1),vxf_lo(2):vxf_hi(2))
   double precision, intent(in   ) :: vy_f  (vyf_lo(1):vyf_hi(1),vyf_lo(2):vyf_hi(2))
   ! ** Out: uout - predicted concentration c^*( if correct = 0 ) or corrected concentration c^n+1 (if correct = 1)
-  !         flxx1, flxy1  - the x and y componetents of the previous concentration fluxes        
-  !         flxx2, flxy2  - the x and y componetents of the predicted concentration fluxes        
-  !         flxx, flxy    - the x and y componetents of the average of the previous and predicted concentration fluxes    
+  !         flxx1, flxy1  - the x and y componetents of the previous concentration fluxes
+  !         flxx2, flxy2  - the x and y componetents of the predicted concentration fluxes
+  !         flxx, flxy    - the x and y componetents of the average of the previous and predicted concentration fluxes
   double precision, intent(inout) :: uout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2))
   double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
   double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
@@ -102,7 +102,7 @@ subroutine advect_2d(time, lo, hi, &
   call bl_allocate(cony1  ,glo(1), ghi(1), glo(2), ghi(2))
   call bl_allocate(cony1_x,glo(1), ghi(1), glo(2), ghi(2))
   ! slope
-  call bl_allocate(slope1,glo(1), ghi(1), glo(2), ghi(2) )  
+  call bl_allocate(slope1,glo(1), ghi(1), glo(2), ghi(2) )
 
 
   call bl_allocate(conx2  ,glo(1), ghi(1), glo(2), ghi(2))
@@ -110,17 +110,17 @@ subroutine advect_2d(time, lo, hi, &
   call bl_allocate(cony2  ,glo(1), ghi(1), glo(2), ghi(2))
   call bl_allocate(cony2_x,glo(1), ghi(1), glo(2), ghi(2))
   ! slope
-  call bl_allocate(slope2,glo(1), ghi(1), glo(2), ghi(2))  
-  
+  call bl_allocate(slope2,glo(1), ghi(1), glo(2), ghi(2))
+
   ! We like to allocate these **pointers** here and then pass them to a function
   ! to remove their pointerness for performance, because normally pointers could
   ! be aliasing.  We need to use pointers instead of allocatable arrays because
   ! we like to use AMReX's bl_allocate to allocate memeory instead of the intrinsic
-  ! allocate.  Bl_allocate is much faster than allocate inside OMP.  
+  ! allocate.  Bl_allocate is much faster than allocate inside OMP.
   ! Note that one MUST CALL BL_DEALLOCATE.
 
   ! check if CFL condition is violated.
- 
+
  umax = maxval(abs(vx_f))
   vmax = maxval(abs(vy_f))
 
@@ -205,7 +205,7 @@ subroutine advect_2d(time, lo, hi, &
                else if (ifacef(i,j-1) .eq. 2) then
                flxy2(i,j)=0
                end if
-           end if 
+           end if
            uout(i,j) = uin_p(i,j) + &
               0.5*(( (flxx1(i,j) - flxx1(i+1,j)) * dtdx(1) &
                 + (flxy1(i,j) - flxy1(i,j+1)) * dtdx(2)) &
@@ -225,7 +225,7 @@ subroutine advect_2d(time, lo, hi, &
            flxx(i,j) = flxx(i,j) * (dt * dx(2))
         enddo
      enddo
-     do    j = lo(2), hi(2)+1 
+     do    j = lo(2), hi(2)+1
         do i = lo(1), hi(1)
            flxy(i,j) = flxy(i,j) * (dt * dx(1))
         enddo
@@ -238,7 +238,7 @@ subroutine advect_2d(time, lo, hi, &
   call bl_deallocate(cony1_x)
 
   call bl_deallocate(slope1)
- 
+
   call bl_deallocate(conx2  )
   call bl_deallocate(conx2_y)
   call bl_deallocate(cony2  )

@@ -193,7 +193,7 @@ public:
     void SpreadKernel(const Box& bx, std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
                       const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords,
-                      const Real* pos, const Real* v_spread, 
+                      const Real* pos, const Real* v_spread,
                       const Real* dx, int* nghost, MFIter* mfi) const;
 
     void InvInterpolateMarkers(int lev, const ParticleIndex & pindex,

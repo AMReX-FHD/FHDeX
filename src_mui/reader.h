@@ -14,15 +14,15 @@
 namespace mui {
 
 struct reader {
-	reader( const std::function<void(message)>& functor ): functor_(functor) {}
-	void scan( message msg ) { functor_(msg); };
+    reader( const std::function<void(message)>& functor ): functor_(functor) {}
+    void scan( message msg ) { functor_(msg); };
 private:
-	std::function<void(message)> functor_;
+    std::function<void(message)> functor_;
 };
 
 template<class CLASS, class FPTR>
 reader make_reader( CLASS &obj, const FPTR &f ) {
-	return reader( std::bind( std::mem_fn(f), &obj, std::placeholders::_1 ) );
+    return reader( std::bind( std::mem_fn(f), &obj, std::placeholders::_1 ) );
 }
 
 }

@@ -127,6 +127,6 @@ AMREX_GPU_HOST_DEVICE Real average_to_faces(const Real& value1,
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry& geom,
-		   const MultiFab& n_in);
+                   const MultiFab& n_in);
 
 #endif

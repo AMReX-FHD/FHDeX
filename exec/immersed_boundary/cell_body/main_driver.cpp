@@ -464,7 +464,7 @@ void main_driver(const char * argv) {
     // Find the optimal number of ghost cells for the IBMarkerContainer
     Real min_dx = dx[0];
     for (int d=1; d<AMREX_SPACEDIM; ++d)
-	    min_dx = amrex::min(min_dx, dx[d]);
+        min_dx = amrex::min(min_dx, dx[d]);
 
     // min of 4 is a HACK: something large enough but not too large
     int ib_nghost = 4;
@@ -496,7 +496,7 @@ void main_driver(const char * argv) {
         Real l_link = L/(N-1);
 
         const RealVect & x_anchor_0 = offset_0[i_ib]; //initial position of the first marker on flagellum
-        const RealVect & e_anchor_0 = {1,0,0}; //initial orientation along the first two markers on flagellum							   
+        const RealVect & e_anchor_0 = {1,0,0}; //initial orientation along the first two markers on flagellum
         Print() << "Initializing flagellum:" << std::endl;
         Print() << "N=          " << N           << std::endl;
         Print() << "L=          " << L           << std::endl;
@@ -507,7 +507,7 @@ void main_driver(const char * argv) {
         // using fourier modes => first two nodes reserved as "anchor"
         int N_markers = immbdy::contains_fourier ? N+1 : N;
 
-	Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom, x_anchor_0, e_anchor_0);
+        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom, x_anchor_0, e_anchor_0);
 
         // Vector<RealVect> marker_positions(N_markers);
         // if (immbdy::contains_fourier) {
@@ -614,7 +614,7 @@ void main_driver(const char * argv) {
     BL_PROFILE_VAR_STOP(CREATEMARKERS);
 
     // TODO: Create verify method!
-    // Check that generated IDs match those in the particles.dat 
+    // Check that generated IDs match those in the particles.dat
     int N = ib_mc.getTotalNumIDs();
     //id_1 records marker ids on a given ib
     Vector<int> ids(N);
@@ -771,8 +771,8 @@ void main_driver(const char * argv) {
         // Advance umac
         // advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
         //            alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
-        advance_stokes(umac, umacNew, pres, ib_mc, bond_map, bond_neighbors, 
-		       mfluxdiv_predict, mfluxdiv_correct,
+        advance_stokes(umac, umacNew, pres, ib_mc, bond_map, bond_neighbors,
+                       mfluxdiv_predict, mfluxdiv_correct,
                        alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
 
         //exit(0);

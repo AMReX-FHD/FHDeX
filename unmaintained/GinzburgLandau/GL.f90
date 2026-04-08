@@ -36,9 +36,9 @@
       read(5,*)rad
 
       call RandomSeeds(1905849284)
-      
-      dx = 1.d0/dfloat(imax)     
-      dy = 1.d0/dfloat(jmax)     
+
+      dx = 1.d0/dfloat(imax)
+      dy = 1.d0/dfloat(jmax)
 
       dt = 0.25d0*cfl*dx**2 / gamma
 
@@ -50,7 +50,7 @@
 
       do j=1,jmax
       do i=1,jmax
-     
+
          x = dx*dfloat(i-1)
          y = dy*dfloat(j-1)
 
@@ -91,7 +91,7 @@
              ave= ave+phi(i,j)
              maxphi = max(maxphi, phi(i,j))
              minphi = min(minphi, phi(i,j))
-          
+
            enddo
          enddo
 
@@ -108,7 +108,7 @@
              phin(i,j) = phi(i,j) + dt*gamma*(phi(i+1,j)-2.d0*phi(i,j)+phi(i-1,j))/dx**2  &
               + dt*gamma*(phi(i,j+1)-2.d0*phi(i,j)+phi(i,j-1))/dy**2  &
               -dt*func(i,j)-dt*k*integral + dt*factor * rnums(i,j)
-          
+
            enddo
          enddo
 
@@ -133,7 +133,7 @@
       enddo
 
       end
-     
+
       subroutine periodic(phi,imax,jmax,ndim)
 
           integer imax,jmax,ndim

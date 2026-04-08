@@ -1,4 +1,3 @@
-
 #include "multispec_test_functions.H"
 
 #include "StochMomFlux.H"
@@ -26,7 +25,7 @@ using namespace std::chrono;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-  
+
     BL_PROFILE_VAR("main_driver()",main_driver);
 
     // store the current time so we can later compute total run time.
@@ -35,7 +34,7 @@ void main_driver(const char* argv)
     //=============================================================
     // Initialization
     //=============================================================
-    
+
     std::string inputs_file = argv;
 
 
@@ -45,9 +44,9 @@ void main_driver(const char* argv)
     InitializeGmresNamespace();
 
     if (visc_type > 0 && mixture_type != 0) {
-      Abort("positive visc_type and non-zero mixture_type not compatible");
+        Abort("positive visc_type and non-zero mixture_type not compatible");
     }
-    
+
     if (algorithm_type == 6) {
         RhototBCInit();
     }
@@ -82,7 +81,7 @@ void main_driver(const char* argv)
 
     }
     /////////////////////////////////////////
-    
+
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -90,17 +89,17 @@ void main_driver(const char* argv)
             is_periodic[i] = 1;
         }
     }
-        
+
     // This defines the physical box, [-1,1] in each direction.
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-        
+
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
 
     Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    
+
     int ng_s; // ghost cells for density MultiFabs
     if (advection_type == 0) {
         ng_s = 2; // centered advection
@@ -128,7 +127,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     MultiFab Epot;
     std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_old;
-    
+
     if (restart > 0) {
         ReadCheckPoint(init_step,time,dt,
                        rho_old,rhotot_old,pi,umac,Epot,grad_Epot_old,
@@ -151,7 +150,7 @@ void main_driver(const char* argv)
 
         // define DistributionMapping
         dmap.define(ba);
-        
+
         // staggered velocities
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
@@ -162,7 +161,7 @@ void main_driver(const char* argv)
             }
         }
 
-//      added by JBB to allow reset of dt on restart
+        //      added by JBB to allow reset of dt on restart
         if (fixed_dt >0) dt=fixed_dt;
 
         rho_old.define   (ba, dmap, nspecies, ng_s);
@@ -175,9 +174,9 @@ void main_driver(const char* argv)
 
     // moved this to here so can change dt from value in checkpoint
     dt = fixed_dt;
-    
+
     // data structures to help with reservoirs
-    // 
+    //
     //
     //
 
@@ -190,7 +189,7 @@ void main_driver(const char* argv)
     //
 
     if (restart < 0) {
-    
+
         // initialize rho and umac in valid region only
         InitRhoUmac(umac,rho_old,geom);
 
@@ -218,7 +217,7 @@ void main_driver(const char* argv)
     MultiFab diff_mass_fluxdiv(ba, dmap, nspecies, 0);
     MultiFab eta              (ba, dmap, 1       , 1);
     MultiFab kappa            (ba, dmap, 1       , 1);
-    
+
     /////////////////////////////////////////
 
     // eta and Temp on nodes (2d) or edges (3d)
@@ -239,7 +238,7 @@ void main_driver(const char* argv)
     MultiFab stoch_mass_fluxdiv(ba,dmap,nspecies,0);
     std::array< MultiFab, AMREX_SPACEDIM > stoch_mass_flux;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+        stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
 
     std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_new;
@@ -293,23 +292,23 @@ void main_driver(const char* argv)
             Abort("main_driver.cpp: dielectric_type != 0 not supported");
         }
     }
-    
-    
+
+
     // allocate and build MultiFabs that will contain random numbers
     // by declaring StochMassFlux and StochMomFlux objects
     int n_rngs_mass;
     int n_rngs_mom;
     if (algorithm_type == 2 || algorithm_type == 5) {
         n_rngs_mass = 2;
-        n_rngs_mom = 2;  
+        n_rngs_mom = 2;
     }
     else if (algorithm_type == 6) {
         n_rngs_mass = 2;
-        n_rngs_mom = 1;  
+        n_rngs_mom = 1;
     }
     else {
         n_rngs_mass = 1;
-        n_rngs_mom = 1;        
+        n_rngs_mom = 1;
     }
     StochMassFlux sMassFlux(ba,dmap,geom,n_rngs_mass);
     StochMomFlux  sMomFlux (ba,dmap,geom,n_rngs_mom);
@@ -328,7 +327,7 @@ void main_driver(const char* argv)
 
     }
     */
-    
+
     // initial Temp and Temp_ed
     Temp.setVal(T_init[0]); // replace with more general initialization routine
     if (AMREX_SPACEDIM == 2) {
@@ -356,7 +355,7 @@ void main_driver(const char* argv)
     else {
         AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
-    
+
     // now that we have eta, we can initialize the inhomogeneous velocity bc's
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
     //
@@ -401,41 +400,41 @@ void main_driver(const char* argv)
 
     // variables are density, velocity and concentrations
     int structVars = AMREX_SPACEDIM+nspecies+1;
-    
+
     Vector< std::string > var_names;
     var_names.resize(structVars);
-    
+
     int cnt = 0;
     std::string x;
 
     // density
     x = "rho";
     var_names[cnt++] = x;
-    
+
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "vel";
-      x += (120+d);
-      var_names[cnt++] = x;
+        x = "vel";
+        x += (120+d);
+        var_names[cnt++] = x;
     }
 
     // c1, c2, etc.
     for (int d=0; d<nspecies; d++) {
-      x = "c";
-      x += (49+d);
-      var_names[cnt++] = x;
+        x = "c";
+        x += (49+d);
+        var_names[cnt++] = x;
     }
-    
+
     MultiFab structFactMF(ba, dmap, structVars, 0);
 
     // need to use dVol for scaling
     Real dVol = dx[0]*dx[1];
     if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
+        dVol *= cell_depth;
     } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
+        dVol *= dx[2];
     }
-    
+
     Vector<Real> var_scaling(structVars*(structVars+1)/2);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dVol;
@@ -455,10 +454,10 @@ void main_driver(const char* argv)
     s_pairB[0] = 0;
     s_pairA[1] = 1;
     s_pairB[1] = 1;
-    
+
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
-    
+
     /*
       this routine is only called for all inertial simulations (both restart and non-restart)
       it does the following:
@@ -491,7 +490,7 @@ void main_driver(const char* argv)
 
             // copy density into structFactMF
             MultiFab::Copy(structFactMF,rhotot_old,0,0,1,0);
-            
+
             // copy velocities into structFactMF
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, structFactMF, d+1, 1);
@@ -503,7 +502,7 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF);
         }
-        
+
         // write initial plotfile and structure factor
         if (plot_int > 0) {
             WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot);
@@ -529,7 +528,7 @@ void main_driver(const char* argv)
         */
 
     }
-    
+
 
     // Time stepping loop
     for(int istep=init_step; istep<=max_step; ++istep) {
@@ -561,14 +560,14 @@ void main_driver(const char* argv)
             Abort("algorithm_type not supported");
         }
 
-	//////////////////////////////////////////////////
-	if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
+        //////////////////////////////////////////////////
+        if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
 
             // copy density into structFactMF
             MultiFab::Copy(structFactMF,rhotot_new,0,0,1,0);
-            
+
             // copy velocities into structFactMF
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, structFactMF, d+1, 1);
@@ -580,11 +579,10 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF);
         }
-	
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
-    
+
         amrex::Print() << "Advanced step " << istep << " in " << step_stop_time << " seconds\n";
 
         time = time + dt;
@@ -612,7 +610,7 @@ void main_driver(const char* argv)
                 MultiFab::Copy(grad_Epot_old[d], grad_Epot_new[d], 0, 0, 1, grad_Epot_old[d].nGrow());
             }
         }
-        
+
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -633,10 +631,10 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        
+
     }
 
-    // Call the timer again and compute the maximum difference between the start time 
+    // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);

@@ -20,7 +20,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 {
     BL_PROFILE_VAR("GetTurbQty()",GetTurbQty);
 
-    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : 
+    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] :
                                        n_cells[0]*n_cells[1]*n_cells[2];
     dProb = 1./dProb;
 
@@ -37,7 +37,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     std::array< MultiFab, NUM_EDGE > curlUtemp;
     AMREX_D_TERM(macTemp[0].define(convert(prim.boxArray(),nodal_flag_x), prim.DistributionMap(), 1, 1);,
                  macTemp[1].define(convert(prim.boxArray(),nodal_flag_y), prim.DistributionMap(), 1, 1);,
-                 macTemp[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 1, 1););   
+                 macTemp[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 1, 1););
     gradU.define(prim.boxArray(),prim.DistributionMap(),AMREX_SPACEDIM,0);
     sound_speed.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTemp.define(prim.boxArray(),prim.DistributionMap(),1,0);
@@ -55,7 +55,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     curlU[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
     eta_edge[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
 #endif
-    
+
 #if (AMREX_SPACEDIM == 3)
     curlUtemp[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
     curlUtemp[1].define(convert(prim.boxArray(),nodal_flag_xz), prim.DistributionMap(), 1, 0);
@@ -78,15 +78,15 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //   StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
     {
         auto mask = cumom[0].OwnerMask(geom.periodicity());
-	rhouu[0] = MultiFab::Dot(cumom[0],0,vel[0],0,1,0);
+        rhouu[0] = MultiFab::Dot(cumom[0],0,vel[0],0,1,0);
     }
     {
         auto mask = cumom[1].OwnerMask(geom.periodicity());
-	rhouu[1] = MultiFab::Dot(cumom[1],0,vel[1],0,1,0);
+        rhouu[1] = MultiFab::Dot(cumom[1],0,vel[1],0,1,0);
     }
     {
         auto mask = cumom[2].OwnerMask(geom.periodicity());
-	rhouu[2] = MultiFab::Dot(cumom[2],0,vel[2],0,1,0);
+        rhouu[2] = MultiFab::Dot(cumom[2],0,vel[2],0,1,0);
     }
     rhouu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
     rhouu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
@@ -97,15 +97,15 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //    StagInnerProd(vel,0,vel,0,macTemp,uu);
     {
         auto mask = vel[0].OwnerMask(geom.periodicity());
-	uu[0] = MultiFab::Dot(vel[0],0,vel[0],0,1,0);
+        uu[0] = MultiFab::Dot(vel[0],0,vel[0],0,1,0);
     }
     {
         auto mask = vel[1].OwnerMask(geom.periodicity());
-	uu[1] = MultiFab::Dot(vel[1],0,vel[1],0,1,0);
+        uu[1] = MultiFab::Dot(vel[1],0,vel[1],0,1,0);
     }
     {
         auto mask = vel[2].OwnerMask(geom.periodicity());
-	uu[2] = MultiFab::Dot(vel[2],0,vel[2],0,1,0);
+        uu[2] = MultiFab::Dot(vel[2],0,vel[2],0,1,0);
     }
     uu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
     uu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
@@ -134,7 +134,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
         gradU2[d] *= dProb; // <(du_i/dx_i)^2> each component
     }
     Real avg_mom2 = ComputeSpatialMean(ccTemp, 0); // <\sum_i (du_i/dx_i)^2>
-    
+
     // 3rd moment
     ccTemp.setVal(0.0);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -143,7 +143,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
         gradU3[d] *= dProb; // <(du_i/dx_i)^3> each component
     }
     Real avg_mom3 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^3>
-    
+
     // 4th moment
     ccTemp.setVal(0.0);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -152,7 +152,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
         gradU4[d] *= dProb; // <(du_i/dx_i)^4> each component
     }
     Real avg_mom4 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^4>
-            
+
     // Taylor Microscale
     taylor_len = sqrt(3.0)*u_rms/sqrt(avg_mom2); // from Wang et al., JFM, 2012
 
@@ -167,33 +167,33 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     //Real skew2 = gradU3[1]/pow(gradU2[1],1.5); // <(du_2/dx_2)^3>/<(du_2/dx_2)^2>^1.5
     //Real skew3 = gradU3[2]/pow(gradU2[2],1.5); // <(du_3/dx_3)^3>/<(du_3/dx_3)^2>^1.5
     // <\sum_i (du_i/dx_i)^3> / (\sum_i <(du_i/dx_i)^2>^1.5)
-    skew = avg_mom3/(pow(gradU2[0],1.5) + pow(gradU2[1],1.5) + pow(gradU2[2],1.5)); 
-            
+    skew = avg_mom3/(pow(gradU2[0],1.5) + pow(gradU2[1],1.5) + pow(gradU2[2],1.5));
+
     // Kurtosis
     //Real kurt1 = gradU4[0]/pow(gradU2[0],2); // <(du_1/dx_1)^4>/<(du_1/dx_1)^2>^2
     //Real kurt2 = gradU4[1]/pow(gradU2[1],2); // <(du_2/dx_2)^4>/<(du_2/dx_2)^2>^2
     //Real kurt3 = gradU4[2]/pow(gradU2[2],2); // <(du_3/dx_3)^4>/<(du_3/dx_3)^2>^2
     // <\sum_i (du_i/dx_i)^4> / (\sum_i <(du_i/dx_i)^2>^2)
-    kurt =  avg_mom4/(pow(gradU2[0],2) + pow(gradU2[1],2) + pow(gradU2[2],2)); 
+    kurt =  avg_mom4/(pow(gradU2[0],2) + pow(gradU2[1],2) + pow(gradU2[2],2));
 
     // Compute \omega (curl)
     ComputeCurlFaceToEdge(vel,curlU,geom);
-    
+
     // Solenoidal dissipation: <eta \omega_i \omega_i>
     AverageCCToEdge(eta,eta_edge,0,1,SPEC_BC_COMP,geom);
     EdgeInnerProd(curlU,0,curlU,0,curlUtemp,tempvec);
 //    EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
     {
         auto mask = curlUtemp[0].OwnerMask(geom.periodicity());
-	eps_s_vec[0] = MultiFab::Dot(curlUtemp[0],0,eta_edge[0],0,1,0);
+        eps_s_vec[0] = MultiFab::Dot(curlUtemp[0],0,eta_edge[0],0,1,0);
     }
     {
         auto mask = curlUtemp[1].OwnerMask(geom.periodicity());
-	eps_s_vec[1] = MultiFab::Dot(curlUtemp[1],0,eta_edge[1],0,1,0);
+        eps_s_vec[1] = MultiFab::Dot(curlUtemp[1],0,eta_edge[1],0,1,0);
     }
     {
         auto mask = curlUtemp[2].OwnerMask(geom.periodicity());
-	eps_s_vec[2] = MultiFab::Dot(curlUtemp[2],0,eta_edge[2],0,1,0);
+        eps_s_vec[2] = MultiFab::Dot(curlUtemp[2],0,eta_edge[2],0,1,0);
     }
     eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
     eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
@@ -203,16 +203,16 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     // Dilational dissipation (4/3)*<eta (\sum_i du_i/dx_i)^2>
 //    CCInnerProd(ccTempDiv,0,eta,0,ccTemp,eps_d);
     if (visc_type == 3) {
-      // get eta_bulk_diss = kappa + 4/3 eta
-      MultiFab::LinComb(eta_bulk_diss, 1.0, zeta, 0, 
-                        1.3333333333, eta, 0, 
-                        0, 1, 0);
-      eps_d = MultiFab::Dot(eta_bulk_diss, 0, ccTempDiv, 0, 1, 0);
-      eps_d *= dProb;
+        // get eta_bulk_diss = kappa + 4/3 eta
+        MultiFab::LinComb(eta_bulk_diss, 1.0, zeta, 0,
+                          1.3333333333, eta, 0,
+                          0, 1, 0);
+        eps_d = MultiFab::Dot(eta_bulk_diss, 0, ccTempDiv, 0, 1, 0);
+        eps_d *= dProb;
     }
     else {
-      eps_d = MultiFab::Dot(eta, 0, ccTempDiv, 0, 1, 0);
-      eps_d *= dProb*(4.0/3.0);
+        eps_d = MultiFab::Dot(eta, 0, ccTempDiv, 0, 1, 0);
+        eps_d *= dProb*(4.0/3.0);
     }
 
     // Ratio of Dilational to Solenoidal dissipation
@@ -247,7 +247,7 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     vel_decomp.define(prim.boxArray(),prim.DistributionMap(),6,1); // need a ghost cell for gradients
     vel_decomp.ParallelCopy(vel_decomp_in,0,0,6);
     vel_decomp.FillBoundary(geom.periodicity());
-    
+
     Vector<Real> dProb(3);
     dProb[0] = 1.0/((n_cells[0]+1)*n_cells[1]*n_cells[2]);
     dProb[1] = 1.0/((n_cells[1]+1)*n_cells[2]*n_cells[0]);
@@ -260,10 +260,10 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     MultiFab ccTemp;
     AMREX_D_TERM(gradU[0].define(convert(prim.boxArray(),nodal_flag_x), prim.DistributionMap(), 6, 0);,
                  gradU[1].define(convert(prim.boxArray(),nodal_flag_y), prim.DistributionMap(), 6, 0);,
-                 gradU[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 6, 0););   
+                 gradU[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 6, 0););
     AMREX_D_TERM(faceTemp[0].define(convert(prim.boxArray(),nodal_flag_x), prim.DistributionMap(), 1, 0);,
                  faceTemp[1].define(convert(prim.boxArray(),nodal_flag_y), prim.DistributionMap(), 1, 0);,
-                 faceTemp[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 1, 0););   
+                 faceTemp[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 1, 0););
     sound_speed.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTemp.define(prim.boxArray(),prim.DistributionMap(),1,0);
 
@@ -275,7 +275,7 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     Vector<Real> gradU2_d(3);
     Vector<Real> gradU3_d(3);
     Vector<Real> gradU4_d(3);
-    
+
     Vector<int> comps_s{0,1,2};
     Vector<int> comps_d{3,4,5};
 
@@ -348,35 +348,35 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     gradU4_d[0] = dProb[0]*(faceTemp[0].sum_unique(0,false,geom.periodicity()));
     gradU4_d[1] = dProb[1]*(faceTemp[1].sum_unique(0,false,geom.periodicity()));
     gradU4_d[2] = dProb[2]*(faceTemp[2].sum_unique(0,false,geom.periodicity()));
-            
+
     // Skewness
     // <\sum_i (du_i/dx_i)^3> / (\sum_i <(du_i/dx_i)^2>^1.5)
     skew_s = (gradU3_s[0] + gradU3_s[1] + gradU3_s[2])/
-             (pow(gradU2_s[0],1.5) + pow(gradU2_s[1],1.5) + pow(gradU2_s[2],1.5)); 
+             (pow(gradU2_s[0],1.5) + pow(gradU2_s[1],1.5) + pow(gradU2_s[2],1.5));
     skew_d = (gradU3_d[0] + gradU3_d[1] + gradU3_d[2])/
-             (pow(gradU2_d[0],1.5) + pow(gradU2_d[1],1.5) + pow(gradU2_d[2],1.5)); 
-            
+             (pow(gradU2_d[0],1.5) + pow(gradU2_d[1],1.5) + pow(gradU2_d[2],1.5));
+
     // Kurtosis
     // <\sum_i (du_i/dx_i)^4> / (\sum_i <(du_i/dx_i)^2>^2)
     kurt_s = (gradU4_s[0] + gradU4_s[1] + gradU4_s[2])/
-             (pow(gradU2_s[0],2.0) + pow(gradU2_s[1],2.0) + pow(gradU2_s[2],2.0)); 
+             (pow(gradU2_s[0],2.0) + pow(gradU2_s[1],2.0) + pow(gradU2_s[2],2.0));
     kurt_d = (gradU4_d[0] + gradU4_d[1] + gradU4_d[2])/
-             (pow(gradU2_d[0],2.0) + pow(gradU2_d[1],2.0) + pow(gradU2_d[2],2.0)); 
+             (pow(gradU2_d[0],2.0) + pow(gradU2_d[1],2.0) + pow(gradU2_d[2],2.0));
 
 }
 #endif
 
 
 void EvaluateWritePlotFileVelGrad(int step,
-                                  const amrex::Real time,
-                                  const amrex::Geometry& geom,
-                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel)
+                                 const amrex::Real time,
+                                 const amrex::Geometry& geom,
+                                 const std::array<MultiFab, AMREX_SPACEDIM>& vel)
 {
     BL_PROFILE_VAR("EvaluateWritePlotFileVelGrad()",EvaluateWritePlotFileVelGrad);
 
     // Evaluate velocity gradient components and divergence and vorticity
     MultiFab vel_grad;
-    
+
     // Cell-Centered Velocity Gradient Stats (1,2,3 are directions)
     // 0: u_1,1
     // 1: u_2,2
@@ -392,11 +392,11 @@ void EvaluateWritePlotFileVelGrad(int step,
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(vel_grad,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.tilebox();
-        
+
         const Array4<Real> & vgrad = vel_grad.array(mfi);
-        
+
         AMREX_D_TERM(Array4<Real const> const& velx = vel[0].array(mfi);,
                      Array4<Real const> const& vely = vel[1].array(mfi);,
                      Array4<Real const> const& velz = vel[2].array(mfi););
@@ -405,10 +405,10 @@ void EvaluateWritePlotFileVelGrad(int step,
         {
             // u_1,1
             vgrad(i,j,k,0) = (velx(i+1,j,k) - velx(i,j,k))/dx[0];
-            
+
             // u_2,2
             vgrad(i,j,k,1) = (vely(i,j+1,k) - vely(i,j,k))/dx[1];
-            
+
             // u_3,3
             vgrad(i,j,k,2) = (velz(i,j,k+1) - velz(i,j,k))/dx[2];
 
@@ -489,15 +489,15 @@ void EvaluateWritePlotFileVelGrad(int step,
 
 #if defined(TURB)
 void EvaluateWritePlotFileVelGrad(int step,
-                                  const amrex::Real time,
-                                  const amrex::Geometry& geom,
-                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel,
-                                  const amrex::MultiFab& vel_decomp_in)
+                                 const amrex::Real time,
+                                 const amrex::Geometry& geom,
+                                 const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                                 const amrex::MultiFab& vel_decomp_in)
 {
     BL_PROFILE_VAR("EvaluateWritePlotFileVelGrad()",EvaluateWritePlotFileVelGrad);
 
     MultiFab output;
-    
+
     // Cell-Centered Velocity Gradient Stats (1,2,3 are directions)
     // 0: ux_s
     // 1: uy_s
@@ -519,20 +519,20 @@ void EvaluateWritePlotFileVelGrad(int step,
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(output,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.tilebox();
-        
+
         const Array4<      Real>&             out   = output.array(mfi);
 
         const Array4<const Real>&  v_decomp         = vel_decomp.array(mfi);
-        
+
         AMREX_D_TERM(Array4<Real const> const& velx = vel[0].array(mfi);,
                      Array4<Real const> const& vely = vel[1].array(mfi);,
                      Array4<Real const> const& velz = vel[2].array(mfi););
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            
+
             out(i,j,k,0) = v_decomp(i,j,k,0);
             out(i,j,k,1) = v_decomp(i,j,k,1);
             out(i,j,k,2) = v_decomp(i,j,k,2);
@@ -545,7 +545,7 @@ void EvaluateWritePlotFileVelGrad(int step,
 
             // divergence
             out(i,j,k,8) = (velx(i+1,j,k) - velx(i,j,k))/dx[0] +
-                           (vely(i,j+1,k) - vely(i,j,k))/dx[1] + 
+                           (vely(i,j+1,k) - vely(i,j,k))/dx[1] +
                            (velz(i,j,k+1) - velz(i,j,k))/dx[2] ;
 
             // on edges: u_1,2 and u_2,1 and curl w1 = u_2,1 - u_1,2
@@ -616,15 +616,15 @@ void EvaluateWritePlotFileVelGrad(int step,
 
 #if defined(TURB)
 void EvaluateWritePlotFileVelGradTiny(int step,
-                                  const amrex::Real time,
-                                  const amrex::Geometry& geom,
-                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel,
-                                  const amrex::MultiFab& vel_decomp_in)
+                                 const amrex::Real time,
+                                 const amrex::Geometry& geom,
+                                 const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                                 const amrex::MultiFab& vel_decomp_in)
 {
     BL_PROFILE_VAR("EvaluateWritePlotFileVelGradTiny()",EvaluateWritePlotFileVelGradTiny);
 
     MultiFab output;
-    
+
     // 0: vorticity wx_sifted
     // 1: vorticity wy_shifted
     // 2: vorticity wz_shifted
@@ -641,9 +641,9 @@ void EvaluateWritePlotFileVelGradTiny(int step,
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(output,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.tilebox();
-        
+
         const Array4<      Real>&             out   = output.array(mfi);
 
         AMREX_D_TERM(Array4<Real const> const& velx = vel[0].array(mfi);,
@@ -652,10 +652,10 @@ void EvaluateWritePlotFileVelGradTiny(int step,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            
+
             // divergence
             out(i,j,k,9) = (velx(i+1,j,k) - velx(i,j,k))/dx[0] +
-                           (vely(i,j+1,k) - vely(i,j,k))/dx[1] + 
+                           (vely(i,j+1,k) - vely(i,j,k))/dx[1] +
                            (velz(i,j,k+1) - velz(i,j,k))/dx[2] ;
 
             // on edges: u_1,2 and u_2,1 and curl w1 = u_2,1 - u_1,2
@@ -732,5 +732,3 @@ void EvaluateWritePlotFileVelGradTiny(int step,
     WriteSingleLevelPlotfile(plotfilename,output,varNames,geom,time,step);
 }
 #endif
-
-

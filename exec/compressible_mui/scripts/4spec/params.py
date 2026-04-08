@@ -187,23 +187,23 @@ x = np.linalg.solve(A,b)
 print A
 print b
 print x
-print 
+print
 
 nsite = 40*40
 vac = 1-sum(x)
 p = np.append(vac,x)
 
 mean = nsite*p
-var = nsite*np.multiply(p,1-p) 
+var = nsite*np.multiply(p,1-p)
 
 cads = np.array([cads1,cads2,cads3,cads4])
 rdes = np.array([rdes1,rdes2,rdes3,rdes4])
-print "cads: ", cads 
-print "rdes: ", rdes 
-print 
+print "cads: ", cads
+print "rdes: ", rdes
+print
 
 print "number of sites: %d" % nsite
 print "p    (vac,spec1,spec2,spec3,spec4): ", p
 print "mean (vac,spec1,spec2,spec3,spec4): ", mean
 print "var  (vac,spec1,spec2,spec3,spec4): ", var
-print 
+print

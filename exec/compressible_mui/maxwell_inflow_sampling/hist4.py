@@ -2,7 +2,7 @@ import numpy as np
 import math
 import sys
 
-datafile = sys.argv[1] 
+datafile = sys.argv[1]
 histfile = sys.argv[2]
 Vzratio = float(sys.argv[3])
 

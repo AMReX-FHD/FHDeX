@@ -59,14 +59,14 @@ void main_main ()
         nsteps = 10;
         pp.query("nsteps",nsteps);
 
-	npts_scale = 1.;
-	pp.query ("npts_scale",npts_scale);
+        npts_scale = 1.;
+        pp.query ("npts_scale",npts_scale);
 
-	alg_type = 0;
-	pp.query ("alg_type",alg_type);
+        alg_type = 0;
+        pp.query ("alg_type",alg_type);
 
-	cfl=.9;
-	pp.query ("cfl",cfl);
+        cfl=.9;
+        pp.query ("cfl",cfl);
 
 
         // By default, the boundary conditions will be set to periodic, or bc_lo = bc_hi = 0.
@@ -247,23 +247,23 @@ void main_main ()
             const std::string& pltfile = amrex::Concatenate("plt",n,6);
             WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
 
-//	    amrex::Real Ephi=0.;
-//	    amrex::Real Ephi2=0.;
-	    Vector<Real> Ephi(3,0.);
+//            amrex::Real Ephi=0.;
+//            amrex::Real Ephi2=0.;
+            Vector<Real> Ephi(3,0.);
             Real Ephimin = npts_scale;
-	    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+            for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
             {
                 const Box& vbx = mfi.validbox();
                 const auto lo = amrex::lbound(vbx);
                 const auto hi = amrex::ubound(vbx);
 
-         	auto const& phiNew = phi_new.array(mfi);
+               auto const& phiNew = phi_new.array(mfi);
 
                for (auto k = lo.z; k <= hi.z; ++k) {
                for (auto j = lo.y; j <= hi.y; ++j) {
                for (auto i = lo.x; i <= hi.x; ++i) {
-		   Ephi[0] += phiNew(i,j,k);
-		   Ephi[1] += phiNew(i,j,k)*phiNew(i,j,k);
+                   Ephi[0] += phiNew(i,j,k);
+                   Ephi[1] += phiNew(i,j,k)*phiNew(i,j,k);
                    Ephimin = std::min(Ephimin,phiNew(i,j,k));
                    Ephi[2] += (phiNew(i,j,k) < 0) ? 1. : 0. ;
                 }
@@ -276,13 +276,13 @@ void main_main ()
             const int IOProc = ParallelDescriptor::IOProcessorNumber();
             ParallelDescriptor::ReduceRealSum(Ephi.dataPtr(),3);
             ParallelDescriptor::ReduceRealMin(Ephimin);
-	    amrex::Real scale = n_cell*n_cell;
-	    amrex::Real scale2 =  AMREX_D_TERM( dx[0],
+            amrex::Real scale = n_cell*n_cell;
+            amrex::Real scale2 =  AMREX_D_TERM( dx[0],
                                * dx[1],
                                * dx[2] );
 
             amrex::Print() << "phi variance = " << Ephi[1]/scale - (Ephi[0]*Ephi[0]
-			    /(scale*scale)) << std::endl;
+                            /(scale*scale)) << std::endl;
             amrex::Print() << "phi integral = " << Ephi[0]*scale2 << std::endl;
             amrex::Print() << "phi min = " << Ephimin << " Number of negative points " << Ephi[2] <<  std::endl;
 

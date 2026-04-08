@@ -40,7 +40,7 @@ print "conversion probabilities: ", [rads1/rcol1,rads1/rcol1,rads1/rcol1,rads1/r
 # single-component equilibirium coverage
 
 print "single-component equilibrium coverage: ", [rads1/(rads1+rdes1),rads2/(rads2+rdes2),rads3/(rads3+rdes3),rads4/(rads4+rdes4)]
-print 
+print
 
 # equilibrium coverage
 

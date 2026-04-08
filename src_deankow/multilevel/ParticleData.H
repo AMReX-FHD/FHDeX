@@ -196,7 +196,7 @@ struct ParticleData {
 
             phi_grown2.mult(1./cell_vol,0,1,1);
 
-            phi_crse_new.ParallelAdd(phi_grown2,0,0,1,amrex::IntVect(1,1),amrex::IntVect(1,1));
+            phi_crse_new.ParallelAdd(phi_grown2, 0, 0, 1, amrex::IntVect::TheUnitVector(), amrex::IntVect::TheUnitVector());
 
             // **********************************************************************
             // Put particles on the correct levels and in the right boxes
@@ -225,7 +225,11 @@ struct ParticleData {
             stochastic_particles->RefluxFineToCrse(phi_fine.boxArray(), phi_grown);
 
             phi_grown.mult(1./cell_vol);
+#if (AMREX_SPACEDIM == 2)
             print_state(phi_grown, amrex::IntVect(31,16));
+#else
+            print_state(phi_grown, amrex::IntVect(31,16,0));
+#endif
 
             phi_crse_new.ParallelAdd(phi_grown,0,0,1);
 

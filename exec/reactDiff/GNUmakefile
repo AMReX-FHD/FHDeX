@@ -10,6 +10,7 @@ COMP      = gnu
 DIM       = 2
 MAX_SPEC  = 8
 MAX_REAC  = 7
+USE_FFT   = TRUE
 
 TINY_PROFILE = FALSE
 
@@ -41,6 +42,7 @@ VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
 
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/FFT/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 

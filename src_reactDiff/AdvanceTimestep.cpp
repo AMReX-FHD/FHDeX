@@ -15,7 +15,7 @@ void AdvanceTimestep(MultiFab& n_old,
 
     // external source term for diffusion/reaction solvers for inhomogeneous bc algorithm
     MultiFab Rn_steady(n_old.boxArray(), n_old.DistributionMap(), nspecies, 0);
-    
+
     if (temporal_integrator < 0) {
 
         Rn_steady.setVal(0.);
@@ -56,5 +56,5 @@ void AdvanceTimestep(MultiFab& n_old,
         }
 
     }
-    
+
 }

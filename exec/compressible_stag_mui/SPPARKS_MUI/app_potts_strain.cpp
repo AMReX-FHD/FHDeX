@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -24,7 +24,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-AppPottsStrain::AppPottsStrain(SPPARKS *spk, int narg, char **arg) : 
+AppPottsStrain::AppPottsStrain(SPPARKS *spk, int narg, char **arg) :
   AppPotts(spk,narg,arg)
 {
   ninteger = 1;
@@ -39,7 +39,7 @@ AppPottsStrain::AppPottsStrain(SPPARKS *spk, int narg, char **arg) :
   if (strcmp(style,"potts/strain") != 0) return;
 
   if (narg != 2) error->all(FLERR,"Illegal app_style command");
-  
+
   nspins = atoi(arg[1]);
   if (nspins <= 0) error->all(FLERR,"Illegal app_style command");
   dt_sweep = 1.0/nspins;

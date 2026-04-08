@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-## load necessary modules 
+## load necessary modules
 module load craype-accel-amd-gfx90a
 module load amd-mixed
 #module load rocm/5.2.0  # waiting for 5.6 for next bump
@@ -24,4 +24,4 @@ export LDFLAGS="-L${MPICH_DIR}/lib -lmpi ${CRAY_XPMEM_POST_LINK_OPTS} -lxpmem ${
 export CXXFLAGS="-I${MPICH_DIR}/include"
 export HIPFLAGS="--amdgpu-target=gfx90a"
 
-make -j10 USE_CUDA=FALSE USE_HIP=TRUE DO_TURB=TRUE MAX_SPEC=2 USE_HEFFTE_ROCFFT=TRUE USE_ASSERTION=TRUE 
+make -j10 USE_CUDA=FALSE USE_HIP=TRUE DO_TURB=TRUE MAX_SPEC=2 USE_HEFFTE_ROCFFT=TRUE USE_ASSERTION=TRUE

@@ -58,7 +58,7 @@ void SetupCWallStag() {
             }
             molmix = 1./molmix;
             t_lo[0] = p_lo[0]*(molmix/Runiv)/rho_lo[0];
-        }     
+        }
     }
 
     if ((bc_mass_hi[0] == 2) or (bc_mass_hi[0] >= 3)) {
@@ -98,7 +98,7 @@ void SetupCWallStag() {
             }
             molmix = 1./molmix;
             t_hi[0] = p_hi[0]*(molmix/Runiv)/rho_hi[0];
-        }     
+        }
     }
 
     // Y walls
@@ -139,7 +139,7 @@ void SetupCWallStag() {
             }
             molmix = 1./molmix;
             t_lo[1] = p_lo[1]*(molmix/Runiv)/rho_lo[1];
-        }     
+        }
     }
 
     if ((bc_mass_hi[1] == 2) or (bc_mass_hi[1] >= 3)) {
@@ -179,7 +179,7 @@ void SetupCWallStag() {
             }
             molmix = 1./molmix;
             t_hi[1] = p_hi[1]*(molmix/Runiv)/rho_hi[1];
-        }     
+        }
     }
 
     // Z walls
@@ -220,7 +220,7 @@ void SetupCWallStag() {
             }
             molmix = 1./molmix;
             t_lo[2] = p_lo[2]*(molmix/Runiv)/rho_lo[2];
-        }     
+        }
     }
 
     if ((bc_mass_hi[2] == 2) or (bc_mass_hi[2] >= 3)) {
@@ -260,7 +260,7 @@ void SetupCWallStag() {
             }
             molmix = 1./molmix;
             t_hi[2] = p_hi[2]*(molmix/Runiv)/rho_hi[2];
-        }     
+        }
     }
 }
 
@@ -297,7 +297,7 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
 
 // set species and total density flux to zero for wall boundary conditions
 // set the diffusive momentum flux to zero in the reservoir cells
-void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, 
+void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
                               std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
                              const amrex::Geometry& geom)
 {
@@ -391,7 +391,7 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
             }
         }
     }
-    // HI Y 
+    // HI Y
     if (bc_mass_hi[1] == 1) {
 
         // domain grown nodally based on faceflux[1] nodality (y)
@@ -576,11 +576,11 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 
 }
 
-// Set adiabatic slip boundary condition at the membrane 
+// Set adiabatic slip boundary condition at the membrane
 void BCMem(MultiFab& prim_in, MultiFab& cons_in,
            std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
            std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
-           const amrex::Geometry& geom) 
+           const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("BCMem()",BCMem);
 
@@ -596,7 +596,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
 
         const Array4<Real>& prim = prim_in.array(mfi);
 
-        // membrane at the left end (cell to the right of the membrane) 
+        // membrane at the left end (cell to the right of the membrane)
         if (lo == membrane_cell) {
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -611,7 +611,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
             });
         }
 
-        // membrane at the right end (cell to the left of the membrane) 
+        // membrane at the right end (cell to the left of the membrane)
         else if (hi == membrane_cell - 1) {
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -634,14 +634,14 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
         const Box& bx = mfi.growntilebox(ngv);
         int lo = bx.smallEnd(0) + ngv;
         int hi = bx.bigEnd(0) - ngv;
-        
+
         const Array4<Real>& vel = vel_in[0].array(mfi);
         const Array4<Real>& mom = cumom_in[0].array(mfi);
 
-        // membrane at the left end (cell to the right of the membrane) 
+        // membrane at the left end (cell to the right of the membrane)
         if (lo == membrane_cell) {
-            
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < lo) {
                     vel(i,j,k) = -vel(2*lo-i,j,k);
@@ -654,10 +654,10 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
             });
         }
 
-        // membrane at the right end (cell to the left of the membrane) 
+        // membrane at the right end (cell to the left of the membrane)
         if (hi == membrane_cell) {
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i > hi) {
                     vel(i,j,k) = -vel(2*hi-i,j,k);
@@ -692,7 +692,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
             });
         }
 
-        // membrane at the right end (cell to the left of the membrane) 
+        // membrane at the right end (cell to the left of the membrane)
         else if (bx.bigEnd(0) == membrane_cell - 1) {
 
             int hi = bx.bigEnd(0);
@@ -727,7 +727,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
             });
         }
 
-        // membrane at the right end (cell to the left of the membrane) 
+        // membrane at the right end (cell to the left of the membrane)
         else if (bx.bigEnd(0) == membrane_cell - 1) {
 
             int hi = bx.bigEnd(0);
@@ -753,9 +753,9 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
         AMREX_D_TERM(Array4<Real const> const& momx = cumom_in[0].array(mfi);,
                      Array4<Real const> const& momy = cumom_in[1].array(mfi);,
                      Array4<Real const> const& momz = cumom_in[2].array(mfi););
-        
 
-        // membrane at the left end (cell to the right of the membrane) 
+
+        // membrane at the left end (cell to the right of the membrane)
         if (lo == membrane_cell) {
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -766,7 +766,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real pt = prim(i,j,k,5);
                     Real rho;
@@ -782,30 +782,30 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
                     kinenergy *= (0.125/rho);
-                    
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
+
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
             });
         }
 
-        // membrane at the right end (cell to the left of the membrane) 
+        // membrane at the right end (cell to the left of the membrane)
         else if (hi == membrane_cell - 1) {
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i > hi) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real pt = prim(i,j,k,5);
                     Real rho;
@@ -821,14 +821,14 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
                     kinenergy *= (0.125/rho);
-                    
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
+
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
             });
         }
@@ -889,7 +889,7 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& 
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_x_lo[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_x_lo[n]; // set ghost cell equal to reservoir mole fraction
-                            
+
                             prim(i,j,k,0) = rho_lo[0]; // set ghost cell equal to reservoir density
                             cons(i,j,k,0) = rho_lo[0]; // set ghost cell equal to reservoir density
 
@@ -922,12 +922,12 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& 
             }
 
         } // end LO X
-        
+
         // HI X
         if ((dim == 0) && (bx.bigEnd(0) > dom.bigEnd(0))) {
 
             int hi = dom.bigEnd(0);
-            
+
             // mass fractions, wall
             if ( bc_mass_hi[0] == 1 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -993,7 +993,7 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& 
             }
 
         } // end HI X
-        
+
         // LO Y
         if ((dim == 1) && (bx.smallEnd(1) < dom.smallEnd(1))) {
 
@@ -1064,13 +1064,13 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& 
             }
 
         } // end LO Y
-        
+
 
         // HI Y
         if ((dim == 1) && (bx.bigEnd(1) > dom.bigEnd(1))) {
 
             int hi = dom.bigEnd(1);
-            
+
             // mass fractions, wall
             if ( bc_mass_hi[1] == 1 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -1137,7 +1137,7 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& 
             }
 
         } // end HI Y
-        
+
         // LO Z
         if ((dim == 2) && (bx.smallEnd(2) < dom.smallEnd(2))) {
 
@@ -1208,13 +1208,13 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& 
             }
 
         } // end LO Z
-        
+
 
         // HI Z
         if ((dim == 2) && (bx.bigEnd(2) > dom.bigEnd(2))) {
 
             int hi = dom.bigEnd(2);
-            
+
             // mass fractions, wall
             if ( bc_mass_hi[2] == 1 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -1284,7 +1284,7 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& 
     }
 }
 
-// Set normal momemntum and velocity on the boundary and ghost cells of the 
+// Set normal momemntum and velocity on the boundary and ghost cells of the
 // staggered grid based on slip/no-slip BCs
 void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                  const amrex::Geometry& geom, int dim)
@@ -1297,14 +1297,14 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
     for ( MFIter mfi(vel_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.growntilebox(ng_v);
-        
+
         const Array4<Real>& vel  = vel_in.array(mfi);
         const Array4<Real>& mom  = mom_in.array(mfi);
         const Array4<Real>& cons = cons_in.array(mfi);
-    
+
         // LO X
         if ((dim == 0) && (bc_mass_lo[0] >= 3) && (bx.smallEnd(0) <= dom.smallEnd(0))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) {
@@ -1326,14 +1326,14 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             });
         }
         else if ((dim == 0) && (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) { // slip/no-slip
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) {
                     // set ghost velocity & momentum (set to wall value; no extrapolate)
                     vel(i,j,k) = 0.0;
                     mom(i,j,k) = 0.0;
-                }           
+                }
                 else if (i == dom.smallEnd(0)) {
                     // set normal velocity & momentum
                     vel(i,j,k) = 0.;
@@ -1341,12 +1341,12 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                 }
             });
         }
-                
+
         // HI X
         if ((dim == 0) && (bc_mass_hi[0] >= 3) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) { //reservoir
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (i > dom.bigEnd(0)+1) {
                     // set ghost velocity & momentum
                     if (bc_mass_hi[0] == 3) {
@@ -1357,7 +1357,7 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                         vel(i,j,k) = -1*vel(dom.bigEnd(0)+1,j,k);
                         mom(i,j,k) = -1*mom(dom.bigEnd(0)+1,j,k);
                     }
-                }           
+                }
                 else if (i == dom.bigEnd(0)+1) {
                     if (bc_mass_hi[0] == 3) {
                         vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i-1,j,k,0));
@@ -1368,12 +1368,12 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
         else if ((dim == 0) && (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) { // slip/no-slip
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (i > dom.bigEnd(0)+1) {
                     // set ghost velocity & momentum (set to wall value; no extrapolate)
                     vel(i,j,k) = 0.0;
                     mom(i,j,k) = 0.0;
-                }           
+                }
                 else if (i == dom.bigEnd(0)+1) {
                     // set normal velocity & momentum
                     vel(i,j,k) = 0.;
@@ -1381,10 +1381,10 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                 }
             });
         }
-        
+
         // LO Y
         if ((dim == 1) && (bc_mass_lo[1] >= 3) && (bx.smallEnd(1) <= dom.smallEnd(1))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) {
@@ -1397,7 +1397,7 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                         vel(i,j,k) = -1*vel(i,dom.smallEnd(1),k);
                         mom(i,j,k) = -1*mom(i,dom.smallEnd(1),k);
                     }
-                }           
+                }
                 else if (j == dom.smallEnd(1)) {
                     if (bc_mass_lo[1] == 3) {
                         vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i,j-1,k,0));
@@ -1406,14 +1406,14 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             });
         }
         else if ((dim == 1) && (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) { // slip/no-slip
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) {
                     // set ghost velocity & momentum (set to wall value; no extrapolate)
                     vel(i,j,k) = 0.0;
                     mom(i,j,k) = 0.0;
-                }           
+                }
                 else if (j == dom.smallEnd(1)) {
                     // set normal velocity & momentum
                     vel(i,j,k) = 0.;
@@ -1421,12 +1421,12 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                 }
             });
         }
-                
+
         // HI Y
         if ((dim == 1) && (bc_mass_hi[1] >= 3) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) { // reservoir
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (j > dom.bigEnd(1)+1) {
                     // set ghost velocity & momentum
                     if (bc_mass_hi[1] == 3) {
@@ -1437,7 +1437,7 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                         vel(i,j,k) = -1*vel(i,dom.bigEnd(1)+1,k);
                         mom(i,j,k) = -1*mom(i,dom.bigEnd(1)+1,k);
                     }
-                }           
+                }
                 else if (j == dom.bigEnd(1)+1) {
                     if (bc_mass_hi[1] == 3) {
                         vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i,j-1,k,0));
@@ -1448,12 +1448,12 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
         else if ((dim == 1) && (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) { // slip/no-slip
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (j > dom.bigEnd(1)+1) {
                     // set ghost velocity & momentum (set to wall value; no extrapolate)
                     vel(i,j,k) = 0.0;
                     mom(i,j,k) = 0.0;
-                }           
+                }
                 else if (j == dom.bigEnd(1)+1) {
                     // set normal velocity & momentum
                     vel(i,j,k) = 0.;
@@ -1461,10 +1461,10 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                 }
             });
         }
-        
-        // LO Z 
+
+        // LO Z
         if ((dim == 2) && (bc_mass_lo[2] >= 3) && (bx.smallEnd(2) <= dom.smallEnd(2))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) {
@@ -1477,7 +1477,7 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                         vel(i,j,k) = -1*vel(i,j,dom.smallEnd(2));
                         mom(i,j,k) = -1*mom(i,j,dom.smallEnd(2));
                     }
-                }           
+                }
                 else if (k == dom.smallEnd(2)) {
                     if (bc_mass_lo[2] == 3) {
                         vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i,j,k-1,0));
@@ -1486,14 +1486,14 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             });
         }
         else if ((dim == 2) && (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) { // slip/no-slip
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) {
                     // set ghost velocity & momentum (set to wall value; no extrapolate)
                     vel(i,j,k) = 0.0;
                     mom(i,j,k) = 0.0;
-                }           
+                }
                 else if (k == dom.smallEnd(2)) {
                     // set normal velocity & momentum
                     vel(i,j,k) = 0.;
@@ -1501,12 +1501,12 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                 }
             });
         }
-                
+
         // HI Z
         if ((dim == 2) && (bc_mass_hi[2] >= 3) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) { // reservoir
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (k > dom.bigEnd(2)+1) {
                     // set ghost velocity & momentum
                     if (bc_mass_hi[2] == 3) {
@@ -1517,7 +1517,7 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                         vel(i,j,k) = -1*vel(i,j,dom.bigEnd(2)+1);
                         mom(i,j,k) = -1*mom(i,j,dom.bigEnd(2)+1);
                     }
-                }           
+                }
                 else if (k == dom.bigEnd(2)+1) {
                     if (bc_mass_hi[2] == 3) {
                         vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i,j,k-1,0));
@@ -1528,12 +1528,12 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
         else if ((dim == 2) && (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) { // slip/no-slip
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {        
+            {
                 if (k > dom.bigEnd(2)+1) {
                     // set ghost velocity & momentum (set to wall value; no extrapolate)
                     vel(i,j,k) = 0.0;
                     mom(i,j,k) = 0.0;
-                }           
+                }
                 else if (k == dom.bigEnd(2)+1) {
                     // set normal velocity & momentum
                     vel(i,j,k) = 0.;
@@ -1543,15 +1543,15 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
         }
     }
 }
-        
-        
-// Set transverse momemntum and velocity on the boundary and ghost cells of the 
+
+
+// Set transverse momemntum and velocity on the boundary and ghost cells of the
 // staggered grid based on slip/no-slip BCs
 void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
                  const amrex::Geometry& geom, int dim)
 {
     BL_PROFILE_VAR("BCMomTrans()",BCMomTrans);
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -1562,7 +1562,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
     for ( MFIter mfi(vel_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.growntilebox(ng_v);
-        
+
         const Array4<Real>& vel = vel_in.array(mfi);
         const Array4<Real>& mom = mom_in.array(mfi);
 
@@ -1657,11 +1657,11 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
         }
     }
 }
-        
 
-// Set density and energy density on BCs 
-void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in, 
-               std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
+
+// Set density and energy density on BCs
+void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
+               std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
                const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("BCRhoRhoE()",BCRhoRhoE);
@@ -1678,19 +1678,19 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
         AMREX_D_TERM(Array4<Real const> const& momx = cumom_in[0].array(mfi);,
                      Array4<Real const> const& momy = cumom_in[1].array(mfi);,
                      Array4<Real const> const& momz = cumom_in[2].array(mfi););
-        
+
         // LO X
         if ((bc_mass_lo[0] >= 3) && (bx.smallEnd(0) < dom.smallEnd(0))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real rho = prim(i,j,k,0);
                     Real intenergy;
@@ -1702,23 +1702,23 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
         else if ((bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) < dom.smallEnd(0))) {
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real pt = prim(i,j,k,5);
                     Real rho;
@@ -1734,30 +1734,30 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
                     kinenergy *= (0.125/rho);
-                    
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
-        
+
         // HI X
         if ((bc_mass_hi[0] >= 3) && (bx.bigEnd(0) > dom.bigEnd(0))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i > dom.bigEnd(0)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real rho = prim(i,j,k,0);
                     Real intenergy;
@@ -1769,23 +1769,23 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
         else if ((bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i > dom.bigEnd(0)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real pt = prim(i,j,k,5);
                     Real rho;
@@ -1801,30 +1801,30 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
                     kinenergy *= (0.125/rho);
-                    
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
-        
+
         // LO Y
         if ((bc_mass_lo[1] >= 3) && (bx.smallEnd(1) < dom.smallEnd(1))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real rho = prim(i,j,k,0);
                     Real intenergy;
@@ -1836,23 +1836,23 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
         else if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) < dom.smallEnd(1))) {
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real pt = prim(i,j,k,5);
                     Real rho;
@@ -1868,30 +1868,30 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
                     kinenergy *= (0.125/rho);
-                    
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
-        
+
         // HI Y
         if ((bc_mass_hi[1] >= 3) && (bx.bigEnd(1) > dom.bigEnd(1))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j > dom.bigEnd(1)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real rho = prim(i,j,k,0);
                     Real intenergy;
@@ -1903,23 +1903,23 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
         else if ((bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) > dom.bigEnd(1))) {
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j > dom.bigEnd(1)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real pt = prim(i,j,k,5);
                     Real rho;
@@ -1935,30 +1935,30 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
                     kinenergy *= (0.125/rho);
-                    
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
-        
-        // LO Z 
+
+        // LO Z
         if ((bc_mass_lo[2] >= 3) && (bx.smallEnd(2) < dom.smallEnd(2))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real rho = prim(i,j,k,0);
                     Real intenergy;
@@ -1970,23 +1970,23 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
         else if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) < dom.smallEnd(2))) {
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real pt = prim(i,j,k,5);
                     Real rho;
@@ -2002,30 +2002,30 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
                     kinenergy *= (0.125/rho);
-                    
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
-        
+
         // HI Z
         if ((bc_mass_hi[2] >= 3) && (bx.bigEnd(2) > dom.bigEnd(2))) { // reservoir
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k > dom.bigEnd(2)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real rho = prim(i,j,k,0);
                     Real intenergy;
@@ -2037,23 +2037,23 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
         else if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) > dom.bigEnd(2))) {
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k > dom.bigEnd(2)) {
-                    
+
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
-                    
+
                     Real temp = prim(i,j,k,4);
                     Real pt = prim(i,j,k,5);
                     Real rho;
@@ -2069,22 +2069,22 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
-                    
+
                     Real kinenergy = 0.;
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
                     kinenergy *= (0.125/rho);
-                    
-                    cons(i,j,k,4) = rho*intenergy + kinenergy; 
-                }           
+
+                    cons(i,j,k,4) = rho*intenergy + kinenergy;
+                }
             });
         }
     }
 }
 
-void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, 
-                   std::array< MultiFab, 2 >& edgeflux_x_in, std::array< MultiFab, 2 >& edgeflux_y_in, 
+void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
+                   std::array< MultiFab, 2 >& edgeflux_x_in, std::array< MultiFab, 2 >& edgeflux_y_in,
                    std::array< MultiFab, 2 >& edgeflux_z_in, const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("StochFluxStag()",StochFluxStag);
@@ -2151,7 +2151,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 });
             }
         }
-        
+
     }
     // LO Y
     if (bc_mass_lo[1] == 1 || bc_mass_lo[1] == 2) {
@@ -2184,7 +2184,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             }
         }
     }
-    // HI Y 
+    // HI Y
     if (bc_mass_hi[1] == 1 || bc_mass_hi[1] == 2) {
 
         // 1 = wall        : multiply fluxes on wall by 0
@@ -2214,7 +2214,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 });
             }
         }
-        
+
     }
     // LO Z
     if (bc_mass_lo[2] == 1 || bc_mass_lo[2] == 2) {
@@ -2277,7 +2277,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 });
             }
         }
-        
+
     }
 
     // Next we do thermal boundary conditions (energy fluxes reside on faces)
@@ -2336,7 +2336,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 });
             }
         }
-        
+
     }
     // LO Y
     if (bc_therm_lo[1] == 1 || bc_therm_lo[1] == 2) {
@@ -2366,7 +2366,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             }
         }
     }
-    // HI Y 
+    // HI Y
     if (bc_therm_hi[1] == 1 || bc_therm_hi[1] == 2) {
 
         // 1 = adiabatic        : multiply fluxes on wall by 0
@@ -2393,7 +2393,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 });
             }
         }
-        
+
     }
     // LO Z
     if (bc_therm_lo[2] == 1 || bc_therm_lo[2] == 2) {
@@ -2450,7 +2450,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 });
             }
         }
-        
+
     }
 
     // Last we do velocity boundary conditions (momentum flux resides on cell centers and edges)
@@ -2524,7 +2524,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,nvars+2) *= factor; 
+                    flux(i,j,k,nvars+2) *= factor;
                 });
             }
         }
@@ -2599,7 +2599,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,nvars+2) *= factor; 
+                    flux(i,j,k,nvars+2) *= factor;
                 });
             }
         }
@@ -2674,7 +2674,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,nvars+2) *= factor; 
+                    flux(i,j,k,nvars+2) *= factor;
                 });
             }
         }
@@ -2749,7 +2749,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,nvars+2) *= factor; 
+                    flux(i,j,k,nvars+2) *= factor;
                 });
             }
         }
@@ -2824,7 +2824,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,nvars+2) *= factor; 
+                    flux(i,j,k,nvars+2) *= factor;
                 });
             }
         }
@@ -2899,7 +2899,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,nvars+2) *= factor; 
+                    flux(i,j,k,nvars+2) *= factor;
                 });
             }
         }
@@ -2911,7 +2911,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
     // the reservoir cells
     //////////////////////////////////////////
     Box dom(geom.Domain());
-    
+
     for ( MFIter mfi(cenflux_in[0]); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.growntilebox(1);
@@ -3011,7 +3011,7 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
                    std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in)
 
 {
-    
+
     BL_PROFILE_VAR("StochFluxMem()",StochFluxMem);
 
     // The membrane is an adiabatic wall -- setup the stochastic heat and species fluxes to zero
@@ -3032,7 +3032,7 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
                     xflux(i,j,k,nvars+0) = 0.; // stochastic heating (adiabatic wall)
                     xflux(i,j,k,nvars+1) = 0.; // stochastic viscous heating (normal velocity zero at membrane)
                     xflux(i,j,k,nvars+2) = 0.; // stochastic viscous heating (slip BC)
-                    xflux(i,j,k,nvars+3) = 0.; // stochastic dufour 
+                    xflux(i,j,k,nvars+3) = 0.; // stochastic dufour
                 }
             });
         }
@@ -3057,7 +3057,7 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
 
     // Set transverse momentum at the membrane according to the full slip condition
     // XY
-    for (MFIter mfi(edgeflux_y_in[0]); mfi.isValid(); ++mfi) { 
+    for (MFIter mfi(edgeflux_y_in[0]); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
         const Array4<Real>& edgey_u = edgeflux_y_in[0].array(mfi);
@@ -3082,8 +3082,8 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
               });
         }
     }
-        
-    for (MFIter mfi(edgeflux_z_in[0]); mfi.isValid(); ++mfi) { 
+
+    for (MFIter mfi(edgeflux_z_in[0]); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
         const Array4<Real>& edgez_u = edgeflux_z_in[0].array(mfi);

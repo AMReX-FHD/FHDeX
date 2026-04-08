@@ -6,17 +6,17 @@
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real reg_sqrt (amrex::Real phi, amrex::Real deltaN) noexcept
 {
-   amrex::Real phiabs = std::abs(phi);
-   amrex::Real smsqrt;
-   if(phiabs <= deltaN/2.) {
-     smsqrt = phiabs/std::sqrt(deltaN);
-   } else if (phiabs <= deltaN) {
-     smsqrt = std::sqrt(deltaN)/2. - 1.5*phiabs/std::sqrt(deltaN) + 4.*phiabs*phiabs*std::pow(deltaN,-1.5)-2.*std::pow(phiabs,3.)*std::pow(deltaN,-2.5);
-   } else {
-     smsqrt=std::sqrt(phiabs);
-   }
-     return (  (phi > 0.) ? smsqrt : -smsqrt);
-     //return (  phi/std::sqrt(deltaN));
+    amrex::Real phiabs = std::abs(phi);
+    amrex::Real smsqrt;
+    if(phiabs <= deltaN/2.) {
+        smsqrt = phiabs/std::sqrt(deltaN);
+    } else if (phiabs <= deltaN) {
+        smsqrt = std::sqrt(deltaN)/2. - 1.5*phiabs/std::sqrt(deltaN) + 4.*phiabs*phiabs*std::pow(deltaN,-1.5)-2.*std::pow(phiabs,3.)*std::pow(deltaN,-2.5);
+    } else {
+        smsqrt=std::sqrt(phiabs);
+    }
+    return (  (phi > 0.) ? smsqrt : -smsqrt);
+    //return (  phi/std::sqrt(deltaN));
 }
 
 
@@ -60,81 +60,82 @@ void compute_flux_x (int i, int j, int k,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp,
                      amrex::Real phileft, amrex::Real phiright, int avg_type)
 {
-//    amrex::Real cellvol = 1./dxinv;
-//    phileft = .1;
-//    phiright = .1;
+    //    amrex::Real cellvol = 1./dxinv;
+    //    phileft = .1;
+    //    phiright = .1;
     //amrex::Real deltaN = std::pow(0.5*(phileft+phiright),2./3.);
     amrex::Real deltaN = std::pow(0.5*(phileft+phiright),1./3.);
-//    amrex::Print() << "deltaN " << deltaN << std::endl;
-//    amrex::Real val,flag;
-//    for (int n=0; n<201; n++){
-//       val=(n-100.)*deltaN/50.;
-//       flag = (val>0) ? 1.:-1.;
-//       amrex::Print() << "curve " << val << " " << reg_sqrt(val,deltaN) << " " << flag*std::sqrt(std::abs(val)) << std::endl;
-//    }
+    //amrex::Print() << "deltaN " << deltaN << std::endl;
+    //amrex::Real val,flag;
+    //for (int n=0; n<201; n++){
+    //   val=(n-100.)*deltaN/50.;
+    //   flag = (val>0) ? 1.:-1.;
+    //   amrex::Print() << "curve " << val << " " << reg_sqrt(val,deltaN) << " " << flag*std::sqrt(std::abs(val)) << std::endl;
+    //}
 
     int coeff_index = Ncomp-1;
     if (i == dom_lo && bc_lo == BCType::foextrap )
     {
         fluxx(i,j,k,0) = 0.;
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = 0.;
+            fluxx(i,j,k,1) = 0.;
         }
     } else if ( i == dom_lo && bc_lo == BCType::ext_dir )
     {
         fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phileft) * dxinv / 0.5 + std::sqrt(2.*phileft)*stochfluxx(i,j,k);
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phileft) * dxinv / 0.5 ;
+            fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phileft) * dxinv / 0.5 ;
         }
     } else if ( i == dom_hi+1 && bc_lo == BCType::foextrap )
     {
         fluxx(i,j,k,0) = 0.;
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = 0.;
+            fluxx(i,j,k,1) = 0.;
         }
     } else if ( i == dom_hi+1 && bc_lo == BCType::ext_dir )
     {
         fluxx(i,j,k,0) = 0.5*(phiright-phi(i-1,j,k,0)) * dxinv / 0.5 + std::sqrt(2.*phiright)*stochfluxx(i,j,k);
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = 0.5*(phiright-phi(i-1,j,k,1)) * dxinv / 0.5 ;
+            fluxx(i,j,k,1) = 0.5*(phiright-phi(i-1,j,k,1)) * dxinv / 0.5 ;
         }
     } else
     {
-//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
+        //amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
         amrex::Real phiavg, phip, phim, noise_coeff;
         if(avg_type == 0 || avg_type == 2 ) {
 
             phip = std::max(phi(i,j,k,coeff_index),0.);
             phim = std::max(phi(i-1,j,k,coeff_index),0.);
-	    phiavg = 0.5*(phip+phim);
+            phiavg = 0.5*(phip+phim);
             noise_coeff = std::sqrt(phiavg);
 
         } else if (avg_type == 1) {
 
             phip = std::max(phi(i,j,k,coeff_index),0.);
             phim = std::max(phi(i-1,j,k,coeff_index),0.);
-	    phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+            phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
             noise_coeff = std::sqrt(phiavg);
 
         } else if (avg_type == 3) {
 
-             phip = phi(i,j,k,coeff_index);
-             phim = phi(i-1,j,k,coeff_index);
-	     phiavg = 0.5*(phip+phim);
-             noise_coeff = reg_sqrt(phiavg,deltaN);
+            phip = phi(i,j,k,coeff_index);
+            phim = phi(i-1,j,k,coeff_index);
+            phiavg = 0.5*(phip+phim);
+            noise_coeff = reg_sqrt(phiavg,deltaN);
         }
-//        phiavg = .1;
-//        amrex::Print() << "test " << std::sqrt(phiavg) << " " << phiavg/std::sqrt(deltaN) << " " << deltaN << std::endl;
+        //phiavg = .1;
+        //amrex::Print() << "test " << std::sqrt(phiavg) << " " << phiavg/std::sqrt(deltaN) << " " << deltaN << std::endl;
         //phiavg = 1600.;
         fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
-    	  + stochfluxx(i,j,k) * noise_coeff;
-//	  + stochfluxx(i,j,k) * reg_sqrt(phiavg,deltaN);
-//          + stochfluxx(i,j,k) * phiavg/std::sqrt(deltaN);
+            + stochfluxx(i,j,k) * noise_coeff;
+        //  + stochfluxx(i,j,k) * reg_sqrt(phiavg,deltaN);
+        //  + stochfluxx(i,j,k) * phiavg/std::sqrt(deltaN);
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i-1,j,k,1)) * dxinv;
+            fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i-1,j,k,1)) * dxinv;
         }
     }
 }
+
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_y (int i, int j, int k,
@@ -172,14 +173,14 @@ void compute_flux_y (int i, int j, int k,
     }
     else
     {
-//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
+        //amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
         Real phip = std::max(phi(i,j,k,coeff_index),0.);
         Real phim = std::max(phi(i,j-1,k,coeff_index),0.);
-	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+        amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
-	+ stochfluxy(i,j,k)* std::sqrt(phiavg);
+            + stochfluxy(i,j,k)* std::sqrt(phiavg);
         if(Ncomp == 2){
-           fluxy(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j-1,k,1)) * dyinv;
+            fluxy(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j-1,k,1)) * dyinv;
         }
     }
 }
@@ -222,14 +223,14 @@ void compute_flux_z (int i, int j, int k,
     }
     else
     {
-//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
+        //amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
         Real phip = std::max(phi(i,j,k,coeff_index),0.);
         Real phim = std::max(phi(i,j,k-1,coeff_index),0.);
-	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+        amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv
-	 +stochfluxz(i,j,k) * std::sqrt(phiavg);
+            + stochfluxz(i,j,k) * std::sqrt(phiavg);
         if(Ncomp == 2){
-           fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv;
+            fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv;
         }
     }
 }
@@ -248,15 +249,15 @@ void update_phi (int i, int j, int k,
                               amrex::Real dzinv),
                  int Ncomp)
 {
-  for (int n = 0; n < Ncomp; n++){
-    phinew(i,j,k,n) = phiold(i,j,k,n)
-        +  dt * dxinv * (fluxx(i+1,j  ,k,n  ) - fluxx(i,j,k,n))
-        +  dt * dyinv * (fluxy(i  ,j+1,k,n  ) - fluxy(i,j,k,n))
+    for (int n = 0; n < Ncomp; n++){
+        phinew(i,j,k,n) = phiold(i,j,k,n)
+            +  dt * dxinv * (fluxx(i+1,j  ,k,n  ) - fluxx(i,j,k,n))
+            +  dt * dyinv * (fluxy(i  ,j+1,k,n  ) - fluxy(i,j,k,n))
 #if (AMREX_SPACEDIM > 2)
-        +  dt * dzinv * (fluxz(i  ,j  ,k+1,n) - fluxz(i,j,k,n));
+            +  dt * dzinv * (fluxz(i  ,j  ,k+1,n) - fluxz(i,j,k,n));
 #else
-        ;
+            ;
 #endif
-  }
+    }
 }
 #endif

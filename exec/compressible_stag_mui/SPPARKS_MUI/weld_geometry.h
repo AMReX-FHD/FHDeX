@@ -13,12 +13,12 @@ namespace pool_shape {
    class ParameterizedEllipse {
 
       public:
-         ParameterizedEllipse(double _x_width, double _y_width): 
-            a(_x_width), b(_y_width), a2(a*a), b2(b*b) { } 
+         ParameterizedEllipse(double _x_width, double _y_width):
+            a(_x_width), b(_y_width), a2(a*a), b2(b*b) { }
 
          void get_coordinates(double theta, double *xy) const {
-           xy[0]=a*cos(theta); 
-           xy[1]=b*sin(theta); 
+           xy[0]=a*cos(theta);
+           xy[1]=b*sin(theta);
          }
 
          double closest_point(double x, double y) const {
@@ -44,11 +44,11 @@ namespace pool_shape {
 
                // Invert for parametric coordinate 'theta'
                double ac;
-               if(x0/a+1.0<0.0){ ac=M_PI; } 
-               else if(x0/a-1.0>0.0){ ac=0; } 
+               if(x0/a+1.0<0.0){ ac=M_PI; }
+               else if(x0/a-1.0>0.0){ ac=0; }
                else {ac=acos(x0/a);}
 
-               if (y0>=0.0){ 
+               if (y0>=0.0){
                   // Handles quadrants I and II
                   theta=ac;
                }
@@ -92,17 +92,17 @@ namespace pool_shape {
          const double a, b, T, alpha, beta;
 
       public:
-         EllipticBezier 
+         EllipticBezier
             (
               double pool_width, double pool_length, double plate_thickness,
               double scale_param, double interpolate_param
             ):
             a(pool_width/2), b(pool_length/2.0), T(plate_thickness),
             alpha(scale_param), beta(interpolate_param)
-         { } 
+         { }
 
          virtual ~EllipticBezier() {}
-         
+
          bool is_inside(const double *xyz) const {
             double x=*xyz;
             double y=*(xyz+1);
@@ -121,10 +121,10 @@ namespace pool_shape {
 
          virtual double distance(const double *xyz) const {
             /**
-             * For points 'xyz' outside of pool, 
-             * computes closest point projection to 
-             * 'EllipticBezier' surface; Using this 
-             * projection the distance to the surface 
+             * For points 'xyz' outside of pool,
+             * computes closest point projection to
+             * 'EllipticBezier' surface; Using this
+             * projection the distance to the surface
              * is returned.
              */
 
@@ -182,11 +182,11 @@ namespace pool_shape {
              * u0: 2 component vector storing initial guess at closest point projection.
              *
              * U: 2 component vector solution givin parametric coordinates of surface.
-             *    
+             *
              * Outputs
              * -------
              *  Computed closest point U in parametric coordinates of surface.
-             * 
+             *
              */
 
             double u=*u0;
@@ -266,7 +266,7 @@ namespace pool_shape {
 
                }
             }
-            
+
             // Store computed solution
             *U=u;
             *(U+1)=v;
@@ -373,7 +373,7 @@ namespace pool_shape {
             rho_22[2]=ddB[2]*p[2];
          }
 
-         double dot(const double* y1, const double *y2) const { 
+         double dot(const double* y1, const double *y2) const {
             return y1[0]*y2[0]+y1[1]*y2[1]+y1[2]*y2[2];
          }
 

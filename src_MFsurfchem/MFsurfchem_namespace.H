@@ -18,4 +18,7 @@ namespace MFsurfchem {
     extern AMREX_GPU_MANAGED int splitting_MFsurfchem;
     extern AMREX_GPU_MANAGED int conversion_MFsurfchem;
 
+    extern AMREX_GPU_MANAGED int mean_MFsurfchem;
+    extern AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> mean_pressure;
+
 }

@@ -334,10 +334,10 @@ void main_driver(const char * argv) {
                                     geom.ProbLo(), geom.ProbHi(), & dm,
                                     AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi())););
 
-    	// initialize tracer
+        // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()));
+                   BL_TO_FORTRAN_ANYD(tracer[mfi]),
+                   dx, AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()));
 
     }
 

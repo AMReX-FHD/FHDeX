@@ -20,10 +20,10 @@ namespace pool_shape {
    double dot3d(const double* y1, const double *y2) { return y1[0]*y2[0]+y1[1]*y2[1]+y1[2]*y2[2]; }
 
    vector<double> evaluate_bernstein_polynomials(int n, double u) {
-      vector<double> b(n+1); b[0]=1.0; 
+      vector<double> b(n+1); b[0]=1.0;
       double u1=1.0-u;
       for(int j=1;j<=n; j++){
-        double bj=0.0; 
+        double bj=0.0;
         for(int k=0;k<j;k++){
            double t=b[k];
            b[k]=bj+u1*t;
@@ -41,7 +41,7 @@ namespace pool_shape {
       b[0]=1.0;
       double u1=1.0-u;
       for(int j=1;j<=n; j++){
-        double bj=0.0; 
+        double bj=0.0;
         for(int k=0;k<j;k++){
            double t=b[k];
            b[k]=bj+u1*t;
@@ -59,10 +59,10 @@ namespace pool_shape {
          vector< vector<double> > P, dP, ddP;
 
       public:
-         BezierCurve(const vector< vector<double> >& _control_points): 
-            n(_control_points.size()-1), dim(_control_points[0].size()), 
+         BezierCurve(const vector< vector<double> >& _control_points):
+            n(_control_points.size()-1), dim(_control_points[0].size()),
             P(_control_points), dP(_control_points.size()-1), ddP(_control_points.size()-2) {
-            
+
             // Using input control points, updates/computes 'dP', and 'ddP'
             update_control_point_deltas();
          }
@@ -97,7 +97,7 @@ namespace pool_shape {
          void move_curve(double dy) {
             // This function CHANGES 'this' curve.
             // Moves curve in 'y-direction' by 'dy'.
-            // NOTE that 'delta' control points do not have to be 
+            // NOTE that 'delta' control points do not have to be
             //    since a move has no effect on them.
             int N=n;
             for(int i=0;i<=N;i++){
@@ -110,7 +110,7 @@ namespace pool_shape {
 
          void scale_curve(double alpha) {
             // This function CHANGES 'this' curve.
-            // Scales curve by multiplying control points with 
+            // Scales curve by multiplying control points with
             //    input 'alpha'
             int N=n;
             for(int i=0;i<=N;i++){
@@ -124,7 +124,7 @@ namespace pool_shape {
 
          void compute_curve(double u, double *curve) const {
             int N=n;
-            double *c=curve; 
+            double *c=curve;
             for(int j=0;j<dim;j++)
                c[j]=0.0;
             vector<double> b=evaluate_bernstein_polynomials(N,u);
@@ -137,10 +137,10 @@ namespace pool_shape {
          }
 
          void compute_dcurve(double u, double *dcurve) const {
-            // Use Bernstein polynomials of 1 order less than curve 
+            // Use Bernstein polynomials of 1 order less than curve
             //    used to model teardrop shape
             int N=n-1;
-            double *dc=dcurve; 
+            double *dc=dcurve;
             for(int j=0;j<dim;j++)
                dc[j]=0.0;
             vector<double> b=evaluate_bernstein_polynomials(N,u);
@@ -155,10 +155,10 @@ namespace pool_shape {
          }
 
          void compute_ddcurve(double u, double *ddcurve) const {
-            // Use Bernstein polynomials of 2 orders less than curve 
+            // Use Bernstein polynomials of 2 orders less than curve
             //    used to model teardrop shape
             int N=n-2;
-            double *ddc=ddcurve; 
+            double *ddc=ddcurve;
             for(int j=0;j<dim;j++)
                ddc[j]=0.0;
             vector<double> b=evaluate_bernstein_polynomials(N,u);
@@ -185,7 +185,7 @@ namespace pool_shape {
       public:
 
          void compute_curve(double u, double *curve) const {
-            double *c=curve; 
+            double *c=curve;
 
             const double u2=u*u;
             const double u3=u2*u;
@@ -216,7 +216,7 @@ namespace pool_shape {
          }
 
          void compute_dcurve(double u, double *dcurve) const {
-            double *dc=dcurve; 
+            double *dc=dcurve;
 
             const double u2=u*u;
             const double u3=u2*u;
@@ -244,7 +244,7 @@ namespace pool_shape {
          }
 
          void compute_ddcurve(double u, double *ddcurve) const {
-            double *ddc=ddcurve; 
+            double *ddc=ddcurve;
 
             const double u2=u*u;
 
@@ -269,7 +269,7 @@ namespace pool_shape {
          }
 
          void compute_curve(double u, double *curve, double *dcurve) const {
-            double *c=curve, *dc=dcurve; 
+            double *c=curve, *dc=dcurve;
 
             const double u2=u*u;
             const double u3=u2*u;
@@ -306,7 +306,7 @@ namespace pool_shape {
          }
 
          void compute_curve(double u, double *curve, double *dcurve, double *ddcurve) const {
-            double *c=curve, *dc=dcurve, *ddc=ddcurve; 
+            double *c=curve, *dc=dcurve, *ddc=ddcurve;
 
             const double u2=u*u;
             const double u3=u2*u;
@@ -349,7 +349,7 @@ namespace pool_shape {
 
          double get_pool_length() const {
             double ymin,ymax;
-            // Length of pool is controlled by y-component 
+            // Length of pool is controlled by y-component
             //   of first and last control point
             ymin=P[0][1];
             ymax=P[4][1];
@@ -381,7 +381,7 @@ namespace pool_shape {
             }
             return u;
          }
-   
+
          double get_pool_width() const {
             // Compute width of pool at parametric coordinate where maximum
             //    pool width occurs; SEE Comments in function which computes umax;
@@ -406,7 +406,7 @@ namespace pool_shape {
          }
 
 
-         vector< vector<double> > get_copy_of_control_points() const { return P; } 
+         vector< vector<double> > get_copy_of_control_points() const { return P; }
 
          ~TeardropCurve() {}
          TeardropCurve(const vector< vector<double> >& control_points, double pool_width, bool normalize_pool_position=false) :
@@ -433,7 +433,7 @@ namespace pool_shape {
 
          void scale_curve(double alpha) {
             // This function CHANGES 'this' curve.
-            // Scales curve by multiplying control points with 
+            // Scales curve by multiplying control points with
             //    input 'alpha'
             const int N=4;
             const int dim=2;
@@ -458,7 +458,7 @@ namespace pool_shape {
                P[i]=pi;
             }
          }
-   
+
    };
 
    class Teardrop2D : public TeardropCurve {
@@ -468,7 +468,7 @@ namespace pool_shape {
       public:
          ~Teardrop2D() {}
 
-         Teardrop2D(const vector< vector<double> >& _teardrop_control_points, double pool_width, bool normalize_pool_position) : 
+         Teardrop2D(const vector< vector<double> >& _teardrop_control_points, double pool_width, bool normalize_pool_position) :
             TeardropCurve(_teardrop_control_points,pool_width,normalize_pool_position) { }
 
 
@@ -549,8 +549,8 @@ namespace pool_shape {
          }
 
          std::tuple<double,double> closest_point(double x, double y) const {
-            // Compute parametric coordinate defining closest point;  
-            // Using parametric coordinate for closest point on curve, 
+            // Compute parametric coordinate defining closest point;
+            // Using parametric coordinate for closest point on curve,
             // function also return distance to curve.
             //
             // Initial guess must be decent otherwise cpp fails
@@ -565,17 +565,17 @@ namespace pool_shape {
             compute_curve(u,rho,rho_1,rho_11);
             double dr[]={x-rho[0],y-rho[1]};
             {
-               // Is this point an interior point?  
+               // Is this point an interior point?
                // 'rho_1' is tangent vector
-               // Define normal 'n' to curve using right hand rule so that it points 
-               //    towards interior of pool; 
+               // Define normal 'n' to curve using right hand rule so that it points
+               //    towards interior of pool;
                double n[]={-rho_1[1],rho_1[0]};
-               // Minus sign because of the way 'dr' was defined; dr is 
-               //   currently vector pointing from 'curve' to input point 'x,y' 
-               //   which is exactly the opposite of what is needed in 
-               //   the following dot product. 
+               // Minus sign because of the way 'dr' was defined; dr is
+               //   currently vector pointing from 'curve' to input point 'x,y'
+               //   which is exactly the opposite of what is needed in
+               //   the following dot product.
                double dot=-(n[0]*dr[0]+n[1]*dr[1]);
-               // If above dot product is negative then (x,y) defines 
+               // If above dot product is negative then (x,y) defines
                // a point inside the pool.
                if (dot<=0) {
                   return std::make_tuple(0.0,-1.0);
@@ -605,7 +605,7 @@ namespace pool_shape {
                // u+du = inv(Jacobian) * residual
                u+=-r1/j11;
 
-               // Update residual in preparation for next iteration 
+               // Update residual in preparation for next iteration
                compute_curve(u,rho,rho_1,rho_11);
                //compute_curve(u,rho);
                dr[0]=x-rho[0];
@@ -628,13 +628,13 @@ namespace pool_shape {
 
             // Identify points which are inside pool by setting distance=-1;
             // 'rho_1' is tangent vector
-            // Define normal to curve using right hand rule so that it points 
-            //    towards interior of pool; 
+            // Define normal to curve using right hand rule so that it points
+            //    towards interior of pool;
             double n[]={-rho_1[1],rho_1[0]};
             double distance=std::sqrt(dr[0]*dr[0]+dr[1]*dr[1]);
-            // Minus sign because of the way 'dr' was defined; dr is 
-            //   currently vector pointing from 'curve' to input point 'x,y' 
-            //   which is exactly the opposite of what is needed in 
+            // Minus sign because of the way 'dr' was defined; dr is
+            //   currently vector pointing from 'curve' to input point 'x,y'
+            //   which is exactly the opposite of what is needed in
             //   the following dot product.
             double dot=-(n[0]*dr[0]+n[1]*dr[1]);
             if (dot<=0) distance=-1;
@@ -651,12 +651,12 @@ namespace pool_shape {
 
       public:
          Teardrop(
-                  double plate_thickness, 
+                  double plate_thickness,
                   double pool_width,
-                  double alpha, 
+                  double alpha,
                   double beta,
                   const vector< vector<double> >& teardrop_control_points
-                  ) : TeardropCurve(teardrop_control_points,pool_width,true), PoolShape(), 
+                  ) : TeardropCurve(teardrop_control_points,pool_width,true), PoolShape(),
             _h(plate_thickness), _alpha(alpha), _beta(beta)
          {}
 
@@ -664,14 +664,14 @@ namespace pool_shape {
 
          virtual double distance(const double *XYZ) const {
             /**
-             * For points 'xyz' outside of pool, 
-             * computes closest point projection to 
-             * 'Teardrop' surface; Using this 
-             * projection the distance to the surface 
+             * For points 'xyz' outside of pool,
+             * computes closest point projection to
+             * 'Teardrop' surface; Using this
+             * projection the distance to the surface
              * is returned.
              */
 
-            // Model uses symmetry about y-z plane; 
+            // Model uses symmetry about y-z plane;
             // Model assumes and requires x-coordinates are positive.
             // Because of symmetry, distance(x)=distance(-x)
             double xyz[]={std::fabs(*XYZ), *(XYZ+1), *(XYZ+2)};
@@ -731,11 +731,11 @@ namespace pool_shape {
              * u0: 2 component vector storing initial guess at closest point projection.
              *
              * U: 2 component vector solution givin parametric coordinates of surface.
-             *    
+             *
              * Outputs
              * -------
              *  Computed closest point U in parametric coordinates of surface.
-             * 
+             *
              */
 
             double u=*u0;
@@ -815,7 +815,7 @@ namespace pool_shape {
 
                }
             }
-            
+
             // Store computed solution
             *U=u;
             *(U+1)=v;

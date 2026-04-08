@@ -41,8 +41,8 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > face_bcoef;
     acoef.define(grids, dmap, 1, 0);
     AMREX_D_TERM(face_bcoef[0].define(convert(grids,nodal_flag_x), dmap, 1, 0);,
-		 face_bcoef[1].define(convert(grids,nodal_flag_y), dmap, 1, 0);,
-		 face_bcoef[2].define(convert(grids,nodal_flag_z), dmap, 1, 0););
+                 face_bcoef[1].define(convert(grids,nodal_flag_y), dmap, 1, 0);,
+                 face_bcoef[2].define(convert(grids,nodal_flag_z), dmap, 1, 0););
 
     // set cell-centered A coefficient to zero
     acoef.setVal(0.);
@@ -52,7 +52,7 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // 2) invert B coefficients to 1/rho
     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
-      face_bcoef[idim].invert(1.0,0,1);
+        face_bcoef[idim].invert(1.0,0,1);
     }
 
     //
@@ -97,8 +97,8 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // storage for "-B grad_phi"
     std::array<MultiFab,AMREX_SPACEDIM> mac_fluxes;
     AMREX_D_TERM(mac_fluxes[0].define(convert(grids,nodal_flag_x), dmap, 1, 0);,
-		 mac_fluxes[1].define(convert(grids,nodal_flag_y), dmap, 1, 0);,
-		 mac_fluxes[2].define(convert(grids,nodal_flag_z), dmap, 1, 0););
+                 mac_fluxes[1].define(convert(grids,nodal_flag_y), dmap, 1, 0);,
+                 mac_fluxes[2].define(convert(grids,nodal_flag_z), dmap, 1, 0););
 
     std::array<MultiFab*,AMREX_SPACEDIM> mac_fluxptr;
     // fluxes computed are "-B grad phi"
@@ -106,25 +106,25 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     mac_mlmg.getFluxes({mac_fluxptr});
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-      // add -B grad phi to Utilde
-      MultiFab::Add(umac[idim], mac_fluxes[idim], 0, 0, 1, 0);
+        // add -B grad phi to Utilde
+        MultiFab::Add(umac[idim], mac_fluxes[idim], 0, 0, 1, 0);
     }
 
     // fill periodic ghost cells
     for (int d = 0; d < AMREX_SPACEDIM; d++) {
-      // Do apply BCs so that all ghost cells are filled
-      MultiFabPhysBCDomainVel(umac[d], geom, d);
-      int is_inhomogeneous = 1;
-      MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
-      umac[d].FillBoundary(geom.periodicity());
+        // Do apply BCs so that all ghost cells are filled
+        MultiFabPhysBCDomainVel(umac[d], geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
+        umac[d].FillBoundary(geom.periodicity());
     }
 }
 
 // compute the RHS for the solve, solverrhs = macrhs - div(umac)
 void ComputeMACSolverRHS (MultiFab& solverrhs,
-			  const MultiFab& macrhs,
-			  const std::array< MultiFab, AMREX_SPACEDIM >& umac,
-			  const Geometry& geom)
+                          const MultiFab& macrhs,
+                          const std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                          const Geometry& geom)
 {
     // timer for profiling
     BL_PROFILE_VAR("ComputeMACSolverRHS()",ComputeMACSolverRHS);
@@ -165,7 +165,7 @@ void SetMacSolverBCs(MLABecLaplacian& mlabec)
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-	if (DefaultGeometry().isPeriodic(idim)) {
+        if (DefaultGeometry().isPeriodic(idim)) {
             lo_mlmg_bc[idim] = hi_mlmg_bc[idim] = LinOpBCType::Periodic;
         } else {
             //amrex::Error("Invalid BC");

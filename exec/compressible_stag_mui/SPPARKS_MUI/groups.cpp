@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -24,7 +24,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-Groups::Groups(SPPARKS *spk, double hi_in, double lo_in, int ng_in) : 
+Groups::Groups(SPPARKS *spk, double hi_in, double lo_in, int ng_in) :
   Pointers(spk)
 {
   random = new RandomPark(ranmaster->uniform());
@@ -72,7 +72,7 @@ void Groups::partition(double *p, int size_in)
   //   frexp(hi/hi) will be in group 0
   //   frexp(lo/hi) will be in ngroup-1
   // in both cases propensity 0.0 will be put in ngroup
-  // allocate_group_space thus allocates ngroup+1 length arrays 
+  // allocate_group_space thus allocates ngroup+1 length arrays
 
   release_memory();
   if (ngroups_flag == 0) {
@@ -112,7 +112,7 @@ void Groups::partition(double *p, int size_in)
     gcount[g]++;
     psum += p[i];
   }
-  
+
   // allocate per-group lists
   // ave = average group size times 1.5 factor
 
@@ -133,7 +133,7 @@ void Groups::partition(double *p, int size_in)
     gcount[g] = 0;
     gpsum[g] = 0.0;
   }
-  
+
   for (int i = 0; i < size; i++) {
     g = find_group(p[i]);
     p2g[i] = g;
@@ -161,7 +161,7 @@ void Groups::alter_element(int n, double *p, double p_new)
   // compute new group for p_new
 
   int new_group = find_group(p_new);
-  
+
   // if group changed, delete propensity from old group, add to new group
   // index = where in old group this propensity is
   // lastprop = which propensity is last in old group
@@ -176,7 +176,7 @@ void Groups::alter_element(int n, double *p, double p_new)
     p2g_index[lastprop] = index;
     gcount[old_group]--;
     gpsum[old_group] -= p_old;
-    
+
     if (gcount[new_group] == gmaxsize[new_group])
       grow_group(new_group);
 
@@ -293,7 +293,7 @@ void Groups::release_memory()
 
 int Groups::find_group(double pone) {
   int g;
-  
+
   if (pone == 0.0) g = ngroups;
   else if (ngroups_flag) g = static_cast<int> ((pone-lo)*invbinsize);
   else {
@@ -330,22 +330,22 @@ void Groups::sanity_check(double *p)
     double glo,ghi;
     if (g < ngroups) {
       if (ngroups_flag) {
-	if (g == 0) glo = lo;
-	else glo = ghibound[g-1];
-	ghi = ghibound[g];
+        if (g == 0) glo = lo;
+        else glo = ghibound[g-1];
+        ghi = ghibound[g];
       } else {
-	if (g < ngroups-1) glo = ghibound[g+1];
-	else glo = lo;
-	ghi = ghibound[g];
+        if (g < ngroups-1) glo = ghibound[g+1];
+        else glo = lo;
+        ghi = ghibound[g];
       }
     } else glo = ghi = 0.0;
 
     for (int i = 0; i < gcount[g]; i++) {
       double pone = p[g2p[g][i]];
       if (pone < glo || pone > ghi) {
-	printf("Group mismatch: %d %d %d: %g %g %g\n",
-	       g,i,g2p[g][i],glo,pone,ghi);
-	flag++;
+        printf("Group mismatch: %d %d %d: %g %g %g\n",
+               g,i,g2p[g][i],glo,pone,ghi);
+        flag++;
       }
     }
   }

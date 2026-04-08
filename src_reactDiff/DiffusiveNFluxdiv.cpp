@@ -15,14 +15,14 @@ void DiffusiveNFluxdiv(MultiFab& n_in,
         diff_fluxdiv.setVal(0.);
         return;
     }
-    
+
     // fill n ghost cells
     n_in.FillBoundary(geom.periodicity());
     MultiFabPhysBC(n_in, geom, 0, nspecies, SPEC_BC_COMP, time);
 
     BoxArray ba = n_in.boxArray();
     DistributionMapping dmap = n_in.DistributionMap();
-    
+
     // don't need to set much here for explicit evaluations
     LPInfo info;
 
@@ -39,7 +39,7 @@ void DiffusiveNFluxdiv(MultiFab& n_in,
     AMREX_D_TERM(bcoef[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  bcoef[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  bcoef[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
-    
+
     // build array of boundary conditions needed by MLABecLaplacian
     std::array<LinOpBCType, AMREX_SPACEDIM> lo_mlmg_bc;
     std::array<LinOpBCType, AMREX_SPACEDIM> hi_mlmg_bc;
@@ -49,8 +49,8 @@ void DiffusiveNFluxdiv(MultiFab& n_in,
         if (bc_mass_lo[idim] == -1 || bc_mass_hi[idim] == -1) {
             if ( !(bc_mass_lo[idim] == -1 && bc_mass_hi[idim] == -1) ) {
                 Abort("Both bc_mass_lo and bc_mass_hi must be periodic in a given direction if the other one is");
-            }            
-            lo_mlmg_bc[idim] = LinOpBCType::Periodic;            
+            }
+            lo_mlmg_bc[idim] = LinOpBCType::Periodic;
             hi_mlmg_bc[idim] = LinOpBCType::Periodic;
         }
 
@@ -95,7 +95,7 @@ void DiffusiveNFluxdiv(MultiFab& n_in,
         mlmg.apply({&Lphi},{&phi});
 
         MultiFab::Copy(diff_fluxdiv,Lphi,0,i,1,0);
-        
+
     }
-    
+
 }

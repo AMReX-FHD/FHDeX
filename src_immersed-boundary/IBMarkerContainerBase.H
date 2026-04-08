@@ -147,13 +147,13 @@ public:
                 const Real* dx, int ghost
             );
 
-    static void SpreadKernel(const Box& bx, 
+    static void SpreadKernel(const Box& bx,
                       std::array<      FArrayBox *, AMREX_SPACEDIM> & f_out,
                       std::array<      FArrayBox *, AMREX_SPACEDIM> & f_weights,
                       const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
-                      GpuArray<Real, AMREX_SPACEDIM>const& pos, 
+                      GpuArray<Real, AMREX_SPACEDIM>const& pos,
                       GpuArray<Real, AMREX_SPACEDIM>const& v_spread,
-                      const Real* dx, 
+                      const Real* dx,
                       int* nghost);
 
     static void SpreadKernelGpu(const AoS& aos,
@@ -333,7 +333,7 @@ protected:
     Gpu::ManagedDeviceVector<amrex::Real> pinMatrix;
 
     int totalMarkers;
-    int totalPinnedMarkers; 
+    int totalPinnedMarkers;
 
     // TODO: why is this static inline?
     static inline Gpu::ManagedDeviceVector<Real> norm_es;

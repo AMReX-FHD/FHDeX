@@ -23,9 +23,9 @@ void InitializeThinfilmNamespace() {
     thinfilm_hamaker = 0.;
 
     do_fft_diag = 1;
-    
+
     ParmParse pp;
-    
+
     pp.get("thinfilm_h0",thinfilm_h0);
     pp.get("thinfilm_gamma",thinfilm_gamma);
 
@@ -36,7 +36,7 @@ void InitializeThinfilmNamespace() {
     pp.query("thinfilm_jcorr",thinfilm_jcorr);
 
     pp.query("do_fft_diag",do_fft_diag);
-    
+
 }
 
 #ifdef AMREX_USE_CUDA

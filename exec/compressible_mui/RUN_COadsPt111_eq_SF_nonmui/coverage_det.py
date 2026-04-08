@@ -16,7 +16,7 @@ cc = np.zeros(Nstep+1)
 
 for i in range(Nstep+1):
   t = i*dt
-  tt[i] = t 
+  tt[i] = t
   cc[i] = math.exp(-(ka+kd)*t)*cov0 + ka/(ka+kd)*(1-math.exp(-(ka+kd)*t))
 
 np.savetxt(outfile,np.transpose([tt,cc]))

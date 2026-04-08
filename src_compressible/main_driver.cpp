@@ -23,7 +23,7 @@ using namespace amrex;
 void main_driver(const char* argv)
 {
     BL_PROFILE_VAR("main_driver()",main_driver);
-    
+
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -61,7 +61,7 @@ void main_driver(const char* argv)
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     GetHcGas();
-  
+
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -101,7 +101,7 @@ void main_driver(const char* argv)
         // note we are converting "Vector<int> max_grid_size" to an IntVect
         ba.maxSize(IntVect(max_grid_size));
 
-       // This defines the physical box, [-1,1] in each direction.
+        // This defines the physical box, [-1,1] in each direction.
         RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                          {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
@@ -146,13 +146,13 @@ void main_driver(const char* argv)
 
     // transport properties
     /*
-      Referring to K. Balakrishnan et al., 
+      Referring to K. Balakrishnan et al.,
       "Fluctuating hydrodynamics of multispecies nonreactive mixtures",
       Phys. Rev. E, 89, 1, 2014
 
       "kappa" and "zeta" in the code have opposite meanings from what they
       represent in the paper.  So kappa in the paper is bulk viscosity (see
-      the equation for Pi immediately after (28)), but in the code it's zeta. 
+      the equation for Pi immediately after (28)), but in the code it's zeta.
       Zeta is a thermodiffusion coefficient (see the equation for Q'
       immediately before (25)), but in the code it's kappa... and furthermore
       I believe kappa in the code is actually zeta/T^2.
@@ -201,7 +201,7 @@ void main_driver(const char* argv)
         dNdes.define(ba,dmap,n_ads_spec,ngc);
     }
 
-    //statistics    
+    //statistics
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
     MultiFab cuVars   (ba,dmap,nvars,ngc);
     MultiFab cuMeansAv(ba,dmap,nvars,ngc);
@@ -209,14 +209,14 @@ void main_driver(const char* argv)
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
-    
+
     MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
     MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
     MultiFab primMeansAv(ba,dmap,nprimvars  ,ngc);
     MultiFab primVarsAv (ba,dmap,nprimvars+5,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
-   
+
     //miscStats & miscVals (only used internally -- not outputted)
     MultiFab miscStats(ba,dmap,10,ngc);
     Real miscVals[20];
@@ -227,7 +227,7 @@ void main_driver(const char* argv)
     // 2: <T*T>
     // 3: <delta T* delta T>
     // 4: <delta T* delta rho>
-    // 5: <delta u* delta rho> 
+    // 5: <delta u* delta rho>
     // 6: <delta jx* delta rho>
     // 7: <delta rho* delta rhoE>
     MultiFab spatialCross(ba,dmap,8,ngc);
@@ -245,7 +245,7 @@ void main_driver(const char* argv)
     if (nreaction>0) ranchem.define(ba,dmap,nreaction,ngc);
 
     //fluxes
-    // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux 
+    // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux
     // stacked at the end (see below)
     // index: flux term
     // 0: density
@@ -304,7 +304,7 @@ void main_driver(const char* argv)
     MultiFab LapU;
     // [du/dx du/dy du/dz dv/dx dv/dy dv/dz dw/dx dw/dy dw/dx]
     MultiFab gradUtensor;
-    MultiFab rhoscaled_gradUtensor;    
+    MultiFab rhoscaled_gradUtensor;
     // temporary storage
     MultiFab ccTemp;
 
@@ -325,7 +325,7 @@ void main_driver(const char* argv)
         gradUtensor.define(ba,dmap,AMREX_SPACEDIM*AMREX_SPACEDIM,0);
         rhoscaled_gradUtensor.define(ba,dmap,AMREX_SPACEDIM*AMREX_SPACEDIM,0);
         ccTemp.define(ba,dmap,1,0);
-    
+
         AMREX_D_TERM(gradUtensor_fc[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 0);,
                      gradUtensor_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
                      gradUtensor_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
@@ -338,13 +338,13 @@ void main_driver(const char* argv)
         AMREX_D_TERM(rho_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                      rho_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                      rho_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
-    
+
         p0 = 884.147e3;
         dProb = (AMREX_SPACEDIM==2) ? 1./(n_cells[0]*n_cells[1]) : 1./(n_cells[0]*n_cells[1]*n_cells[2]);
         rho0 = molmass[0] / avogadro * p0 / (k_B * T_init[0]);
         nu0 = 0.185;
     }
-        
+
     Real time = 0;
 
     int step;
@@ -373,9 +373,9 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "vel";
-      x += (120+d);
-      prim_var_names[cnt++] = x;
+        x = "vel";
+        x += (120+d);
+        prim_var_names[cnt++] = x;
     }
 
     // Temp
@@ -386,9 +386,9 @@ void main_driver(const char* argv)
 
     // Yk
     for (int d=0; d<nspecies; d++) {
-      x = "Y";
-      x += (49+d);
-      prim_var_names[cnt++] = x;
+        x = "Y";
+        x += (49+d);
+        prim_var_names[cnt++] = x;
     }
 
     MultiFab structFactPrimMF;
@@ -431,9 +431,9 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "j";
-      x += (120+d);
-      cons_var_names[cnt++] = x;
+        x = "j";
+        x += (120+d);
+        cons_var_names[cnt++] = x;
     }
 
     // rho*E
@@ -441,9 +441,9 @@ void main_driver(const char* argv)
 
     // rho*Yk
     for (int d=0; d<nspecies; d++) {
-      x = "rhoY";
-      x += (49+d);
-      cons_var_names[cnt++] = x;
+        x = "rhoY";
+        x += (49+d);
+        cons_var_names[cnt++] = x;
     }
 
     // Temp
@@ -470,62 +470,62 @@ void main_driver(const char* argv)
     StructFact structFactConsFlattened;
 
     //////////////////////////////////////////////
-    
-    if(project_dir >= 0){
-      MultiFab Flattened;  // flattened multifab defined below
-      
-      // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
-      // a built version of primFlattened so can obtain what we need to build the
-      // structure factor and geometry objects for flattened data
-      if (slicepoint < 0) {
-          ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, 1);
-      } else {
-          ExtractSlice(structFactPrimMF, Flattened, project_dir, slicepoint, 0, 1);
-      }
-      BoxArray ba_flat = Flattened.boxArray();
-      const DistributionMapping& dmap_flat = Flattened.DistributionMap();
 
-      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-      structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+    if(project_dir >= 0){
+        MultiFab Flattened;  // flattened multifab defined below
+
+        // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
+        // a built version of primFlattened so can obtain what we need to build the
+        // structure factor and geometry objects for flattened data
+        if (slicepoint < 0) {
+            ComputeVerticalAverage(structFactPrimMF, Flattened, project_dir, 0, 1);
+        } else {
+            ExtractSlice(structFactPrimMF, Flattened, project_dir, slicepoint, 0, 1);
+        }
+        BoxArray ba_flat = Flattened.boxArray();
+        const DistributionMapping& dmap_flat = Flattened.DistributionMap();
+
+        structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+        structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
     }
-    
+
     ///////////////////////////////////////////
     // Structure factor object to help compute tubulent energy spectra
     ///////////////////////////////////////////
-    
+
     // option to compute only specified pairs
     amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
     amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
 
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
-    
+
     Vector< std::string > var_names;
     var_names.resize(AMREX_SPACEDIM);
 
     var_names[0] = "xvel";
     var_names[1] = "yvel";
-#if (AMREX_SPACEDIM == 3)    
+#if (AMREX_SPACEDIM == 3)
     var_names[2] = "zvel";
 #endif
-    
+
     Vector<Real> var_scaling(AMREX_SPACEDIM);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dVol;
     }
-    
+
     // Select which variable pairs to include in structure factor:
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         s_pairA[d] = d;
         s_pairB[d] = d;
-    }    
+    }
     StructFact turbStructFact;
     MultiFab structFactMF;
     if (turbForcing == 1) {
         turbStructFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
         structFactMF.define(ba, dmap, AMREX_SPACEDIM, 0);
     }
-    
+
     //////////////////////////////////////////////
 
     // initialize conserved variables
@@ -540,7 +540,7 @@ void main_driver(const char* argv)
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cu);
-    
+
     if (plot_int > 0) {
         WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, spatialCross, eta, kappa);
@@ -601,9 +601,9 @@ void main_driver(const char* argv)
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
         if (step%100 == 0) {
-    	      amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+            amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
         }
-        
+
         // compute mean and variances
         if (step > n_steps_skip && stats_int > 0 && step%stats_int == 0) {
 
@@ -637,41 +637,41 @@ void main_driver(const char* argv)
               WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
                             prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
             */
-           WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
+            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
                          prim, primMeans, primVars, spatialCross, eta, kappa);
 
 #ifdef MUI
-           // also horizontal average
-           WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
+            // also horizontal average
+            WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 #endif
-           if (n_ads_spec>0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
+            if (n_ads_spec>0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 
-           // timer
-           Real t2 = ParallelDescriptor::second() - t1;
-           ParallelDescriptor::ReduceRealMax(t2);
-           amrex::Print() << "WritePlotFile time " << t2 << " seconds\n";
+            // timer
+            Real t2 = ParallelDescriptor::second() - t1;
+            ParallelDescriptor::ReduceRealMax(t2);
+            amrex::Print() << "WritePlotFile time " << t2 << " seconds\n";
 
-           // snapshot of instantaneous energy spectra
-           if (turbForcing == 1) {
+            // snapshot of instantaneous energy spectra
+            if (turbForcing == 1) {
 
-               // timer
-               t1 = ParallelDescriptor::second();
+                // timer
+                t1 = ParallelDescriptor::second();
 
-               // copy velocities into structFactMF
-               MultiFab::Copy(structFactMF, prim, 1, 0, AMREX_SPACEDIM, 0);
-                
-               // reset and compute structure factor
-               turbStructFact.FortStructure(structFactMF,1);
-               turbStructFact.CallFinalize();
+                // copy velocities into structFactMF
+                MultiFab::Copy(structFactMF, prim, 1, 0, AMREX_SPACEDIM, 0);
 
-               // integrate cov_mag over shells in k and write to file
-               turbStructFact.IntegratekShells(step);
+                // reset and compute structure factor
+                turbStructFact.FortStructure(structFactMF,1);
+                turbStructFact.CallFinalize();
 
-               // timer
-               t2 = ParallelDescriptor::second() - t1;
-               ParallelDescriptor::ReduceRealMax(t2);
-               amrex::Print() << "Ek time " << t2 << " seconds\n";
-           }
+                // integrate cov_mag over shells in k and write to file
+                turbStructFact.IntegratekShells(step);
+
+                // timer
+                t2 = ParallelDescriptor::second() - t1;
+                ParallelDescriptor::ReduceRealMax(t2);
+                amrex::Print() << "Ek time " << t2 << " seconds\n";
+            }
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0) {
@@ -688,8 +688,8 @@ void main_driver(const char* argv)
             amrex::Print() << "WriteCheckPoint time " << t2 << " seconds\n";
         }
 
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+        // collect a snapshot for structure factor
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
             // timer
             Real t1 = ParallelDescriptor::second();
@@ -725,11 +725,11 @@ void main_driver(const char* argv)
             // timer
             Real t1 = ParallelDescriptor::second();
 
-	    Print() << "HERE1\n";
-	    
+            Print() << "HERE1\n";
+
             structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
 
-	    Print() << "HERE2\n";
+            Print() << "HERE2\n";
             structFactCons.WritePlotFile(step,time,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimFlattened.WritePlotFile(step,time,"plt_SF_prim_Flattened");
@@ -749,7 +749,7 @@ void main_driver(const char* argv)
             Real t1 = ParallelDescriptor::second();
 
             // FORM 1: <rho/rho0 du_i/dx_i du_i/dx_i>
-        
+
             // compute gradU = [du/dx, dv/dy, dw/dz]
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 ComputeCentredGradCompDir(prim,gradU,d,d+1,d,geom);
@@ -770,7 +770,7 @@ void main_driver(const char* argv)
             Real FORM1 = dProb*(gradUdotgradU[0] + gradUdotgradU[1] + gradUdotgradU[2]) * (nu0 / rho0);
 
             // FORM 2: <-rho/rho0 u_j Lap(u_j)>
-        
+
             // Lap(u_j)
             ComputeLap(prim,LapU,1,0,AMREX_SPACEDIM,geom);
 
@@ -831,20 +831,20 @@ void main_driver(const char* argv)
                     MultiFab::Multiply(rhoscaled_gradUtensor_fc[d], rho_fc[d], 0, dd, 1, 0);
                 }
             }
-        
+
             Vector<Real> gradUdotgradUx(3);
             Vector<Real> gradUdotgradUy(3);
             Vector<Real> gradUdotgradUz(3);
             StagInnerProd(rhoscaled_gradUtensor_fc,0,gradUtensor_fc,0,temp_fc,gradUdotgradUx);
             StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,1,temp_fc,gradUdotgradUy);
             StagInnerProd(rhoscaled_gradUtensor_fc,2,gradUtensor_fc,2,temp_fc,gradUdotgradUz);
-        
+
             Real FORM4 = dProb*(  gradUdotgradUx[0] + gradUdotgradUx[1] + gradUdotgradUx[2]
                                   + gradUdotgradUy[0] + gradUdotgradUy[1] + gradUdotgradUy[2]
                                   + gradUdotgradUz[0] + gradUdotgradUz[1] + gradUdotgradUz[2]) * (nu0 / rho0);
-        
+
             // FORM 5: <curl(V) dot (curl(V)> using cell-centered gradients
-        
+
             // compute curlU (store in gradU)
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 ComputeCurlCC(prim,1,gradU,0,geom);
@@ -888,7 +888,7 @@ void main_driver(const char* argv)
             amrex::Print() << "Energy dissipation compute time " << t2 << " seconds\n";
 
         }  // end if (turbForcing == 1)
-        
+
         time = time + dt;
 
         // MultiFab memory usage

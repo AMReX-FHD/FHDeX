@@ -1,4 +1,3 @@
-
 #include "multispec_test_functions.H"
 #include "multispec_test_functions_F.H"
 
@@ -25,7 +24,7 @@ using namespace amrex;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-  
+
     BL_PROFILE_VAR("main_driver()",main_driver);
 
     // store the current time so we can later compute total run time.
@@ -100,7 +99,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
-    
+
     MultiFab rhotot(ba, dmap, 1, 1);
     rhotot.setVal(1.);
 
@@ -114,8 +113,8 @@ void main_driver(const char* argv)
     Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      alpha_fc[d].setVal(dtinv);
+        alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        alpha_fc[d].setVal(dtinv);
     }
 
     // beta cell centred
@@ -207,17 +206,17 @@ void main_driver(const char* argv)
     // Define mfluxdiv predictor multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv_predict[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      mfluxdiv_predict[d].setVal(0.0);
+        mfluxdiv_predict[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        mfluxdiv_predict[d].setVal(0.0);
     }
 
     // Define mfluxdiv corrector multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv_correct[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      mfluxdiv_correct[d].setVal(0.0);
+        mfluxdiv_correct[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        mfluxdiv_correct[d].setVal(0.0);
     }
-    
+
     ///////////////////////////////////////////
 
     ///////////////////////////////////////////
@@ -227,8 +226,8 @@ void main_driver(const char* argv)
     Vector< amrex::Real > weights;
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
-    
-    // Declare object of StochMomFlux class 
+
+    // Declare object of StochMomFlux class
     StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
@@ -243,14 +242,14 @@ void main_driver(const char* argv)
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      umac[d].setVal(0.0);
+        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        umac[d].setVal(0.0);
     }
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      umacNew[d].setVal(0.0);
+        umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        umacNew[d].setVal(0.0);
     }
 
     ///////////////////////////////////////////
@@ -263,14 +262,14 @@ void main_driver(const char* argv)
     int cnt = 0;
     std::string x;
     for (int d=0; d<var_names.size(); d++) {
-      x = "vel";
-      x += (120+d);
-      var_names[cnt++] = x;
+        x = "vel";
+        x += (120+d);
+        var_names[cnt++] = x;
     }
 
     MultiFab struct_in_cc;
     struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
-    
+
     amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
     amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
 
@@ -283,7 +282,7 @@ void main_driver(const char* argv)
     s_pairA[2] = 2;
     s_pairB[2] = 2;
 #endif
-    
+
     StructFact structFact(ba,dmap,var_names);
     // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
     */
@@ -296,39 +295,38 @@ void main_driver(const char* argv)
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-	init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
-			  BL_TO_FORTRAN_FAB(rho[mfi]),
-			  BL_TO_FORTRAN_ANYD(umac[0][mfi]),
-			  BL_TO_FORTRAN_ANYD(umac[1][mfi]),
+        init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
+                          BL_TO_FORTRAN_FAB(rho[mfi]),
+                          BL_TO_FORTRAN_ANYD(umac[0][mfi]),
+                          BL_TO_FORTRAN_ANYD(umac[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
-			  BL_TO_FORTRAN_ANYD(umac[2][mfi]),
+                          BL_TO_FORTRAN_ANYD(umac[2][mfi]),
 #endif
-			  dx, geom.ProbLo(), geom.ProbHi(),
-			  ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-        
+                          dx, geom.ProbLo(), geom.ProbHi(),
+                          ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
         // AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
         //                             BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm,
         //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
         //              dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
         //                             BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm,
         //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
         //              dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
         //                             BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm,
         //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
-    	// initialize tracer
+        // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
+                   BL_TO_FORTRAN_ANYD(tracer[mfi]),
+                   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
     }
-    
+
     // Add initial equilibrium fluctuations
     sMflux.addMomFluctuations(umac, rhotot, temp_cc, initial_variance_mom);
-    
+
     // Project umac onto divergence free field
     MultiFab macphi(ba,dmap,1,1);
     MultiFab macrhs(ba,dmap,1,1);
@@ -337,63 +335,63 @@ void main_driver(const char* argv)
 
     // initial guess for new solution
     for (int d; d<AMREX_SPACEDIM; d++) {
-      MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
     }
 
     int step = 0;
     Real time = 0.;
 
     // write out initial state
-    if (plot_int > 0) 
-      {
-	WritePlotFile(step,time,geom,umac,rho,rhoxav,tracer,pres);
-      }
+    if (plot_int > 0)
+    {
+        WritePlotFile(step,time,geom,umac,rho,rhoxav,tracer,pres);
+    }
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
-	if(variance_coef_mom != 0.0) {
-    
-	  // Fill stochastic terms
-	  sMflux.fillMomStochastic();
+        if(variance_coef_mom != 0.0) {
 
-	  // compute stochastic force terms
-	  sMflux.StochMomFluxDiv(mfluxdiv_predict,0,eta_cc,eta_ed,temp_cc,temp_ed,
-			     weights,dt);
-	  sMflux.StochMomFluxDiv(mfluxdiv_correct,0,eta_cc,eta_ed,temp_cc,temp_ed,
-			     weights,dt);
+            // Fill stochastic terms
+            sMflux.fillMomStochastic();
 
-	}
+            // compute stochastic force terms
+            sMflux.StochMomFluxDiv(mfluxdiv_predict,0,eta_cc,eta_ed,temp_cc,temp_ed,
+                                   weights,dt);
+            sMflux.StochMomFluxDiv(mfluxdiv_correct,0,eta_cc,eta_ed,temp_cc,temp_ed,
+                                   weights,dt);
+
+        }
 
         if(step == 500)
         {
-                PrintMF (rhotot);
+            PrintMF (rhotot);
         }
 
-	// Advance umac
-	advance(umac,umacNew,pres,tracer,rho,rhotot,
-		mfluxdiv_predict,mfluxdiv_correct,
-		alpha_fc,beta,gamma,beta_ed,geom,dt);
+        // Advance umac
+        advance(umac,umacNew,pres,tracer,rho,rhotot,
+                mfluxdiv_predict,mfluxdiv_correct,
+                alpha_fc,beta,gamma,beta_ed,geom,dt);
 
-	//////////////////////////////////////////////////
-	
-	///////////////////////////////////////////
-	// Update structure factor
-	///////////////////////////////////////////
-	/*
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	  for(int d=0; d<AMREX_SPACEDIM; d++) {
-	    ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	  }
-	  structFact.FortStructure(struct_in_cc);
+        //////////////////////////////////////////////////
+
+        ///////////////////////////////////////////
+        // Update structure factor
+        ///////////////////////////////////////////
+        /*
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+            }
+            structFact.FortStructure(struct_in_cc);
         }
-	*/
+        */
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
-    
+
         amrex::Print() << "Advanced step " << step << " in " << step_stop_time << " seconds\n";
 
         time = time + dt;
@@ -403,32 +401,32 @@ void main_driver(const char* argv)
         XMeanFab(rho, rhoxav, 0);
 
         if (plot_int > 0 && step%plot_int == 0) {
-          // write out umac & pres to a plotfile
-    	  WritePlotFile(step,time,geom,umac,rho, rhoxav,tracer,pres);
+            // write out umac & pres to a plotfile
+            WritePlotFile(step,time,geom,umac,rho, rhoxav,tracer,pres);
         }
     }
-    
+
     /*
     if (struct_fact_int > 0) {
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-    
-      // let rhotot = 1
-      Real SFscale = dVol/(k_B*temp_const);
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom,"plt_SF");
+        Real dVol = dx[0]*dx[1];
+        int tot_n_cells = n_cells[0]*n_cells[1];
+        if (AMREX_SPACEDIM == 2) {
+            dVol *= cell_depth;
+        } else if (AMREX_SPACEDIM == 3) {
+            dVol *= dx[2];
+            tot_n_cells = n_cells[2]*tot_n_cells;
+        }
+
+        // let rhotot = 1
+        Real SFscale = dVol/(k_B*temp_const);
+        // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+
+        structFact.Finalize(SFscale);
+        structFact.WritePlotFile(step,time,geom,"plt_SF");
     }
     */
 
-    // Call the timer again and compute the maximum difference between the start time 
+    // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);

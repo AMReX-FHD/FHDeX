@@ -27,7 +27,7 @@ void main_driver(const char* argv)
     MultiFab vel;
     StructFact turbStructFact;
     Geometry geom;
-    
+
     {
         MultiFab mf;
 
@@ -38,7 +38,7 @@ void main_driver(const char* argv)
 
         BoxArray ba = mf.boxArray();
         DistributionMapping dmap(ba);
-        
+
         // copy velocity into vel
         vel.define(ba,dmap,AMREX_SPACEDIM,0);
 
@@ -48,7 +48,7 @@ void main_driver(const char* argv)
         // use prob_lo/hi from inputs file
         RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                          {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-        
+
         // create a single Box that spans the domain of the (coarse) plotfile
         Box domain = ba.minimalBox();
 
@@ -59,7 +59,7 @@ void main_driver(const char* argv)
                 Abort("n_cells in inputs file does not match plotfile");
             }
         }
-        
+
         Vector<int> is_periodic(AMREX_SPACEDIM,1);  // set to 1 (periodic) by default
 
         // geometry object required to build structure factor object
@@ -74,8 +74,8 @@ void main_driver(const char* argv)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             s_pairA[d] = d;
             s_pairB[d] = d;
-        } 
-        
+        }
+
         // scale solution
         Vector<Real> var_scaling(AMREX_SPACEDIM);
         for (int d=0; d<var_scaling.size(); ++d) {
@@ -83,7 +83,7 @@ void main_driver(const char* argv)
         }
 
         Vector< std::string > var_names(AMREX_SPACEDIM);
-    
+
         int cnt = 0;
         std::string x;
 
@@ -93,7 +93,7 @@ void main_driver(const char* argv)
             x += (120+d);
             var_names[cnt++] = x;
         }
-    
+
         turbStructFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
     }
 

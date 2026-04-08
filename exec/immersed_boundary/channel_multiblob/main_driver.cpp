@@ -327,7 +327,7 @@ void main_driver(const char * argv) {
     // Find the optimal number of ghost cells for the IBMultiBlobContainer
     Real min_dx = dx[0];
     for (int d=1; d<AMREX_SPACEDIM; ++d)
-	    min_dx = amrex::min(min_dx, dx[d]);
+        min_dx = amrex::min(min_dx, dx[d]);
 
     // min of 4 is a HACK: something large enough but not too large
     int ib_nghost = 4;

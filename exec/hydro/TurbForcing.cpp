@@ -13,10 +13,10 @@ void TurbForcing::define(BoxArray ba_in, DistributionMapping dmap_in,
     for (int i=0; i<132; ++i) {
         forcing_U[i] = 0.;
     }
-    
+
     forcing_a = a_in;
     forcing_b = b_in;
-    
+
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         sines  [i].define(convert(ba_in,nodal_flag_dir[i]), dmap_in, 22, 0);
         cosines[i].define(convert(ba_in,nodal_flag_dir[i]), dmap_in, 22, 0);
@@ -48,14 +48,14 @@ void TurbForcing::Initialize(const Geometry& geom_in) {
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         prob_lo_gpu[d] = prob_lo[d];
     }
-    
+
     // Loop over boxes
     for (MFIter mfi(sines[0],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         AMREX_D_TERM(const Array4<Real> & sin_x = sines[0].array(mfi);,
                      const Array4<Real> & sin_y = sines[1].array(mfi);,
                      const Array4<Real> & sin_z = sines[2].array(mfi););
-        
+
         AMREX_D_TERM(const Array4<Real> & cos_x = cosines[0].array(mfi);,
                      const Array4<Real> & cos_y = cosines[1].array(mfi);,
                      const Array4<Real> & cos_z = cosines[2].array(mfi););
@@ -65,7 +65,7 @@ void TurbForcing::Initialize(const Geometry& geom_in) {
         AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
                      Box bx_y = mfi.tilebox(nodal_flag_y);,
                      Box bx_z = mfi.tilebox(nodal_flag_z););
-    
+
 #if (AMREX_SPACEDIM == 2)
         amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real x = prob_lo_gpu[0] + i*dx[0];
@@ -113,7 +113,7 @@ void TurbForcing::Initialize(const Geometry& geom_in) {
             });
 #endif
     }
-    
+
 }
 
 void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
@@ -125,7 +125,7 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
 
     // update U = U - a*dt + b*sqrt(dt)*Z
     if (update_U == 1) {
-        
+
         Vector<Real> rngs(132);
 
         if (ParallelDescriptor::IOProcessor()) {
@@ -144,7 +144,7 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
         // update forcing_U
         for (int i=0; i<132; ++i) {
             forcing_U[i] += -forcing_a*forcing_U[i]*dt + forcing_b*sqrtdt*rngs[i];
-        }        
+        }
     }
 
     GpuArray<Real,132> forcing_U_gpu;
@@ -158,11 +158,11 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
         AMREX_D_TERM(const Array4<Real> & sin_x = sines[0].array(mfi);,
                      const Array4<Real> & sin_y = sines[1].array(mfi);,
                      const Array4<Real> & sin_z = sines[2].array(mfi););
-        
+
         AMREX_D_TERM(const Array4<Real> & cos_x = cosines[0].array(mfi);,
                      const Array4<Real> & cos_y = cosines[1].array(mfi);,
                      const Array4<Real> & cos_z = cosines[2].array(mfi););
-        
+
         AMREX_D_TERM(const Array4<Real> & rhs_x = gmres_rhs_u[0].array(mfi);,
                      const Array4<Real> & rhs_y = gmres_rhs_u[1].array(mfi);,
                      const Array4<Real> & rhs_z = gmres_rhs_u[2].array(mfi););
@@ -172,7 +172,7 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
         AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
                      Box bx_y = mfi.tilebox(nodal_flag_y);,
                      Box bx_z = mfi.tilebox(nodal_flag_z););
-    
+
 #if (AMREX_SPACEDIM == 2)
         Warning("2D AddTurbForcing not defined yet");
         amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -192,16 +192,16 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
                     rhs_y(i,j,k) += forcing_U_gpu[d+44] * cos_y(i,j,k,d);
                     rhs_y(i,j,k) += forcing_U_gpu[d+66] * sin_y(i,j,k,d);
                 }
-                
+
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
                     rhs_z(i,j,k) += forcing_U_gpu[d+88] * cos_z(i,j,k,d);
                     rhs_z(i,j,k) += forcing_U_gpu[d+110] * sin_z(i,j,k,d);
-                }                
+                }
             });
 #endif
-    }    
+    }
 }
 
 Real TurbForcing::getU(const int& i) {

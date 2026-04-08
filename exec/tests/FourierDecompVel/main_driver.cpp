@@ -49,14 +49,14 @@ void main_driver (const char* argv)
     // **********************************
 
     BL_PROFILE_VAR("main_driver()",main_driver);
-    
+
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
 
     amrex::AllPrint() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
-    
+
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
 
@@ -157,31 +157,31 @@ void main_driver (const char* argv)
     //                vel(i,j+1,k,1)   =  -1.0;
     //            }
     //        }
-    //        
-    //        Real x = (i+0.5)*dx[0] - center[0]; 
-    //        Real y = (j+0.5)*dx[1] - center[1]; 
-    //        Real z = (k+0.5)*dx[2] - center[2]; 
-    //        
+    //
+    //        Real x = (i+0.5)*dx[0] - center[0];
+    //        Real y = (j+0.5)*dx[1] - center[1];
+    //        Real z = (k+0.5)*dx[2] - center[2];
+    //
     //        if (prob_type == 3) { // pure solenoidal
     //            vel(i,j,k,0) = -1.0*y;
     //            vel(i,j,k,1) =  1.0*x;
     //        }
-    //        
+    //
     //        if (prob_type == 4) { // pure dilatational
     //            vel(i,j,k,0) =  1.0*x;
     //            vel(i,j,k,1) =  1.0*y;
     //        }
-    //        
+    //
     //        if (prob_type == 5) { // pure Laplacian
     //            vel(i,j,k,0) =  1.0*x;
     //            vel(i,j,k,1) = -1.0*y;
     //        }
-    //        
+    //
     //        if (prob_type == 6) { // both
     //            vel(i,j,k,0) =  1.0*x - 1.0*y;
     //            vel(i,j,k,1) =  1.0*x + 1.0*y;
     //        }
-    //       
+    //
     //    });
     //}
     for (MFIter mfi(structFactMFTurb); mfi.isValid(); ++mfi) {
@@ -194,7 +194,7 @@ void main_driver (const char* argv)
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
 
-        amrex::ParallelFor(tbx, 
+        amrex::ParallelFor(tbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             Real x = prob_lo[0] + (i) * dx[0]     - center[0];
@@ -203,20 +203,20 @@ void main_driver (const char* argv)
             if (prob_type == 3) { // pure solenoidal
                 velx(i,j,k) = -1.0*y;
             }
-            
+
             if (prob_type == 4) { // pure dilatational
                 velx(i,j,k) =  1.0*x;
             }
-            
+
             if (prob_type == 5) { // pure Laplacian
                 velx(i,j,k) =  1.0*x;
             }
-            
+
             if (prob_type == 6) { // both
                 velx(i,j,k) =  1.0*x - 1.0*y;
             }
         });
-        amrex::ParallelFor(tby, 
+        amrex::ParallelFor(tby,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             Real x = prob_lo[0] + (i+0.5) * dx[0] - center[0];
@@ -225,20 +225,20 @@ void main_driver (const char* argv)
             if (prob_type == 3) { // pure solenoidal
                 vely(i,j,k) =  1.0*x;
             }
-            
+
             if (prob_type == 4) { // pure dilatational
                 vely(i,j,k) =  1.0*y;
             }
-            
+
             if (prob_type == 5) { // pure Laplacian
                 vely(i,j,k) = -1.0*y;
             }
-            
+
             if (prob_type == 6) { // both
                 vely(i,j,k) =  1.0*x + 1.0*y;
             }
         });
-        amrex::ParallelFor(tbz, 
+        amrex::ParallelFor(tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             Real x = prob_lo[0] + (i+0.5) * dx[0] - center[0];
@@ -251,7 +251,7 @@ void main_driver (const char* argv)
     for(int d=0; d<3; d++) {
         ShiftFaceToCC(vel[d], 0, structFactMFTurb, d, 1);
     }
-        
+
     Real time = 0.;
     int step = 0;
     WriteSingleLevelPlotfile("vel_full", structFactMFTurb, {"u","v","w"}, geom, time, step);
@@ -286,9 +286,9 @@ void main_driver (const char* argv)
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         s_pairA_turb[d] = d;
         s_pairB_turb[d] = d;
-    }    
+    }
     turbStructFact.define(ba,dmap,var_names_turb,var_scaling_turb,s_pairA_turb,s_pairB_turb);
-    
+
     // Initialize the boxarray "ba_onegrid" from the single box "domain"
     long npts;
     BoxArray ba_onegrid;
@@ -311,14 +311,14 @@ void main_driver (const char* argv)
     MultiFab dft_decomp_real, dft_decomp_imag;
     dft_decomp_real.define(ba_onegrid, dmap_onegrid, 6, 0);
     dft_decomp_imag.define(ba_onegrid, dmap_onegrid, 6, 0);
-    
+
     for (MFIter mfi(dft_decomp_real); mfi.isValid(); ++mfi) {
-        
+
         Box bx = mfi.fabbox();
 
         Array4<const Real> const& real = dft_real.array(mfi);
         Array4<const Real> const& imag = dft_imag.array(mfi);
-        
+
         Array4<      Real> const& real_decomp = dft_decomp_real.array(mfi);
         Array4<      Real> const& imag_decomp = dft_decomp_imag.array(mfi);
 
@@ -328,9 +328,9 @@ void main_driver (const char* argv)
             int nx = bx.length(0);
             int ny = bx.length(1);
             int nz = bx.length(2);
-            
+
             if (i <= bx.length(0)/2) { // only need to do for the first half of k-space
-                
+
                 // Gradient Operators
                 Real GxR = (cos(2.0*M_PI*i/nx)-1.0)/dx[0];
                 Real GxC = (sin(2.0*M_PI*i/nx)-0.0)/dx[0];
@@ -359,17 +359,17 @@ void main_driver (const char* argv)
                     imag_decomp(i,j,k,2) = 0.0;
                 }
                 else {
-                    // Dilatational velocity 
+                    // Dilatational velocity
                     real_decomp(i,j,k,0) = (divR*GxR + divC*GxC) / Lap;
                     real_decomp(i,j,k,1) = (divR*GyR + divC*GyC) / Lap;
                     real_decomp(i,j,k,2) = (divR*GzR + divC*GzC) / Lap;
                     imag_decomp(i,j,k,0) = (divC*GxR - divR*GxC) / Lap;
                     imag_decomp(i,j,k,1) = (divC*GyR - divR*GyC) / Lap;
                     imag_decomp(i,j,k,2) = (divC*GzR - divR*GzC) / Lap;
-                    
+
                     // Solenoidal velocity
                     real_decomp(i,j,k,3) = real(i,j,k,0) - real_decomp(i,j,k,0);
-                    real_decomp(i,j,k,4) = real(i,j,k,1) - real_decomp(i,j,k,1); 
+                    real_decomp(i,j,k,4) = real(i,j,k,1) - real_decomp(i,j,k,1);
                     real_decomp(i,j,k,5) = real(i,j,k,2) - real_decomp(i,j,k,2);
                     imag_decomp(i,j,k,3) = imag(i,j,k,0) - imag_decomp(i,j,k,0);
                     imag_decomp(i,j,k,4) = imag(i,j,k,1) - imag_decomp(i,j,k,1);

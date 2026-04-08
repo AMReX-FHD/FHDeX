@@ -252,15 +252,15 @@ void compute_flux_x (int i, int j, int k,
 
     }
 
-//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
-	//amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
-	//amrex::Real phiavg = 0.5*(phip+phim);
+//        amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
+        //amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+        //amrex::Real phiavg = 0.5*(phip+phim);
 
-	// HACK TO COMMENT OUT STOCHASTIC TERMS
-	// phiavg = 0.;
+        // HACK TO COMMENT OUT STOCHASTIC TERMS
+        // phiavg = 0.;
 
         //fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
-    	//                    + stochfluxx(i,j,k) * std::sqrt(phiavg);
+            //                    + stochfluxx(i,j,k) * std::sqrt(phiavg);
           //amrex::Print() << " point " << i << " " << j << " " <<  dxinv << std::endl;
           //amrex::Print() << "phip " << phip << std::endl;
           //amrex::Print() << "phib " << phibdry << std::endl;
@@ -273,7 +273,7 @@ void compute_flux_x (int i, int j, int k,
 
              amrex::Real xloc;
              xloc = i / dxinv;
-	     amrex::Real phiavg = 0.5*(phim+phip);
+             amrex::Real phiavg = 0.5*(phim+phip);
 
              amrex::Real Vsubx;
 
@@ -287,7 +287,7 @@ void compute_flux_x (int i, int j, int k,
            fluxx(i,j,k,1) = fluxx(i,j,k,0);
         }
 
-	  amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+          amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
           fluxx(i,j,k,0) += stofact * stochfluxx(i,j,k) * sqphiavg;
 //          amrex::Print() << " x flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
 }
@@ -341,15 +341,15 @@ void compute_flux_y (int i, int j, int k,
         stofact = 1.;
 
     }
-//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
-	//amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
-	//amrex::Real phiavg = 0.5*(phip+phim);
+//        amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
+        //amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+        //amrex::Real phiavg = 0.5*(phip+phim);
 
-	// HACK TO COMMENT OUT STOCHASTIC TERMS
-	// phiavg = 0.;
+        // HACK TO COMMENT OUT STOCHASTIC TERMS
+        // phiavg = 0.;
 
         //fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
-	//+ stochfluxy(i,j,k)* std::sqrt(phiavg);
+        //+ stochfluxy(i,j,k)* std::sqrt(phiavg);
 
         fluxy(i,j,k,0) = 0.5*(phip-phim) * dyinv;
 
@@ -357,7 +357,7 @@ void compute_flux_y (int i, int j, int k,
 
              amrex::Real yloc;
              yloc = j / dyinv;
-	     amrex::Real phiavg = 0.5*(phip+phim);
+             amrex::Real phiavg = 0.5*(phip+phim);
 
              amrex::Real Vsuby;
 
@@ -371,9 +371,9 @@ void compute_flux_y (int i, int j, int k,
            fluxy(i,j,k,1) = fluxy(i,j,k,0);
         }
 
-	amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+        amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
 
-	fluxy(i,j,k,0) += stofact * stochfluxy(i,j,k)* sqphiavg;
+        fluxy(i,j,k,0) += stofact * stochfluxy(i,j,k)* sqphiavg;
 //        amrex::Print() << " y flux " << i << " " << j << " " << fluxy(i,j,k,0) << std::endl;
 }
 
@@ -415,15 +415,15 @@ void compute_flux_z (int i, int j, int k,
     }
     else
     {
-//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
+//        amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
         amrex::Real phip = std::max(phi(i,j,k,coeff_index),0.);
         amrex::Real phim = std::max(phi(i,j,k-1,coeff_index),0.);
-	//amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+        //amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         //fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv
-	// +stochfluxz(i,j,k) * std::sqrt(phiavg);
-	amrex::Real sqphiavg = 0.5*(std::sqrt(phip)+std::sqrt(phim));
+        // +stochfluxz(i,j,k) * std::sqrt(phiavg);
+        amrex::Real sqphiavg = 0.5*(std::sqrt(phip)+std::sqrt(phim));
         fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv
-	 +stochfluxz(i,j,k) * sqphiavg;
+         +stochfluxz(i,j,k) * sqphiavg;
         if(Ncomp == 2){
            fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv;
         }
@@ -444,16 +444,16 @@ void update_phi (int i, int j, int k,
                               amrex::Real dzinv),
                  int Ncomp)
 {
-  for (int n = 0; n < Ncomp; n++){
-    phinew(i,j,k,n) = phiold(i,j,k,n)
-        +  dt * dxinv * (fluxx(i+1,j  ,k,n  ) - fluxx(i,j,k,n))
-        +  dt * dyinv * (fluxy(i  ,j+1,k,n  ) - fluxy(i,j,k,n))
+    for (int n = 0; n < Ncomp; n++){
+        phinew(i,j,k,n) = phiold(i,j,k,n)
+            +  dt * dxinv * (fluxx(i+1,j  ,k,n  ) - fluxx(i,j,k,n))
+            +  dt * dyinv * (fluxy(i  ,j+1,k,n  ) - fluxy(i,j,k,n))
 #if (AMREX_SPACEDIM > 2)
-        +  dt * dzinv * (fluxz(i  ,j  ,k+1,n) - fluxz(i,j,k,n));
+            +  dt * dzinv * (fluxz(i  ,j  ,k+1,n) - fluxz(i,j,k,n));
 #else
-        ;
+            ;
 #endif
-  }
+    }
 }
 
 #endif

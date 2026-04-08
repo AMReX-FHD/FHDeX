@@ -89,7 +89,7 @@ void WritePlotFile(int step,
    // for (int i=0; i<nPlot; ++i) {
    //     std::cout<<" i= "<< varNames[i]<<std::endl ;
    // }
-    
+
 
     // reset plotfile variable counter
     cnt = 0;
@@ -132,7 +132,7 @@ void WritePlotFile(int step,
     ShiftFaceToCC(*mf[lev], 0, plotfile, cnt, 1);
     cnt++;
     // copy y component of concentration gradient tangent to the level set in to the plot file, face centered
-    
+
     amr_core_adv.con_new_copy(lev, mf, 2);
     ShiftFaceToCC(*mf[lev], 0, plotfile, cnt, 1);
     cnt++;
@@ -142,7 +142,7 @@ void WritePlotFile(int step,
     ShiftFaceToCC(*mf[lev], 0, plotfile, cnt, 1);
     cnt++;
     // copy magnitude of concentration gradient tangent to the level set in to the plot file, cell centered
-    
+
     amr_core_adv.con_new_copy(lev, mf, 4);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;

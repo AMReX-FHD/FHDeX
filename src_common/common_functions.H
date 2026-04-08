@@ -63,11 +63,11 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
 ///////////////////////////
 // in ComputeDivAndGrad.cpp
 
-void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi_fc, 
-                int start_incomp, int start_outcomp, int ncomp, 
+void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+                int start_incomp, int start_outcomp, int ncomp,
                 const Geometry & geom, int increment=0);
 
-void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi, 
+void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
                  int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,
                  int increment=0);
 
@@ -111,7 +111,7 @@ void ComputeDivCC(const MultiFab& vel_in,
                    MultiFab& div_in,
                    int outcomp,
                    const Geometry & geom);
-    
+
 ///////////////////////////
 // in Debug.cpp
 void PrintMF(const MultiFab& MF, int comp_lo, int comp_hi);
@@ -132,7 +132,7 @@ Real ComputeSpatialMean(MultiFab& mf, const int& incomp);
 
 Real ComputeSpatialVariance(MultiFab& mf, const int& incomp);
 
-void ComputeBasicStats(MultiFab & instant, MultiFab & means, 
+void ComputeBasicStats(MultiFab & instant, MultiFab & means,
                 const int incomp, const int outcomp, const int steps);
 
 void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom);
@@ -149,7 +149,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
 void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,
                                 const int& ncomp, int outcomp=-1);
-    
+
 void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_flat,
                             const int& dir, const int& incomp, const int& ncomp,
                             const int& slablo=-1, const int& slabhi=99999);
@@ -187,65 +187,65 @@ void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 // in NormInnerProduct.cpp
 
 void SumStag(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
-	     Vector<Real> & sum,
-	     const bool & divide_by_ncells=false);
+    Vector<Real> & sum,
+    const bool & divide_by_ncells=false);
 
 void SumEdge(const std::array<MultiFab, NUM_EDGE> & m1,
-	     Vector<Real> & sum,
-	     const bool & divide_by_ncells=false);
+    Vector<Real> & sum,
+    const bool & divide_by_ncells=false);
 
 void SumCC(const MultiFab & m1,
-	   const int & comp,
-	   Real & sum,
-	   const bool & divide_by_ncells=false);
+    const int & comp,
+    Real & sum,
+    const bool & divide_by_ncells=false);
 
 void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
-                   const int & comp1,
-                   const std::array<MultiFab, AMREX_SPACEDIM> & m2,
-                   const int & comp2,
-                   std::array<MultiFab, AMREX_SPACEDIM>& mscr,
-                   Vector<Real> & prod_val);
+    const int & comp1,
+    const std::array<MultiFab, AMREX_SPACEDIM> & m2,
+    const int & comp2,
+    std::array<MultiFab, AMREX_SPACEDIM>& mscr,
+    Vector<Real> & prod_val);
 
 void EdgeInnerProd(const std::array<MultiFab, NUM_EDGE>& m1,
-                   const int& comp1,
-                   const std::array<MultiFab, NUM_EDGE>& m2,
-                   const int& comp2,
-                   std::array<MultiFab, NUM_EDGE>& mscr,
-                   amrex::Vector<amrex::Real>& prod_val);
+    const int& comp1,
+    const std::array<MultiFab, NUM_EDGE>& m2,
+    const int& comp2,
+    std::array<MultiFab, NUM_EDGE>& mscr,
+    amrex::Vector<amrex::Real>& prod_val);
 
 void CCInnerProd(const MultiFab & m1,
-		 const int & comp1,
-		 const MultiFab & m2,
-		 const int & comp2,
-                 amrex::MultiFab& mscr,
-		 Real & prod_val);
+    const int & comp1,
+    const MultiFab & m2,
+    const int & comp2,
+    amrex::MultiFab& mscr,
+    Real & prod_val);
 
 void CCMoments(const MultiFab & m1,
-		 const int & comp1,
-                 amrex::MultiFab& mscr,
-		 const int & power,
-		 Real & prod_val);
+    const int & comp1,
+    amrex::MultiFab& mscr,
+    const int & power,
+    Real & prod_val);
 
 void FCMoments(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
-		       const amrex::Vector<int>& comps,
-               std::array<MultiFab, AMREX_SPACEDIM>&  mscr,
-		       const int& power,
-		       amrex::Vector<amrex::Real>& prod_val);
+    const amrex::Vector<int>& comps,
+    std::array<MultiFab, AMREX_SPACEDIM>&  mscr,
+    const int& power,
+    amrex::Vector<amrex::Real>& prod_val);
 
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
-		const int & comp,
-                std::array<MultiFab, AMREX_SPACEDIM>& mscr,
-		Real & norm_l2);
+    const int & comp,
+    std::array<MultiFab, AMREX_SPACEDIM>& mscr,
+    Real & norm_l2);
 
 void EdgeL2Norm(const std::array<MultiFab, NUM_EDGE>& m1,
-		const int& comp,
-                std::array<MultiFab, NUM_EDGE>& mscr,
-		Real& norm_l2);
-    
+    const int& comp,
+    std::array<MultiFab, NUM_EDGE>& mscr,
+    Real& norm_l2);
+
 void CCL2Norm(const MultiFab & m1,
-	      const int & comp,
-              amrex::MultiFab& mscr,
-	      Real & norm_l2);
+    const int & comp,
+    amrex::MultiFab& mscr,
+    Real & norm_l2);
 
 ///////////////////////////
 // in InterpCoarsen.cpp

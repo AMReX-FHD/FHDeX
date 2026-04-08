@@ -2,16 +2,16 @@
 
 /**
  * Performs matrix vector multiplication for vectors of length nspecies,
- * and matrix size nspecies x nspecies.   
- * 
+ * and matrix size nspecies x nspecies.
+ *
  * \param[in,out] x_in vector at each i,j,k location in multifab x_in
  * \param[in] A_in Matrix at each i,j,k location in multifab A_in
- * 
- * 
+ *
+ *
  */
 
 void MatvecMul(MultiFab& x_in,
-	       const MultiFab& A_in)
+    const MultiFab& A_in)
 {
 
     BL_PROFILE_VAR("MatvecMul()",MatvecMul);
@@ -28,22 +28,21 @@ void MatvecMul(MultiFab& x_in,
 
         amrex::ParallelFor(validBox, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-
             GpuArray<Real,MAX_SPECIES> x_temp;
             Real sum;
 
             for (int m=0; m<nspecies; ++m){
                 x_temp[m] = x(i,j,k,m);
-            } 
+            }
 
             for (int m=0; m<nspecies; ++m){
                 sum = 0.0;
                 for (int n=0; n<nspecies; ++n){
                     sum += A(i,j,k,n*nspecies+m) * x_temp[n];
-                } 
+                }
 
                 x(i,j,k,m) = sum;
-            } 
+            }
 
 
         });

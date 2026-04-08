@@ -3,7 +3,7 @@
 RUNDIR=RUN_SF
 FHDSCR=inputs_fhd_SF
 
-# check fhd executable 
+# check fhd executable
 exec2=./main3d.gnu.MPI.ex
 if [ ! -f $exec2 ]
 then
@@ -25,6 +25,6 @@ cp $FHDSCR $RUNDIR
 cp main_driver.cpp $RUNDIR
 cd $RUNDIR
 
-# run 
+# run
 echo "** running fhd"
 time mpirun -np 4 ../$exec2 $FHDSCR | tee log.fhd

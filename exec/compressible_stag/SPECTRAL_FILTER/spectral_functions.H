@@ -75,8 +75,8 @@ void SpectralWritePlotFile(const int step,
                            const amrex::MultiFab& vel_total,
                            const amrex::MultiFab& scalar_total);
 
-void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, 
-                             const std::string& checkpointname, 
+void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name,
+                             const std::string& checkpointname,
                              BoxArray& ba_old, DistributionMapping& dmap_old,
                              int NVARS, int NGC, const amrex::IntVect ngc,
                              int nodal_flag=-1);
@@ -90,24 +90,23 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, 3> & gphi,
                  int increment);
 
 void SumStag(const std::array<MultiFab, 3>& m1,
-	     amrex::Vector<amrex::Real>& sum);
+    amrex::Vector<amrex::Real>& sum);
 
 void FCMoments(const std::array<MultiFab, 3>& m1,
-		       const amrex::Vector<int>& comps,
-               std::array<MultiFab, 3>&  mscr,
-		       const int& power,
-		       amrex::Vector<amrex::Real>& prod_val);
+    const amrex::Vector<int>& comps,
+    std::array<MultiFab, 3>&  mscr,
+    const int& power,
+    amrex::Vector<amrex::Real>& prod_val);
 
 void SumCC(const amrex::MultiFab& m1,
-	   const int& comp,
-	   amrex::Real& sum,
-	   const bool& divide_by_ncells);
+    const int& comp,
+    amrex::Real& sum,
+    const bool& divide_by_ncells);
 
 void CCMoments(const amrex::MultiFab& m1,
-		 const int& comp1,
-                 amrex::MultiFab& mscr,
-		 const int& power,
-		 amrex::Real& prod_val);
+    const int& comp1,
+    amrex::MultiFab& mscr,
+    const int& power,
+    amrex::Real& prod_val);
 
 #endif
-

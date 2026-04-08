@@ -15,5 +15,5 @@ for ((i=1;i<=$NRUN;i++))
 do
     echo "***** R$i *****"
     mkdir R$i
-    mpirun -np 4 $exec -var SEED $i -log R$i/log.spparks < $SPKSCR 
+    mpirun -np 4 $exec -var SEED $i -log R$i/log.spparks < $SPKSCR
 done

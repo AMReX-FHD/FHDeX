@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -35,11 +35,11 @@ void CreateBox::command(int narg, char **arg)
 
   if (app->appclass == App::GENERAL)
     error->all(FLERR,"Cannot create box with this application style");
-  if (domain->box_exist) 
+  if (domain->box_exist)
     error->all(FLERR,"Cannot create box after simulation box is defined");
   if (domain->dimension == 2 && domain->zperiodic == 0)
     error->all(FLERR,"Cannot run 2d simulation with nonperiodic Z dimension");
-  if (domain->dimension == 1 && 
+  if (domain->dimension == 1 &&
       (domain->yperiodic == 0 || domain->zperiodic == 0))
     error->all(FLERR,"Cannot run 1d simulation with nonperiodic Y or Z dimension");
 
@@ -65,24 +65,24 @@ void CreateBox::command(int narg, char **arg)
   if (domain->me == 0)
     if (screen) {
       if (screen) fprintf(screen,"Created box = (%g %g %g) to (%g %g %g)\n",
-			  domain->boxxlo,domain->boxylo,domain->boxzlo,
-			  domain->boxxhi,domain->boxyhi,domain->boxzhi);
+        domain->boxxlo,domain->boxylo,domain->boxzlo,
+        domain->boxxhi,domain->boxyhi,domain->boxzhi);
       if (logfile) fprintf(logfile,"Created box = (%g %g %g) to (%g %g %g)\n",
-			   domain->boxxlo,domain->boxylo,domain->boxzlo,
-			   domain->boxxhi,domain->boxyhi,domain->boxzhi);
+        domain->boxxlo,domain->boxylo,domain->boxzlo,
+        domain->boxxhi,domain->boxyhi,domain->boxzhi);
     }
 
   if (domain->dimension == 1) domain->procs2domain_1d();
   if (domain->dimension == 2) domain->procs2domain_2d();
   if (domain->dimension == 3) domain->procs2domain_3d();
-  
+
   if (domain->me == 0)
     if (screen) {
       if (screen) fprintf(screen,"  %d by %d by %d processor grid\n",
-			  domain->procgrid[0],domain->procgrid[1],
-			  domain->procgrid[2]);
+        domain->procgrid[0],domain->procgrid[1],
+        domain->procgrid[2]);
       if (logfile) fprintf(logfile,"  %d by %d by %d processor grid\n",
-			   domain->procgrid[0],domain->procgrid[1],
-			   domain->procgrid[2]);
+        domain->procgrid[0],domain->procgrid[1],
+        domain->procgrid[2]);
     }
 }

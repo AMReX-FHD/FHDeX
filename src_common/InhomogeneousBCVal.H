@@ -20,8 +20,8 @@ Real InhomogeneousBCVal ( int comp,
             return p_lo[2];
         } else if (z == prob_hi[2]) {
             return p_hi[2];
-        }        
-        
+        }
+
     } else if (comp == RHO_BC_COMP) {
 
         if (x == prob_lo[0]) {
@@ -37,7 +37,7 @@ Real InhomogeneousBCVal ( int comp,
         } else if (z == prob_hi[2]) {
             return bc_rhotot_z_hi;
         }
-        
+
     } else if (comp == TRAN_BC_COMP) {
 
         if (x == prob_lo[0]) {
@@ -53,7 +53,7 @@ Real InhomogeneousBCVal ( int comp,
         } else if (z == prob_hi[2]) {
             return 0.;
         }
-        
+
     } else if (comp >= SPEC_BC_COMP && comp <= SPEC_END_BC_COMP) {
 
         if (x == prob_lo[0]) {
@@ -69,7 +69,7 @@ Real InhomogeneousBCVal ( int comp,
         } else if (z == prob_hi[2]) {
             return bc_Yk_z_hi[comp-SPEC_BC_COMP];
         }
-        
+
     } else if (comp >= MOLFRAC_BC_COMP && comp <= MOLFRAC_END_BC_COMP) {
 
         if (x == prob_lo[0]) {
@@ -85,9 +85,9 @@ Real InhomogeneousBCVal ( int comp,
         } else if (z == prob_hi[2]) {
             return bc_Xk_z_hi[comp-MOLFRAC_BC_COMP];
         }
-        
+
     } else if (comp == TEMP_BC_COMP) {
-        
+
         if (x == prob_lo[0]) {
             return t_lo[0];
         } else if (x == prob_hi[0]) {
@@ -100,7 +100,7 @@ Real InhomogeneousBCVal ( int comp,
             return t_lo[2];
         } else if (z == prob_hi[2]) {
             return t_hi[2];
-        }  
+        }
 
     } else if (comp == EPOT_BC_COMP) {
 
@@ -124,6 +124,6 @@ Real InhomogeneousBCVal ( int comp,
         Abort("InhomogeneousBCVal: invalid comp");
 
     }
-    
+
     return 0.;
 }
