@@ -111,7 +111,7 @@ c doesn't fill bc for reservoir.  do that separately
 c     write(6,*)" interior particles ", num_part
 c     k = num_part
 
-c     if(jpartl.gt.npghost .and. jpartr .le.npts-npghost)then
+      if(jpartl.gt.npghost .and. jpartr .le.npts-npghost)then
 
       do j=jpartl-npghost,jpartl-1
 
@@ -178,7 +178,7 @@ c        npart = u(j)*dx+0.5d0
 
        enddo
 
-c     endif
+      endif
 
 c     write(6,*)" number total, ghost ", num_part, num_part-k
 

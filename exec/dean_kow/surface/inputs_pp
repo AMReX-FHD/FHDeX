@@ -2,7 +2,9 @@
 # Run until nsteps == max_step or time == stop_time,
 #     whichever comes first
 # *****************************************************************
-max_step  = 100
+max_step  = 1000000
+ntherm = 100000
+nstat = 10
 
 seed = 0
 
@@ -12,6 +14,7 @@ amrex.fpe_trap_invalid = 1
 # Specific to this application
 # *****************************************************************
 npts_scale = 1000000.
+num_part = 10240.
 alg_type = 0
 
 # *****************************************************************
@@ -42,7 +45,7 @@ amr.max_grid_size_x = 16 16 64
 amr.max_grid_size_y = 16 16 64
 amr.max_grid_size_x = 32 32 64
 amr.max_grid_size_y = 32 32 64
-amr.n_cell          = 100 100
+amr.n_cell          = 32 32
 
 amr.max_level       = 1
 amr.use_particles   = 1      # Turn particles on or off
@@ -88,7 +91,7 @@ adv.phierr = -10.
 # Plotfile name and frequency
 # *****************************************************************
 amr.plot_file  = plt_pp_    # root name of plot file
-amr.plot_int   =  10000    # number of timesteps between plot files
+amr.plot_int   =  100000    # number of timesteps between plot files
                         # if negative then no plot files will be written
 
 # *****************************************************************
