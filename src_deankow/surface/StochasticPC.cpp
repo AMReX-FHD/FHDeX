@@ -102,7 +102,9 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
         {
             if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))) >= 0) {return;}
             Real rannum = amrex::Random(engine);
-            int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
+// JBB set up particles directly
+            //int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
+            int npart_in_cell = int(phi_arr(i,j,k,0));
             pcount[flat_index(i, j, k)] += npart_in_cell;
             // if (phi_arr(i,j,k) > 0.) {
             //     amrex::Print() << " IJK/NPART/PHI/RAN " << IntVect(i,j) << " " << npart_in_cell << " given phi " <<
@@ -140,11 +142,11 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
         amrex::Print() << "INIT: NEW SIZE OF PARTICLES IN TILE BOX " << tile_box << " " << new_size << std::endl;
 
 
-        int ext_pot = 1;
+        int ext_pot = 0;
         amrex::Real alpha = .25;
         amrex::Real beta = .75;
         amrex::Real gamma = 5.e-4;
-        gamma = 1.1e-3;
+        gamma = 1.e-2;
 
 
         // now fill in the data
@@ -407,12 +409,14 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
     Real stddev = std::sqrt(dt);
 
+    constexpr double  TWOPI = 2.*3.14159265358979323846264338327950288;
+
     int ext_pot = 0;
     int on_surf = 1;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
-        gamma = 1.1e-3;
+        gamma = 2.e-1;
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -431,24 +435,36 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
             AMREX_D_TERM( Real incx = amrex::RandomNormal(0.,stddev,engine);,
                           Real incy = amrex::RandomNormal(0.,stddev,engine);,
                           Real incz = amrex::RandomNormal(0.,stddev,engine););
+             amrex::Real Vsubx, Vsuby;
 
              if(ext_pot ==1){
-                amrex::Real xloc,yloc;
-                amrex::Real Vsubx, Vsuby;
+                amrex::Real xloc,yloc,sinx,siny,cosx,cosy;
 
                 xloc = p.pos(0);
                 yloc = p.pos(1);
-                Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
-                Vsuby = 0.5*4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
+//                Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
+//                Vsuby = 0.5*4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
+                sinx = std::sin(xloc);
+                cosx = std::cos(xloc);
+                siny = std::sin(yloc);
+                cosy = std::cos(yloc);
+                Vsubx = 2.*sinx*cosx*siny*siny/gamma;
+                Vsuby = 2.*siny*cosy*sinx*sinx/gamma;
 
-                p.pos(0) += -dt*Vsubx;
-                p.pos(1) += -dt*Vsuby;
+                
+                if(on_surf == 0){
+
+                   p.pos(0) += -dt*Vsubx;
+                   p.pos(1) += -dt*Vsuby;
+
+                }
 
              }
 
              if(on_surf == 1){
 
-                 amrex::Real amp = 0.1;
+#if 0
+                 amrex::Real amp = 3.0;
                  amrex::Real sinx,siny,cosx,cosy,det,fx,fy,sig11,sig12,sig21,sig22;
 
                  amrex::Real xloc = p.pos(0);
@@ -461,32 +477,101 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
                  det = 1 + amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy);
                  
-                 fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*sinx*cosx*siny*siny);
-                 fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*siny*cosy*sinx*sinx);
+                 fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy))*sinx*cosx*siny*siny;
+                 fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy))*siny*cosy*sinx*sinx;
 
-                 fx = fx / (2.*det*det);
-                 fy = fy / (2.*det*det);
+//                 fx = fx / (2.*det*det);
+//                 fy = fy / (2.*det*det);
+                 fx = fx / (det*det);
+                 fy = fy / (det*det);
 
-                 amrex::Real detm1 = det - 1.;
-                 amrex::Real cfac = (1. - 1./std::sqrt(1+detm1))/detm1;
+//                 amrex::Real detm1 = det - 1.;
+//                 amrex::Real cfac = (1. - 1./std::sqrt(1+detm1))/detm1;
+                 amrex::Real cfac = 1./(det + std::sqrt(det));
+
+                 amrex::Real gmet0 = (1.+ amp*amp*cosy*cosy*sinx*sinx)/det;
+                 amrex::Real gmet1 = -(amp*amp*cosy*cosx*sinx*siny)/det;
+                 amrex::Real gmet2 = -(amp*amp*cosy*cosx*sinx*siny)/det;
+                 amrex::Real gmet3 = (1.+ amp*amp*cosx*cosx*siny*siny)/det;
+
 
                  sig11 = 1. - cfac * amp*amp * cosx*cosx*siny*siny;
                  sig22 = 1. - cfac * amp*amp * cosy*cosy*sinx*sinx;
                  sig12 =  - cfac * amp*amp * cosy*cosx*sinx*siny;
                  sig21 = sig12;
 
-                 amrex::Real updatex = fx*dt + sig11*incx + sig12*incy;
-                 amrex::Real updatey = fy*dt + sig21*incx + sig22*incy;
+#else
+
+                 amrex::Real amp = 4.0;
+                 amrex::Real sinx,siny,cosx,cosy,det,fx,fy,sig11,sig12,sig21,sig22;
+
+                 amrex::Real xloc = p.pos(0);
+                 amrex::Real yloc = p.pos(1);
+            
+                 sinx = std::sin(xloc);
+                 siny = std::sin(yloc);
+                 cosx = std::cos(xloc);
+                 cosy = std::cos(yloc);
+
+
+                 det = 1. + 4.* amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy)*sinx*sinx*siny*siny;
+
+                 amrex::Real detx = 8.*amp*amp*sinx*siny*cosx*(2.*cosy*cosy*sinx*sinx*siny + 
+                                           siny*siny*siny*(cosx*cosx - sinx*sinx));
+
+                 amrex::Real dety = 8.*amp*amp*sinx*siny*cosy*(2.*cosx*cosx*siny*siny*sinx + 
+                                           sinx*sinx*sinx*(cosy*cosy - siny*siny));
+
+
+                 amrex::Real gmet0 = (1.+ 4.*amp*amp*cosy*cosy*siny*siny*sinx*sinx*sinx*sinx)/det;
+                 amrex::Real gmet1 = -4.*(amp*amp*cosy*cosx*sinx*sinx*sinx*siny*siny*siny)/det;
+                 amrex::Real gmet2 = -4.*(amp*amp*cosy*cosx*sinx*sinx*sinx*siny*siny*siny)/det;
+                 amrex::Real gmet3 = (1.+ 4.*amp*amp*cosx*cosx*sinx*sinx*siny*siny*siny*siny)/det;
+
+//                 sig11 = std::sqrt(gmet0);
+//                 sig12 =  0.;
+//                 sig21 =  gmet2/sig11;
+//                 sig22 = std::sqrt(gmet3-gmet2*gmet2/gmet0);
+
+                 amrex::Real pfac = 2*amp*cosx*sinx*siny*siny;
+                 amrex::Real qfac = 2*amp*cosy*siny*sinx*sinx;
+
+                 amrex::Real cfac = 1./(det + std::sqrt(det));
+
+                 sig11 = 1. - cfac * pfac * pfac;
+                 sig22 = 1. - cfac * qfac * qfac;
+                 sig12 =  - cfac * pfac*qfac;
+                 sig21 = sig12;
+
+
+                 
+                 fx = 2.*amp*amp*(2.*cosx*sinx*sinx*sinx*siny*siny/det + ((cosx*cosy*sinx*sinx*sinx*siny*siny*siny*dety)-
+                             ( cosy*cosy*sinx*sinx*sinx*sinx*siny*siny)*detx)/(det*det)) - .5*detx/(det*det);
+
+                 fy =2.* amp*amp*(2.*cosy*sinx*sinx*siny*siny*siny/det + ((cosx*cosy*sinx*sinx*sinx*siny*siny*siny*detx)-
+                             ( cosx*cosx*sinx*sinx*siny*siny*siny*siny)*dety)/(det*det)) - .5*dety/(det*det);
+
+
+#endif
+                 amrex::Real updatex = fx*dt + std::sqrt(2.)*(sig11*incx + sig12*incy);
+                 amrex::Real updatey = fy*dt + std::sqrt(2.)*(sig21*incx + sig22*incy);
+
+                 if(ext_pot == 1){
+           
+                    updatex -= dt*(gmet0*Vsubx+gmet1*Vsuby);
+                    updatey -= dt*(gmet2*Vsubx+gmet3*Vsuby);
+                    
+                 }
 
                  if(std::abs(updatex) > dx[0] || std::abs(updatey) > dx[1])
                  {
-                    amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << " mesh " << dx[0] << " " << dx[1] << std::endl;
+                    amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << std::endl;
                  }
 
                  updatex = std::max(-dx[0], std::min( dx[0], updatex));
                  updatey = std::max(-dx[1], std::min( dx[1], updatey));
 
-                 // amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << std::endl;
+                 //amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << std::endl;
                 
                  p.pos(0) += static_cast<ParticleReal> (updatex);
                  p.pos(1) += static_cast<ParticleReal> (updatey);
