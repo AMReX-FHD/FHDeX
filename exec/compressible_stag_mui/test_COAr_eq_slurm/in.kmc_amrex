@@ -39,21 +39,21 @@ amrex_kmc_lattice_offset ${lat_off_x} ${lat_off_y}
 # i2:       0 (vac) 1 (spec1) 2 (spec2) 3 (spec3) 4 (spec4) 5 (spec5)
 # i3 - i7:  ac1-ac5 = number of adsorption events of the species at the site
 # i8 - i12: dc1-dc5 = number of desoprtion events of the species at the site
-# d1 - d5:  density1-5 = number density of the fluid cell right above the site 
+# d1 - d5:  pressure1-5 = partial pressure of the fluid cell right above the site 
 # d6:       temperature
 
 set         i1 value 1                           # all siteA
 set         i2 value 0                           # all vac
 set         i2 value 1 fraction 2.053333e-01     # equilibrium coverage
 
-#event       4 siteA vac   7.562496e+06 spec1 rate       # adsorption of spec1 (rate)
-event       4 siteA vac   1.475765e-11 spec1 beta 0.5   # adsorption of spec1 (rate const)
-event       5 siteA spec1 2.926784e+07 vac              # desorption of spec1
+#event       4 siteA vac   7.562496e+06 spec1 rate        # adsorption of spec1 (rate)
+event       4 siteA vac   1.068893e+02 spec1 beta -0.5   # adsorption of spec1 (rate const)
+event       5 siteA spec1 2.926784e+07 vac               # desorption of spec1
 
 ###########################
 
 variable    Trun     equal 1.e-12
-variable    nstep    equal 5000000
+variable    nstep    equal 10000000
 
 variable    Tstat  equal ${nstep}*${Trun}
 stats       ${Tstat}
@@ -66,7 +66,7 @@ amrex_push_agg 0 one occ1
 variable ts loop ${nstep}
 label ts_loop
     # MPI_FETCH
-    amrex_fetch_agg ${ts} density1 temp
+    amrex_fetch_agg ${ts} pressure1 temp
 
     # RUN KMC
     run ${Trun} pre no post no
