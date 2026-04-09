@@ -83,6 +83,7 @@ void init_phi (int i, int j, int k,
         phi(i,j,k,0) = 10.1/cellvol;
     }
 #endif
+        phi(i,j,k,0) = 20./cellvol;
 
 #if 0
     // 2D Test for multilevel
@@ -181,7 +182,7 @@ void compute_flux_x (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
+    int ext_pot = 0;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
@@ -303,7 +304,7 @@ void compute_flux_y (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
+    int ext_pot = 0;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;

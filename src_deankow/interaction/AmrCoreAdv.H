@@ -10,6 +10,7 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FillPatcher.H>
+#include <AMReX_FFT.H>
 
 #ifdef AMREX_USE_OMP
 #   include <omp.h>
@@ -110,6 +111,9 @@ private:
     // this comes into play when a new level of refinement appears
     void FillCoarsePatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
 
+    // initialize FFT state for level 0 (used on first init and restart)
+    void InitFFTLevel0 ();
+
     // Pack pointers to phi_old and/or phi_new and associated times.
     void GetData (int lev, amrex::Real time, amrex::Vector<amrex::MultiFab*>& data,
                   amrex::Vector<amrex::Real>& datatime);
@@ -163,11 +167,28 @@ private:
     // This is for fillpatch during timestepping, but not for regridding.
     amrex::Vector<std::unique_ptr<amrex::FillPatcher<amrex::MultiFab>>> fillpatcher;
 
+    amrex::MultiFab U;
+    amrex::MultiFab C;
+
+    // FFT setup (cache these in real code)
+    std::unique_ptr<amrex::FFT::R2C<amrex::Real, amrex::FFT::Direction::forward>> r2c_forward;
+    std::unique_ptr<amrex::FFT::R2C<amrex::Real, amrex::FFT::Direction::backward>> r2c_backward;
+
+    amrex::cMultiFab Uhat;
+    amrex::cMultiFab Phihat;
+    amrex::cMultiFab Chat;
+
+
     ////////////////
     // runtime parameters
 
     // Specific to this application
     amrex::Real npts_scale;
+
+    amrex::Real dorand = 1.;
+
+    amrex::Real diff_coeff;
+
     int alg_type;
 
     int seed=0;

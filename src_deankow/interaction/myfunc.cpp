@@ -4,13 +4,16 @@
 #include <AMReX_BCUtil.H>
 #include "common_functions.H"
 #include "rng_functions.H"
+#include <AMReX_FFT.H>
 
 void advance_phi (MultiFab& phi_old,
                   MultiFab& phi_new,
                   Array<MultiFab, AMREX_SPACEDIM>& flux,
                   Array<MultiFab, AMREX_SPACEDIM>& stochFlux,
+                  MultiFab& C,
                   Real dt,
-                  Real /*npts_scale*/,
+                  Real diff_coeff,
+                  Real dorand,
                   Geometry const& geom,
                   Vector<BCRec> const& BoundaryCondition)
 {
@@ -24,17 +27,26 @@ void advance_phi (MultiFab& phi_old,
     const auto dom_lo = lbound(domain_bx);
     const auto dom_hi = ubound(domain_bx);
 
-    //Real variance = dxinv*dyinv/(npts_scale*dt);
-    Real variance = dxinv*dyinv/dt;
+    //Real variance = 2.*diff_coeff*dxinv*dyinv/dt;
+    Real variance = 2.*diff_coeff*dxinv*dyinv/dt;
 
 #if(AMREX_SPACEDIM > 2)
     variance *=dzinv;
 #endif
 
+  if(dorand != 0.){
     // Fill stochFlux with random numbers (can skip density component 0)
     for (int d=0;d<AMREX_SPACEDIM;d++) {
         MultiFabFillRandom(stochFlux[d], 0, variance, geom);
     }
+
+  } else {
+
+       for (int d=0;d<AMREX_SPACEDIM;d++) {
+           stochFlux[d].setVal(0.);
+        }
+  }
+
 
     const BCRec& bc = BoundaryCondition[0];
 
@@ -59,25 +71,26 @@ void advance_phi (MultiFab& phi_old,
         const auto hi = ubound(bx);
 
         auto const& phi = phi_old.array(mfi);
+        auto const& C_arr = C.array(mfi);
 
         amrex::ParallelFor(xbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                compute_flux_x(i,j,k,fluxx,stochfluxx,phi,dxinv,
+                compute_flux_x(i,j,k,fluxx,stochfluxx,C_arr,phi,dxinv,diff_coeff,
                                lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp);
             });
 
         amrex::ParallelFor(ybx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                compute_flux_y(i,j,k,fluxy,stochfluxy,phi,dyinv,
+                compute_flux_y(i,j,k,fluxy,stochfluxy,C_arr,phi,dyinv,diff_coeff,
                                lo.y, hi.y, dom_lo.y, dom_hi.y, bc.lo(1), bc.hi(1),Ncomp);
             });
 #if (AMREX_SPACEDIM > 2)
         amrex::ParallelFor(zbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                compute_flux_z(i,j,k,fluxz,stochfluxz,phi,dzinv,
+                compute_flux_z(i,j,k,fluxz,stochfluxz,C_arr,phi,dzinv,diff_coeff,
                                lo.z, hi.z, dom_lo.z, dom_hi.z, bc.lo(2), bc.hi(2),Ncomp);
             });
 #endif

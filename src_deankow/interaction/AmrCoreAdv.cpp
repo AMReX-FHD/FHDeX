@@ -219,6 +219,7 @@ AmrCoreAdv::InitData ()
     else {
         // restart from a checkpoint
         ReadCheckpointFile();
+        InitFFTLevel0();
     }
     if (plot_int > 0) {
         WritePlotFile();
@@ -406,7 +407,12 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     }
 
     const auto problo = Geom(lev).ProbLoArray();
+    const auto probhi = Geom(lev).ProbHiArray();
     const auto dx     = Geom(lev).CellSizeArray();
+
+    if (lev == 0){
+          InitFFTLevel0();
+    }
 
     int Ncomp = phi_new[lev].nComp();
 
@@ -425,6 +431,47 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     } else {
         phi_new[lev].ParallelCopy(phi_new[lev-1], 0, 0, phi_new[lev].nComp());
     }
+}
+
+void
+AmrCoreAdv::InitFFTLevel0 ()
+{
+    const int lev = 0;
+    const auto& ba = phi_new[lev].boxArray();
+    const auto& dm = phi_new[lev].DistributionMap();
+
+    if (!r2c_forward) {
+        const int ng = 1;
+        U.define(ba, dm, 1, 0);
+        C.define(ba, dm, 1, ng);
+
+        // FFT setup (cache these in real code)
+        r2c_forward = std::make_unique<FFT::R2C<Real,FFT::Direction::forward>>(Geom(lev).Domain());
+        r2c_backward = std::make_unique<FFT::R2C<Real,FFT::Direction::backward>>(Geom(lev).Domain());
+
+        // Spectral layout provided by AMReX
+        auto const& [cba, cdm] = r2c_forward->getSpectralDataLayout();
+        Uhat.define(cba, cdm, 1, 0);
+        Phihat.define(cba, cdm, 1, 0);
+        Chat.define(cba, cdm, 1, 0);
+    }
+
+    const auto problo = Geom(lev).ProbLoArray();
+    const auto probhi = Geom(lev).ProbHiArray();
+    const auto dx     = Geom(lev).CellSizeArray();
+
+    for (MFIter mfi(phi_new[lev]); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        auto const& U_arr = U.array(mfi);
+        amrex::ParallelFor(vbx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k)
+        {
+            init_int_pot(i,j,k,U_arr,dx,problo,probhi);
+        });
+    }
+
+    r2c_forward->forward(U, Uhat);
 }
 
 // tag all cells for refinement
@@ -498,8 +545,13 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         npts_scale = 1.0;
         pp.queryAdd("npts_scale", npts_scale);
 
+        pp.queryAdd("dorand", dorand);
+
         alg_type = 0;
         pp.queryAdd("alg_type", alg_type);
+
+        diff_coeff = 0.5;
+        pp.queryAdd("diff_coeff", diff_coeff);
 
 
         // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
@@ -822,7 +874,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
     Real coeff = AMREX_D_TERM(   2./(dx[0]*dx[0]),
                                + 2./(dx[1]*dx[1]),
                                + 2./(dx[2]*dx[2]) );
-    Real est = 1.0 / (2.0*coeff);
+    Real est = diff_coeff / (coeff);
     dt_est = amrex::min(dt_est, est);
 
     dt_est *= cfl;

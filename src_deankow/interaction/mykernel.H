@@ -10,6 +10,7 @@ void init_phi (int i, int j, int k,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
                amrex::Real /*npts_scale*/, int Ncomp)
 {
+    constexpr double  PI = 3.14159265358979323846264338327950288;
     using amrex::Real;;
     Real cellvol = dx[0]*dx[1];
 
@@ -17,171 +18,110 @@ void init_phi (int i, int j, int k,
     cellvol *=dx[2];
 #endif
 
-
-#if 0
-    Real rad = Real(0.1);
-    Real xcent = Real(0.5);
-    Real ycent = Real(0.5);
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
-
-#if (AMREX_SPACEDIM > 2)
-    Real zcent = Real(0.5);
-    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
-    Real r2 = (x*x + y*y + z*z) / (rad*rad);
-#else
-    Real z = Real(0.);
-    Real r2 = (x*x + y*y) / (rad*rad);
-#endif
-
-    // Gaussian
-    phi(i,j,k,0) = Real(1.) + std::exp(-r2);
-#endif
-
-#if 0
-    // Jump in x-direction
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0];
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1];
-    if ( x > 0.5) {
-        phi(i,j,k,0) = 1.5*npts_scale;
-    } else {
-        phi(i,j,k,0) = 0.5*npts_scale;
-    }
-#endif
-
-#if 0
-    // Delta function
-    if (i==4 && j ==4)
-    {
-       phi(i,j,k,0) = 1./(dx[0]*dx[1]);
-    }
-    else
-    {
-       phi(i,j,k,0) = 0;;
-    }
-#endif
-
-#if 1
-    // 2D Test for multilevel
-    Real rad = Real(0.2);
-    Real xcent = Real(0.5);
-    Real ycent = Real(0.5);
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
-    Real r2 = (x*x + y*y);
-//    r2 = 4.*(x-y)*(x-y)+ .25*(x+y)*(x+y);
-#if (AMREX_SPACEDIM == 3)
-    Real zcent = Real(0.75);
-    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
-    r2 = (x*x + y*y+z*z);
-#endif
-
-//    if ( r2 < rad*rad) {
-    if (i == 50 && j == 50) {
-        phi(i,j,k,0) = 10.1/cellvol;
-    } else {
-        phi(i,j,k,0) = 10.1/cellvol;
-    }
-#endif
-
-#if 0
-    // 2D Test for multilevel
-    Real rad = Real(0.4);
-    Real radi = Real(0.1);
-    Real xcent = Real(0.5);
-    Real ycent = Real(0.5);
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
-    Real r2 = (x*x + y*y);
-    r2 = 2.*(x-y)*(x-y)+ .5*(x+y)*(x+y);
-    Real r3 = 0.5*(x-y)*(x-y)+ 2.*(x+y)*(x+y);
-#if (AMREX_SPACEDIM == 3)
-    Real zcent = Real(0.5);
-    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
-    r3 = (x*x + y*y+z*z);
-    r2 = (x-.1)*(x-.1)+(y-.2)*(y-.2)+z*z;
-#endif
-
-    if ( r3 > rad*rad) {
-        //phi(i,j,k,0) = 50./cellvol;
-        phi(i,j,k,0) = 30./cellvol;
-    } else if (r2 < radi*radi) {
-        //phi(i,j,k,0) = 20./cellvol;
-        phi(i,j,k,0) = 15./cellvol;
-    } else {
-        phi(i,j,k,0) = 0./cellvol;
-    }
-    //if(std::abs(x) <= .1 && y > 0.){
-    if(x >= .3 && y > .3){
-       phi(i,j,k,0) = 0.;
-    } else {
-       phi(i,j,k,0) = 30./cellvol;
-    }
-
-//
-#endif
-#if 0
-//    int ioff = 25;
-//    int joff = 25;
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] ;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] ;
-
-    Real value = 200./(.01 * .01);
-
-//    if( i-ioff >= 0 && i - ioff < 10 && j-joff >= 0 && j - joff < 50 ) {
-    if( x >= .25 && x < .35 && y >= .25 && y < .75 ) {
-    //if( x >= .2 && x < .3 && y >= .25 && y < .75 ) {
-       //phi(i,j,k,0) = 200./cellvol;
-       phi(i,j,k,0) = value;
-    } else {
-       phi(i,j,k,0) = 0./cellvol;
-    }
-
-//
-
-#endif
-#if 0
-
-        int ext_pot = 1;
-        amrex::Real alpha = .25;
-        amrex::Real beta = .75;
-        amrex::Real gamma = 5.e-4;
-        gamma = 1.1e-3;
-        Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] ;
-        Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] ;
-
-    if( x >= .2 && x < .4 && y >= .25 && y < .75 ) {
-        amrex::Real pot = (x-alpha)*(x-alpha)*(x-beta)*(x-beta);
-        pot += 0.5* (y-.5)*(y-.5)*(y-.5)*(y-.5);
-        pot /= gamma;
-        Real value = 20000.* 200.* std::exp(-pot);
-        phi(i,j,k,0) = value;
-    } else {
-       phi(i,j,k,0) = 0./cellvol;
-    }
-
-
-
-#endif
+//     phi(i,j,k,0) = 20./cellvol;
+//     phi(i,j,k,0) += std::cos(2.*PI*(i)*dx[0])*std::cos(2.*PI*(j)*dx[1])/cellvol;
+     //phi(i,j,k,0) += std::cos(16.*2.*PI*(i)*dx[0])*std::cos(16*2.*PI*j*dx[1])/cellvol;
+     phi(i,j,k,0) = 20480.;
+     phi(i,j,k,0) += std::cos(2.*PI*(i)*dx[0])*std::cos(2.*PI*(j)*dx[1])*1024;
+     phi(i,j,k,0) += std::cos(8.*PI*(i)*dx[0]+.7)*std::cos(10.*PI*(j)*dx[1]-.3)*1024;
+     // phi(i,j,k,0) += std::cos(2.*3.14156265*(i+0.5)*dx[0])*std::cos(2.*3.14156265*(j+0.5)*dx[1])/cellvol;
 
     if (Ncomp == 2){
         phi(i,j,k,1) = phi(i,j,k,0);
     }
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void init_int_pot (int i, int j, int k,
+               amrex::Array4<amrex::Real> const& U,
+               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
+               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
+               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_hi)
+{
+    constexpr double  PI = 3.14159265358979323846264338327950288;
+    amrex::Real eps, R, alpha;
+    eps = 0.0333;
+    R = 0.1;
+    alpha = 3.;
+
+//    shiftinging definit of U by 1/2 for fft
+    amrex::Real x,y,z,xlen,ylen,zlen;
+    
+    x = (i) * dx[0] ;
+    xlen = prob_hi[0]-prob_lo[0];
+    if(x + .5*dx[0] > 0.5*xlen){
+       x = x-xlen;
+    }
+
+    y = (j) * dx[1] ;
+    ylen = prob_hi[1]-prob_lo[1];
+    if(y  + .5*dx[1]> 0.5*ylen){
+       y = y-ylen;
+    }
+
+#if (AMREX_SPACEDIM > 2)
+    z = (k) * dx[2] ;
+    zlen = prob_hi[2]-prob_lo[2];
+    if(z + .5*dx[2] > 0.5*zlen){
+       z = z-zlen;
+    }
+    amrex::Real r = std::sqrt(x*x+y*y+z*z);
+#else
+    amrex::Real r = std::sqrt(x*x+y*y);
+#endif
+
+    U(i,j,k) = eps * std::exp( - std::pow(r/R,alpha));
+//    U(i,j,k) = std::cos(2*PI*i*dx[0]);
+/*
+    U(i,j,k) = 0.;
+
+    if (i == 0 and j == 0 ){
+       U(i,j,k) = 1.;
+    } 
+    if (i == 1 and j == 0 ){
+       U(i,j,k) = .5;
+    } 
+    if (i == 31 and j == 0 ){
+       U(i,j,k) = .5;
+    } 
+    if (i == 0 and j == 1 ){
+       U(i,j,k) = .5;
+    } 
+    if (i == 1 and j == 1 ){
+       U(i,j,k) = .25;
+    } 
+    if (i == 31 and j == 1 ){
+       U(i,j,k) = .25;
+    } 
+    if (i == 0 and j == 31 ){
+       U(i,j,k) = .5;
+    } 
+    if (i == 1 and j == 31 ){
+       U(i,j,k) = .25;
+    } 
+    if (i == 31 and j == 31 ){
+       U(i,j,k) = .25;
+    } 
+*/
+
+
+//        amrex::Print() << "i j U " << i << " " << j << " " << U(i,j,k) << std::endl;
+}
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxx,
                      amrex::Array4<amrex::Real> const& stochfluxx,
-                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv,
+                     amrex::Array4<amrex::Real> const& C,
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv, amrex::Real diff_coeff,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
+    int ext_pot = 0;
+    int inter_pot = 1;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
@@ -267,7 +207,7 @@ void compute_flux_x (int i, int j, int k,
           //amrex::Print() << "phi " << phi(i,j,k,0) << std::endl;
           //amrex::Print() << "phim " << phim << std::endl;
 
-          fluxx(i,j,k,0) = 0.5*(phip-phim) * dxinv;
+          fluxx(i,j,k,0) = diff_coeff*(phip-phim) * dxinv;
 
           if(ext_pot == 1) {
 
@@ -280,6 +220,14 @@ void compute_flux_x (int i, int j, int k,
              Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
 
              fluxx(i,j,k,0) += phiavg * Vsubx;
+
+          }
+
+          if(inter_pot == 1) {
+
+             amrex::Real phiavg = 0.5*(phim+phip);
+
+             fluxx(i,j,k,0) += phiavg * (C(i,j,k) - C(i-1,j,k)) * dxinv;
 
           }
 
@@ -296,14 +244,16 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxy,
                      amrex::Array4<amrex::Real> const& stochfluxy,
-                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv,
+                     amrex::Array4<amrex::Real> const& C,
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv, amrex::Real diff_coeff,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
+    int ext_pot = 0;
+    int inter_pot = 1;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
@@ -351,7 +301,7 @@ void compute_flux_y (int i, int j, int k,
         //fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
         //+ stochfluxy(i,j,k)* std::sqrt(phiavg);
 
-        fluxy(i,j,k,0) = 0.5*(phip-phim) * dyinv;
+        fluxy(i,j,k,0) = diff_coeff*(phip-phim) * dyinv;
 
           if(ext_pot == 1) {
 
@@ -367,13 +317,21 @@ void compute_flux_y (int i, int j, int k,
 
           }
 
+          if(inter_pot == 1) {
+
+             amrex::Real phiavg = 0.5*(phim+phip);
+
+             fluxy(i,j,k,0) += phiavg * (C(i,j,k) - C(i,j-1,k)) * dyinv;
+
+          }
+
         if(Ncomp == 2){
            fluxy(i,j,k,1) = fluxy(i,j,k,0);
         }
 
         amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
 
-        fluxy(i,j,k,0) += stofact * stochfluxy(i,j,k)* sqphiavg;
+        fluxy(i,j,k,0) += stofact * stochfluxy(i,j,k)* sqphiavg ;
 //        amrex::Print() << " y flux " << i << " " << j << " " << fluxy(i,j,k,0) << std::endl;
 }
 
@@ -383,50 +341,95 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxz,
                      amrex::Array4<amrex::Real> const& stochfluxz,
-                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
+                     amrex::Array4<amrex::Real> const& C,
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv, amrex::Real diff_coeff,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
     int coeff_index = Ncomp-1;
-    if (lo == dom_lo &&
-        (bc_lo == amrex::BCType::foextrap ||
-         bc_lo == amrex::BCType::ext_dir))
+    amrex::Real phibdry = 0.;
+    amrex::Real stofact = 1.;
+
+    int ext_pot = 0;
+    int inter_pot = 1;
+    amrex::Real alpha = .25;
+    amrex::Real beta = .75;
+    amrex::Real gamma = 5.e-4;
+    gamma = 1.1e-3;
+
+    amrex::Real phip,phim, phipn, phimn;
+
+    if (k == dom_lo && (bc_lo == amrex::BCType::foextrap || bc_lo == amrex::BCType::ext_dir))
     {
-        if(k == lo)
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
-        }
-        else
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
-        }
+
+        stofact = std::sqrt(2.);
+        phim = 2.*phibdry - phi(i,j,k,0);
+        phip = phi(i,j,k,0);
+        //phimn = 2.*phibdry - std::abs(phi(i,j,k,coeff_index));
+        //phipn = std::abs( phi(i,j,k,coeff_index));
+        phipn = phibdry;
+        phimn = phibdry;
+
+    } else if (k == dom_hi+1 && (bc_hi == amrex::BCType::foextrap || bc_hi == amrex::BCType::ext_dir)) {
+
+        stofact = std::sqrt(2.);
+        phip = 2.*phibdry - phi(i,j,k-1,0);
+        phim = phi(i,j,k-1,0);
+        //phipn = 2.*phibdry - std::abs(phi(i,j-1,k,coeff_index));
+        //phimn = std::abs(phi(i,j-1,k,coeff_index));
+        phipn = phibdry;
+        phimn = phibdry;
+
+     } else {
+
+        phip = phi(i,j,k,0);
+        phim = phi(i,j,k-1,0);
+        phipn = std::abs(phi(i,j,k,coeff_index));
+        phimn = std::abs(phi(i,j,k-1,coeff_index));
+        stofact = 1.;
+
     }
-    else if (hi == dom_hi &&
-             (bc_hi == amrex::BCType::foextrap ||
-              bc_hi == amrex::BCType::ext_dir))
-    {
-        if(k == hi+1)
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
-        }
-        else
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
-        }
-    }
-    else
-    {
-//        amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
-        amrex::Real phip = std::max(phi(i,j,k,coeff_index),0.);
-        amrex::Real phim = std::max(phi(i,j,k-1,coeff_index),0.);
+//        amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
         //amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
-        //fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv
-        // +stochfluxz(i,j,k) * std::sqrt(phiavg);
-        amrex::Real sqphiavg = 0.5*(std::sqrt(phip)+std::sqrt(phim));
-        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv
-         +stochfluxz(i,j,k) * sqphiavg;
+        //amrex::Real phiavg = 0.5*(phip+phim);
+
+        // HACK TO COMMENT OUT STOCHASTIC TERMS
+        // phiavg = 0.;
+
+        //fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
+        //+ stochfluxy(i,j,k)* std::sqrt(phiavg);
+
+        fluxz(i,j,k,0) = diff_coeff*(phip-phim) * dzinv;
+
+          if(ext_pot == 1) {
+
+             amrex::Real zloc;
+             zloc = k / dzinv;
+             amrex::Real phiavg = 0.5*(phip+phim);
+
+             amrex::Real Vsubz;
+
+             Vsubz =0.5* 4.*(zloc - .5)*(zloc - .5)*(zloc - .5) / gamma;
+
+             fluxz(i,j,k,0) += phiavg * Vsuby;
+
+          }
+
+          if(inter_pot == 1) {
+
+             amrex::Real phiavg = 0.5*(phim+phip);
+
+             fluxz(i,j,k,0) += phiavg * (C(,j,k) - C(i,j,k-1)) * dzinv;
+
+          }
+
         if(Ncomp == 2){
-           fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv;
+           fluxz(i,j,k,1) = fluxz(i,j,k,0);
         }
+
+        amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+
+        fluxz(i,j,k,0) += stofact * stochfluxz(i,j,k)* sqphiavg;
+
     }
 }
 #endif
