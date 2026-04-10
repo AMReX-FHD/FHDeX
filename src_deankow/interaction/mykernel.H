@@ -40,7 +40,7 @@ void init_int_pot (int i, int j, int k,
 {
     constexpr double  PI = 3.14159265358979323846264338327950288;
     amrex::Real eps, R, alpha;
-    eps = 0.0333;
+    eps = 0.0333*20000.;
     R = 0.1;
     alpha = 3.;
 

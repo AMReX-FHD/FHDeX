@@ -187,6 +187,8 @@ private:
 
     amrex::Real dorand = 1.;
 
+    amrex::Real num_part;
+
     amrex::Real diff_coeff;
 
     int alg_type;

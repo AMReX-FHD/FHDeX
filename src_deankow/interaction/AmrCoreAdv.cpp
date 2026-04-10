@@ -428,6 +428,31 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
                 init_phi(i,j,k,phi_arr,dx,problo,npts_scale_local,Ncomp);
             });
         }
+
+        amrex::Real cellvol = dx[0]*dx[1];
+#if(AMREX_SPACEDIM > 2)
+        cellvol *=dx[2];
+#endif
+        amrex::Real phisum = cellvol*phi_new[lev].sum(0);
+
+        if(std::abs(phisum-1.) > 1.e-10){
+
+        amrex::Print{} << " phi sum in init " << phisum << std::endl;
+
+        for (MFIter mfi(phi_new[lev]); mfi.isValid(); ++mfi)
+        {
+            const Box& vbx = mfi.validbox();
+            auto const& phi_arr = phi_new[lev].array(mfi);
+            amrex::ParallelFor(vbx,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k)
+            {
+//                phi_rescale(i,j,k,phi_arr,phisum);
+                  phi_arr(i,j,k,0) /= phisum;
+            });
+        }
+
+        }
+ 
     } else {
         phi_new[lev].ParallelCopy(phi_new[lev-1], 0, 0, phi_new[lev].nComp());
     }
@@ -545,6 +570,7 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         npts_scale = 1.0;
         pp.queryAdd("npts_scale", npts_scale);
 
+        pp.query("num_part", num_part);
         pp.queryAdd("dorand", dorand);
 
         alg_type = 0;
@@ -890,7 +916,7 @@ AmrCoreAdv::WritePlotFile () const
 
     // Vector of MultiFabs
     Vector<MultiFab> mf(finest_level+1);
-    int ncomp_mf = 2; int src_comp = 0;
+    int ncomp_mf = 3; int src_comp = 0;
     for (int lev = 0; lev <= finest_level; ++lev) {
         mf[lev].define(grids[lev], dmap[lev], ncomp_mf, 0);
         MultiFab::Copy(mf[lev],phi_new[lev],src_comp,0,1,0);
@@ -901,9 +927,36 @@ AmrCoreAdv::WritePlotFile () const
             mf[lev].setVal(-1.0,1,1,0);
         }
     }
+ 
+    int lev = 0;
 
 
-    Vector<std::string> varnames = {"phi", "phi0"};
+    const auto prob_lo = Geom(lev).ProbLoArray();
+    const auto prob_hi = Geom(lev).ProbHiArray();
+
+// Or using AMREX_D_TERM for a cleaner multi-D version:
+    amrex::Real vol = AMREX_D_TERM( (prob_hi[0]-prob_lo[0]), 
+                               *(prob_hi[1]-prob_lo[1]), 
+                               *(prob_hi[2]-prob_lo[2]) );
+
+    for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
+    {
+            const Box& vbx = mfi.validbox();
+            auto const& mf_arr = mf[lev].array(mfi);
+            auto const& phi_arr = phi_new[lev].array(mfi);
+            amrex::ParallelFor(vbx,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k)
+            {
+
+            mf_arr(i,j,k,2) = phi_arr(i,j,k,0)*vol*num_part;
+
+            });
+    }
+
+
+
+
+    Vector<std::string> varnames = {"measure", "phi0","density"};
 
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
 
