@@ -2,9 +2,7 @@
 # Run until nsteps == max_step or time == stop_time,
 #     whichever comes first
 # *****************************************************************
-max_step  = 15000
-ntherm = 0
-nstat = 10
+max_step  = 10
 
 seed = 0
 
@@ -13,11 +11,9 @@ amrex.fpe_trap_invalid = 1
 # *****************************************************************
 # Specific to this application
 # *****************************************************************
-npts_scale = 1000000.
 alg_type = 0
-#num_part = 10240.
-num_part = 100000.
-dorand = 0.
+dorand = 1.
+num_part = 20480.
 
 # *****************************************************************
 # Are we restarting from an existing checkpoint file?
@@ -28,7 +24,7 @@ dorand = 0.
 # Problem size and geometry
 # *****************************************************************
 geometry.prob_lo     =  0.0  0.0  0.0
-geometry.prob_hi     =  6.28318530717958647688  6.28318530717958647688  1.0
+geometry.prob_hi     =  1.0  1.0  1.0
 geometry.is_periodic =  1    1    1
 #bc_lo = 3 3
 #bc_hi = 3 3
@@ -47,10 +43,8 @@ amr.max_grid_size_x = 16 16 64
 amr.max_grid_size_y = 16 16 64
 amr.max_grid_size_x = 64 64 64
 amr.max_grid_size_y = 64 64 64
-amr.n_cell          = 100 100
-amr.n_cell          = 32 32
-amr.n_cell          = 128 128
 amr.n_cell          = 64 64 
+amr.n_cell          = 32 32
 
 amr.max_level       = 0
 amr.use_particles   = 0      # Turn particles on or off
@@ -69,16 +63,16 @@ amr.blocking_factor_x = 2
 amr.blocking_factor_y = 2
 amr.blocking_factor_z = 8
 
-amr.regrid_int      = 1000000000  # how often to regrid
+amr.regrid_int      = 100000000  # how often to regrid
 
 amr.n_error_buf = 0 0
-amr.grid_eff = 0.7
+amr.grid_eff = 0.96
 #amr.grid_eff = 0.7
 
 # *****************************************************************
 # Time step control
 # *****************************************************************
-adv.cfl            = 0.125    # CFL constraint
+adv.cfl            = 0.01    # CFL constraint
 adv.cfl            = 0.03125    # CFL constraint
 
 # *****************************************************************
@@ -89,17 +83,14 @@ adv.do_reflux = 1
 # *****************************************************************
 # Tagging -  if phi < phierr at level 0, then refine
 # *****************************************************************
-#adv.phierr = 10.
-adv.phierr = -10.
+adv.phierr = 10.
 
 # *****************************************************************
 # Plotfile name and frequency
 # *****************************************************************
-amr.plot_file  = plt_
-# root name of plot file
-amr.plot_int   =  100 
-# number of timesteps between plot files
-# if negative then no plot files will be written
+amr.plot_file  = plt_fv_   # root name of plot file
+amr.plot_int   =  100    # number of timesteps between plot files
+                        # if negative then no plot files will be written
 
 # *****************************************************************
 # Checkpoint name and frequency

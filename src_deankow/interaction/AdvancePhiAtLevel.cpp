@@ -38,7 +38,8 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
               auto const& c = Chat[mfi].array();
               ParallelFor(ub, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
                   c(i,j,k) = u(i,j,k) * p(i,j,k);
-//                  amrex::Print() << " i j fft " << i << " " << j << " " << p(i,j,k) << " " << u(i,j,k) << " " << c(i,j,k) << std::endl;
+                  //amrex::Print() << " i j fft " << i << " " << j << " " << p(i,j,k) << " " << u(i,j,k) << " " << c(i,j,k) << std::endl;
+                  amrex::Print() << " i j fft " << i << " " << j << " " << p(i,j,k) << std::endl;
               });
           }
 

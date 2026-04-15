@@ -37,6 +37,10 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
        const auto dx     = geom[lev].CellSizeArray();
        const auto problo = geom[lev].ProbLoArray();
 
+       if (lev == 0) {
+           UpdateSurfaceFromFourier(geom[lev], dt_lev);
+       }
+
        for (MFIter mfi(gmetric); mfi.isValid(); ++mfi)
         {
             const Box& gbx = mfi.validbox();
@@ -46,15 +50,18 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
             auto const& newgmet_arr = newgmetric.array(mfi);
             auto const& newgsqr_arr = newsqrgmetric.array(mfi);
             auto const& newdetg_arr = newdetg.array(mfi);
+            auto const& dhdx_arr = dhdx.array(mfi);
+            auto const& dhdy_arr = dhdy.array(mfi);
             amrex::ParallelFor(gbx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
-                new_dk_metric(i,j,k,gmet_arr,gsqr_arr,detg_arr,newgmet_arr,newgsqr_arr,newdetg_arr,dx,problo,time);
+                new_dk_metric(i,j,k,gmet_arr,gsqr_arr,detg_arr,newgmet_arr,newgsqr_arr,newdetg_arr,dhdx_arr,dhdy_arr,dx,problo,time);
             });
         }
-        gmetric.FillBoundary(geom[lev].periodicity());
-        sqrgmetric.FillBoundary(geom[lev].periodicity());
-        detg.FillBoundary(geom[lev].periodicity());
+
+        gmetric.FillBoundary(Geom(lev).periodicity());
+        sqrgmetric.FillBoundary(Geom(lev).periodicity());
+        detg.FillBoundary(Geom(lev).periodicity());
 
 
 //    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, dt_lev, npts_scale, geom[lev], bcs);
