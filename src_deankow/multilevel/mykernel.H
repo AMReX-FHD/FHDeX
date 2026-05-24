@@ -61,7 +61,7 @@ void init_phi (int i, int j, int k,
     }
 #endif
 
-#if 0
+#if 1
     // 2D Test for multilevel
     Real rad = Real(0.2);
     Real xcent = Real(0.5);
@@ -69,17 +69,18 @@ void init_phi (int i, int j, int k,
     Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
     Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
     Real r2 = (x*x + y*y);
-    r2 = 4.*(x-y)*(x-y)+ .25*(x+y)*(x+y);
+//    r2 = 4.*(x-y)*(x-y)+ .25*(x+y)*(x+y);
 #if (AMREX_SPACEDIM == 3)
     Real zcent = Real(0.75);
     Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
     r2 = (x*x + y*y+z*z);
 #endif
 
-    if ( r2 > rad*rad) {
-        phi(i,j,k,0) = 15./cellvol;
+//    if ( r2 < rad*rad) {
+    if (i == 50 && j == 50) {
+        phi(i,j,k,0) = 10.1/cellvol;
     } else {
-        phi(i,j,k,0) = 0./cellvol;
+        phi(i,j,k,0) = 10.1/cellvol;
     }
 #endif
 
@@ -139,18 +140,19 @@ void init_phi (int i, int j, int k,
 //
 
 #endif
-#if 1
+#if 0
 
         int ext_pot = 1;
-        amrex::Real alpha = .3;
-        amrex::Real beta = .7;
+        amrex::Real alpha = .25;
+        amrex::Real beta = .75;
         amrex::Real gamma = 5.e-4;
+        gamma = 1.1e-3;
         Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] ;
         Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] ;
 
     if( x >= .2 && x < .4 && y >= .25 && y < .75 ) {
         amrex::Real pot = (x-alpha)*(x-alpha)*(x-beta)*(x-beta);
-        pot += (y-.5)*(y-.5)*(y-.5)*(y-.5);
+        pot += 0.5* (y-.5)*(y-.5)*(y-.5)*(y-.5);
         pot /= gamma;
         Real value = 20000.* 200.* std::exp(-pot);
         phi(i,j,k,0) = value;
@@ -180,9 +182,10 @@ void compute_flux_x (int i, int j, int k,
     amrex::Real stofact = 1.;
 
     int ext_pot = 1;
-    amrex::Real alpha = .3;
-    amrex::Real beta = .7;
+    amrex::Real alpha = .25;
+    amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
+    gamma = 1.1e-3;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -301,9 +304,10 @@ void compute_flux_y (int i, int j, int k,
     amrex::Real stofact = 1.;
 
     int ext_pot = 1;
-    amrex::Real alpha = .3;
-    amrex::Real beta = .7;
+    amrex::Real alpha = .25;
+    amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
+    gamma = 1.1e-3;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -357,7 +361,7 @@ void compute_flux_y (int i, int j, int k,
 
              amrex::Real Vsuby;
 
-             Vsuby = 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
+             Vsuby =0.5* 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
 
              fluxy(i,j,k,0) += phiavg * Vsuby;
 
