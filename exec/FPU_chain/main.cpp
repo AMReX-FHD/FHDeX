@@ -4,6 +4,8 @@
 #include <AMReX_ParmParse.H>
 
 #include "FPU.H"
+//#include "AutoCorr.H"
+#include "FixAveCorrelate.H"
 
 // for clock-based random seed
 #include "chrono"
@@ -61,9 +63,12 @@ Initialize(argc,argv);
     int diag_int = 1000;
     int plot_int = 10000;
 
-    int hf_nevery  = 10;
-    int hf_nrepeat = 100;
-    int hf_nfreq   = 1000;
+    int n_steps_skip = 100000;
+    int nevery = 10;
+    int nrepeat = 1000;
+    int nfreq = 10000;
+
+    int n = 1000;
 
     // ***************************************************************
     // READ INPUT PARAMETER VALUES FROM INPUT FILE AND/OR COMMAND LINE
@@ -109,22 +114,10 @@ Initialize(argc,argv);
         pp.query("diag_int",diag_int);
         pp.query("plot_int",plot_int);
 
-        pp.query("hf_nevery",hf_nevery);
-        pp.query("hf_nrepeat",hf_nrepeat);
-        pp.query("hf_nfreq",hf_nfreq);
-    }
-
-    if (hf_nevery <= 0 || hf_nrepeat <= 0 || hf_nfreq <= 0) {
-        Abort("hf_nevery, hf_nrepeat, and hf_nfreq must be positive");
-    }
-
-    if (hf_nfreq % hf_nevery != 0) {
-        Abort("hf_nfreq must be an integer multiple of hf_nevery");
-    }
-
-    const long long nsamples_first_output = static_cast<long long>(hf_nfreq) / hf_nevery + 1;
-    if (hf_nrepeat > nsamples_first_output) {
-        Abort("hf_nrepeat is too large to be fully populated by the first output time");
+        pp.query("n_steps_skip",n_steps_skip);
+        pp.query("nevery",nevery);
+        pp.query("nrepeat",nrepeat);
+        pp.query("nfreq",nfreq);
     }
 
     int the_seed;
@@ -181,7 +174,8 @@ Initialize(argc,argv);
     MultiFab state(ba,dm,3,ng_vect);
 
     // heat flux: 2 components: 1. convective; 2. conductive; 3. total
-    MultiFab heat_flux(ba,dm,3,ng_vect);
+    // MultiFab heat_flux(ba,dm,3,ng_vect);
+    Vector<Real> heat_flux(n_ensembles, 0.0);
 
     // storage for phi = R*state
     MultiFab phi (ba,dm,3,0);
@@ -194,75 +188,25 @@ Initialize(argc,argv);
     Gpu::HostVector<Real> C_alphaalpha_11(n_particles);
     Gpu::HostVector<Real> C_alphaalpha_22(n_particles);
 
-    // Running average of the pointwise heat-flux autocorrelation, 
-    // sampled every hf_nevery steps and averaged over the domain.
-    // hf_nevery steps and averaged in the LAMMPS "ave running" sense.
-    Vector<std::unique_ptr<MultiFab>> heat_flux_history(hf_nrepeat);
-    for (int i = 0; i < hf_nrepeat; ++i) {
-        heat_flux_history[i] = std::make_unique<MultiFab>(ba,dm,1,0);
-        heat_flux_history[i]->setVal(0.0);
+    // Initialize auto correlation
+    //AutoCorr ens(n_ensembles, max_lags, dt);
+    Vector<FixAveCorrelate> correlators;
+    correlators.reserve(n_ensembles);
+    for (int i=0;i<n_ensembles;++i) {
+        correlators.emplace_back(nevery, nrepeat, nfreq);
     }
-    MultiFab heat_flux_corr(ba,dm,1,0);
-    std::vector<Real> hf_corr_sum(hf_nrepeat, 0.0_rt);
-    std::vector<Real> hf_corr_running(hf_nrepeat, 0.0_rt);
-    std::vector<long long> hf_corr_count(hf_nrepeat, 0);
-
-    int hf_lastindex = -1;
-    int hf_history_size = 0;
-
-    const Real inv_npts = 1.0_rt / static_cast<Real>(n_particles*n_ensembles);
-
-    auto sample_heat_flux_corr = [&](int step)
-    {
-        if (step % hf_nevery != 0) {
-            return;
-        }
-
-        hf_lastindex++;
-        if (hf_lastindex == hf_nrepeat) {
-            hf_lastindex = 0;
-        }
-
-        MultiFab::Copy(*heat_flux_history[hf_lastindex], heat_flux, 2, 0, 1, 0);
-
-        if (hf_history_size < hf_nrepeat) {
-            ++hf_history_size;
-        }
-
-        int history_index = hf_lastindex;
-        for (int lag = 0; lag < hf_history_size; ++lag) {
-            const MultiFab& heat_flux_old = *heat_flux_history[history_index];
-
-            for (MFIter mfi(heat_flux); mfi.isValid(); ++mfi) {
-                const Box& bx = mfi.validbox();
-
-                const Array4<Real const>& heat_flux_now = heat_flux.const_array(mfi);
-                const Array4<Real const>& heat_flux_prev = heat_flux_old.const_array(mfi);
-                const Array4<Real>& heat_flux_corr_fab = heat_flux_corr.array(mfi);
-
-                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    heat_flux_corr_fab(i,j,k) = heat_flux_now(i,j,k,2) * heat_flux_prev(i,j,k,0);
-                });
-            }
-
-            hf_corr_sum[lag] += heat_flux_corr.sum(0)*inv_npts;
-            ++hf_corr_count[lag];
-
-            --history_index;
-            if (history_index < 0) {
-                history_index = hf_nrepeat - 1;
-            }
-        }
-    };
 
     // ******************************
     // SAMPLE TO OBTAIN INITIAL STATE
     // ******************************
     init(state, beta, pressure, a_coef, b_coef, c_coef, 0., 10000, 1.e-3, n_particles, n_ensembles, geom);
     compute_energy(state,a_coef,b_coef,c_coef);
-    compute_heat_flux(heat_flux,state,a_coef,b_coef,c_coef,rest,geom);
-    sample_heat_flux_corr(0);
+    
+    //const std::string hf_file = "heat_flux_avg";
+    //std::ofstream hfout;
+    //if (ParallelDescriptor::IOProcessor()) {
+    //    hfout.open(hf_file);
+    //}
 
     Copy(phi0,state,0,0,3,0);
     ComputePhiFromState(phi0,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
@@ -279,12 +223,14 @@ Initialize(argc,argv);
 
     // write the initial state (r,p,e) to a plotfile
     if (plot_int > 0) {
-        MultiFab plotdata(ba,dm,6,0);
+        //MultiFab plotdata(ba,dm,6,0);
+        MultiFab plotdata(ba,dm,3,0);
         MultiFab::Copy(plotdata,state,0,0,3,0);
-        MultiFab::Copy(plotdata,heat_flux,0,3,3,0);
+        //MultiFab::Copy(plotdata,heat_flux,0,3,3,0);
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-        WriteSingleLevelPlotfile(pltfile, plotdata, {"r","p","e","heat_flux_conv","heat_flux_cond","heat_flux_total"}, geom, time, 0);
+        //WriteSingleLevelPlotfile(pltfile, plotdata, {"r","p","e","heat_flux_conv","heat_flux_cond","heat_flux_total"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, plotdata, {"r","p","e"}, geom, time, 0);
     }
 
     for (int step=1; step<=n_steps; ++step) {
@@ -298,31 +244,37 @@ Initialize(argc,argv);
         // ****************
         FPU_RK4(state,a_coef,b_coef,c_coef,dt,n_particles,n_ensembles,geom);
         compute_energy(state,a_coef,b_coef,c_coef);
-        compute_heat_flux(heat_flux,state,a_coef,b_coef,c_coef,rest,geom);
-        sample_heat_flux_corr(step);
 
-        if (step % hf_nfreq == 0) {
-            for (int lag = 0; lag < hf_nrepeat; ++lag) {
-                if (hf_corr_count[lag] > 0) {
-                    hf_corr_running[lag] =
-                        hf_corr_sum[lag] / static_cast<Real>(hf_corr_count[lag]);
-                } else {
-                    hf_corr_running[lag] = 0.0_rt;
-                }
+        // skip n_steps_skip before tracking heat flux
+        if (step >= n_steps_skip) {
+            compute_heat_flux(heat_flux,state,a_coef,b_coef,c_coef,rest,
+                    geom,domain,n_ensembles,n_particles);
+            for (int i=0; i<n_ensembles; ++i) {
+                bool out;
+                out = correlators[i].end_of_step(step, heat_flux[i]);
             }
 
-            const std::string hf_corr_file = amrex::Concatenate("heat_flux_corr",step,7);
-            amrex::Print() << "Writing heat-flux correlation file "
-                           << hf_corr_file << std::endl;
-
-            if (ParallelDescriptor::IOProcessor()) {
-                std::ofstream hfout(hf_corr_file, std::ios::out);
-                for (int lag = 0; lag < hf_nrepeat; ++lag) {
-                    hfout << lag << " "
-                          << lag*hf_nevery << " "
-                          << hf_corr_count[lag] << " "
-                          << hf_corr_running[lag] << "\n";
+            // write out every nfreq step
+            if ((step - n_steps_skip) % nfreq == 0) {
+                Vector<Real> delay(nrepeat,0.0);
+                Vector<Real> avg_corr(nrepeat,0.0);
+                Vector<Real> counts(nrepeat,0.0);
+                for (int j=0; j<nrepeat; ++j) {
+                    delay[j] = j*nevery;
+                    for (int i=0; i<n_ensembles; ++i) {
+                        counts[j] += (Real(1.0)/n_ensembles)*correlators[i].get_count(j);
+                        avg_corr[j] += (Real(1.0)/n_ensembles)*correlators[i].get_correlation(j);
+                    }
                 }
+                std::ofstream ofs(amrex::Concatenate("correlation",step,7));
+                ofs << "# Delay  C(d)  Count\n";
+                for (int d = 0; d < nrepeat; d++) {
+                    ofs << std::scientific << std::setprecision(6) << delay[d]*dt
+                       << "  " << std::scientific << std::setprecision(6)
+                       << avg_corr[d]
+                       << "  " << counts[d] << "\n";
+                }
+                ofs.close();
             }
         }
 
@@ -336,12 +288,14 @@ Initialize(argc,argv);
             Real plot_strt_time = ParallelDescriptor::second();
 
             // write the current state (r,p,e,heat_flux_conv,heat_flux_cond) to a plotfile
-            MultiFab plotdata(ba,dm,6,0);
+            //MultiFab plotdata(ba,dm,6,0);
+            MultiFab plotdata(ba,dm,3,0);
             MultiFab::Copy(plotdata,state,0,0,3,0);
-            MultiFab::Copy(plotdata,heat_flux,0,3,3,0);
+            //MultiFab::Copy(plotdata,heat_flux,0,3,3,0);
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
             amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-            WriteSingleLevelPlotfile(pltfile, plotdata, {"r","p","e","heat_flux_conv","heat_flux_cond","heat_flux_total"}, geom, time, step);
+            //WriteSingleLevelPlotfile(pltfile, plotdata, {"r","p","e","heat_flux_conv","heat_flux_cond","heat_flux_total"}, geom, time, step);
+            WriteSingleLevelPlotfile(pltfile, plotdata, {"r","p","e"}, geom, time, step);
 
             Copy(phi,state,0,0,3,0);
             ComputePhiFromState(phi,r_eq,p_eq,e_eq,R_00,R_01,R_02,R_10,R_11,R_12,R_20,R_21,R_22);
@@ -369,6 +323,8 @@ Initialize(argc,argv);
             ParallelDescriptor::ReduceRealMax(plot_stop_time);
 
             amrex::Print() << "Wrote out plot data for step " << step << " in " << plot_stop_time << " seconds\n";
+
+            // evalute ensemble average of the auto correlation 
         }
 
         // write out diagnostics (means)
@@ -383,11 +339,27 @@ Initialize(argc,argv);
 
             amrex::Print() << "Wrote out diag data for step " << step << " in " << diag_stop_time << " seconds\n";
         }
-
+    }
+    Vector<Real> delay(nrepeat,0.0);
+    Vector<Real> avg_corr(nrepeat,0.0);
+    Vector<Real> counts(nrepeat,0.0);
+    for (int j=0; j<nrepeat; ++j) {
+        delay[j] = j*nevery;
+        for (int i=0; i<n_ensembles; ++i) {
+            counts[j] += (Real(1.0)/n_ensembles)*correlators[i].get_count(j);
+            avg_corr[j] += (Real(1.0)/n_ensembles)*correlators[i].get_correlation(j);
+        }
+    }
+    std::ofstream ofs("correlation.dat");
+    ofs << "# Delay  C(d)  Count\n";
+    for (int d = 0; d < nrepeat; d++) {
+        ofs << std::scientific << std::setprecision(6) << delay[d]*dt
+           << "  " << std::scientific << std::setprecision(6)
+           << avg_corr[d]
+           << "  " << counts[d] << "\n";
     }
 
-
-
+    //if (ParallelDescriptor::IOProcessor()) hfout.close();
 }
 Finalize();
 return 0;

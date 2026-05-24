@@ -45,13 +45,17 @@ void compute_energy(MultiFab& state,
                     const Real& b,
                     const Real& c);
 
-void compute_heat_flux(MultiFab& heat_flux,
+//void compute_heat_flux(MultiFab& heat_flux,
+void compute_heat_flux(Vector<Real>& heat_flux_vec,
                        const MultiFab& state,
                        const Real& a,
                        const Real& b,
                        const Real& c,
                        const Real& rest,
-                       const Geometry& geom);
+                       const Geometry& geom,
+                       const amrex::Box& domain,
+                       const int n_ensembles,
+                       const int n_particles);
 
 void ComputePhiFromState(MultiFab& phi,
                          const Real& r_eq,

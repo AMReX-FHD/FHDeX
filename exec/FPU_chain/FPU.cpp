@@ -263,17 +263,23 @@ void compute_energy(MultiFab& state,
 
 }
 
-void compute_heat_flux(MultiFab& heat_flux,
+//void compute_heat_flux(MultiFab& heat_flux,
+void compute_heat_flux(Vector<Real>& heat_flux_vec,
                        const MultiFab& state,
                        const Real& a,
                        const Real& b,
                        const Real& c,
                        const Real& rest,
-                       const Geometry& geom) {
+                       const Geometry& geom,
+                       const amrex::Box& domain,
+                       const int n_ensembles,
+                       const int n_particles) {
+
 
     // compute heat flux
     // convective: flux[0] = (ke + pe) * v
     // conductive: flux[1] = (stress) * v
+    MultiFab heat_flux(state.boxArray(),state.DistributionMap(),3,0);
     for (MFIter mfi(state); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.tilebox();
@@ -285,27 +291,42 @@ void compute_heat_flux(MultiFab& heat_flux,
         {
             Real r_r      = state_fab(i,j,k,0);
             Real r_l      = state_fab(i-1,j,k,0);
-            Real v        = state_fab(i,j,k,1);
+            Real v_i      = state_fab(i,j,k,1);
             Real pe_r     = (1./2.)*a*r_r*r_r + (1./3.)*b*r_r*r_r*r_r + (1./4.)*c*r_r*r_r*r_r*r_r;
             Real pe_l     = (1./2.)*a*r_l*r_l + (1./3.)*b*r_l*r_l*r_l + (1./4.)*c*r_l*r_l*r_l*r_l;
-            Real ke       = 0.5*v*v;
+            Real pe       = 0.5*(pe_l + pe_r);
+            Real ke       = 0.5*v_i*v_i;
 
             // convective
-            heat_flux_fab(i,j,k,0) = v*(0.5*(pe_l+pe_r)+ke);
+            heat_flux_fab(i,j,k,0) = v_i*(pe+ke);
 
             // conductive
             Real dx_r     = state_fab(i,j,k,0) + rest;
+            // dx_r          = rest;
             Real dx_l     = state_fab(i-1,j,k,0) + rest;
-            Real fbond_r  = a*r_r + b*r_r*r_r + c*r_r*r_r*r_r; 
+            // dx_l          = rest;
+            Real fbond_r  = a*r_r + b*r_r*r_r + c*r_r*r_r*r_r;
             Real fbond_l  = a*r_l + b*r_l*r_l + c*r_l*r_l*r_l; 
+            
+            // Real v_ip      = state_fab(i+1,j,k,1);
+            // Real v_in      = state_fab(i-1,j,k,1);
 
-            heat_flux_fab(i,j,k,1) = 0.5*(fbond_r * dx_r - fbond_l * dx_l)*v;
+//            heat_flux_fab(i,j,k,1) = 0.5 * fbond_r * dx_r * (v_i + v_j);
+            // heat_flux_fab(i,j,k,1)  = (rest/2.0) * (v_i + v_in) * fbond_l; // i-1 --- i
+            // heat_flux_fab(i,j,k,1) += (rest/2.0) * (v_i + v_ip) * fbond_r; // i --- i+1
+            heat_flux_fab(i,j,k,1) = 0.5*(fbond_r * dx_r - fbond_l * dx_l)*v_i;
 
             heat_flux_fab(i,j,k,2) = heat_flux_fab(i,j,k,0) + heat_flux_fab(i,j,k,1);
 
         });
     }
     heat_flux.FillBoundary(geom.periodicity());
+    Gpu::HostVector<Real> heat_flux_avg(n_ensembles);
+    heat_flux_avg = sumToLine(heat_flux,2,1,domain,1);
+    for (int n=0; n<n_ensembles; ++n) {
+        heat_flux_vec[n] = heat_flux_avg[n]/Real(n_particles);
+    }
+
 }
 
 void ComputePhiFromState(MultiFab& phi,
