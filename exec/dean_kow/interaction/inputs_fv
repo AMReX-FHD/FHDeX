@@ -2,7 +2,7 @@
 # Run until nsteps == max_step or time == stop_time,
 #     whichever comes first
 # *****************************************************************
-max_step  = 80000
+max_step  = 400000
 
 seed = 0
 
@@ -15,7 +15,10 @@ diff_coeff = 0.5
 diff_coeff = .46
 alg_type = 0
 dorand = 1.
+dorand = 0.
 num_part = 20480.
+num_part = 81920.
+num_part = 327680.
 
 # *****************************************************************
 # Are we restarting from an existing checkpoint file?
@@ -43,9 +46,10 @@ amr.v              = 1       # verbosity in Amr
 amr.n_cell          = 256 256
 amr.max_grid_size_x = 16 16 64
 amr.max_grid_size_y = 16 16 64
-amr.max_grid_size_x = 32 32 64
+amr.max_grid_size_x = 64 64 64
 amr.max_grid_size_y = 64 64 64
 amr.n_cell          = 64 64 
+amr.n_cell          = 128 128
 
 amr.max_level       = 0
 amr.use_particles   = 0      # Turn particles on or off
@@ -75,7 +79,6 @@ amr.grid_eff = 0.96
 # *****************************************************************
 adv.cfl            = 0.01    # CFL constraint
 adv.cfl            = 0.03125    # CFL constraint
-adv.cfl            = 0.003125    # CFL constraint
 
 # *****************************************************************
 # Should we reflux at coarse-fine boundaries?
@@ -90,8 +93,8 @@ adv.phierr = 10.
 # *****************************************************************
 # Plotfile name and frequency
 # *****************************************************************
-amr.plot_file  = plt_fv_   # root name of plot file
-amr.plot_int   =  100    # number of timesteps between plot files
+amr.plot_file  = plt_fdet_   # root name of plot file
+amr.plot_int   =  4000    # number of timesteps between plot files
                         # if negative then no plot files will be written
 
 # *****************************************************************

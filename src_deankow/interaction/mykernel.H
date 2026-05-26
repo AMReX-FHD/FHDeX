@@ -23,10 +23,8 @@ void init_phi (int i, int j, int k,
      //phi(i,j,k,0) += std::cos(16.*2.*PI*(i)*dx[0])*std::cos(16*2.*PI*j*dx[1])/cellvol;
      phi(i,j,k,0) = 20480.;
      phi(i,j,k,0) += std::sin(2.*PI*(i)*dx[0])*1024;
-     //phi(i,j,k,0) += std::sin(2.*PI*(j)*dx[1])*1024;
-//     phi(i,j,k,0) += std::cos(2.*PI*(i)*dx[0])*std::cos(2.*PI*(j)*dx[1])*1024;
-//     phi(i,j,k,0) += std::cos(8.*PI*(i)*dx[0]+.7)*std::cos(10.*PI*(j)*dx[1]-.3)*1024;
-     // phi(i,j,k,0) += std::cos(2.*3.14156265*(i+0.5)*dx[0])*std::cos(2.*3.14156265*(j+0.5)*dx[1])/cellvol;
+     phi(i,j,k,0) += std::cos(8.*PI*(i)*dx[0]+.7)*std::cos(10.*PI*(j)*dx[1]-.3)*1024;
+     phi(i,j,k,0) += std::cos(2.*3.14156265*(i+0.5)*dx[0])*std::cos(2.*3.14156265*(j+0.5)*dx[1])*256.;
 
     if (Ncomp == 2){
         phi(i,j,k,1) = phi(i,j,k,0);
@@ -187,8 +185,10 @@ void compute_flux_x (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i-1,j,k,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i-1,j,k,coeff_index));
+        //phipn = std::abs(phi(i,j,k,coeff_index));
+        //phimn = std::abs(phi(i-1,j,k,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i-1,j,k,coeff_index),0.);
         stofact = 1.;
         //amrex::Print() << " C " << std::endl;
 
@@ -288,8 +288,10 @@ void compute_flux_y (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i,j-1,k,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i,j-1,k,coeff_index));
+        //phipn = std::abs(phi(i,j,k,coeff_index));
+        //phimn = std::abs(phi(i,j-1,k,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i,j-1,k,coeff_index),0.);
         stofact = 1.;
 
     }

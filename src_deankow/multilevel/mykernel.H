@@ -246,8 +246,10 @@ void compute_flux_x (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i-1,j,k,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i-1,j,k,coeff_index));
+        //phipn = std::abs(phi(i,j,k,coeff_index));
+        //phimn = std::abs(phi(i-1,j,k,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i-1,j,k,coeff_index),0.);
         stofact = 1.;
         //amrex::Print() << " C " << std::endl;
 
@@ -337,8 +339,10 @@ void compute_flux_y (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i,j-1,k,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i,j-1,k,coeff_index));
+        // phipn = std::abs(phi(i,j,k,coeff_index));
+        // phimn = std::abs(phi(i,j-1,k,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i,j-1,k,coeff_index),0.);
         stofact = 1.;
 
     }
