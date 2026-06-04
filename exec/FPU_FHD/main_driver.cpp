@@ -1,6 +1,6 @@
 #include "common_functions.H"
+#include "FPU.H"
 #include <AMReX_Vector.H>
-#include <AMReX_MPMD.H>
 #include "rng_functions.H"
 #include "StructFact.H"
 #include "chrono"
@@ -18,10 +18,9 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
 
-    InitializeCompressibleNamespace();
+    InitializeNamespace();
 
     int step_start, statsCount;
     amrex::Real time;
@@ -50,10 +49,6 @@ void main_driver(const char* argv)
             Abort("Must supply non-negative seed");
         }
     }
-
-    MultiFab A; // advection matrix
-    MultiFab D; // diffusion matrix
-    MultiFab B; // noise amplitude matrix
 
     // conserved quantaties
     MultiFab cu; // stretch, avg. mom, energy
@@ -88,6 +83,7 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     // This defines a Geometry object
+    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // set to 1 (periodic by default)
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
 
     Real dt = fixed_dt;
@@ -101,13 +97,8 @@ void main_driver(const char* argv)
     // MultiFabs to copy data into for snapshots for full 3D data
     MultiFab structFactConsMF;
 
-    // for structure factor analysis of pencil MultiFabs (either do_1D mode or do_2D with n_ads_spec>0)
     BoxArray ba_pencil;
     DistributionMapping dmap_pencil;
-
-    ///////////////////////////////////
-    // structure factors for do_1D mode
-    ///////////////////////////////////
 
     // Structure factor for pencils
     // enabled if do_1D=1
@@ -154,15 +145,6 @@ void main_driver(const char* argv)
 
         if (reset_stats == 1) statsCount = 1;
 
-        // transport properties
-        A.define(ba,dmap,9,ngc);
-        D.define(ba,dmap,9,ngc);
-        B.define(ba,dmap,3,ngc);
-        
-        A.setVal(1.0,0,1,ngc);
-        D.setVal(1.0,0,1,ngc);
-        B.setVal(1.0,0,1,ngc);
-
     } else {
 
         ///////////////////////////////////////////
@@ -178,15 +160,6 @@ void main_driver(const char* argv)
 
         // how boxes are distrubuted among MPI processes
         dmap.define(ba);
-
-        // transport properties
-        A.define(ba,dmap,9,ngc);
-        D.define(ba,dmap,9,ngc);
-        B.define(ba,dmap,3,ngc);
-        
-        A.setVal(1.0,0,1,ngc);
-        D.setVal(1.0,0,1,ngc);
-        B.setVal(1.0,0,1,ngc);
 
         // conserved quantaties
         // 0        (stretch)
@@ -228,14 +201,14 @@ void main_driver(const char* argv)
         ///////////////////////////////////////////
 
         // initialize conserved variables
-        InitConsVarStag(cu,cumom,geom); // REDEFINE
+        //InitConsVarStag(cu,cumom,geom); // REDEFINE
 
         // Set BC: 1) fill boundary 2) physical
         cu.FillBoundary(geom.periodicity());
         cumom.FillBoundary(geom.periodicity());
 
         if (plot_int > 0) {
-            WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, coVars); // REDEFINE
+            WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, coVars); // REDEFINE
         }
 
         step_start = 1;
@@ -257,7 +230,7 @@ void main_driver(const char* argv)
         // we are only calling ExtractXPencil here to obtain
         // a built version of pencil so can obtain what we need to build the
         // structure factor objects for pencil data
-        ExtractXPencil(prim, pencil, 0, 0, 0, 1);
+        ExtractXPencil(cu, pencil, 0, 0, 0, 1);
 
         ba_pencil = pencil.boxArray();
         dmap_pencil = pencil.DistributionMap();
@@ -293,7 +266,7 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
         
         // time step
-        RK3stepStag(cu, cumom, A, D, B, faceflux, cenflux, geom, dt, step); // REDEFINE
+        RK3step(cu, cumom, faceflux, cenflux, geom, dt, step); // REDEFINE
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
@@ -328,11 +301,9 @@ void main_driver(const char* argv)
         }
 
         // Evaluate Statistics
-        if (do_1D) {
-            evaluateStatsStag1D(cu, cuMeans, cuVars,
-                                cumom, cumomMeans, cumomVars, coVars,
-                                statsCount, geom); // REDEFINE
-        }
+        evaluateStats(cu, cuMeans, cuVars,
+                            cumom, cumomMeans, cumomVars, coVars,
+                            statsCount, geom); // REDEFINE
         statsCount++;
         if (step%100 == 0) {
             amrex::Print() << "Mean stretch: "  << ComputeSpatialMean(cu, 0)
@@ -354,7 +325,7 @@ void main_driver(const char* argv)
         }
 
         if (writePlt) {
-            WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, coVars); // REDEFINE
+            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, coVars); // REDEFINE
         }
 
         bool SF_snapshot_taken = false;
@@ -397,28 +368,24 @@ void main_driver(const char* argv)
             plot_int > 0 &&
             step%plot_int == 0) {
 
-            if (do_1D) {
+            MultiFab cons_mag, cons_realimag;
 
-                MultiFab cons_mag, cons_realimag;
+            cons_mag     .define(ba_pencil,dmap_pencil,  structFactConsArray[0].get_ncov(),0);
+            cons_realimag.define(ba_pencil,dmap_pencil,2*structFactConsArray[0].get_ncov(),0);
 
-                cons_mag     .define(ba_pencil,dmap_pencil,  structFactConsArray[0].get_ncov(),0);
-                cons_realimag.define(ba_pencil,dmap_pencil,2*structFactConsArray[0].get_ncov(),0);
+            cons_mag.setVal(0.0);
+            cons_realimag.setVal(0.0);
 
-                cons_mag.setVal(0.0);
-                cons_realimag.setVal(0.0);
-
-                for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
-                    structFactConsArray[i].AddToExternal(cons_mag,cons_realimag);
-                }
-
-                Real ncellsinv = 1.0/(n_cells[1]*n_cells[2]);
-                cons_mag.mult(ncellsinv);
-                cons_realimag.mult(ncellsinv);
-
-                WritePlotFilesSF_1D(cons_mag,cons_realimag,step,time,
-                                    structFactConsArray[0].get_names(),"plt_SF_1D");
-
+            for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
+                structFactConsArray[i].AddToExternal(cons_mag,cons_realimag);
             }
+
+            Real ncellsinv = 1.0/(n_cells[1]*n_cells[2]);
+            cons_mag.mult(ncellsinv);
+            cons_realimag.mult(ncellsinv);
+
+            WritePlotFilesSF_1D(cons_mag,cons_realimag,step,time,
+                                structFactConsArray[0].get_names(),"plt_SF_1D");
 
         }
 
@@ -462,11 +429,6 @@ void main_driver(const char* argv)
         if (step%100 == 0) {
             amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                            << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        }
-
-        if (step%100 == 0) {
-            amrex::Real cfl_max = GetMaxAcousticCFL(prim, vel, dt, geom);
-            amrex::Print() << "Max convective-acoustic CFL is: " << cfl_max << "\n";
         }
     }
 

@@ -4,9 +4,11 @@ AMREX_HOME ?= ../../../amrex
 DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_OMP      = FALSE
+USE_CUDA     = FALSE
 COMP         = gnu
-DIM          = 2
+DIM          = 3
 USE_FFT      = TRUE
+TINY_PROFILE  = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -23,6 +25,10 @@ VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
 
 include $(AMREX_HOME)/Src/Base/Make.package
+
+include ../../src_analysis/Make.package
+VPATH_LOCATIONS   += ../../src_analysis/
+INCLUDE_LOCATIONS += ../../src_analysis/
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
