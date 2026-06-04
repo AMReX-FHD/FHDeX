@@ -2,8 +2,9 @@
 PRECISION  = DOUBLE
 PROFILE    = FALSE
 
-DEBUG      = FALSE
 DEBUG      = TRUE
+DEBUG      = FALSE
+MOVING     = TRUE
 
 DIM        = 2
 
