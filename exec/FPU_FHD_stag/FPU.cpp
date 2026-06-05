@@ -13,57 +13,53 @@ AMREX_GPU_MANAGED int FPU::diag_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::A;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::D;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3>   FPU::B;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::R;
 
-//void ComputePhiFromState(MultiFab& phi) {
-//
-//    // convert state to state-state_eq
-//    phi.plus(-FPU::r0,0,1,0);
-//    phi.plus(-FPU::p0,1,1,0);
-//    phi.plus(-FPU::e0,2,1,0);
-//
-//    // phi = R(state-state_eq)
-//    for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
-//
-//        const Box& bx = mfi.tilebox();
-//
-//        const Array4<Real>& phi_fab = phi.array(mfi);
-//
-//        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-//        {
-//            Real R0 = R_00*phi_fab(i,j,k,0) + R_01*phi_fab(i,j,k,1) + R_02*phi_fab(i,j,k,2);
-//            Real R1 = R_10*phi_fab(i,j,k,0) + R_11*phi_fab(i,j,k,1) + R_12*phi_fab(i,j,k,2);
-//            Real R2 = R_20*phi_fab(i,j,k,0) + R_21*phi_fab(i,j,k,1) + R_22*phi_fab(i,j,k,2);
-//
-//            phi_fab(i,j,k,0) = R0;
-//            phi_fab(i,j,k,1) = R1;
-//            phi_fab(i,j,k,2) = R2;
-//
-//        });
-//    }
-//
-//}
-//
-//void ComputeCalphaalpha(MultiFab& C_alphaalpha,
-//                        const MultiFab& phi,
-//                        const MultiFab& phi0) {
-//
-//    for (MFIter mfi(C_alphaalpha); mfi.isValid(); ++mfi) {
-//
-//        const Box& bx = mfi.tilebox();
-//
-//        const Array4<      Real>& C_alphaalpha_fab = C_alphaalpha.array(mfi);
-//        const Array4<const Real>& phi_fab          = phi.array(mfi);
-//        const Array4<const Real>& phi0_fab         = phi0.array(mfi);
-//
-//        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-//        {
-//            C_alphaalpha_fab(i,j,k,0) = phi_fab(i,j,k,0) * phi0_fab(0,j,k,0);
-//            C_alphaalpha_fab(i,j,k,1) = phi_fab(i,j,k,1) * phi0_fab(0,j,k,1);
-//            C_alphaalpha_fab(i,j,k,2) = phi_fab(i,j,k,2) * phi0_fab(0,j,k,2);
-//        });
-//    }
-//
-//}
+void ComputePhiFromState(MultiFab& phi) {
+
+    // phi = R(state-state_eq)
+    for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real>& phi_fab = phi.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real R0 = R[0]*phi_fab(i,j,k,0) + R[1]*phi_fab(i,j,k,1) + R[2]*phi_fab(i,j,k,2);
+            Real R1 = R[3]*phi_fab(i,j,k,0) + R[4]*phi_fab(i,j,k,1) + R[5]*phi_fab(i,j,k,2);
+            Real R2 = R[6]*phi_fab(i,j,k,0) + R[7]*phi_fab(i,j,k,1) + R[8]*phi_fab(i,j,k,2);
+
+            phi_fab(i,j,k,0) = R0;
+            phi_fab(i,j,k,1) = R1;
+            phi_fab(i,j,k,2) = R2;
+
+        });
+    }
+
+}
+
+void ComputeCalphaalpha(MultiFab& C_alphaalpha,
+                        const MultiFab& phi,
+                        const MultiFab& phi0) {
+
+    for (MFIter mfi(C_alphaalpha); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<      Real>& C_alphaalpha_fab = C_alphaalpha.array(mfi);
+        const Array4<const Real>& phi_fab          = phi.array(mfi);
+        const Array4<const Real>& phi0_fab         = phi0.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            C_alphaalpha_fab(i,j,k,0) = phi_fab(i,j,k,0) * phi0_fab(0,j,k,0);
+            C_alphaalpha_fab(i,j,k,1) = phi_fab(i,j,k,1) * phi0_fab(0,j,k,1);
+            C_alphaalpha_fab(i,j,k,2) = phi_fab(i,j,k,2) * phi0_fab(0,j,k,2);
+        });
+    }
+
+}
 
 void InitializeNamespace() {
 
@@ -74,12 +70,15 @@ void InitializeNamespace() {
         Vector<Real> A_tmp(9);
         Vector<Real> D_tmp(9);
         Vector<Real> B_tmp(3);
+        Vector<Real> R_tmp(9);
         pp.getarr("A", A_tmp, 0, 9);
         pp.getarr("D", D_tmp, 0, 9);
         pp.getarr("B", B_tmp, 0, 3);
+        pp.getarr("R", R_tmp, 0, 9);
         for (int i = 0; i < 9; ++i) {
             FPU::A[i] = A_tmp[i];
             FPU::D[i] = D_tmp[i];
+            FPU::R[i] = R_tmp[i];
         }
         for (int i = 0; i < 3; ++i) {
             FPU::B[i] = B_tmp[i];
@@ -124,7 +123,8 @@ void WriteCheckPoint(int step,
                      const MultiFab& cumom,
                      const MultiFab& cumomMeans,
                      const MultiFab& cumomVars,
-                     const MultiFab& coVars)
+                     const MultiFab& coVars,
+                     const MultiFab& phi0)
 {
     BL_PROFILE_VAR("WriteCheckPoint()", WriteCheckPoint);
 
@@ -194,6 +194,9 @@ void WriteCheckPoint(int step,
 
     VisMF::Write(coVars,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+    
+    VisMF::Write(phi0,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "phi0"));
 }
 
 void ReadCheckPoint(int& step,
@@ -208,6 +211,7 @@ void ReadCheckPoint(int& step,
                     MultiFab& cumomMeans,
                     MultiFab& cumomVars,
                     MultiFab& coVars,
+                    MultiFab& phi0,
                     BoxArray& ba,
                     DistributionMapping& dmap)
 {
@@ -255,6 +259,8 @@ void ReadCheckPoint(int& step,
     cumomVars.define(convert(ba, nodal_flag_x), dmap, 1, 0);
 
     coVars.define(ba, dmap, 3, 0);
+    
+    phi0.define(ba, dmap, 3, 0);
 
     if (common::seed == -1) {
 #ifdef AMREX_USE_CUDA
@@ -283,6 +289,8 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cu"));
     VisMF::Read(cumom,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumom"));
+    VisMF::Read(phi0,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "phi0"));
 
     if (reset_stats == 1) {
         statsCount = 1;

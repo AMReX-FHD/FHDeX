@@ -13,11 +13,11 @@ using namespace FPU;
 
 void InitializeNamespace();
 
-//void ComputePhiFromState(MultiFab& phi);
-//
-//void ComputeCalphaalpha(MultiFab& C_alphaalpha,
-//                        const MultiFab& phi,
-//                        const MultiFab& phi0);
+void ComputePhiFromState(MultiFab& phi);
+
+void ComputeCalphaalpha(MultiFab& C_alphaalpha,
+                        const MultiFab& phi,
+                        const MultiFab& phi0);
 
 void ReadCheckPoint(int& step,
                     Real& time,
@@ -31,6 +31,7 @@ void ReadCheckPoint(int& step,
                     MultiFab& cumomMeans,
                     MultiFab& cumomVars,
                     MultiFab& coVars,
+                    MultiFab& phi0,
                     BoxArray& ba, DistributionMapping& dmap);
 
 void WriteCheckPoint(int step,
@@ -43,7 +44,8 @@ void WriteCheckPoint(int step,
                      const MultiFab& cumom,
                      const MultiFab& cumomMeans,
                      const MultiFab& cumomVars,
-                     const MultiFab& coVars);
+                     const MultiFab& coVars,
+                     const MultiFab& phi0);
 
 void InitConsVarStag(MultiFab& cu,
                      MultiFab& cumom,

@@ -62,6 +62,17 @@ void main_driver(const char* argv)
 
     MultiFab coVars;
 
+    // storage for phi = R*state
+    MultiFab phi ;
+    MultiFab phi0;
+
+    // diagonal elements of C_alphaalpha
+    MultiFab C_alphaalpha;
+
+    Gpu::HostVector<Real> C_alphaalpha_00(n_cells[0]);
+    Gpu::HostVector<Real> C_alphaalpha_11(n_cells[0]);
+    Gpu::HostVector<Real> C_alphaalpha_22(n_cells[0]);
+
     // Commenting out computations for higher moments    
 //    MultiFab mom3;
 //    MultiFab mom4;
@@ -145,8 +156,13 @@ void main_driver(const char* argv)
 
         ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars,
                        cumom, cumomMeans, cumomVars,
-                       coVars, ba, dmap); // REDEFINE
+                       coVars, phi0, ba, dmap); // REDEFINE
 
+        phi.define(cu.boxArray(),cu.DistributionMap(),3,0);
+        Copy(phi,cu,0,0,3,0);
+        ComputePhiFromState(phi);
+        C_alphaalpha.define(cu.boxArray(),cu.DistributionMap(),3,0);
+        
         if (reset_stats == 1) statsCount = 1;
 
     } else {
@@ -200,12 +216,18 @@ void main_driver(const char* argv)
         cumomMeans.setVal(0.);
         cumomVars.setVal(0.);
 
+        phi.define(ba,dmap,3,0);
+        phi0.define(ba,dmap,3,0);
+        C_alphaalpha.define(ba,dmap,3,0);
+
         ///////////////////////////////////////////
         // Initialize everything
         ///////////////////////////////////////////
 
         // initialize conserved variables
         InitConsVarStag(cu,cumom,geom); // REDEFINE
+        Copy(phi0,cu,0,0,3,0);
+        ComputePhiFromState(phi0);
 
         // Set BC: 1) fill boundary 2) physical
         cu.FillBoundary(geom.periodicity());
@@ -294,6 +316,9 @@ void main_driver(const char* argv)
             cumomVars.setVal(0.0);
 
             coVars.setVal(0.0);
+
+            Copy(phi0,cu,0,0,3,0);
+            ComputePhiFromState(phi0);
 
 //            if (plot_mom3) mom3.setVal(0.0);
 
@@ -398,7 +423,36 @@ void main_driver(const char* argv)
         {
             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars,
                             cumom, cumomMeans, cumomVars,
-                            coVars); // REDEFINE
+                            coVars, phi0); // REDEFINE
+        }
+
+        if (diag_int > 0 && step%diag_int == 0 && step > n_steps_skip) {
+
+            Real diag_strt_time = ParallelDescriptor::second();
+
+            Copy(phi,cu,0,0,3,0);
+            ComputePhiFromState(phi);
+
+            ComputeCalphaalpha(C_alphaalpha,phi,phi0);
+            C_alphaalpha_00 = sumToLine(C_alphaalpha, 0, 1, domain, 0);
+            C_alphaalpha_11 = sumToLine(C_alphaalpha, 1, 1, domain, 0);
+            C_alphaalpha_22 = sumToLine(C_alphaalpha, 2, 1, domain, 0);
+
+            const std::string C_alphaalphafile = amrex::Concatenate("C_alphaalpha",step,7);
+            std::ofstream C_alphaalphaout;
+            if (ParallelDescriptor::IOProcessor()) {
+                C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
+                for (int i=0; i<n_cells[0]; ++i) {
+
+                    C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
+                                    << C_alphaalpha_00[(i+n_cells[0]/2)%n_cells[0]] << " "
+                                    << C_alphaalpha_11[(i+n_cells[0]/2)%n_cells[0]] << " "
+                                    << C_alphaalpha_22[(i+n_cells[0]/2)%n_cells[0]] << "\n";
+                }
+            }
+            Real diag_stop_time = ParallelDescriptor::second() - diag_strt_time;
+            ParallelDescriptor::ReduceRealMax(diag_stop_time);
+            amrex::Print() << "Writing " << C_alphaalphafile << " in " << diag_stop_time << " seconds\n";
         }
 
         // timer
