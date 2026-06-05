@@ -1,5 +1,6 @@
 #include "FPU.H"
 #include "common_functions.H"
+#include "rng_functions.H"
 #include <AMReX_PlotFileDataImpl.H>
 #include "AMReX_ParmParse.H"
 #include <AMReX_VisMF.H>
@@ -9,9 +10,6 @@
 
 AMREX_GPU_MANAGED int FPU::enable_fluctuations;
 AMREX_GPU_MANAGED int FPU::diag_int;
-AMREX_GPU_MANAGED amrex::Real FPU::r0;
-AMREX_GPU_MANAGED amrex::Real FPU::p0;
-AMREX_GPU_MANAGED amrex::Real FPU::e0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::A;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::D;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3>   FPU::B;
@@ -73,9 +71,6 @@ void InitializeNamespace() {
 
         pp.get("enable_fluctuations",FPU::enable_fluctuations);
         pp.get("diag_int",FPU::diag_int);
-        pp.get("r0",FPU::r0);
-        pp.get("p0",FPU::p0);
-        pp.get("e0",FPU::e0);
         Vector<Real> A_tmp(9);
         Vector<Real> D_tmp(9);
         Vector<Real> B_tmp(3);
@@ -91,6 +86,33 @@ void InitializeNamespace() {
         }
 }
 
+
+void InitConsVarStag(MultiFab& cu,
+                     MultiFab& cumom,
+                     Geometry& geom)
+{
+    cu.setVal(0.0, 0, 3, cu.nGrowVect());
+    cumom.setVal(0.0, 0, 1, cumom.nGrowVect());
+
+    MultiFabFillRandomNormal(cu, 0, 1, 0.0, 1.0, geom, true, true);
+    MultiFabFillRandomNormal(cu, 2, 1, 0.0, 1.0, geom, true, true);
+    MultiFabFillRandomNormal(cumom, 0, 1, 0.0, 1.0, geom, true, true);
+
+    cumom.FillBoundary(geom.periodicity());
+
+    for (MFIter mfi(cu, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& u = cu.array(mfi);
+        Array4<Real const> const& mx = cumom.const_array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            u(i,j,k,1) = 0.5 * (mx(i,j,k,0) + mx(i+1,j,k,0));
+        });
+    }
+
+    cu.FillBoundary(geom.periodicity());
+}
 
 void WriteCheckPoint(int step,
                      const Real time,
@@ -313,7 +335,7 @@ void WritePlotFile(int step,
     varNames[cnt++] = "energy";
 
     ShiftFaceToCC(cumom, 0, plotfile, cnt, 1);
-    varNames[cnt++] = "mom_face_cc";
+    varNames[cnt++] = "mom_face_shift";
 
     MultiFab::Copy(plotfile, cuMeans, 0, cnt, 3, 0);
     varNames[cnt++] = "stretchMean";

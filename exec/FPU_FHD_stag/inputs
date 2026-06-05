@@ -1,24 +1,15 @@
-# number of cells in the x direction
-n_cell_x = 1000
+# 1D x grid with transverse cells used as ensembles
+n_cells = 1000 8000 1
+max_grid_size = 1000 8000 1
+ngc = 1 1 1
 
-#####################
-# number of ensembles and parallelization
-#####################
-# 16 GPU case
-n_ensembles = 1280000
-max_ensembles_per_rank = 80000
-
-# 1 GPU case
-n_ensembles = 80000
-max_ensembles_per_rank = 80000
-
-# 4 core case
-#n_ensembles = 1600
-#max_ensembles_per_rank = 400
+# cell sizes: dx = dy = dz = 1
+prob_lo = 0. 0. 0.
+prob_hi = 1000. 8000. 1.
 
 # total steps in simulation and time step
-nsteps = 2000
-dt = 0.1
+max_step = 2000
+fixed_dt = 0.1
 
 # enable fluctuations
 enable_fluctuations = 1
@@ -26,26 +17,16 @@ enable_fluctuations = 1
 # how many steps to skip before defining t=0
 n_steps_skip = 500
 
-# how often to write a plotfile
+# output / diagnostics
 plot_int = -1
+chk_int = 0
+struct_fact_int = 0
 diag_int = 100
 
-# random number seed (1=fixed seed 0=clock-based seed)
+# fresh start and fixed random seed
+restart = -1
+reset_stats = 0
 seed = 1
-
-#####################
-# size of each finite volume cell - all 3 must defined regardless of dimensionality
-#####################
-
-# advective CFL: dt < 0.6874
-# diffusive CFL: dx < 0.3191
-cell_dx = 1.
-cell_dy = 1.
-cell_dz = 1.
-
-r0 = 0.
-p0 = 0.
-e0 = 0.
 
 # eigenvalues are +/-1.45468
 A = 0. -1. 0. -1.15429 0. 0.961806 0. 1. 0.
@@ -54,15 +35,3 @@ A = 0. -1. 0. -1.15429 0. 0.961806 0. 1. 0.
 D = 0. 0. 0. 0. 2. 0. 1.78510326 0. 3.13419497
 
 B = 0. 1. 1.
-
-
-
-R_00 = -0.7935
-R_01 = -1.
-R_02 = 0.66118
-R_10 = 1.89594
-R_11 = 0.
-R_12 = 1.89594
-R_20 = -0.7935
-R_21 = 1.0
-R_22 = 0.66118

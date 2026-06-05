@@ -111,7 +111,8 @@ void main_driver(const char* argv)
     // stretch
     // mom (averaged)
     // energy
-    int structVarsCons = 3;
+    // mom (shifted)
+    int structVarsCons = 4;
 
     Vector< std::string > cons_var_names;
     cons_var_names.resize(structVarsCons);
@@ -125,6 +126,9 @@ void main_driver(const char* argv)
     ++cnt;
     
     cons_var_names[cnt] = "energy";
+    ++cnt;
+    
+    cons_var_names[cnt] = "momshifted";
     ++cnt;
 
     // scale SF results by inverse cell volume
@@ -201,7 +205,7 @@ void main_driver(const char* argv)
         ///////////////////////////////////////////
 
         // initialize conserved variables
-        //InitConsVarStag(cu,cumom,geom); // REDEFINE
+        InitConsVarStag(cu,cumom,geom); // REDEFINE
 
         // Set BC: 1) fill boundary 2) physical
         cu.FillBoundary(geom.periodicity());
@@ -308,7 +312,7 @@ void main_driver(const char* argv)
         if (step%100 == 0) {
             amrex::Print() << "Mean stretch: "  << ComputeSpatialMean(cu, 0)
                            << " Mean momentum:" << ComputeSpatialMean(cumom, 0)
-                           << " Mean energy:"   << ComputeSpatialMean(cu, 1)
+                           << " Mean energy:"   << ComputeSpatialMean(cu, 2)
                            << "\n";
         }
 

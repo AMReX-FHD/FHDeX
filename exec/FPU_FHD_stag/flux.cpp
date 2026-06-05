@@ -38,12 +38,12 @@ void calculateFlux(const MultiFab& cu,
 
         amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            const Real u0 = 0.5 * (u(i,j,k,0) + u(i-1,j,k,0));
+            const Real u0 = 0.5 * (u(i,j,k,0) + u(i-1,j,k,0)); // terms assocaited with this are zero anyway - simply written for completeness
             const Real u1 = mx(i,j,k,0);
-            const Real u2 = 0.5 * (u(i,j,k,2) + u(i-1,j,k,2));
+            const Real u2 = 0.5 * (u(i,j,k,2) + u(i-1,j,k,2)); // terms assocaited with this are zero anyway - simply written for completeness
 
             const Real dudx0 = (u(i,j,k,0) - u(i-1,j,k,0)) * dxinv;
-            const Real dudx1 = (mx(i+1,j,k,0) - mx(i-1,j,k,0)) * half_dxinv;
+            const Real dudx1 = (mx(i+1,j,k,0) - mx(i-1,j,k,0)) * half_dxinv; // terms assocaited with this are zero anyway - simply written for completeness
             const Real dudx2 = (u(i,j,k,2) - u(i-1,j,k,2)) * dxinv;
 
             ff(i,j,k,0) =
@@ -63,12 +63,12 @@ void calculateFlux(const MultiFab& cu,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             const Real u0 = u(i,j,k,0);
-            const Real u1 = 0.5 * (mx(i,j,k,0) + mx(i+1,j,k,0));
+            const Real u1 = 0.5 * (mx(i,j,k,0) + mx(i+1,j,k,0)); // terms assocaited with this are zero anyway - simply written for completeness
             const Real u2 = u(i,j,k,2);
 
-            const Real dudx0 = (u(i+1,j,k,0) - u(i-1,j,k,0)) * half_dxinv;
+            const Real dudx0 = (u(i+1,j,k,0) - u(i-1,j,k,0)) * half_dxinv; // terms assocaited with this are zero anyway - simply written for completeness
             const Real dudx1 = (mx(i+1,j,k,0) - mx(i,j,k,0)) * dxinv;
-            const Real dudx2 = (u(i+1,j,k,2) - u(i-1,j,k,2)) * half_dxinv;
+            const Real dudx2 = (u(i+1,j,k,2) - u(i-1,j,k,2)) * half_dxinv; // terms assocaited with this are zero anyway - simply written for completeness
 
             cf(i,j,k,0) =
                 Acoef[3]*u0 + Acoef[4]*u1 + Acoef[5]*u2
