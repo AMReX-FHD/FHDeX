@@ -442,9 +442,9 @@ void main_driver(const char* argv)
             std::ofstream C_alphaalphaout;
             if (ParallelDescriptor::IOProcessor()) {
                 C_alphaalphaout.open(C_alphaalphafile, std::ios::out);
+                C_alphaalphaout << "cell  C_alphaalpha_--  C_alphaalpha_00  C_alphaalpha_++" << "\n";
                 for (int i=0; i<n_cells[0]; ++i) {
-
-                    C_alphaalphaout << " C_alphaalpha_00/11/22 = " << i << " "
+                    C_alphaalphaout << i << " "
                                     << C_alphaalpha_00[(i+n_cells[0]/2)%n_cells[0]] << " "
                                     << C_alphaalpha_11[(i+n_cells[0]/2)%n_cells[0]] << " "
                                     << C_alphaalpha_22[(i+n_cells[0]/2)%n_cells[0]] << "\n";
