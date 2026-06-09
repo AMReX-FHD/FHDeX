@@ -21,7 +21,11 @@ void calculateFlux(const MultiFab& cu,
     const auto Acoef = FPU::A;
     const auto Dcoef = FPU::D;
     const auto Bcoef = FPU::B;
+    const auto H1coef = FPU::H1;
+    const auto H2coef = FPU::H2;
+    const auto H3coef = FPU::H3;
     const int use_noise = FPU::enable_fluctuations;
+    const int use_nonlinear = FPU::nonlinear_fhd;
 
     for (MFIter mfi(cu, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         const Box& xbx = mfi.nodaltilebox(0);
@@ -58,6 +62,15 @@ void calculateFlux(const MultiFab& cu,
                 ff(i,j,k,0) += Bcoef[0] * sf(i,j,k,0);
                 ff(i,j,k,1) += Bcoef[2] * sf(i,j,k,1);
             }
+
+            if (use_nonlinear) {
+                ff(i,j,k,0) += 0.5*(H1coef[0]*u0*u0 + H1coef[1]*u0*u1 + H1coef[2]*u0*u2 +
+                                    H1coef[3]*u1*u0 + H1coef[4]*u1*u1 + H1coef[5]*u1*u2 +
+                                    H1coef[6]*u2*u0 + H1coef[7]*u2*u1 + H1coef[8]*u2*u2 );
+                ff(i,j,k,1) += 0.5*(H3coef[0]*u0*u0 + H3coef[1]*u0*u1 + H3coef[2]*u0*u2 +
+                                    H3coef[3]*u1*u0 + H3coef[4]*u1*u1 + H3coef[5]*u1*u2 +
+                                    H3coef[6]*u2*u0 + H3coef[7]*u2*u1 + H3coef[8]*u2*u2 );
+            }
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -76,6 +89,11 @@ void calculateFlux(const MultiFab& cu,
 
             if (use_noise) {
                 cf(i,j,k,0) += Bcoef[1] * sc(i,j,k,0);
+            }
+            if (use_nonlinear) {
+                cf(i,j,k,0) += 0.5*(H2coef[0]*u0*u0 + H2coef[1]*u0*u1 + H2coef[2]*u0*u2 +
+                                    H2coef[3]*u1*u0 + H2coef[4]*u1*u1 + H2coef[5]*u1*u2 +
+                                    H2coef[6]*u2*u0 + H2coef[7]*u2*u1 + H2coef[8]*u2*u2 );
             }
         });
     }

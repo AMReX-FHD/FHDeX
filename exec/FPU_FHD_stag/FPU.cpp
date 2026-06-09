@@ -9,11 +9,15 @@
 #include <sstream>
 
 AMREX_GPU_MANAGED int FPU::enable_fluctuations;
+AMREX_GPU_MANAGED int FPU::nonlinear_fhd;
 AMREX_GPU_MANAGED int FPU::diag_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::A;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::D;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3>   FPU::B;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::R;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::H1;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::H2;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::H3;
 
 void ComputePhiFromState(MultiFab& phi) {
 
@@ -66,19 +70,29 @@ void InitializeNamespace() {
         ParmParse pp;
 
         pp.get("enable_fluctuations",FPU::enable_fluctuations);
+        pp.get("nonlinear_fhd",FPU::nonlinear_fhd);
         pp.get("diag_int",FPU::diag_int);
         Vector<Real> A_tmp(9);
         Vector<Real> D_tmp(9);
         Vector<Real> B_tmp(3);
         Vector<Real> R_tmp(9);
+        Vector<Real> H1_tmp(9);
+        Vector<Real> H2_tmp(9);
+        Vector<Real> H3_tmp(9);
         pp.getarr("A", A_tmp, 0, 9);
         pp.getarr("D", D_tmp, 0, 9);
         pp.getarr("B", B_tmp, 0, 3);
         pp.getarr("R", R_tmp, 0, 9);
+        pp.getarr("H1", H1_tmp, 0, 9);
+        pp.getarr("H2", H2_tmp, 0, 9);
+        pp.getarr("H3", H3_tmp, 0, 9);
         for (int i = 0; i < 9; ++i) {
             FPU::A[i] = A_tmp[i];
             FPU::D[i] = D_tmp[i];
             FPU::R[i] = R_tmp[i];
+            FPU::H1[i] = H1_tmp[i];
+            FPU::H2[i] = H2_tmp[i];
+            FPU::H3[i] = H3_tmp[i];
         }
         for (int i = 0; i < 3; ++i) {
             FPU::B[i] = B_tmp[i];
