@@ -200,6 +200,16 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     *(1.+std::tanh(k2_inv*((width1/2.) - relpos[1])));
 
             }
+            else if (prob_type == 4) {
+                Real quarter = reallo[1] + 0.25*(realhi[1]-reallo[1]);
+                Real threequarter = reallo[1] + 0.75*(realhi[1]-reallo[1]);
+                Real y = reallo[1] + (j+0.5)*dx[1];
+                if (y < quarter || y > threequarter) {
+                    u(i,j,k) = -1.;
+                } else {
+                    u(i,j,k) = 1.;
+                }
+            }
         },
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -238,6 +248,8 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     *(1.+tanh(k2_inv*((width1/2.+perturb) - relpos[1])));
                 v(i,j,k) = slope*fun_ptrb;
             } else if (prob_type == 3) {
+                v(i,j,k) = 0.;
+            } else if (prob_type == 4) {
                 v(i,j,k) = 0.;
             }
         }
