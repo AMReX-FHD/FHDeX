@@ -205,9 +205,9 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real threequarter = reallo[1] + 0.75*(realhi[1]-reallo[1]);
                 Real y = reallo[1] + (j+0.5)*dx[1];
                 if (y < quarter || y > threequarter) {
-                    u(i,j,k) = -1.;
+                    u(i,j,k) = -1.0;
                 } else {
-                    u(i,j,k) = 1.;
+                    u(i,j,k) = 1.0;
                 }
             }
         },

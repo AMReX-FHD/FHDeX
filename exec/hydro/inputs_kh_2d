@@ -1,6 +1,11 @@
   # Problem specification
-  prob_lo = 0.0 0.0       # physical lo coordinate
-  prob_hi = 1.0 1.0   # physical hi coordinate
+  # prob_lo = 0.0 0.0       # physical lo coordinate
+  # prob_hi = 1.0 1.0   # physical hi coordinate
+  pi = 3.14159265359
+  neg_pi = -3.14159265359
+  two_pi = 6.28318530718
+  prob_lo = 0.0 neg_pi      # physical lo coordinate
+  prob_hi = two_pi pi   # physical hi coordinate
 
   # if prob_type = 0, zero initial velocity
   # if prob_type = 1, vortex
@@ -9,17 +14,20 @@
   # if prob_type = 4, new KH
   prob_type = 4
   
+  seed = 1
+
   # number of cells in domain
-  n_cells = 32 32
+  # n_cells = 32 32
+  # n_cells = 512 512
   # max number of cells in a box
-  max_grid_size = 16 16
+  # max_grid_size = 64 64
 
   # Time-step control
-  fixed_dt = 0.005
+  # fixed_dt = 1.9e-4
 
   # Controls for number of steps between actions
-  max_step = 100000
-  plot_int = 1000
+  # max_step = 100000
+  # plot_int = 500
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -27,15 +35,15 @@
   # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
   # positive = assume constant coefficients
   # negative = assume spatially-varying coefficients
-  # visc_coef = 1.
-  visc_coef = 1.e-5
+  # visc_coef = 1.95e-3
+  # visc_coef = 1.e-5
   visc_type = 1
 
   # Stochastic parameters
   variance_coef_mom = 1.
-  initial_variance_mom = 0.
+  initial_variance_mom = 1.
 
-  cell_depth = 1000000.
+  # cell_depth = 1000000.
   k_B = 1.
   T_init = 1.
 
@@ -76,3 +84,5 @@
   gmres_max_iter = 100                  # max number of gmres iterations
   gmres_min_iter = 1                    # min number of gmres iterations
 
+
+  # plot_base_name = "test/plt"
