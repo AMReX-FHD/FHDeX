@@ -63,3 +63,16 @@ DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
 
 MAXREACTION := $(strip $(MAX_REAC))
 DEFINES += -DMAX_REACTION=$(MAXREACTION)
+
+PYTORCH_ROOT := ./test_MFsurfchem_COAr_eq_ML/libtorch_cpu
+
+TORCH_LIBPATH = $(PYTORCH_ROOT)/lib
+TORCH_LIBS = -ltorch -ltorch_cpu -lc10
+
+INCLUDE_LOCATIONS += $(PYTORCH_ROOT)/include \
+                     $(PYTORCH_ROOT)/include/torch/csrc/api/include
+LIBRARY_LOCATIONS += $(TORCH_LIBPATH)
+
+DEFINES += -D_GLIBCXX_USE_CXX11_ABI=1
+
+LDFLAGS += -Wl,--no-as-needed,-rpath=$(TORCH_LIBPATH) $(TORCH_LIBS)

@@ -1,5 +1,7 @@
 #include "MFsurfchem_functions.H"
 #include "AMReX_ParmParse.H"
+#include <torch/script.h>
+
 
 AMREX_GPU_MANAGED int MFsurfchem::n_ads_spec;
 AMREX_GPU_MANAGED int MFsurfchem::ads_wall_dir;
@@ -21,6 +23,13 @@ AMREX_GPU_MANAGED int MFsurfchem::conversion_MFsurfchem;
 
 AMREX_GPU_MANAGED int MFsurfchem::mean_MFsurfchem;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::mean_pressure;
+AMREX_GPU_MANAGED int MFsurfchem::use_ml_mfsurfchem;
+
+namespace {
+    torch::jit::script::Module g_mfsurfchem_model;
+    bool g_mfsurfchem_model_loaded = false;
+    std::string g_mfsurfchem_model_file;
+}
 
 void InitializeMFSurfchemNamespace()
 {
@@ -101,6 +110,24 @@ void InitializeMFSurfchemNamespace()
             mean_pressure[m] = mean_pressure_tmp[m];
         }
     }
+
+    use_ml_mfsurfchem = 0;
+    pp.query("use_ml_mfsurfchem",use_ml_mfsurfchem);
+    if (use_ml_mfsurfchem > 0) {
+        g_mfsurfchem_model_file = "ffnn_model.pt";
+        pp.query("mfsurfchem_model_file",g_mfsurfchem_model_file);
+
+        try {
+            g_mfsurfchem_model = torch::jit::load(g_mfsurfchem_model_file);
+            g_mfsurfchem_model.eval();
+            g_mfsurfchem_model.to(torch::kFloat64);
+            g_mfsurfchem_model_loaded = true;
+        }
+        catch (const c10::Error& e) {
+            Abort(std::string("Error loading MFsurfchem ML model: ") + g_mfsurfchem_model_file + " :: " + e.what());
+        }
+    }
+
     return;
 }
 
@@ -151,7 +178,7 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 
     return;
 }
-
+ 
 void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes,
                        const amrex::Geometry& geom, const amrex::Real dt)
 {
@@ -168,63 +195,147 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         const Array4<Real> & dNads_arr = dNads.array(mfi);
         const Array4<Real> & dNdes_arr = dNdes.array(mfi);
 
-        amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites
+        amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites 
+        if (use_ml_mfsurfchem > 0) {
+            if (!g_mfsurfchem_model_loaded) {
+                Abort("MFsurfchem ML model requested but not loaded"); 
+            }
+            // number of inputs and outputs of the pytorch model
+            int Nc_in = 3;
+            int Nc_out = 2;
 
-        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
-        {
-            if ( (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0) ) {
-                amrex::Real sumtheta = 0.;
-                for (int m=0;m<n_ads_spec;m++) {
-                    sumtheta += surfcov_arr(i,j,k,m);
+            //retrieve smallend and size of box
+            const IntVect bx_lo = bx.smallEnd();
+            const IntVect nbox = bx.size();
+            int ncell = AMREX_SPACEDIM == 2 ?
+                nbox[0] * nbox[1] : nbox[0] * nbox[1] * nbox[2];
+            int nsample = ncell * n_ads_spec;
+
+            // creates a flattened buffer of total sample points on box times number of inputs on each point (total number of inputs)
+            amrex::Gpu::ManagedVector<Real> aux(nsample * Nc_in);
+
+            // gives pointer access to the buffer
+            Real* AMREX_RESTRICT auxPtr = aux.dataPtr();
+
+            amrex::ParallelFor(bx, n_ads_spec, [=] AMREX_GPU_DEVICE (int i, int j, int k, int m) noexcept
+            {
+                int ii = i - bx_lo[0];
+                int jj = j - bx_lo[1];
+                int cell = jj*nbox[0] + ii;
+#if AMREX_SPACEDIM == 3
+                int kk = k - bx_lo[2];
+                cell += kk*nbox[0]*nbox[1];
+#endif
+                int index = cell * n_ads_spec + m;
+                bool ads_on_wall = (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0);
+
+                amrex::Real pres = 0.0;
+                amrex::Real tempratio = prim_arr(i,j,k,4) / T_init[0];
+                amrex::Real theta = 0.0;
+
+                if (ads_on_wall) {
+                    pres = prim_arr(i,j,k,5);
+                    pres *= prim_arr(i,j,k,6 + nspecies + m);
+                    theta = surfcov_arr(i,j,k,m);
                 }
 
-                amrex:: Real tempratio = prim_arr(i,j,k,4)/T_init[0];
+                auxPtr[index*Nc_in + 0] = pres;
+                auxPtr[index*Nc_in + 1] = tempratio;
+                auxPtr[index*Nc_in + 2] = theta;
+            });
 
-                for (int m=0;m<n_ads_spec;m++) {
-                    amrex::Real pres = prim_arr(i,j,k,5);   // total pressure
-                    pres *= prim_arr(i,j,k,6+nspecies+m);   // partial pressure
+            at::Tensor inputs_torch = torch::from_blob(auxPtr, {nsample, Nc_in}, torch::TensorOptions().dtype(torch::kFloat64)).clone();
+            at::Tensor outputs_torch = g_mfsurfchem_model.forward({inputs_torch}).toTensor();
+            outputs_torch = outputs_torch.to(torch::kFloat64).contiguous();
 
-                    amrex::Real theta = surfcov_arr(i,j,k,m);
+            auto outputs_torch_acc =outputs_torch.accessor<Real,2>();
 
-                    amrex::Real meanNads;
-                    amrex::Real meanNdes;
+            amrex::ParallelFor(bx, n_ads_spec, [=] AMREX_GPU_DEVICE (int i, int j, int k, int m) noexcept
+            {
+                int ii = i - bx_lo[0];
+                int jj = j - bx_lo[1];
+                int cell = jj*nbox[0] + ii;
+#if AMREX_SPACEDIM == 3
+                int kk = k - bx_lo[2];
+                cell += kk*nbox[0]*nbox[1];
+#endif
+                int index = cell * n_ads_spec + m;
+                bool ads_on_wall = (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0);
 
-                    if (mean_MFsurfchem==0) {
-                        meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
-                        meanNdes = des_rate[m]*theta*Ntot*dt;
-                    }
-                    else {
-                        meanNads = ads_rate_const[m]*mean_pressure[m]*(1-sumtheta)*Ntot*dt; // tempratio = 1
-                        meanNdes = des_rate[m]*theta*Ntot*dt;
-                    }
+                if (ads_on_wall) {
+                    amrex::Real pred_ads = static_cast<amrex::Real>(outputs_torch_acc[index][0]);
+                    amrex::Real pred_des = static_cast<amrex::Real>(outputs_torch_acc[index][1]);
 
-                    amrex::Real Nads;
-                    amrex::Real Ndes;
+                    amrex::Real meanNads = pred_ads * Ntot * dt;
+                    amrex::Real meanNdes = pred_des * Ntot * dt;
 
-                    if (stoch_MFsurfchem==0) {
-                        Nads = meanNads;
-                        Ndes = meanNdes;
-                    }
-                    else {
-                        Nads = RandomPoisson(meanNads,engine);
-                        Ndes = RandomPoisson(meanNdes,engine);
-                    }
+                    amrex::Real Nads = (stoch_MFsurfchem == 0) ? meanNads : amrex::RandomPoisson(meanNads);
+                    amrex::Real Ndes = (stoch_MFsurfchem == 0) ? meanNdes : amrex::RandomPoisson(meanNdes);
 
                     if (conversion_MFsurfchem > 0) {
                         dNads_arr(i,j,k,m) = Nads;
                         dNdes_arr(i,j,k,m) = Ndes;
-                    }
-                    else {
-                        dNadsdes_arr(i,j,k,m) = Nads-Ndes;
+                    } else {
+                    dNadsdes_arr(i,j,k,m) = Nads - Ndes;
                     }
                 }
-            }
-        });
-    }
+            });
+        }
+        else {
+            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
+            {
+                if ( (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0) ) {
+                    amrex::Real sumtheta = 0.;
+                    for (int m=0;m<n_ads_spec;m++) {
+                        sumtheta += surfcov_arr(i,j,k,m);
+                    }
 
+                    amrex:: Real tempratio = prim_arr(i,j,k,4)/T_init[0];
+
+                    for (int m=0;m<n_ads_spec;m++) {
+                        amrex::Real pres = prim_arr(i,j,k,5);   // total pressure
+                        pres *= prim_arr(i,j,k,6+nspecies+m);   // partial pressure
+
+                        amrex::Real theta = surfcov_arr(i,j,k,m);
+
+                        amrex::Real meanNads;
+                        amrex::Real meanNdes;
+
+                        if (mean_MFsurfchem==0) {
+                            meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
+                            meanNdes = des_rate[m]*theta*Ntot*dt;
+                        }
+                        else {
+                            meanNads = ads_rate_const[m]*mean_pressure[m]*(1-sumtheta)*Ntot*dt; // tempratio = 1
+                            meanNdes = des_rate[m]*theta*Ntot*dt;
+                        }
+
+                        amrex::Real Nads;
+                        amrex::Real Ndes;
+
+                        if (stoch_MFsurfchem==0) {
+                            Nads = meanNads;
+                            Ndes = meanNdes;
+                        }
+                        else {
+                            Nads = RandomPoisson(meanNads,engine);
+                            Ndes = RandomPoisson(meanNdes,engine);
+                        }
+
+                        if (conversion_MFsurfchem > 0) {
+                            dNads_arr(i,j,k,m) = Nads;
+                            dNdes_arr(i,j,k,m) = Ndes;
+                        }
+                        else {
+                            dNadsdes_arr(i,j,k,m) = Nads-Ndes;
+                        }
+                    }
+                }
+            });
+        }
+    }
     return;
 }
-
 void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes,
                        const amrex::Geometry& geom)
 {
