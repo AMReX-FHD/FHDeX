@@ -49,7 +49,8 @@ void WriteCheckPoint(int step,
 
 void InitConsVarStag(MultiFab& cu,
                      MultiFab& cumom,
-                     Geometry& geom);
+                     Geometry& geom,
+                     const Real& initial_mom_variance);
 
 void WritePlotFile(int step,
                        const Real time,

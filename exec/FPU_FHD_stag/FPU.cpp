@@ -8,8 +8,8 @@
 #include <iomanip>
 #include <sstream>
 
-AMREX_GPU_MANAGED int FPU::enable_fluctuations;
-AMREX_GPU_MANAGED int FPU::nonlinear_fhd;
+AMREX_GPU_MANAGED int FPU::enable_fluctuations = 1;
+AMREX_GPU_MANAGED int FPU::nonlinear_fhd = 1;
 AMREX_GPU_MANAGED int FPU::diag_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::A;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3*3> FPU::D;
@@ -69,8 +69,8 @@ void InitializeNamespace() {
 
         ParmParse pp;
 
-        pp.get("enable_fluctuations",FPU::enable_fluctuations);
-        pp.get("nonlinear_fhd",FPU::nonlinear_fhd);
+        pp.query("enable_fluctuations",FPU::enable_fluctuations);
+        pp.query("nonlinear_fhd",FPU::nonlinear_fhd);
         pp.get("diag_int",FPU::diag_int);
         Vector<Real> A_tmp(9);
         Vector<Real> D_tmp(9);
@@ -102,14 +102,22 @@ void InitializeNamespace() {
 
 void InitConsVarStag(MultiFab& cu,
                      MultiFab& cumom,
-                     Geometry& geom)
+                     Geometry& geom,
+                     const Real& initial_mom_variance)
 {
     cu.setVal(0.0, 0, 3, cu.nGrowVect());
     cumom.setVal(0.0, 0, 1, cumom.nGrowVect());
 
-    MultiFabFillRandomNormal(cu, 0, 1, 0.0, 1.0, geom, true, true);
-    MultiFabFillRandomNormal(cu, 2, 1, 0.0, 1.0, geom, true, true);
-    MultiFabFillRandomNormal(cumom, 0, 1, 0.0, 1.0, geom, true, true);
+    if (initial_mom_variance != 0.0) {
+        MultiFabFillRandomNormal(cu, 0, 1, 0.0, initial_mom_variance, geom, true, true);
+        MultiFabFillRandomNormal(cu, 2, 1, 0.0, initial_mom_variance, geom, true, true);
+        MultiFabFillRandomNormal(cumom, 0, 1, 0.0, initial_mom_variance, geom, true, true);
+    }
+    else { // default
+        MultiFabFillRandomNormal(cu, 0, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(cu, 2, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(cumom, 0, 1, 0.0, 1.0, geom, true, true);
+    }
 
     cumom.FillBoundary(geom.periodicity());
 

@@ -225,7 +225,7 @@ void main_driver(const char* argv)
         ///////////////////////////////////////////
 
         // initialize conserved variables
-        InitConsVarStag(cu,cumom,geom); // REDEFINE
+        InitConsVarStag(cu,cumom,geom,initial_variance_mom); // REDEFINE
         Copy(phi0,cu,0,0,3,0);
         ComputePhiFromState(phi0);
 
