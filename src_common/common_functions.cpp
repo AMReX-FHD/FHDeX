@@ -25,6 +25,8 @@ AMREX_GPU_MANAGED int      common::nprimvars;
 AMREX_GPU_MANAGED int      common::cross_cell;
 AMREX_GPU_MANAGED int      common::do_slab_sf;
 
+AMREX_GPU_MANAGED int      common::noise_off_step;
+
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_fluid; // GALEN - FLUID KERNEL
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_es;
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::eskernel_fluid; // EXPONENTIAL OF SEMICIRCLE KERNEL; use this as w
@@ -343,6 +345,8 @@ void InitializeCommonNamespace() {
 
     cross_cell = 0;     // cell to compute spatial correlation
     do_slab_sf = 0;     // whether to compute SF in two slabs separated by membrane_cell
+
+    noise_off_step = -1;
 
     for (int i=0; i<MAX_SPECIES; ++i) {
         qval[i] = 0.;                // charge on an ion
@@ -680,6 +684,9 @@ void InitializeCommonNamespace() {
     pp.query("nprimvars",nprimvars);
     pp.query("cross_cell",cross_cell);
     pp.query("do_slab_sf",do_slab_sf);
+
+    pp.query("noise_off_step",noise_off_step);
+    
 
     if (pp.queryarr("pkernel_fluid",temp_int,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {

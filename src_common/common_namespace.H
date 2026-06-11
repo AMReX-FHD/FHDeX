@@ -18,6 +18,8 @@ namespace common {
     extern amrex::IntVect nodal_flag_xz;
     extern amrex::IntVect nodal_flag_yz;
 
+    extern int noise_off_step;
+
     // Below are items that are read in from the common namelist
 
     // Problem specification

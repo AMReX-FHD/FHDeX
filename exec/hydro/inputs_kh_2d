@@ -44,8 +44,9 @@
   initial_variance_mom = 1.
 
   # cell_depth = 1000000.
-  k_B = 1.
-  T_init = 1.
+  # k_B = 1.
+  # T_init = 1.
+  # T_init = 292.
 
   # Boundary conditions
   # ----------------------
