@@ -1,4 +1,4 @@
-namespace MFsurfchem {
+ namespace MFsurfchem {
 
     extern AMREX_GPU_MANAGED int n_ads_spec;
     extern AMREX_GPU_MANAGED int ads_wall_dir;
@@ -22,4 +22,5 @@ namespace MFsurfchem {
     extern AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> mean_pressure;
 
     extern AMREX_GPU_MANAGED int use_ml_mfsurfchem;
+    extern std::string model_filename;
 }

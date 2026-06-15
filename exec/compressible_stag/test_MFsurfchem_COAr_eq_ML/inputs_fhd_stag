@@ -23,9 +23,9 @@ fixed_dt = 1.0e-12
 
 # Controls for number of steps between actions
 
-max_step = 1200000
-plot_int = 200000
-n_steps_skip = 200000
+max_step = 100
+plot_int = 0
+n_steps_skip = 0
 
 # Structure factor 
 struct_fact_int = 1
@@ -142,6 +142,6 @@ splitting_MFsurfchem = 1 # For Strang splitting scheme
 # this is for using Poisson distribution with 1
 stoch_MFsurfchem = 1
 # use ML to do surfchem with 1
-use_ml_mfsurfchem = 1 
+use_ml_mfsurfchem = 1
 # name of model
-mfsurfchem_model_file = "model.pt"
+model_file = "model.pt"

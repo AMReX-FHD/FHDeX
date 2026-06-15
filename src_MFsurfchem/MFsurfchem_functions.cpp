@@ -24,12 +24,7 @@ AMREX_GPU_MANAGED int MFsurfchem::conversion_MFsurfchem;
 AMREX_GPU_MANAGED int MFsurfchem::mean_MFsurfchem;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::mean_pressure;
 AMREX_GPU_MANAGED int MFsurfchem::use_ml_mfsurfchem;
-
-namespace {
-    torch::jit::script::Module g_mfsurfchem_model;
-    bool g_mfsurfchem_model_loaded = false;
-    std::string g_mfsurfchem_model_file;
-}
+std::string  MFsurfchem::model_filename;
 
 void InitializeMFSurfchemNamespace()
 {
@@ -114,18 +109,7 @@ void InitializeMFSurfchemNamespace()
     use_ml_mfsurfchem = 0;
     pp.query("use_ml_mfsurfchem",use_ml_mfsurfchem);
     if (use_ml_mfsurfchem > 0) {
-        g_mfsurfchem_model_file = "ffnn_model.pt";
-        pp.query("mfsurfchem_model_file",g_mfsurfchem_model_file);
-
-        try {
-            g_mfsurfchem_model = torch::jit::load(g_mfsurfchem_model_file);
-            g_mfsurfchem_model.eval();
-            g_mfsurfchem_model.to(torch::kFloat64);
-            g_mfsurfchem_model_loaded = true;
-        }
-        catch (const c10::Error& e) {
-            Abort(std::string("Error loading MFsurfchem ML model: ") + g_mfsurfchem_model_file + " :: " + e.what());
-        }
+        pp.query("model_file",model_filename);
     }
 
     return;
@@ -182,8 +166,40 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes,
                        const amrex::Geometry& geom, const amrex::Real dt)
 {
-
+    BL_PROFILE("sample_MFsurfchem");
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    bool model_loaded = false;
+    torch::jit::script::Module model;
+    auto dtype0 = torch::kFloat64;
+
+    // Default tensoropt to CPU
+    auto tensoropt = torch::TensorOptions().dtype(dtype0);
+    BL_PROFILE_VAR("load_ML_model", p_load);
+    if (use_ml_mfsurfchem > 0) {
+        try {
+            model = torch::jit::load(model_filename);
+            model.eval();
+            model.to(torch::kFloat64);
+            model_loaded = true;
+//            amrex::Print() << "Successfully loaded PyTorch model:" << model_filename << "\n";
+#ifdef AMREX_USE_CUDA
+            // Move the GPU casting INSIDE the if block!
+            torch::Device device0(torch::kCUDA);
+            model.to(device0);
+            tensoropt = tensoropt.device(device0);
+//            amrex::Print() << "Copying model to GPU." << std::endl;
+#endif
+
+        }
+        catch (const c10::Error& e) {
+            amrex::Abort(std::string("Error loading ML model: ") + model_filename + " :: " + e.what());
+        }
+    }
+    BL_PROFILE_VAR_STOP(p_load);
+
+    BL_PROFILE_VAR_NS("compute_ML_updates", p_compute_ml);
+    BL_PROFILE_VAR_NS("compute_standard_updates", p_compute_std);
 
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
@@ -196,9 +212,11 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         const Array4<Real> & dNdes_arr = dNdes.array(mfi);
 
         amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites 
+
         if (use_ml_mfsurfchem > 0) {
-            if (!g_mfsurfchem_model_loaded) {
-                Abort("MFsurfchem ML model requested but not loaded"); 
+            BL_PROFILE_VAR_START(p_compute_ml);
+            if (!model_loaded) {
+                Abort("ML model requested but not loaded"); 
             }
             // number of inputs and outputs of the pytorch model
             int Nc_in = 3;
@@ -244,13 +262,18 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 auxPtr[index*Nc_in + 2] = theta;
             });
 
-            at::Tensor inputs_torch = torch::from_blob(auxPtr, {nsample, Nc_in}, torch::TensorOptions().dtype(torch::kFloat64)).clone();
-            at::Tensor outputs_torch = g_mfsurfchem_model.forward({inputs_torch}).toTensor();
-            outputs_torch = outputs_torch.to(torch::kFloat64).contiguous();
 
-            auto outputs_torch_acc =outputs_torch.accessor<Real,2>();
+            at::Tensor inputs_torch = torch::from_blob(auxPtr, {nsample, Nc_in}, tensoropt);
 
-            amrex::ParallelFor(bx, n_ads_spec, [=] AMREX_GPU_DEVICE (int i, int j, int k, int m) noexcept
+            at::Tensor outputs_torch = model.forward({inputs_torch}).toTensor();
+            outputs_torch = outputs_torch.to(dtype0).contiguous();
+
+#ifdef AMREX_USE_CUDA
+            auto outputs_torch_acc = outputs_torch.packed_accessor64<Real,2>();
+#else
+            auto outputs_torch_acc = outputs_torch.accessor<Real,2>();
+#endif
+            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
             {
                 int ii = i - bx_lo[0];
                 int jj = j - bx_lo[1];
@@ -259,29 +282,35 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 int kk = k - bx_lo[2];
                 cell += kk*nbox[0]*nbox[1];
 #endif
-                int index = cell * n_ads_spec + m;
                 bool ads_on_wall = (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0);
 
                 if (ads_on_wall) {
-                    amrex::Real pred_ads = static_cast<amrex::Real>(outputs_torch_acc[index][0]);
-                    amrex::Real pred_des = static_cast<amrex::Real>(outputs_torch_acc[index][1]);
 
-                    amrex::Real meanNads = pred_ads * Ntot * dt;
-                    amrex::Real meanNdes = pred_des * Ntot * dt;
+                    for (int m=0;m<n_ads_spec;m++) {
+                        int index = cell * n_ads_spec + m;
 
-                    amrex::Real Nads = (stoch_MFsurfchem == 0) ? meanNads : amrex::RandomPoisson(meanNads);
-                    amrex::Real Ndes = (stoch_MFsurfchem == 0) ? meanNdes : amrex::RandomPoisson(meanNdes);
+                        amrex::Real pred_ads = static_cast<amrex::Real>(outputs_torch_acc[index][0]);
+                        amrex::Real pred_des = static_cast<amrex::Real>(outputs_torch_acc[index][1]);
 
-                    if (conversion_MFsurfchem > 0) {
-                        dNads_arr(i,j,k,m) = Nads;
-                        dNdes_arr(i,j,k,m) = Ndes;
-                    } else {
-                    dNadsdes_arr(i,j,k,m) = Nads - Ndes;
+                        amrex::Real meanNads = pred_ads * Ntot * dt;
+                        amrex::Real meanNdes = pred_des * Ntot * dt;
+
+                        amrex::Real Nads = (stoch_MFsurfchem == 0) ? meanNads : amrex::RandomPoisson(meanNads,engine);
+                        amrex::Real Ndes = (stoch_MFsurfchem == 0) ? meanNdes : amrex::RandomPoisson(meanNdes,engine);
+
+                        if (conversion_MFsurfchem > 0) {
+                            dNads_arr(i,j,k,m) = Nads;
+                            dNdes_arr(i,j,k,m) = Ndes;
+                        } else {
+                        dNadsdes_arr(i,j,k,m) = Nads - Ndes;
+                        }
                     }
                 }
             });
+            BL_PROFILE_VAR_STOP(p_compute_ml);
         }
         else {
+            BL_PROFILE_VAR_START(p_compute_std);
             amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
             {
                 if ( (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0) ) {
@@ -332,6 +361,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                     }
                 }
             });
+            BL_PROFILE_VAR_STOP(p_compute_std);
         }
     }
     return;
