@@ -1316,6 +1316,7 @@ AmrCoreAdv::WritePlotFile () const
              }
 
                 mf_arr(i,j,k,1) = std::exp(-(caps+capr)/gamma);
+                mf_arr(i,j,k,1) = 0.;
 #endif
 
             });

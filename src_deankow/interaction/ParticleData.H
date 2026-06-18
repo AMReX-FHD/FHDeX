@@ -3,6 +3,8 @@
 
 #include <string>
 #include <iostream>
+#include <algorithm>
+#include <cmath>
 
 // #include <IndexDefines.H>
 #include <AMReX_Particles.H>
@@ -24,7 +26,17 @@ struct ParticleData {
 
         use_particles = 0;
         pp.query("use_particles", use_particles);
+        use_ext_pot = 0;
+        pp.query("use_ext_pot", use_ext_pot);
+        interaction_range = 0.0;
+        pp.query("interaction_range", interaction_range);
+        interaction_strength = 666.0;
+        pp.query("interaction_strength", interaction_strength);
+        interaction_scale = 0.1;
+        pp.query("interaction_scale", interaction_scale);
 
+
+        amrex::Print{} << "interaction range " << interaction_range << std::endl;
         if (use_particles) {
             if (max_level != 1) {
                 amrex::Abort("When using particles you must have max_level == 1");
@@ -34,7 +46,8 @@ struct ParticleData {
     }
 
     void init_particles(amrex::ParGDBBase* a_gdb, const amrex::BoxArray& grown_fba,
-                        amrex::MultiFab& phi_crse, amrex::MultiFab& phi_fine)
+                        amrex::MultiFab& phi_crse, amrex::MultiFab& phi_fine,
+                        amrex::Real num_part)
     {
         // Initialize stochastic particles and phi at level 1
         if (use_particles) {
@@ -50,7 +63,16 @@ struct ParticleData {
             // Define the particle class with the default gdb, then change the particle
             //        boxArray (and DM) to be the grown ba and associated dm
             // **********************************************************************
-            stochastic_particles = std::make_unique<StochasticPC>(a_gdb);
+            int neighbor_cells = 1;
+            if (interaction_range > 0.0) {
+                amrex::Real dxmin = dx_fine[0];
+                for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
+                    dxmin = std::min(dxmin, dx_fine[idim]);
+                }
+                neighbor_cells = std::max(1, static_cast<int>(std::ceil(interaction_range / dxmin)));
+            }
+
+            stochastic_particles = std::make_unique<StochasticPC>(a_gdb, neighbor_cells);
             stochastic_particles->SetParticleBoxArray(1,grown_fba);
             amrex::DistributionMapping grown_dm { grown_fba, amrex::ParallelDescriptor::NProcs() };
             stochastic_particles->SetParticleDistributionMap(1,grown_dm);
@@ -65,7 +87,7 @@ struct ParticleData {
             // **********************************************************************
             // Use this grown boxArray to hold the particles
             // **********************************************************************
-            stochastic_particles->InitParticles(phi_grown);
+            stochastic_particles->InitParticles(phi_grown, num_part);
 
             amrex::Print() << "Before Removal we have  " << stochastic_particles->TotalNumberOfParticles() <<
                               " stochastic particles." << std::endl;
@@ -88,13 +110,14 @@ struct ParticleData {
             int lev = 1;
             phi_fine.setVal(0.0);
             stochastic_particles->Increment(phi_fine, lev);
-            phi_fine.mult(1./cell_vol_fine);
+            phi_fine.mult(1./(num_part*cell_vol_fine));
             amrex::Print() << "Used the particle locations to define phi at level 1 " << std::endl;
         }
     }
 
     void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& new_ungrown_ba,
-                          const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine)
+                          const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine,
+                          amrex::Real num_part)
     {
         amrex::DistributionMapping new_ungrown_dm { new_ungrown_ba, amrex::ParallelDescriptor::NProcs() };
         stochastic_particles->SetParticleBoxArray(1, new_ungrown_ba);
@@ -103,7 +126,7 @@ struct ParticleData {
         stochastic_particles->Redistribute();
         stochastic_particles->RemoveParticlesAtLevel(0);
         amrex::Real factor = .9;
-        stochastic_particles->AddParticles(phi_fine, old_fine_ba, factor);
+        stochastic_particles->AddParticles(phi_fine, old_fine_ba, factor, num_part);
         phi_fine.setVal(0.0);
         const int lev = 1;
         const auto dx = stochastic_particles->Geom(lev).CellSizeArray();
@@ -145,16 +168,27 @@ struct ParticleData {
     void Restart(amrex::ParGDBBase* a_gdb, std::string& restart_file)
     {
         if (use_particles) {
-            stochastic_particles = std::make_unique<StochasticPC>(a_gdb);
+            const amrex::Geometry& geom_fine = a_gdb->Geom(1);
+            const auto dx_fine = geom_fine.CellSize();
+            int neighbor_cells = 1;
+            if (interaction_range > 0.0) {
+                amrex::Real dxmin = dx_fine[0];
+                for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
+                    dxmin = std::min(dxmin, dx_fine[idim]);
+                }
+                neighbor_cells = std::max(1, static_cast<int>(std::ceil(interaction_range / dxmin)));
+            }
+            stochastic_particles = std::make_unique<StochasticPC>(a_gdb, neighbor_cells);
             std::string particle_file("stochastic_particles");
             stochastic_particles->Restart(restart_file, particle_file);
         }
     }
 
-    void advance_particles(int lev, amrex::Real dt_lev, amrex::Real cell_vol,
+    void advance_particles(int lev, amrex::Real dt_lev, amrex::Real diff_coeff, amrex::Real cell_vol,
                            amrex::MultiFab& phi_crse_old,
                            amrex::MultiFab& phi_crse_new,
-                           amrex::MultiFab& phi_fine)
+                           amrex::MultiFab& phi_fine,
+                           amrex::Real num_part)
     {
         // Update stochastic particles
         if (use_particles) {
@@ -179,12 +213,19 @@ struct ParticleData {
             amrex::Print() << "Adding particles in advance " << std::endl;
 
             amrex::Real factor = .9;
-            stochastic_particles->AddParticles(phi_grown, ba_to_exclude,factor);
+            stochastic_particles->AddParticles(phi_grown, ba_to_exclude, factor, num_part);
+
+            // **********************************************************************
+            // Apply deterministic drift from external and interaction potentials
+            // **********************************************************************
+            stochastic_particles->AdvectParticles(lev, dt_lev, interaction_range,
+                                                          interaction_strength, interaction_scale,
+                                                          num_part, diff_coeff, use_ext_pot);
 
             // **********************************************************************
             // Advect the particles in the valid region and in the ghost region
             // **********************************************************************
-            stochastic_particles->AdvectWithRandomWalk(lev, dt_lev);
+            // Random walk now handled inside AdvectParticles
 
             // **********************************************************************
             // Account for particles that went from crse --> fine BEFORE Redistribute
@@ -249,7 +290,7 @@ struct ParticleData {
             // *****************************************************************************
             phi_fine.ParallelCopy(phi_grown,0,0,1);
 
-            phi_fine.mult(1./cell_vol);
+            phi_fine.mult(1./(num_part*cell_vol));
             amrex::Print() << "Used the particle locations to define phi at level 1 " << std::endl;
         }
     }
@@ -264,6 +305,10 @@ struct ParticleData {
     std::string pp_prefix {"amr"};
 
     int use_particles;
+    int use_ext_pot;
+    amrex::Real interaction_range;
+    amrex::Real interaction_strength;
+    amrex::Real interaction_scale;
     std::unique_ptr<StochasticPC> stochastic_particles;
     amrex::Vector<std::string> particle_varnames = {"xold", "yold", "zold"};
 };

@@ -1,17 +1,21 @@
 #include "StochasticPC.H"
 
+#include <algorithm>
+#include <limits>
+
 #include <AMReX_GpuContainers.H>
 #include <AMReX_Math.H>
+#include <AMReX_NeighborList.H>
 #include <AMReX_TracerParticle_mod_K.H>
 
 using namespace amrex;
 
 void
-StochasticPC::InitParticles (MultiFab& phi_fine)
+StochasticPC::InitParticles (MultiFab& phi_fine, Real num_part)
 {
-    amrex::Print() << "calling InitParrticles" << std::endl;
+    amrex::Print() << "calling InitParticles" << std::endl;
     amrex::Real factor = -1.;
-    AddParticles(phi_fine, BoxArray{},factor);
+    AddParticles(phi_fine, BoxArray{}, factor, num_part);
 }
 
 void
@@ -47,7 +51,8 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
 }
 
 void
-StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, amrex::Real factor)
+StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude,
+                             amrex::Real factor, amrex::Real num_part)
 {
     BL_PROFILE("StochasticPC::AddParticles");
 
@@ -102,7 +107,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
         {
             if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))) >= 0) {return;}
             Real rannum = amrex::Random(engine);
-            int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
+            int npart_in_cell = int(num_part*phi_arr(i,j,k,0)*cell_vol+rannum);
             pcount[flat_index(i, j, k)] += npart_in_cell;
             // if (phi_arr(i,j,k) > 0.) {
             //     amrex::Print() << " IJK/NPART/PHI/RAN " << IntVect(i,j) << " " << npart_in_cell << " given phi " <<
@@ -140,7 +145,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
         amrex::Print() << "INIT: NEW SIZE OF PARTICLES IN TILE BOX " << tile_box << " " << new_size << std::endl;
 
 
-        int ext_pot = 1;
+        int ext_pot = 0;
         amrex::Real alpha = .25;
         amrex::Real beta = .75;
         amrex::Real gamma = 5.e-4;
@@ -208,6 +213,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
                        r[1] = sampy / dx[1];
                     }
                 }
+
 
                 AMREX_D_TERM( Real x = plo[0] + (i + r[0])*dx[0];,
                               Real y = plo[1] + (j + r[1])*dx[1];,
@@ -397,7 +403,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
 }
 
 void
-StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
+StochasticPC::AdvectWithRandomWalk (int lev, Real dt, Real diff_coeff)
 {
     BL_PROFILE("StochasticPC::AdvectWithRandomWalk");
     const auto dx = Geom(lev).CellSizeArray();
@@ -409,14 +415,9 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                   bool is_periodic_in_y = Geom(lev).isPeriodic(1);,
                   bool is_periodic_in_z = Geom(lev).isPeriodic(2););
 
-    Real stddev = std::sqrt(dt);
+    Real stddev = std::sqrt(2.0 * diff_coeff * dt);
 
-    int ext_pot = 0;
-    int on_surf = 1;
-    amrex::Real alpha = .25;
-    amrex::Real beta = .75;
-    amrex::Real gamma = 5.e-4;
-        gamma = 1.1e-3;
+    int on_surf = 0;
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -428,27 +429,13 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
         amrex::ParallelForRNG( np, [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
         {
             ParticleType& p = pstruct[i];
-            AMREX_D_TERM( p.rdata(RealIdx::xold) = p.pos(0);,
-                          p.rdata(RealIdx::yold) = p.pos(1);,
-                          p.rdata(RealIdx::zold) = p.pos(2););
 
-            AMREX_D_TERM( Real incx = amrex::RandomNormal(0.,stddev,engine);,
-                          Real incy = amrex::RandomNormal(0.,stddev,engine);,
-                          Real incz = amrex::RandomNormal(0.,stddev,engine););
-
-             if(ext_pot ==1){
-                amrex::Real xloc,yloc;
-                amrex::Real Vsubx, Vsuby;
-
-                xloc = p.pos(0);
-                yloc = p.pos(1);
-                Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
-                Vsuby = 0.5*4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
-
-                p.pos(0) += -dt*Vsubx;
-                p.pos(1) += -dt*Vsuby;
-
-             }
+            Real incx = amrex::RandomNormal(0.,stddev,engine);
+            Real incy = amrex::RandomNormal(0.,stddev,engine);
+            Real incz = 0.0;
+#if (AMREX_SPACEDIM == 3)
+            incz = amrex::RandomNormal(0.,stddev,engine);
+#endif
 
              if(on_surf == 1){
 
@@ -531,4 +518,445 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 #endif
         }); // np
     } // pti
+}
+
+void
+StochasticPC::AdvectParticles (int lev, Real dt,
+                                       Real interaction_range,
+                                       Real interaction_strength,
+                                       Real interaction_scale,
+                                       Real num_part,
+                                       Real diff_coeff,
+                                       int use_ext_pot)
+{
+    BL_PROFILE("StochasticPC::AdvectParticles");
+    const auto dx = Geom(lev).CellSizeArray();
+    const auto p_lo = Geom(lev).ProbLoArray();
+    const auto p_hi = Geom(lev).ProbHiArray();
+
+    AMREX_D_TERM( bool is_periodic_in_x = Geom(lev).isPeriodic(0);,
+                  bool is_periodic_in_y = Geom(lev).isPeriodic(1);,
+                  bool is_periodic_in_z = Geom(lev).isPeriodic(2););
+
+    AMREX_D_TERM( const Real Lx = p_hi[0] - p_lo[0];,
+                  const Real Ly = p_hi[1] - p_lo[1];,
+                  const Real Lz = p_hi[2] - p_lo[2];);
+
+    if (interaction_range > 0.0) {
+        Real Lmin = std::numeric_limits<Real>::max();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            const Real L = p_hi[idim] - p_lo[idim];
+            Lmin = std::min(Lmin, L);
+        }
+        if (interaction_range >= 0.5 * Lmin) {
+            amrex::Abort("interaction_range must be strictly less than half the domain size");
+        }
+        if (interaction_scale <= 0.0) {
+            amrex::Abort("interaction_scale must be positive");
+        }
+    }
+
+    if (use_ext_pot == 0 && interaction_range <= 0.0) {
+        return;
+    }
+
+    amrex::Real alpha = .25;
+    amrex::Real beta = .75;
+    amrex::Real gamma = 5.e-4;
+    gamma = 1.1e-3;
+
+//    static bool s_params_inited = false;
+//    static int s_print_forces = 0;
+//    static int s_print_forces_n = 8;
+//    if (!s_params_inited) {
+//        ParmParse pp("adv");
+//        pp.query("print_particle_forces", s_print_forces);
+//        pp.query("print_particle_forces_n", s_print_forces_n);
+//        s_params_inited = true;
+//    }
+
+    const Real rcut = interaction_range;
+    const Real rcut2 = rcut * rcut;
+    const Real inv_scale3 = (interaction_scale > 0.0)
+        ? 1.0 / (interaction_scale * interaction_scale * interaction_scale)
+        : 0.0;
+//    const Real strength = (num_part > 0.0) ? (interaction_strength / num_part) : 0.0;
+    const Real strength = interaction_strength / num_part;
+    const Real stddev = std::sqrt(2.0 * diff_coeff * dt);
+    const int on_surf = 0;
+
+//    amrex::Print{} << "interation_strength " << interaction_strength << std::endl;
+
+    int required_cells = 0;
+    if (interaction_range > 0.0) {
+        Real dxmin = dx[0];
+        for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
+            dxmin = std::min(dxmin, dx[idim]);
+        }
+        required_cells = static_cast<int>(std::ceil(interaction_range / dxmin));
+        required_cells = std::max(1, required_cells);
+        if (required_cells > m_neighbor_cells) {
+            amrex::Abort("interaction_range requires more neighbor cells than configured");
+        }
+    }
+
+    if (interaction_range > 0.0) {
+        this->fillNeighbors();
+    }
+
+    for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& ptile = ParticlesAt(lev, pti);
+        auto& aos  = ptile.GetArrayOfStructs();
+        const int np = ptile.numRealParticles();
+        auto *pstruct = aos().data();
+
+        amrex::NeighborList<ParticleType> nlist;
+        amrex::NeighborData<ParticleType> ndata(nlist.GetOffsets(), nlist.GetList(), pstruct);
+
+        if (interaction_range > 0.0) {
+            auto check_pair = [=] AMREX_GPU_HOST_DEVICE
+                (const ParticleType& p1, const ParticleType& p2) noexcept
+            {
+                Real dxij = p2.pos(0) - p1.pos(0);
+                Real dyij = p2.pos(1) - p1.pos(1);
+#if (AMREX_SPACEDIM == 3)
+                Real dzij = p2.pos(2) - p1.pos(2);
+#else
+                Real dzij = 0.0;
+#endif
+//            amrex::Print{} <<  " dxij" << dxij << " " << dyij << std::endl;
+
+                if (is_periodic_in_x) {
+                    if (dxij > 0.5*Lx) dxij -= Lx;
+                    if (dxij < -0.5*Lx) dxij += Lx;
+                }
+                if (is_periodic_in_y) {
+                    if (dyij > 0.5*Ly) dyij -= Ly;
+                    if (dyij < -0.5*Ly) dyij += Ly;
+                }
+#if (AMREX_SPACEDIM == 3)
+                if (is_periodic_in_z) {
+                    if (dzij > 0.5*Lz) dzij -= Lz;
+                    if (dzij < -0.5*Lz) dzij += Lz;
+                }
+#endif
+
+                const Real r2 = dxij*dxij + dyij*dyij + dzij*dzij;
+                return (r2 < rcut2 && r2 > 0.0);
+            };
+            Box bx = pti.tilebox();
+            bx.grow(m_neighbor_cells);
+            nlist.build(ptile, bx, Geom(lev), check_pair, m_neighbor_cells);
+            ndata = nlist.data();
+        }
+
+
+/*
+
+        if (s_print_forces && amrex::ParallelDescriptor::IOProcessor()) {
+            const int nprint = std::min(np, s_print_forces_n);
+            amrex::Print{} << " np, sp  nprint " << np << " " << s_print_forces_n << " " << nprint << std::endl;
+            for (int i = 0; i < nprint; ++i) {
+                const ParticleType& p = pstruct[i];
+
+                Real dpx = 0.0;
+                Real dpy = 0.0;
+                Real dpz = 0.0;
+
+                if (use_ext_pot == 1) {
+                    amrex::Real xloc = p.pos(0);
+                    amrex::Real yloc = p.pos(1);
+                    amrex::Real Vsubx = 2.*(xloc - beta) * (xloc - alpha) * (2.*xloc - alpha - beta) / gamma;
+                    amrex::Real Vsuby = 0.5*4.*(yloc - .5) * (yloc - .5) * (yloc - .5) / gamma;
+                    dpx += -dt * Vsubx;
+                    dpy += -dt * Vsuby;
+                }
+
+                if (interaction_range > 0.0) {
+                    const Real xi = p.pos(0);
+                    const Real yi = p.pos(1);
+#if (AMREX_SPACEDIM == 3)
+                    const Real zi = p.pos(2);
+#else
+                    const Real zi = 0.0;
+#endif
+
+                    auto nbors = ndata.getNeighbors(i);
+                    for (auto it = nbors.begin(); it != nbors.end(); ++it) {
+                        const ParticleType& q = *it;
+
+                        Real dxij = q.pos(0) - xi;
+                        Real dyij = q.pos(1) - yi;
+#if (AMREX_SPACEDIM == 3)
+                        Real dzij = q.pos(2) - zi;
+#else
+                        Real dzij = 0.0;
+#endif
+
+                        if (is_periodic_in_x) {
+                            if (dxij > 0.5*Lx) dxij -= Lx;
+                            if (dxij < -0.5*Lx) dxij += Lx;
+                        }
+                        if (is_periodic_in_y) {
+                            if (dyij > 0.5*Ly) dyij -= Ly;
+                            if (dyij < -0.5*Ly) dyij += Ly;
+                        }
+#if (AMREX_SPACEDIM == 3)
+                        if (is_periodic_in_z) {
+                            if (dzij > 0.5*Lz) dzij -= Lz;
+                            if (dzij < -0.5*Lz) dzij += Lz;
+                        }
+#endif
+
+                        const Real r2 = dxij*dxij + dyij*dyij + dzij*dzij;
+                        if (r2 >= rcut2 || r2 == 0.0) continue;
+
+                        const Real r = std::sqrt(r2);
+                        const Real r3 = r2 * r;
+                        const Real U = strength * std::exp(-r3 * inv_scale3);
+                        const Real factor = -3.0 * inv_scale3 * U * r;
+
+    amrex::Print{} << "inv_scale3 " << inv_scale3 << std::endl;
+    amrex::Print{} << "r3 " << r3 << std::endl;
+    amrex::Print{} << "dxij " << dxij << std::endl;
+    amrex::Print{} << "dyij " << dyij << std::endl;
+    amrex::Print{} << "strength " << strength << std::endl;
+    amrex::Print{} << "u " << U << std::endl;
+
+                        dpx += dt * factor * dxij;
+                        dpy += dt * factor * dyij;
+                        dpz += dt * factor * dzij;
+                amrex::Print() << "Force particle id=" << p.id()
+                               << " pos=(" << p.pos(0) << "," << p.pos(1) << " " << dxij << " " << dyij << std::endl;
+                    }
+                }
+
+                Real fx = (dt > 0.0) ? dpx / dt : 0.0;
+                Real fy = (dt > 0.0) ? dpy / dt : 0.0;
+                Real fz = (dt > 0.0) ? dpz / dt : 0.0;
+
+                amrex::Print() << "Force particle id=" << p.id()
+                               << " pos=(" << p.pos(0) << "," << p.pos(1) 
+#if (AMREX_SPACEDIM == 3)
+                               << "," << p.pos(2)
+#endif
+                               << ") force=(" << fx << "," << fy
+#if (AMREX_SPACEDIM == 3)
+                               << "," << fz
+#endif
+                               << ")\n";
+            }
+        }
+
+*/
+
+        Gpu::DeviceVector<Real> dpx(np, 0.0);
+        Gpu::DeviceVector<Real> dpy(np, 0.0);
+        Gpu::DeviceVector<Real> dpz(np, 0.0);
+        Gpu::DeviceVector<Real> incx(np, 0.0);
+        Gpu::DeviceVector<Real> incy(np, 0.0);
+        Gpu::DeviceVector<Real> incz(np, 0.0);
+
+        Real* dpxp = dpx.dataPtr();
+        Real* dpyp = dpy.dataPtr();
+        Real* dpzp = dpz.dataPtr();
+        Real* incxp = incx.dataPtr();
+        Real* incyp = incy.dataPtr();
+        Real* inczp = incz.dataPtr();
+
+        amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
+        {
+            ParticleType& p = pstruct[i];
+            AMREX_D_TERM( p.rdata(RealIdx::xold) = p.pos(0);,
+                          p.rdata(RealIdx::yold) = p.pos(1);,
+                          p.rdata(RealIdx::zold) = p.pos(2););
+
+            Real dpx = 0.0;
+            Real dpy = 0.0;
+            Real dpz = 0.0;
+
+            if (use_ext_pot == 1) {
+                amrex::Real xloc, yloc;
+                amrex::Real Vsubx, Vsuby;
+
+                xloc = p.pos(0);
+                yloc = p.pos(1);
+                Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
+                Vsuby = 0.5*4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
+
+                dpx += -dt*Vsubx;
+                dpy += -dt*Vsuby;
+            }
+
+            if (interaction_range > 0.0) {
+                const Real xi = p.pos(0);
+                const Real yi = p.pos(1);
+#if (AMREX_SPACEDIM == 3)
+                const Real zi = p.pos(2);
+#else
+                const Real zi = 0.0;
+#endif
+
+                auto nbors = ndata.getNeighbors(i);
+                for (auto it = nbors.begin(); it != nbors.end(); ++it) {
+                    const ParticleType& q = *it;
+
+                    Real dxij = q.pos(0) - xi;
+                    Real dyij = q.pos(1) - yi;
+#if (AMREX_SPACEDIM == 3)
+                    Real dzij = q.pos(2) - zi;
+#else
+                    Real dzij = 0.0;
+#endif
+
+                    if (is_periodic_in_x) {
+                        if (dxij > 0.5*Lx) dxij -= Lx;
+                        if (dxij < -0.5*Lx) dxij += Lx;
+                    }
+                    if (is_periodic_in_y) {
+                        if (dyij > 0.5*Ly) dyij -= Ly;
+                        if (dyij < -0.5*Ly) dyij += Ly;
+                    }
+#if (AMREX_SPACEDIM == 3)
+                    if (is_periodic_in_z) {
+                        if (dzij > 0.5*Lz) dzij -= Lz;
+                        if (dzij < -0.5*Lz) dzij += Lz;
+                    }
+#endif
+
+                    const Real r2 = dxij*dxij + dyij*dyij + dzij*dzij;
+                    if (r2 >= rcut2 || r2 == 0.0) continue;
+
+                    const Real r = std::sqrt(r2);
+                    const Real r3 = r2 * r;
+                    const Real U = strength * std::exp(-r3 * inv_scale3);
+                    const Real factor = -3.0 * inv_scale3 * U * r;
+
+//    amrex::Print{} << " in actual" << std::endl;
+//    amrex::Print{} << "inv_scale3 " << inv_scale3 << std::endl;
+//    amrex::Print{} << "r3 " << r3 << std::endl;
+//    amrex::Print{} << "dxij " << dxij << std::endl;
+//    amrex::Print{} << "dyij " << dyij << std::endl;
+//    amrex::Print{} << "strength " << strength << std::endl;
+//    amrex::Print{} << "u " << U << std::endl;
+
+
+                    dpx += dt * factor * dxij;
+                    dpy += dt * factor * dyij;
+                    dpz += dt * factor * dzij;
+                }
+ //                   amrex::Print{} << "xi yi forces " << xi << " " << yi << " " << dpx/dt << " " << dpy/dt << std::endl;
+            }
+
+
+            Real incx = amrex::RandomNormal(0.,stddev,engine);
+            Real incy = amrex::RandomNormal(0.,stddev,engine);
+            Real incz = 0.0;
+#if (AMREX_SPACEDIM == 3)
+            incz = amrex::RandomNormal(0.,stddev,engine);
+#endif
+
+            dpxp[i] = dpx;
+            dpyp[i] = dpy;
+            dpzp[i] = dpz;
+            incxp[i] = incx;
+            incyp[i] = incy;
+            inczp[i] = incz;
+        });
+
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
+            ParticleType& p = pstruct[i];
+
+            Real totalx = 0.0;
+            Real totaly = 0.0;
+            Real totalz = 0.0;
+
+            Real dpx = dpxp[i];
+            Real dpy = dpyp[i];
+            Real dpz = dpzp[i];
+
+            Real incx = incxp[i];
+            Real incy = incyp[i];
+            Real incz = inczp[i];
+
+            if (on_surf == 1) {
+                amrex::Real amp = 0.1;
+                amrex::Real sinx,siny,cosx,cosy,det,fx,fy,sig11,sig12,sig21,sig22;
+
+                amrex::Real xloc = p.pos(0);
+                amrex::Real yloc = p.pos(1);
+
+                sinx = std::sin(xloc);
+                siny = std::sin(yloc);
+                cosx = std::cos(xloc);
+                cosy = std::cos(yloc);
+
+                det = 1 + amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy);
+
+                fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*sinx*cosx*siny*siny);
+                fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*siny*cosy*sinx*sinx);
+
+                fx = fx / (2.*det*det);
+                fy = fy / (2.*det*det);
+
+                amrex::Real detm1 = det - 1.;
+                amrex::Real cfac = (1. - 1./std::sqrt(1+detm1))/detm1;
+
+                sig11 = 1. - cfac * amp*amp * cosx*cosx*siny*siny;
+                sig22 = 1. - cfac * amp*amp * cosy*cosy*sinx*sinx;
+                sig12 =  - cfac * amp*amp * cosy*cosx*sinx*siny;
+                sig21 = sig12;
+
+                amrex::Real updatex = fx*dt + sig11*incx + sig12*incy;
+                amrex::Real updatey = fy*dt + sig21*incx + sig22*incy;
+
+                totalx = dpx + updatex;
+                totaly = dpy + updatey;
+            } else {
+                totalx = dpx + incx;
+                totaly = dpy + incy;
+//                    amrex::Print{} << "xi yi forces final " << p.pos(0) << " " << p.pos(1) << " " << dpx/dt << " " << dpy/dt << std::endl;
+#if (AMREX_SPACEDIM == 3)
+                totalz = dpz + incz;
+#endif
+            }
+
+            totalx = std::max(-dx[0], std::min(dx[0], totalx));
+            totaly = std::max(-dx[1], std::min(dx[1], totaly));
+#if (AMREX_SPACEDIM == 3)
+            totalz = std::max(-dx[2], std::min(dx[2], totalz));
+#endif
+
+            p.pos(0) += static_cast<ParticleReal>(totalx);
+            p.pos(1) += static_cast<ParticleReal>(totaly);
+#if (AMREX_SPACEDIM == 3)
+            p.pos(2) += static_cast<ParticleReal>(totalz);
+#endif
+
+            if (is_periodic_in_x) {
+                if (p.pos(0) < p_lo[0]) p.pos(0) += Lx;
+                if (p.pos(0) > p_hi[0]) p.pos(0) -= Lx;
+            }
+            if (is_periodic_in_y) {
+                if (p.pos(1) < p_lo[1]) p.pos(1) += Ly;
+                if (p.pos(1) > p_hi[1]) p.pos(1) -= Ly;
+            }
+#if (AMREX_SPACEDIM == 3)
+            if (is_periodic_in_z) {
+                if (p.pos(2) < p_lo[2]) p.pos(2) += Lz;
+                if (p.pos(2) > p_hi[2]) p.pos(2) -= Lz;
+            }
+#endif
+        });
+
+        if (interaction_range > 0.0) {
+            amrex::Gpu::Device::streamSynchronize();
+        }
+    }
+
+    if (interaction_range > 0.0) {
+        this->clearNeighbors();
+    }
 }

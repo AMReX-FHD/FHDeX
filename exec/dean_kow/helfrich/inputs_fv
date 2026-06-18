@@ -2,7 +2,7 @@
 # Run until nsteps == max_step or time == stop_time,
 #     whichever comes first
 # *****************************************************************
-max_step  = 100
+max_step  = 10000
 
 seed = 0
 
@@ -14,6 +14,7 @@ amrex.fpe_trap_invalid = 1
 alg_type = 0
 dorand = 1.
 num_part = 20480.
+num_part = 81920.
 
 # *****************************************************************
 # Are we restarting from an existing checkpoint file?
@@ -43,8 +44,8 @@ amr.max_grid_size_x = 16 16 64
 amr.max_grid_size_y = 16 16 64
 amr.max_grid_size_x = 64 64 64
 amr.max_grid_size_y = 64 64 64
-amr.n_cell          = 64 64 
 amr.n_cell          = 32 32
+amr.n_cell          = 64 64 
 
 amr.max_level       = 0
 amr.use_particles   = 0      # Turn particles on or off

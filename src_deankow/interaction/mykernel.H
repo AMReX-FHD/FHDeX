@@ -22,9 +22,17 @@ void init_phi (int i, int j, int k,
 //     phi(i,j,k,0) += std::cos(2.*PI*(i)*dx[0])*std::cos(2.*PI*(j)*dx[1])/cellvol;
      //phi(i,j,k,0) += std::cos(16.*2.*PI*(i)*dx[0])*std::cos(16*2.*PI*j*dx[1])/cellvol;
      phi(i,j,k,0) = 20480.;
-     phi(i,j,k,0) += std::sin(2.*PI*(i)*dx[0])*1024;
-     phi(i,j,k,0) += std::cos(8.*PI*(i)*dx[0]+.7)*std::cos(10.*PI*(j)*dx[1]-.3)*1024;
-     phi(i,j,k,0) += std::cos(2.*3.14156265*(i+0.5)*dx[0])*std::cos(2.*3.14156265*(j+0.5)*dx[1])*256.;
+//     phi(i,j,k,0) += std::sin(2.*PI*(i)*dx[0])*1024;
+//     phi(i,j,k,0) += std::cos(8.*PI*(i)*dx[0]+.7)*std::cos(10.*PI*(j)*dx[1]-.3)*1024;
+//     phi(i,j,k,0) += std::cos(2.*3.14156265*(i+0.5)*dx[0])*std::cos(2.*3.14156265*(j+0.5)*dx[1])*256.;
+
+//       phi(i,j,k,0) = 0.;
+//       if( (i == 0 || i == 63 ) && (j == 0 || j == 63)){
+//         phi(i,j,k,0) = 1.;
+//       }
+//      if( (i == 15 || i == 16 ) && (j == 15 || j == 16)){
+//         phi(i,j,k,0) = 1.;
+//       }
 
     if (Ncomp == 2){
         phi(i,j,k,1) = phi(i,j,k,0);
@@ -105,7 +113,8 @@ void init_int_pot (int i, int j, int k,
 */
 
 
-//        amrex::Print() << "i j U " << i << " " << j << " " << U(i,j,k) << std::endl;
+//        amrex::Real Ux = -3.*eps*U(i,j,k)*x*r/(R*R*R);
+//        amrex::Print() << "i j U " << i << " " << j << " " << U(i,j,k) << " " << Ux << std::endl;
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE

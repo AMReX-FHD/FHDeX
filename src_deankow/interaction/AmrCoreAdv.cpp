@@ -3,8 +3,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_Reduce.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
+#include <AMReX_Math.H>
 
 #ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -203,7 +205,8 @@ AmrCoreAdv::InitData ()
 
 #ifdef AMREX_PARTICLES
         if (max_level > 0) {
-            particleData.init_particles((amrex::ParGDBBase*)GetParGDB(), grown_fba, phi_new[0], phi_new[1]);
+            particleData.init_particles((amrex::ParGDBBase*)GetParGDB(), grown_fba,
+                                        phi_new[0], phi_new[1], num_part);
         }
 #endif
         AverageDown();
@@ -356,7 +359,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 
 #ifdef AMREX_PARTICLES
         if (lev == 1) {
-            particleData.regrid_particles(grown_fba, ba, old_fine_ba, phi_new[1]);
+            particleData.regrid_particles(grown_fba, ba, old_fine_ba, phi_new[1], num_part);
         }
 #endif
 }
@@ -494,6 +497,85 @@ AmrCoreAdv::InitFFTLevel0 ()
         {
             init_int_pot(i,j,k,U_arr,dx,problo,probhi);
         });
+    }
+
+    {
+        ParmParse pp("adv");
+        int test_int_pot = 0;
+        int test_int_pot_sym = 0;
+        pp.query("test_int_pot", test_int_pot);
+        pp.query("test_int_pot_sym", test_int_pot_sym);
+
+        if (test_int_pot || test_int_pot_sym) {
+            ReduceOps<ReduceOpMax> reduce_op_max;
+            ReduceData<Real> reduce_data_max(reduce_op_max);
+            using ReduceTuple = typename ReduceData<Real>::Type;
+
+            for (MFIter mfi(U); mfi.isValid(); ++mfi) {
+                const Box& bx = mfi.validbox();
+                auto const& U_arr = U.const_array(mfi);
+                reduce_op_max.eval(bx, reduce_data_max,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+                {
+                    return ReduceTuple{U_arr(i,j,k)};
+                });
+            }
+
+            const Real umax = amrex::get<0>(reduce_data_max.value());
+            const Real eps = 0.0333 * 20000.0;
+            const Real umax_err = std::abs(umax - eps);
+
+            if (test_int_pot) {
+                amrex::Print() << "IntPotTest max(U)=" << umax
+                               << " expected=" << eps
+                               << " abs_err=" << umax_err << "\n";
+            }
+
+            if (test_int_pot_sym) {
+                const Box domain = Geom(lev).Domain();
+                const bool single_box = (U.boxArray().size() == 1) && U.boxArray()[0].contains(domain);
+                if (!single_box) {
+                    amrex::Print() << "IntPotSymTest skipped: U not single-box domain\n";
+                } else {
+                    ReduceOps<ReduceOpMax> reduce_op_sym;
+                    ReduceData<Real> reduce_data_sym(reduce_op_sym);
+
+                    const int ilo = domain.smallEnd(0);
+                    const int jlo = domain.smallEnd(1);
+                    const int nx = domain.length(0);
+                    const int ny = domain.length(1);
+#if (AMREX_SPACEDIM > 2)
+                    const int klo = domain.smallEnd(2);
+                    const int nz = domain.length(2);
+#else
+                    const int klo = 0;
+                    const int nz = 1;
+#endif
+
+                    MFItInfo info;
+                    info.SetTiling(false);
+                    for (MFIter mfi(U, info); mfi.isValid(); ++mfi) {
+                        const Box& bx = mfi.validbox();
+                        auto const& U_arr = U.const_array(mfi);
+                        reduce_op_sym.eval(bx, reduce_data_sym,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+                        {
+                            const int ii = ilo + ((nx - (i - ilo)) % nx);
+                            const int jj = jlo + ((ny - (j - jlo)) % ny);
+#if (AMREX_SPACEDIM > 2)
+                            const int kk = klo + ((nz - (k - klo)) % nz);
+#else
+                            const int kk = k;
+#endif
+                            return ReduceTuple{amrex::Math::abs(U_arr(i,j,k) - U_arr(ii,jj,kk))};
+                        });
+                    }
+
+                    const Real max_sym_err = amrex::get<0>(reduce_data_sym.value());
+                    amrex::Print() << "IntPotSymTest max_abs_diff=" << max_sym_err << "\n";
+                }
+            }
+        }
     }
 
     r2c_forward->forward(U, Uhat);
@@ -828,8 +910,9 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 #else
     const Real cell_vol = dx[0]*dx[1]*dx[2];
 #endif
-    particleData.advance_particles(lev_for_particles, dt[lev_for_particles], cell_vol,
-                                   phi_old[0], phi_new[0], phi_new[lev_for_particles]);
+    particleData.advance_particles(lev_for_particles, dt[lev_for_particles], diff_coeff, cell_vol,
+                                   phi_old[0], phi_new[0], phi_new[lev_for_particles],
+                                   num_part);
     particleData.Redistribute();
 #endif
 
@@ -923,40 +1006,43 @@ AmrCoreAdv::WritePlotFile () const
         MultiFab::Copy(mf[lev],phi_new[lev],src_comp,1,1,0);
 
         // Set the fine data in "phi0" to -1 so we can test on that value and plot particles over blank space
-        if (lev == 1) {
-            mf[lev].setVal(-1.0,1,1,0);
-        }
+//        if (lev == 1) {
+//            mf[lev].setVal(-1.0,1,1,0);
+//        }
     }
  
-    int lev = 0;
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        const auto prob_lo = Geom(lev).ProbLoArray();
+        const auto prob_hi = Geom(lev).ProbHiArray();
+        const Real* dx  =  geom[lev].CellSize();
+        amrex::Real cellvol = dx[0]*dx[1];
+#if(AMREX_SPACEDIM > 2)
+        cellvol *=dx[2];
+#endif
 
+        // Or using AMREX_D_TERM for a cleaner multi-D version:
+        amrex::Real vol = AMREX_D_TERM( (prob_hi[0]-prob_lo[0]),
+                                   *(prob_hi[1]-prob_lo[1]),
+                                   *(prob_hi[2]-prob_lo[2]) );
 
-    const auto prob_lo = Geom(lev).ProbLoArray();
-    const auto prob_hi = Geom(lev).ProbHiArray();
-
-// Or using AMREX_D_TERM for a cleaner multi-D version:
-    amrex::Real vol = AMREX_D_TERM( (prob_hi[0]-prob_lo[0]), 
-                               *(prob_hi[1]-prob_lo[1]), 
-                               *(prob_hi[2]-prob_lo[2]) );
-
-    for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
-    {
+        for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
+        {
             const Box& vbx = mfi.validbox();
             auto const& mf_arr = mf[lev].array(mfi);
             auto const& phi_arr = phi_new[lev].array(mfi);
             amrex::ParallelFor(vbx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
-
-            mf_arr(i,j,k,2) = phi_arr(i,j,k,0)*vol*num_part;
-
+                // mf_arr(i,j,k,2) = phi_arr(i,j,k,0)*vol*num_part;
+                mf_arr(i,j,k,2) = phi_arr(i,j,k,0)*cellvol*num_part;
             });
+        }
     }
 
 
 
 
-    Vector<std::string> varnames = {"measure", "phi0","density"};
+    Vector<std::string> varnames = {"measure", "phi0","number"};
 
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
 
@@ -1003,14 +1089,13 @@ AmrCoreAdv::WritePlotFile () const
         }
 
         amrex::Vector<amrex::BCRec> bcs_temp;
-        bcs_temp.resize(2);     // Setup for 2 components in mf
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            bcs_temp[0].setLo(idim, bcs[0].lo()[idim]);
-            bcs_temp[1].setLo(idim, bcs[0].lo()[idim]);
-
-            bcs_temp[0].setHi(idim, bcs[0].hi()[idim]);
-            bcs_temp[1].setHi(idim, bcs[0].hi()[idim]);
+        bcs_temp.resize(ncomp_mf); // One BCRec per component
+        for (int n = 0; n < ncomp_mf; ++n) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                bcs_temp[n].setLo(idim, bcs[0].lo()[idim]);
+                bcs_temp[n].setHi(idim, bcs[0].hi()[idim]);
+            }
         }
 
         // Do piecewise interpolation of mf into mf2
@@ -1036,7 +1121,7 @@ AmrCoreAdv::WritePlotFile () const
     }
 
 #ifdef AMREX_PARTICLES
-   particleData.writePlotFile(plotfilename,phi_new[1]);
+   //particleData.writePlotFile(plotfilename,phi_new[1]);
 #endif
 }
 

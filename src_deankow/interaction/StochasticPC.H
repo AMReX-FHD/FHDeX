@@ -1,7 +1,7 @@
 #ifndef STOCHASTIC_PC_H_
 #define STOCHASTIC_PC_H_
 
-#include <AMReX_Particles.H>
+#include <AMReX_NeighborParticles.H>
 
 struct RealIdx
 {
@@ -48,30 +48,39 @@ struct FlatIndex {
 };
 
 class StochasticPC
-    : public amrex::ParticleContainer<RealIdx::ncomps, IntIdx::ncomps, 0, 0,
-                                      amrex::DefaultAllocator>
+    : public amrex::NeighborParticleContainer<RealIdx::ncomps, IntIdx::ncomps, 0, 0>
 {
 
 public:
 
-    StochasticPC (amrex::ParGDBBase* gdb)
-        : amrex::ParticleContainer<RealIdx::ncomps, IntIdx::ncomps, 0, 0,
-                                   amrex::DefaultAllocator>(gdb)
+    StochasticPC (amrex::ParGDBBase* gdb, int neighbor_cells = 1)
+        : amrex::NeighborParticleContainer<RealIdx::ncomps, IntIdx::ncomps, 0, 0>(gdb, neighbor_cells)
+        , m_neighbor_cells(neighbor_cells)
         {}
 
     StochasticPC (const amrex::Geometry            & geom,
                   const amrex::DistributionMapping & dmap,
-                  const amrex::BoxArray            & ba)
-        : amrex::ParticleContainer<RealIdx::ncomps, IntIdx::ncomps, 0, 0,
-                                   amrex::DefaultAllocator>(geom, dmap, ba)
+                  const amrex::BoxArray            & ba,
+                  int neighbor_cells = 1)
+        : amrex::NeighborParticleContainer<RealIdx::ncomps, IntIdx::ncomps, 0, 0>(geom, dmap, ba, neighbor_cells)
+        , m_neighbor_cells(neighbor_cells)
         {}
 
-    void InitParticles (amrex::MultiFab& phi_fine);
-    void  AddParticles (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude, amrex::Real factor);
+    void InitParticles (amrex::MultiFab& phi_fine, amrex::Real num_part);
+    void  AddParticles (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude,
+                        amrex::Real factor, amrex::Real num_part);
 
     void ColorParticlesWithPhi (amrex::MultiFab const& phi_fine);
 
-    void AdvectWithRandomWalk (int lev, amrex::Real dt);
+    void AdvectParticles (int lev, amrex::Real dt,
+                                  amrex::Real interaction_range,
+                                  amrex::Real interaction_strength,
+                                  amrex::Real interaction_scale,
+                                  amrex::Real num_part,
+                                  amrex::Real diff_coeff,
+                                  int use_ext_pot);
+
+    void AdvectWithRandomWalk (int lev, amrex::Real dt, amrex::Real diff_coeff);
 
     void RemoveParticlesNotInBA (const amrex::BoxArray& ba_to_keep);
     void RefluxCrseToFine (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_for_reflux);
@@ -79,6 +88,7 @@ public:
 
 protected:
     amrex::ParticleLocator<amrex::DenseBins<amrex::Box> > m_reflux_particle_locator;
+    int m_neighbor_cells = 1;
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
