@@ -8,7 +8,8 @@ USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
-MAX_SPEC      = 8
+MAX_SPEC  = 2
+USE_FFT   = TRUE
 
 TINY_PROFILE = FALSE
 
@@ -20,7 +21,6 @@ INCLUDE_LOCATIONS += .
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
-
 
 include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/

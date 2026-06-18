@@ -334,10 +334,10 @@ void main_driver(const char * argv) {
                                     geom.ProbLo(), geom.ProbHi(), & dm,
                                     AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi())););
 
-    	// initialize tracer
+        // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()));
+                   BL_TO_FORTRAN_ANYD(tracer[mfi]),
+                   dx, AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()));
 
     }
 
@@ -617,7 +617,7 @@ void main_driver(const char * argv) {
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
             }
-            structFact.FortStructure(struct_in_cc,geom);
+            structFact.FortStructure(struct_in_cc);
         }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;

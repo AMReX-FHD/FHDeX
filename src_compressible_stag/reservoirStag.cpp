@@ -8,7 +8,7 @@
 ///////////////////////////////////////////////////////////////////////////
 // compute momentum and fluxes at the reservoir-FHD interface /////////////
 ///////////////////////////////////////////////////////////////////////////
-void 
+void
 ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         const std::array<MultiFab, AMREX_SPACEDIM>& vel0,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumom_res,
@@ -21,11 +21,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     Box dom(geom.Domain());
 
-    Real N_A = Runiv/k_B; // Avagadro's number
-    
     GpuArray<Real,MAX_SPECIES> mass;
     for (int l=0;l<nspecies;++l) {
-        mass[l] = molmass[l]/(N_A);
+        mass[l] = molmass[l]/avogadro;
     }
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -52,25 +50,25 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
         const Box& dom_xlo = amrex::bdryNode(dom_x, Orientation(0, Orientation::low));
 
         for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
-            
+
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xlo;
-            
+
             const Array4<const Real> cons0   = cons0_in.array(mfi);
             const Array4<const Real> prim0   = prim0_in.array(mfi);
             const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
             const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
             const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
-            
+
             const Array4<Real>& xmom  = (cumom_res[0]).array(mfi);
             const Array4<Real>& xflux = (faceflux_res[0]).array(mfi);
 
             if (b.ok()) {
                 amrex::ParallelForRNG(b, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
                 {
-                    
+
                     ////////////////// from reservoir //////////////////
-                    
+
                     ////////////////////////////////////////////////////
                     // number of particles in FHD cell (for correction)
                     Real N = 0.0;
@@ -80,7 +78,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         N += N_i[n];
                     }
                     ////////////////////////////////////////////////////
-                    
+
                     Real T = prim0(i-1,j,k,4);
                     Real Vx, Vy, Vz;
                     Vx = 0.0; // normal
@@ -111,7 +109,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) += (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         xmom(i,j,k) += mom_cross[0]/vol;
                     }
@@ -124,7 +122,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         xflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
                         xflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
 
                     ////////////////// to reservoir ////////////////////
@@ -153,7 +151,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         xmom(i,j,k) -= mom_cross[0]/vol;
                     }
@@ -166,13 +164,13 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         xflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
                         xflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
                 });
             }
         }
     }
-    
+
     // Reservoir in HI X
     if (bc_mass_hi[0] == 4) {
 
@@ -193,22 +191,22 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xhi;
-            
+
             const Array4<const Real> cons0   = cons0_in.array(mfi);
             const Array4<const Real> prim0   = prim0_in.array(mfi);
             const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
             const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
             const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
-            
+
             const Array4<Real>& xmom  = (cumom_res[0]).array(mfi);
             const Array4<Real>& xflux = (faceflux_res[0]).array(mfi);
 
             if (b.ok()) {
                 amrex::ParallelForRNG(b, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
                 {
-                    
+
                     ////////////////// from reservoir //////////////////
-                    
+
                     ////////////////////////////////////////////////////
                     // number of particles in FHD cell (for correction)
                     Real N = 0.0;
@@ -249,7 +247,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) -= (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         xmom(i,j,k) -= mom_cross[0]/vol;
                     }
@@ -262,7 +260,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         xflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
                         xflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
 
                     ////////////////// to reservoir ////////////////////
@@ -291,7 +289,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area);
                     }
-                   
+
                     if (do_1D) {
                         xmom(i,j,k) += mom_cross[0]/vol;  // add momentum for particles going other way
                     }
@@ -304,9 +302,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         xflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
                         xflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
-                    
+
                 });
             }
         }
@@ -329,25 +327,25 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
         const Box& dom_ylo = amrex::bdryNode(dom_y, Orientation(1, Orientation::low));
 
         for (MFIter mfi(faceflux_res[1]); mfi.isValid(); ++mfi) {
-            
+
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_ylo;
-            
+
             const Array4<const Real> cons0   = cons0_in.array(mfi);
             const Array4<const Real> prim0   = prim0_in.array(mfi);
             const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
             const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
             const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
-            
+
             const Array4<Real>& ymom  = (cumom_res[1]).array(mfi);
             const Array4<Real>& yflux = (faceflux_res[1]).array(mfi);
 
             if (b.ok()) {
                 amrex::ParallelForRNG(b, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
                 {
-                    
+
                     ////////////////// from reservoir //////////////////
-                    
+
                     ////////////////////////////////////////////////////
                     // number of particles in FHD cell (for correction)
                     Real N = 0.0;
@@ -357,7 +355,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         N += N_i[n];
                     }
                     ////////////////////////////////////////////////////
-                    
+
                     Real T = prim0(i,j-1,k,4);
                     Real Vx, Vy, Vz;
                     Vx = 0.0;
@@ -388,7 +386,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         yflux(i,j,k,5+n) += (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         ymom(i,j,k) += mom_cross[0]/vol;
                     }
@@ -401,7 +399,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         yflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
                         yflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
 
                     ////////////////// to reservoir ////////////////////
@@ -430,7 +428,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         yflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         ymom(i,j,k) -= mom_cross[0]/vol;
                     }
@@ -443,13 +441,13 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         yflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
                         yflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
                 });
             }
         }
     }
-    
+
     // Reservoir in HI Y
     if (bc_mass_hi[1] == 4) {
 
@@ -470,22 +468,22 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_yhi;
-            
+
             const Array4<const Real> cons0   = cons0_in.array(mfi);
             const Array4<const Real> prim0   = prim0_in.array(mfi);
             const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
             const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
             const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
-            
+
             const Array4<Real>& ymom  = (cumom_res[1]).array(mfi);
             const Array4<Real>& yflux = (faceflux_res[1]).array(mfi);
 
             if (b.ok()) {
                 amrex::ParallelForRNG(b, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
                 {
-                    
+
                     ////////////////// from reservoir //////////////////
-                    
+
                     ////////////////////////////////////////////////////
                     // number of particles in FHD cell (for correction)
                     Real N = 0.0;
@@ -526,7 +524,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         yflux(i,j,k,5+n) -= (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         ymom(i,j,k) -= mom_cross[0]/vol;
                     }
@@ -539,7 +537,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         yflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
                         yflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
 
                     ////////////////// to reservoir ////////////////////
@@ -568,7 +566,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         yflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area);
                     }
-                   
+
                     if (do_1D) {
                         ymom(i,j,k) += mom_cross[0]/vol;  // add momentum for particles going other way
                     }
@@ -581,9 +579,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         yflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
                         yflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
-                    
+
                 });
             }
         }
@@ -606,25 +604,25 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
         const Box& dom_zlo = amrex::bdryNode(dom_z, Orientation(2, Orientation::low));
 
         for (MFIter mfi(faceflux_res[2]); mfi.isValid(); ++mfi) {
-            
+
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_zlo;
-            
+
             const Array4<const Real> cons0   = cons0_in.array(mfi);
             const Array4<const Real> prim0   = prim0_in.array(mfi);
             const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
             const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
             const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
-            
+
             const Array4<Real>& zmom  = (cumom_res[2]).array(mfi);
             const Array4<Real>& zflux = (faceflux_res[2]).array(mfi);
 
             if (b.ok()) {
                 amrex::ParallelForRNG(b, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
                 {
-                    
+
                     ////////////////// from reservoir //////////////////
-                    
+
                     ////////////////////////////////////////////////////
                     // number of particles in FHD cell (for correction)
                     Real N = 0.0;
@@ -634,7 +632,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         N += N_i[n];
                     }
                     ////////////////////////////////////////////////////
-                    
+
                     Real T = prim0(i,j,k-1,4);
                     Real Vx, Vy, Vz;
                     Vx = 0.0;
@@ -665,7 +663,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         zflux(i,j,k,5+n) += (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         zmom(i,j,k) += mom_cross[0]/vol;
                     }
@@ -678,7 +676,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         zflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
                         zflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
 
                     ////////////////// to reservoir ////////////////////
@@ -707,7 +705,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         zflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         zmom(i,j,k) -= mom_cross[0]/vol;
                     }
@@ -720,13 +718,13 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         zflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
                         zflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
                 });
             }
         }
     }
-    
+
     // Reservoir in HI Z
     if (bc_mass_hi[2] == 4) {
 
@@ -747,22 +745,22 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_zhi;
-            
+
             const Array4<const Real> cons0   = cons0_in.array(mfi);
             const Array4<const Real> prim0   = prim0_in.array(mfi);
             const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
             const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
             const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
-            
+
             const Array4<Real>& zmom  = (cumom_res[2]).array(mfi);
             const Array4<Real>& zflux = (faceflux_res[2]).array(mfi);
 
             if (b.ok()) {
                 amrex::ParallelForRNG(b, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
                 {
-                    
+
                     ////////////////// from reservoir //////////////////
-                    
+
                     ////////////////////////////////////////////////////
                     // number of particles in FHD cell (for correction)
                     Real N = 0.0;
@@ -803,7 +801,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         zflux(i,j,k,5+n) -= (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    
+
                     if (do_1D) {
                         zmom(i,j,k) -= mom_cross[0]/vol;
                     }
@@ -816,7 +814,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         zflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
                         zflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
 
                     ////////////////// to reservoir ////////////////////
@@ -845,7 +843,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         zflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area);
                     }
-                   
+
                     if (do_1D) {
                         zmom(i,j,k) += mom_cross[0]/vol;  // add momentum for particles going other way
                     }
@@ -858,9 +856,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         zflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
                         zflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
                     }
-                    
+
                     ////////////////////////////////////////////////////
-                    
+
                 });
             }
         }
@@ -870,7 +868,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 ///////////////////////////////////////////////////////////////////////////
 // reset fluxes at the reservoir-FHD interface ////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
-void 
+void
 ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                      std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
                      std::array< MultiFab, 2 >& edgeflux_x,
@@ -895,7 +893,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         for (MFIter mfi(faceflux[0]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xlo;
-            
+
             const Array4<Real>& xflux           = (faceflux[0]).array(mfi);
             const Array4<const Real>& xflux_res = (faceflux_res[0]).array(mfi);
 
@@ -912,9 +910,9 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         }
 
         ///////////////////////////////////////////////////////////////////////////
-        
+
         /////////////// reset tangential momentum fluxes //////////////////////////
-        
+
         if (do_1D) {
         }
         else { // works both for 2D and 3D
@@ -964,7 +962,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         }
 
         ///////////////////////////////////////////////////////////////////////////
-    
+
     }
 
     // Reservoir in HI X
@@ -982,7 +980,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         for (MFIter mfi(faceflux[0]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xhi;
-            
+
             const Array4<Real>& xflux           = (faceflux[0]).array(mfi);
             const Array4<const Real>& xflux_res = (faceflux_res[0]).array(mfi);
 
@@ -999,9 +997,9 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         }
 
         ///////////////////////////////////////////////////////////////////////////
-        
+
         /////////////// reset tangential momentum fluxes //////////////////////////
-        
+
         if (do_1D) {
         }
         else { // works both for 2D and 3D
@@ -1066,7 +1064,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         for (MFIter mfi(faceflux[1]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_ylo;
-            
+
             const Array4<Real>& yflux           = (faceflux[1]).array(mfi);
             const Array4<const Real>& yflux_res = (faceflux_res[1]).array(mfi);
 
@@ -1083,9 +1081,9 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         }
 
         ///////////////////////////////////////////////////////////////////////////
-        
+
         /////////////// reset tangential momentum fluxes //////////////////////////
-        
+
         if (do_1D) {
         }
         else { // works both for 2D and 3D
@@ -1136,7 +1134,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
 
         ///////////////////////////////////////////////////////////////////////////
     }
-    
+
 
     // Reservoir in HI Y
     if (bc_mass_hi[1] == 4) {
@@ -1151,7 +1149,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         for (MFIter mfi(faceflux[1]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_yhi;
-            
+
             const Array4<Real>& yflux           = (faceflux[1]).array(mfi);
             const Array4<const Real>& yflux_res = (faceflux_res[1]).array(mfi);
 
@@ -1168,9 +1166,9 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         }
 
         ///////////////////////////////////////////////////////////////////////////
-        
+
         /////////////// reset tangential momentum fluxes //////////////////////////
-        
+
         if (do_1D) {
         }
         else { // works both for 2D and 3D
@@ -1235,7 +1233,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         for (MFIter mfi(faceflux[2]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_zlo;
-            
+
             const Array4<Real>& zflux           = (faceflux[2]).array(mfi);
             const Array4<const Real>& zflux_res = (faceflux_res[2]).array(mfi);
 
@@ -1252,9 +1250,9 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         }
 
         ///////////////////////////////////////////////////////////////////////////
-        
+
         /////////////// reset tangential momentum fluxes //////////////////////////
-        
+
         if (do_1D) {
         }
         else { // works both for 2D and 3D
@@ -1319,7 +1317,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         for (MFIter mfi(faceflux[2]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_zhi;
-            
+
             const Array4<Real>& zflux           = (faceflux[2]).array(mfi);
             const Array4<const Real>& zflux_res = (faceflux_res[2]).array(mfi);
 
@@ -1336,9 +1334,9 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
         }
 
         ///////////////////////////////////////////////////////////////////////////
-        
+
         /////////////// reset tangential momentum fluxes //////////////////////////
-        
+
         if (do_1D) {
         }
         else { // works both for 2D and 3D
@@ -1395,7 +1393,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
 ///////////////////////////////////////////////////////////////////////////
 // reset momentum at the reservoir-FHD interface //////////////////////////
 ///////////////////////////////////////////////////////////////////////////
-void 
+void
 ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                   const std::array<MultiFab, AMREX_SPACEDIM>& cumom_res,
                   const amrex::Geometry& geom)
@@ -1415,7 +1413,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xlo;
-            
+
             const Array4<Real>& xmom           = (cumom[0]).array(mfi);
             const Array4<const Real>& xmom_res = (cumom_res[0]).array(mfi);
 
@@ -1441,7 +1439,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xhi;
-            
+
             const Array4<Real>& xmom           = (cumom[0]).array(mfi);
             const Array4<const Real>& xmom_res = (cumom_res[0]).array(mfi);
 
@@ -1467,7 +1465,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         for (MFIter mfi(cumom[1]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_ylo;
-            
+
             const Array4<Real>& ymom           = (cumom[1]).array(mfi);
             const Array4<const Real>& ymom_res = (cumom_res[1]).array(mfi);
 
@@ -1493,7 +1491,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         for (MFIter mfi(cumom[1]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_yhi;
-            
+
             const Array4<Real>& ymom           = (cumom[1]).array(mfi);
             const Array4<const Real>& ymom_res = (cumom_res[1]).array(mfi);
 
@@ -1519,7 +1517,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         for (MFIter mfi(cumom[2]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_zlo;
-            
+
             const Array4<Real>& zmom           = (cumom[2]).array(mfi);
             const Array4<const Real>& zmom_res = (cumom_res[2]).array(mfi);
 
@@ -1545,7 +1543,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         for (MFIter mfi(cumom[2]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_zhi;
-            
+
             const Array4<Real>& zmom           = (cumom[2]).array(mfi);
             const Array4<const Real>& zmom_res = (cumom_res[2]).array(mfi);
 
@@ -1564,7 +1562,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
 // Reflux conserved qtys at the cell next to reservoir ////////////////////
 // not used in the current implementation /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
-//void 
+//void
 //ReFluxCons(MultiFab& cu, const MultiFab& cu0,
 //           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
 //           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_cont,
@@ -1572,10 +1570,10 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
 //           const amrex::Real dt)
 //{
 //    BL_PROFILE_VAR("ReFluxCons()",ReFluxCons);
-//    
+//
 //    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 //    Box dom(geom.Domain());
-//    
+//
 //    for ( MFIter mfi(cu0); mfi.isValid(); ++mfi) {
 //
 //        const Box& bx = mfi.validbox();
@@ -1595,12 +1593,12 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
 //            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 //            {
 //                if (i == dom.smallEnd(0)) {
-//                    cons(i,j,k,0) = cons0(i,j,k,0) 
+//                    cons(i,j,k,0) = cons0(i,j,k,0)
 //                      - (dt/dx[0])*(xflux_cont(i,j,k,0) - xflux_res(i,j,k,0)); // correct density
-//                    cons(i,j,k,4) = cons0(i,j,k,4) 
+//                    cons(i,j,k,4) = cons0(i,j,k,4)
 //                      - (dt/dx[0])*(xflux_cont(i,j,k,4) - xflux_res(i,j,k,4)); // correct en. density
 //                    for (int n=0;n<nspecies;++n) {
-//                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
+//                        cons(i,j,k,n+5) = cons0(i,j,k,n+5)
 //                      - (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
 //                    }
 //                }
@@ -1612,12 +1610,12 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
 //            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 //            {
 //                if (i == dom.bigEnd(0)) {
-//                    cons(i,j,k,0) = cons0(i,j,k,0) 
+//                    cons(i,j,k,0) = cons0(i,j,k,0)
 //                      + (dt/dx[0])*(xflux_cont(i+1,j,k,0) - xflux_res(i+1,j,k,0)); // correct density
-//                    cons(i,j,k,4) = cons0(i,j,k,4) 
+//                    cons(i,j,k,4) = cons0(i,j,k,4)
 //                      + (dt/dx[0])*(xflux_cont(i+1,j,k,4) - xflux_res(i+1,j,k,4)); // correct en. density
 //                    for (int n=0;n<nspecies;++n) {
-//                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
+//                        cons(i,j,k,n+5) = cons0(i,j,k,n+5)
 //                      + (dt/dx[0])*(xflux_cont(i+1,j,k,n+5) - xflux_res(i+1,j,k,n+5)); // correct species
 //                    }
 //                }

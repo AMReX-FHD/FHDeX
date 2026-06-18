@@ -43,40 +43,40 @@ namespace dim {
 template<int... MLTTAELI>
 struct dim
 {
-	double a; // prefactor
-	inline dim() : a(0) {}
-	inline dim( double _a_ ) : a(_a_) {}
-	inline dim( const dim &other ) : a(other.a) {}
-	template<int... ANOTHER_MLTTAELI> dim( const dim<ANOTHER_MLTTAELI...> &error ) {
-		error.Cannot_Assign_Quantities_With_Incompatible_Dimensionalities;
-	}
+    double a; // prefactor
+    inline dim() : a(0) {}
+    inline dim( double _a_ ) : a(_a_) {}
+    inline dim( const dim &other ) : a(other.a) {}
+    template<int... ANOTHER_MLTTAELI> dim( const dim<ANOTHER_MLTTAELI...> &error ) {
+        error.Cannot_Assign_Quantities_With_Incompatible_Dimensionalities;
+    }
 
-	// copy-assign
-	inline dim& operator = ( const dim &other ) { a = other.a; return *this; }
-	template<int... ANOTHER_MLTTAELI>
-		class Cannot_Assign_Quantities_With_Incompatible_Dimensionalities
-		operator = ( const dim<ANOTHER_MLTTAELI...> &other );
+    // copy-assign
+    inline dim& operator = ( const dim &other ) { a = other.a; return *this; }
+    template<int... ANOTHER_MLTTAELI>
+        class Cannot_Assign_Quantities_With_Incompatible_Dimensionalities
+        operator = ( const dim<ANOTHER_MLTTAELI...> &other );
 
-	// get numeric value
-	inline operator double () { return a; }
+    // get numeric value
+    inline operator double () { return a; }
 
-	// conversion
-	inline dim convert_to( const dim &other ) {
-		return dim( a / other.a );
-	}
-	template<int... ANOTHER_MLTTAELI>
-		class Cannot_Assign_Quantities_With_Incompatible_Dimensionalities
-		convert_to( const dim<ANOTHER_MLTTAELI...> &other );
+    // conversion
+    inline dim convert_to( const dim &other ) {
+        return dim( a / other.a );
+    }
+    template<int... ANOTHER_MLTTAELI>
+        class Cannot_Assign_Quantities_With_Incompatible_Dimensionalities
+        convert_to( const dim<ANOTHER_MLTTAELI...> &other );
 
-	// serialization
-	friend inline ostream& operator << ( ostream &out, dim q ) {
-		out << q.a;
-		return out;
-	}
-	friend inline istream& operator >> ( istream &in, dim q ) {
-		in >> q.a;
-		return in;
-	}
+    // serialization
+    friend inline ostream& operator << ( ostream &out, dim q ) {
+        out << q.a;
+        return out;
+    }
+    friend inline istream& operator >> ( istream &in, dim q ) {
+        in >> q.a;
+        return in;
+    }
 };
 
 /******************************************************************************
@@ -89,13 +89,13 @@ class Cannot_Add_Values_With_Mismatching_Dimensionality operator + ( const dim<M
 
 template<int... MLTTAELI> inline
 dim<MLTTAELI...> operator + ( const dim<MLTTAELI...> &d1, const dim<MLTTAELI...> &d2 ) {
-	return dim<MLTTAELI...>( d1.a + d2.a );
+    return dim<MLTTAELI...>( d1.a + d2.a );
 }
 
 // negate
 template<int... MLTTAELI> inline
 dim<MLTTAELI...> operator - ( const dim<MLTTAELI...> &d ) {
-	return dim<MLTTAELI...>( -d.a );
+    return dim<MLTTAELI...>( -d.a );
 }
 
 // substraction
@@ -104,57 +104,57 @@ class Cannot_Subtract_Values_With_Mismatching_Dimensionality operator - ( const 
 
 template<int... MLTTAELI> inline
 dim<MLTTAELI...> operator - ( const dim<MLTTAELI...> &d1, const dim<MLTTAELI...> &d2 ) {
-	return dim<MLTTAELI...>( d1.a - d2.a );
+    return dim<MLTTAELI...>( d1.a - d2.a );
 }
 
 // multiplication
 // case 0: all dimensions cancel, result is scalar
 template<int... MLTTAELI> inline
 double operator * ( const dim<MLTTAELI...> &u1, const dim<-MLTTAELI...> &u2 ) {
-	return u1.a * u2.a;
+    return u1.a * u2.a;
 }
 // case 1: result in something with new dimensionality
 template<int... MLTTAELI1, int... MLTTAELI2> inline
 dim<(MLTTAELI1+MLTTAELI2)...> operator * ( const dim<MLTTAELI1...> &u1, const dim<MLTTAELI2...> &u2 ) {
-	dim<(MLTTAELI1+MLTTAELI2)...> u;
-	u.a = u1.a * u2.a;
-	return u;
+    dim<(MLTTAELI1+MLTTAELI2)...> u;
+    u.a = u1.a * u2.a;
+    return u;
 }
 
 // multiply by constant
 template<int... MLTTAELI> inline
 dim<MLTTAELI...> operator * ( const dim<MLTTAELI...> &u, const double f ) {
-	return dim<MLTTAELI...>( u.a * f );
+    return dim<MLTTAELI...>( u.a * f );
 }
 template<int... MLTTAELI> inline
 dim<MLTTAELI...> operator * ( const double f, const dim<MLTTAELI...> &u ) {
-	return dim<MLTTAELI...>( u.a * f );
+    return dim<MLTTAELI...>( u.a * f );
 }
 
 // division
 // case 0: all dimensions cancel, result is scalar
 template<int... MLTTAELI> inline
 double operator / ( const dim<MLTTAELI...> &u1, const dim<MLTTAELI...> &u2 ) {
-	return u1.a / u2.a;
+    return u1.a / u2.a;
 }
 // case 1: result in something with new dimensionality
 template<int... MLTTAELI1, int... MLTTAELI2> inline
 dim<(MLTTAELI1-MLTTAELI2)...> operator / ( const dim<MLTTAELI1...> &u1, const dim<MLTTAELI2...> &u2 ) {
-	dim<(MLTTAELI1-MLTTAELI2)...> u;
-	u.a = u1.a / u2.a;
-	return u;
+    dim<(MLTTAELI1-MLTTAELI2)...> u;
+    u.a = u1.a / u2.a;
+    return u;
 }
 
 // divide by constant
 template<int... MLTTAELI> inline
 dim<MLTTAELI...> operator / ( const dim<MLTTAELI...> &u, const double f ) {
-	return u * (1.0/f);
+    return u * (1.0/f);
 }
 
 // inversion
 template<int... MLTTAELI> inline
 dim<-MLTTAELI...> operator / ( const double f, const dim<MLTTAELI...> &u ) {
-	return dim<-MLTTAELI...>( f / u.a );
+    return dim<-MLTTAELI...>( f / u.a );
 }
 
 /******************************************************************************
@@ -188,28 +188,28 @@ using power       = decltype( energy() / time() );
 namespace mechanical {
 }
 namespace electrical {
-	using charge      = decltype( current() * time() );
-	using voltage     = decltype( power() / current() );
-	using capacitance = decltype( charge() / voltage() );
-	using resistance  = decltype( voltage() / current() );
-	using conductance = decltype( current() / voltage() );
+    using charge      = decltype( current() * time() );
+    using voltage     = decltype( power() / current() );
+    using capacitance = decltype( charge() / voltage() );
+    using resistance  = decltype( voltage() / current() );
+    using conductance = decltype( current() / voltage() );
 }
 namespace magnetic {
-	using electrical::voltage;
-	using flux        = decltype( voltage() * time() );
-	using strength    = decltype( flux() / area() );
-	using inductance  = decltype( flux() / current() );
+    using electrical::voltage;
+    using flux        = decltype( voltage() * time() );
+    using strength    = decltype( flux() / area() );
+    using inductance  = decltype( flux() / current() );
 }
 namespace optical {
-	using flux        = decltype( luminos() * solid_angle() );
-	using illuminance = decltype( flux() / area() );
+    using flux        = decltype( luminos() * solid_angle() );
+    using illuminance = decltype( flux() / area() );
 }
 namespace radioactive {
-	using activity    = decltype( 1.0 / time() );
-	using dose        = decltype( energy() / mass() );
+    using activity    = decltype( 1.0 / time() );
+    using dose        = decltype( energy() / mass() );
 }
 namespace chemical {
-	using catativity  = decltype( amount() / time() );
+    using catativity  = decltype( amount() / time() );
 }
 
 /******************************************************************************
@@ -218,20 +218,20 @@ namespace chemical {
 
 // Example
 inline angle operator "" _deg ( long double u ) {
-	return angle( u * ( PI / 360.0 ) );
+    return angle( u * ( PI / 360.0 ) );
 }
 inline angle operator "" _deg ( unsigned long long u ) {
-	return angle( u * ( PI / 360.0 ) );
+    return angle( u * ( PI / 360.0 ) );
 }
 
 // Short-hand macro
 #define make_unit(dimension,suffix,conversion) \
-		inline dimension operator "" _##suffix ( long double u ) { \
-			return dimension( conversion ); \
-		} \
-		inline dimension operator "" _##suffix ( unsigned long long u ) { \
-			return dimension( conversion ); \
-		}
+        inline dimension operator "" _##suffix ( long double u ) { \
+            return dimension( conversion ); \
+        } \
+        inline dimension operator "" _##suffix ( unsigned long long u ) { \
+            return dimension( conversion ); \
+        }
 
 // Fundamental units
 make_unit(mass,ton,u*1e3)
@@ -304,37 +304,37 @@ make_unit(power,uW,u*1e-6)
 namespace mechanical {
 }
 namespace electrical {
-	make_unit(charge,C,u)
-	make_unit(charge,e,u*1.60217648700000002946104e-19)
-	make_unit(voltage,kV,u*1e3)
-	make_unit(voltage,V,u)
-	make_unit(voltage,mV,u*1e-3)
-	make_unit(capacitance,F,u)
-	make_unit(capacitance,mF,u*1e-3)
-	make_unit(capacitance,uF,u*1e-6)
-	make_unit(capacitance,nF,u*1e-9)
-	make_unit(capacitance,pF,u*1e-12)
-	make_unit(resistance,Mohm,u*1e6)
-	make_unit(resistance,kohm,u*1e3)
-	make_unit(resistance,ohm,u)
-	make_unit(conductance,S,u)
+    make_unit(charge,C,u)
+    make_unit(charge,e,u*1.60217648700000002946104e-19)
+    make_unit(voltage,kV,u*1e3)
+    make_unit(voltage,V,u)
+    make_unit(voltage,mV,u*1e-3)
+    make_unit(capacitance,F,u)
+    make_unit(capacitance,mF,u*1e-3)
+    make_unit(capacitance,uF,u*1e-6)
+    make_unit(capacitance,nF,u*1e-9)
+    make_unit(capacitance,pF,u*1e-12)
+    make_unit(resistance,Mohm,u*1e6)
+    make_unit(resistance,kohm,u*1e3)
+    make_unit(resistance,ohm,u)
+    make_unit(conductance,S,u)
 }
 namespace magnetic {
-	make_unit(flux,Wb,u)
-	make_unit(strength,T,u)
-	make_unit(inductance,H,u)
+    make_unit(flux,Wb,u)
+    make_unit(strength,T,u)
+    make_unit(inductance,H,u)
 }
 namespace optical {
-	make_unit(flux,lm,u)
-	make_unit(illuminance,lux,u)
+    make_unit(flux,lm,u)
+    make_unit(illuminance,lux,u)
 }
 namespace radioactive {
-	make_unit(activity,Bq,u)
-	make_unit(dose,Gy,u)
-	make_unit(dose,Sv,u)
+    make_unit(activity,Bq,u)
+    make_unit(dose,Gy,u)
+    make_unit(dose,Sv,u)
 }
 namespace chemical {
-	make_unit(catativity,kat,u)
+    make_unit(catativity,kat,u)
 }
 
 #undef make_unit

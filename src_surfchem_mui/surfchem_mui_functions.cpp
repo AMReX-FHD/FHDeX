@@ -55,7 +55,7 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
         const Array4<Real> & cu_arr = cu.array(mfi);
         const Array4<Real> & prim_arr = prim.array(mfi);
 
-        // unless bx contains cells at the interface, skip 
+        // unless bx contains cells at the interface, skip
         int k = 0;
         if (k<lo.z || k>hi.z) continue;
 
@@ -113,7 +113,7 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
         const Array4<Real> & cu_arr = cu.array(mfi);
         const Array4<Real> & prim_arr = prim.array(mfi);
 
-        // unless bx contains cells at the interface, skip 
+        // unless bx contains cells at the interface, skip
         // ad-hoc fix to avoid memory leakage
         int k = 0;
         if (k<lo.z || k>hi.z)

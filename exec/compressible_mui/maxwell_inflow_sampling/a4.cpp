@@ -60,7 +60,7 @@ int main(int argc,char **argv)
     double Navo = 6.0221409e+23;
 
     double Temp = 300;
-    
+
     double M = 83.8000;
     double m = M/Navo;
 

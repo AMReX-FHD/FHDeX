@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -32,10 +32,10 @@ class AppPottsWeldJOM : public AppPotts {
   virtual void init_app();
   virtual void input_app(char *, int, char **);
   virtual void site_event_rejection(int, class RandomPark *);
-	
+
  protected:
   int nx;
-  int ny; 
+  int ny;
   int nz;
   double *MobilityOut;
   int Wwidth;

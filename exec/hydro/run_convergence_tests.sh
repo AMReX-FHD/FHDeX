@@ -37,8 +37,8 @@ sed -i "s/dims=.*/dims=\"${dim}\"/" ./$compute_script
 sed -i "s/data_dir=.*/data_dir=\"${output_dir}\"/" ./$compute_script
 
 # Fill prob_hi
-probhi_placezeros="000" # placezeros for Spacedim scaling 
-                        # (i.e. if Spacedim=64 & probhi_placezeros=000, 
+probhi_placezeros="000" # placezeros for Spacedim scaling
+                        # (i.e. if Spacedim=64 & probhi_placezeros=000,
                         # then probhi=64000.)
 grid_probhi="2" # Grid index used to compute probhi
 if [ $dim = "2" ]
@@ -46,7 +46,7 @@ then
     sed -i "s/prob_hi(1:${dim}) = .*/prob_hi(1:${dim}) = ${Spacedim[$grid_probhi]}${probhi_placezeros}. ${Spacedim[$grid_probhi]}${probhi_placezeros}./" ./$input_file
 fi
 if [ $dim = "3" ]
-then	    
+then
     sed -i "s/prob_hi(1:${dim}) = .*/prob_hi(1:${dim}) = ${Spacedim[$grid_probhi]}${probhi_placezeros}. ${Spacedim[$grid_probhi]}${probhi_placezeros}. ${Spacedim[$grid_probhi]}${probhi_placezeros}./" ./$input_file
 fi
 
@@ -65,45 +65,45 @@ do
 
     for grid in 0 1 2
     do
-	
-	# Replace variable values in inputs file
+
+        # Replace variable values in inputs file
         sed -i "s/fixed_dt = .*/fixed_dt = ${Dt[$grid]}/" ./$input_file
-	sed -i "s/max_step = .*/max_step = ${Nsteps[$grid]}/" ./$input_file
+        sed -i "s/max_step = .*/max_step = ${Nsteps[$grid]}/" ./$input_file
         sed -i "s/plot_int = .*/plot_int = ${Nsteps[$grid]}/" ./$input_file
-	# sed -i "s/plot_int = .*/plot_int = 1/" ./$input_file
+        # sed -i "s/plot_int = .*/plot_int = 1/" ./$input_file
 
         if [ $dim = "2" ]
-	then
-	    sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
+        then
+            sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
             sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
-	fi
-	
-	if [ $dim = "3" ]
-	then	    
+        fi
+
+        if [ $dim = "3" ]
+        then
             sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
             sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
-	fi
-	###########################################################################
-	
-    	folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"
-    	dir=$dir_top/$folder
-	
-    	# Cleanup
-    	mkdir $dir
-    	rm -r $dir/stag* $dir/plt*
-	
-	# If wish to remove/cleanup previous directory:
-	# rm -r $dir
+        fi
+        ###########################################################################
 
-    	# Run various inputs files & store plot files in directory
+        folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"
+        dir=$dir_top/$folder
+
+        # Cleanup
+        mkdir $dir
+        rm -r $dir/stag* $dir/plt*
+
+        # If wish to remove/cleanup previous directory:
+        # rm -r $dir
+
+        # Run various inputs files & store plot files in directory
         mpiexec -n ${nprocs} ./main${dim}d.gnu.MPI.ex ${input_file}
-    	# ./main${dim}d.gnu.MPI.ex ${input_file}
-	
-	# Plot result after each run
-	# amrvis${dim}d -a plt*
+        # ./main${dim}d.gnu.MPI.ex ${input_file}
 
-	# Move plot files to specified directory
-    	mv plt* stag* $dir
+        # Plot result after each run
+        # amrvis${dim}d -a plt*
+
+        # Move plot files to specified directory
+        mv plt* stag* $dir
 
     done
 done

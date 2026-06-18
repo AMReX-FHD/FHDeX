@@ -14,7 +14,7 @@ class Precon {
     MultiFab mac_rhs;
 
     std::array< MultiFab, AMREX_SPACEDIM > gradp;
-    
+
     MacProj macproj;
 
 public:

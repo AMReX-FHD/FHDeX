@@ -69,7 +69,7 @@ contains
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
-              do i = 1, ngc(1)          
+              do i = 1, ngc(1)
 
                 cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
 
@@ -104,7 +104,7 @@ contains
               do i = 1, ngc(1)
 
                 cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
- 
+
               enddo
             enddo
           enddo
@@ -209,7 +209,7 @@ contains
               do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
                 cons(i,j,lo(3)-k,1) = cons(i,j,lo(3)-1+k,1)
- 
+
               enddo
             enddo
           enddo

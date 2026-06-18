@@ -10,7 +10,7 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
     // from namelist
 
     // from namelist
-    /* 
+    /*
     // method 1 to create a thread shared array
     // must use if the size of the array is not known at compile time
     // note when passing this into a function, you need to use the type,
@@ -25,10 +25,10 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
               molmass_vect.begin());
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
     */
-    
+
     // Loop over boxes
     for ( MFIter mfi(cons_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        
+
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
@@ -66,12 +66,12 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             velz(i,j,k) = 2*momz(i,j,k)/(cons(i,j,k,0) + cons(i,j,k-1,0));
         });
-    
+
     }
 
     // Loop over boxes
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        
+
         const Box& bx = mfi.tilebox();
 
         //const Array4<const Real>& cons = cons_in.array(mfi);
@@ -93,7 +93,7 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
             GpuArray<Real,MAX_SPECIES> Xk;
             GpuArray<Real,MAX_SPECIES> Yk;
             GpuArray<Real,MAX_SPECIES> Yk_fixed;
-            
+
             prim(i,j,k,0) = cons(i,j,k,0);
 
             prim(i,j,k,1) = 0.5*(velx(i,j,k) + velx(i+1,j,k));
@@ -120,7 +120,7 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,Yk[n]));
                 sumYk += Yk_fixed[n];
             }
-            
+
             for (int n=0; n<nspecies; ++n) {
                 Yk_fixed[n] /= sumYk;
             }
@@ -139,6 +139,6 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
 
             GetPressureGas(prim(i,j,k,5), Yk, cons(i,j,k,0), prim(i,j,k,4));
         });
-        
+
     } // end MFIter
 }

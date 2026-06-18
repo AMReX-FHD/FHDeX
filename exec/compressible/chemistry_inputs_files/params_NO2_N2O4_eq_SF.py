@@ -9,13 +9,13 @@ Navo = 6.0221409e23         # Avogadro constant
 ##########
 
 # molecular weights
-M1 = 46.0055    # NO2 
-M2 = 92.0110    # N2O4 
+M1 = 46.0055    # NO2
+M2 = 92.0110    # N2O4
 print "- molecular masses: [%.4f, %.4f]" % (M1,M2)
 
 # mass fractions
-Y1 = 7.267597e-01 
-Y2 = 2.732403e-01 
+Y1 = 7.267597e-01
+Y2 = 2.732403e-01
 print "- mass fractions: [%.3f, %.3f]" % (Y1,Y2)
 
 # mole fractions
@@ -55,8 +55,8 @@ print "- number density of spec2 = %e\n" % n2
 
 ##########
 
-dx = 8e-6 
-dy = 8e-6 
+dx = 8e-6
+dy = 8e-6
 dz = 8e-6
 dv = dx*dy*dz
 
@@ -98,12 +98,12 @@ drho2sq = rho2**2/N2
 drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dv
 
-dof1 = 7.279582 
+dof1 = 7.279582
 dof2 = 18.049065
 e01 = 4.684542e+09
 e02 = -1.730892e+09
 
-cv1 = 0.5*dof1*Runiv/M1 
+cv1 = 0.5*dof1*Runiv/M1
 cv2 = 0.5*dof2*Runiv/M2
 cvmix = Y1*cv1+Y2*cv2
 

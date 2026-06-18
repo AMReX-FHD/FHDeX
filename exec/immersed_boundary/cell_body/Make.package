@@ -1,0 +1,11 @@
+CEXE_sources   += ib_md.cpp
+# CEXE_sources   += advance_midpoint.cpp
+# CEXE_sources   += advance_CN.cpp
+CEXE_sources   += advance_stokes.cpp
+CEXE_sources   += WritePlotFile.cpp
+CEXE_headers   += main_driver.H
+CEXE_headers   += lazycsv.H
+
+CEXE_headers   += main_driver_F.H
+F90EXE_sources += init_s_funcs.F90
+F90EXE_sources += init_funcs.F90

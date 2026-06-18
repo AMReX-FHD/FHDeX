@@ -251,6 +251,7 @@ public:
 
 
     struct {
+        AMREX_GPU_HOST_DEVICE
         bool operator()(const ParticleType & p1, const ParticleType & p2) const {
             return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
                                  + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,

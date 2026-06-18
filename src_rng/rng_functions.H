@@ -14,11 +14,11 @@ void MultiFabFillRandom(MultiFab& mf, const int& comp, const Real& variance, con
 
 void MultiFabFillRandomNormal(MultiFab& mf, const int& scomp, const int& ncomp,
                               const amrex::Real& mean, const amrex::Real& variance,
-                              const Geometry& geom, 
+                              const Geometry& geom,
                               bool overridesync = true, bool fillboundary = true);
 
 void MultiFabFillRandomUniform(MultiFab& mf, const int& scomp, const int& ncomp,
-                               const Geometry& geom, 
+                               const Geometry& geom,
                                bool overridesync = true, bool fillboundary = true);
 
 #endif

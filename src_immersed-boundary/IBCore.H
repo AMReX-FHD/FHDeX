@@ -107,7 +107,7 @@ public:
     const iMultiFab & get_TagInterface() const {
         return * tag_interface;
     }
-    
+
    const iMultiFab & get_TagCatalyst() const {
         return * tag_catalyst;
     }

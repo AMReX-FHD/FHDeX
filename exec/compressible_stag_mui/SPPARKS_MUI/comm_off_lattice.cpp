@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -169,11 +169,11 @@ CommOffLattice::Swap *CommOffLattice::create_swap_all()
   for (m = 0; m < nbins; m++)
     if (binflag[m] == EDGE)
       for (i = 0; i < nimages[m]; i++) {
-	list[n][0] = m;
-	list[n][1] = imageindex[m][i];
-	list[n][2] = imageproc[m][i];
-	n++;
-      } 
+        list[n][0] = m;
+        list[n][1] = imageindex[m][i];
+        list[n][2] = imageproc[m][i];
+        n++;
+      }
 
   // create swap based on list of bins to send
 
@@ -211,7 +211,7 @@ CommOffLattice::Swap *CommOffLattice::create_swap_sector(int isector)
   for (m = 0; m < nbins; m++)
     if (binflag[m] == EDGE)
       for (i = 0; i < nimages[m]; i++)
-	if (bin_sector_ghost(isector,imageindex[m][i],nbinx,nbiny,nbinz)) n++;
+        if (bin_sector_ghost(isector,imageindex[m][i],nbinx,nbiny,nbinz)) n++;
 
   // allocate list
 
@@ -224,12 +224,12 @@ CommOffLattice::Swap *CommOffLattice::create_swap_sector(int isector)
   for (m = 0; m < nbins; m++)
     if (binflag[m] == EDGE)
       for (i = 0; i < nimages[m]; i++)
-	if (bin_sector_ghost(isector,imageindex[m][i],nbinx,nbiny,nbinz)) {
-	  list[n][0] = m;
-	  list[n][1] = imageindex[m][i];
-	  list[n][2] = imageproc[m][i];
-	  n++;
-	}
+        if (bin_sector_ghost(isector,imageindex[m][i],nbinx,nbiny,nbinz)) {
+          list[n][0] = m;
+          list[n][1] = imageindex[m][i];
+          list[n][2] = imageproc[m][i];
+          n++;
+        }
 
   // create swap based on list of bins to send
 
@@ -278,10 +278,10 @@ CommOffLattice::Swap *CommOffLattice::create_swap_sector_reverse(int isector)
   for (m = 0; m < nbins; m++)
     if (binflag[m] == GHOST)
       if (bin_sector_ghost(isector,m,nbinx,nbiny,nbinz)) {
-	list[n][0] = m;
-	list[n][1] = ghostindex[m];
-	list[n][2] = ghostproc[m];
-	n++;
+        list[n][0] = m;
+        list[n][1] = ghostindex[m];
+        list[n][2] = ghostproc[m];
+        n++;
       }
 
   // create swap based on list of bins to send
@@ -462,12 +462,12 @@ void CommOffLattice::create_recv_from_send(Swap *swap)
   for (i = 0; i < nrecv; i++)
     for (j = i+1; j < nrecv; j++) {
       if (rproc[j] < rproc[i]) {
-	tmp = rproc[j];
-	rproc[j] = rproc[i];
-	rproc[i] = tmp;
-	tmp = rcount[j];
-	rcount[j] = rcount[i];
-	rcount[i] = tmp;
+        tmp = rproc[j];
+        rproc[j] = rproc[i];
+        rproc[i] = tmp;
+        tmp = rcount[j];
+        rcount[j] = rcount[i];
+        rcount[i] = tmp;
       }
     }
 
@@ -484,13 +484,13 @@ void CommOffLattice::create_recv_from_send(Swap *swap)
 
   for (int irecv = 0; irecv < nrecv; irecv++)
     MPI_Irecv(rindex[irecv],rcount[irecv],MPI_INT,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
 
   MPI_Barrier(world);
 
   for (int isend = 0; isend < nsend; isend++)
     MPI_Send(ssite[isend],scount[isend],MPI_INT,
-	     sproc[isend],0,world);
+             sproc[isend],0,world);
 
   if (nrecv) MPI_Waitall(nrecv,request,status);
 
@@ -591,7 +591,7 @@ void CommOffLattice::perform_swap(Swap *swap)
 
   for (int irecv = 0; irecv < nrecv; irecv++)
     MPI_Irecv(rsite[irecv],rcount[irecv],MPI_INT,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
 
   // barrier to insure receives are posted
 
@@ -608,8 +608,8 @@ void CommOffLattice::perform_swap(Swap *swap)
       count = 0;
       m = binhead[sindex[isend][n]];
       while (m >= 0) {
-	count++;
-	m = next[m];
+        count++;
+        m = next[m];
       }
       ssite[isend][n] = count;
       total += count;
@@ -622,7 +622,7 @@ void CommOffLattice::perform_swap(Swap *swap)
 
   for (int isend = 0; isend < nsend; isend++)
     MPI_Send(ssite[isend],scount[isend],MPI_INT,
-	     sproc[isend],0,world);
+             sproc[isend],0,world);
 
   // copycount = # of ghosts generated via copying from my own bins
 
@@ -632,8 +632,8 @@ void CommOffLattice::perform_swap(Swap *swap)
     for (n = 0; n < ccount; n++) {
       m = binhead[cbinsrc[n]];
       while (m >= 0) {
-	copycount++;
-	m = next[m];
+        copycount++;
+        m = next[m];
       }
     }
 
@@ -692,7 +692,7 @@ void CommOffLattice::perform_swap(Swap *swap)
   int offset = 0;
   for (int irecv = 0; irecv < nrecv; irecv++) {
     MPI_Irecv(&rbuf[offset],size_one*rtotal[irecv],MPI_DOUBLE,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
     offset += size_one*rtotal[irecv];
   }
 
@@ -707,16 +707,16 @@ void CommOffLattice::perform_swap(Swap *swap)
     for (n = 0; n < scount[isend]; n++) {
       m = binhead[sindex[isend][n]];
       while (m >= 0) {
-	sbuf[i++] = id[m];
-	sbuf[i++] = xyz[m][0];
-	sbuf[i++] = xyz[m][1];
-	sbuf[i++] = xyz[m][2];
-	if (site_only) sbuf[i++] = site[m];
-	else {
-	  for (k = 0; k < ninteger; k++) sbuf[i++] = iarray[k][i];
-	  for (k = 0; k < ndouble; k++) sbuf[i++] = darray[k][i];
-	}
-	m = next[m];
+        sbuf[i++] = id[m];
+        sbuf[i++] = xyz[m][0];
+        sbuf[i++] = xyz[m][1];
+        sbuf[i++] = xyz[m][2];
+        if (site_only) sbuf[i++] = site[m];
+        else {
+          for (k = 0; k < ninteger; k++) sbuf[i++] = iarray[k][i];
+          for (k = 0; k < ndouble; k++) sbuf[i++] = darray[k][i];
+        }
+        m = next[m];
       }
     }
 
@@ -733,23 +733,23 @@ void CommOffLattice::perform_swap(Swap *swap)
       jbin = cbindest[m];
       i = binhead[ibin];
       while (i >= 0) {
-	j = appoff->new_ghost_site();
-	id[j] = id[i];
-	xyz[j][0] = xyz[i][0] + pbcoffset[jbin][0]*xprd;
-	xyz[j][1] = xyz[i][1] + pbcoffset[jbin][1]*yprd;
-	xyz[j][2] = xyz[i][2] + pbcoffset[jbin][2]*zprd;
-	if (site_only) site[j] = site[i];
-	else {
-	  for (k = 0; k < ninteger; k++) iarray[k][j] = iarray[k][i];
-	  for (k = 0; k < ndouble; k++) darray[k][j] = darray[k][i];
-	}
-	bin[j] = jbin;
-	appoff->add_to_bin(j,jbin);
-	if (nsector == 1) {
-	  nextimage[j] = nextimage[i];
-	  nextimage[i] = j;
-	}
-	i = next[i];
+        j = appoff->new_ghost_site();
+        id[j] = id[i];
+        xyz[j][0] = xyz[i][0] + pbcoffset[jbin][0]*xprd;
+        xyz[j][1] = xyz[i][1] + pbcoffset[jbin][1]*yprd;
+        xyz[j][2] = xyz[i][2] + pbcoffset[jbin][2]*zprd;
+        if (site_only) site[j] = site[i];
+        else {
+          for (k = 0; k < ninteger; k++) iarray[k][j] = iarray[k][i];
+          for (k = 0; k < ndouble; k++) darray[k][j] = darray[k][i];
+        }
+        bin[j] = jbin;
+        appoff->add_to_bin(j,jbin);
+        if (nsector == 1) {
+          nextimage[j] = nextimage[i];
+          nextimage[i] = j;
+        }
+        i = next[i];
       }
     }
 
@@ -764,20 +764,20 @@ void CommOffLattice::perform_swap(Swap *swap)
   for (int irecv = 0; irecv < nrecv; irecv++) {
     for (n = 0; n < rcount[irecv]; n++) {
       for (i = 0; i < rsite[irecv][n]; i++) {
-	j = appoff->new_ghost_site();
-	jbin = rindex[irecv][n];
-	id[j] = static_cast<tagint> (rbuf[m++]);
-	xyz[j][0] = rbuf[m++] + pbcoffset[jbin][0]*xprd;
-	xyz[j][1] = rbuf[m++] + pbcoffset[jbin][1]*yprd;
-	xyz[j][2] = rbuf[m++] + pbcoffset[jbin][2]*zprd;
-	if (site_only) site[j] = static_cast<int> (rbuf[m++]);
-	else {
-	  for (k = 0; k < ninteger; k++) 
-	    iarray[k][j] = static_cast<int> (rbuf[m++]);
-	  for (k = 0; k < ndouble; k++) darray[k][j] = rbuf[m++];
-	}
-	bin[j] = jbin;
-	appoff->add_to_bin(j,jbin);
+        j = appoff->new_ghost_site();
+        jbin = rindex[irecv][n];
+        id[j] = static_cast<tagint> (rbuf[m++]);
+        xyz[j][0] = rbuf[m++] + pbcoffset[jbin][0]*xprd;
+        xyz[j][1] = rbuf[m++] + pbcoffset[jbin][1]*yprd;
+        xyz[j][2] = rbuf[m++] + pbcoffset[jbin][2]*zprd;
+        if (site_only) site[j] = static_cast<int> (rbuf[m++]);
+        else {
+          for (k = 0; k < ninteger; k++)
+            iarray[k][j] = static_cast<int> (rbuf[m++]);
+          for (k = 0; k < ndouble; k++) darray[k][j] = rbuf[m++];
+        }
+        bin[j] = jbin;
+        appoff->add_to_bin(j,jbin);
       }
     }
   }
@@ -826,7 +826,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
 
   for (int irecv = 0; irecv < nrecv; irecv++)
     MPI_Irecv(rsite[irecv],rcount[irecv],MPI_INT,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
 
   // barrier to insure receives are posted
 
@@ -845,8 +845,8 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
       count = 0;
       m = binhead[sindex[isend][n]];
       while (m >= 0) {
-	if (m < nlocal) count++;
-	m = next[m];
+        if (m < nlocal) count++;
+        m = next[m];
       }
       ssite[isend][n] = count;
       total += count;
@@ -860,7 +860,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
 
   for (int isend = 0; isend < nsend; isend++)
     MPI_Send(ssite[isend],scount[isend],MPI_INT,
-	     sproc[isend],0,world);
+             sproc[isend],0,world);
 
   // copycount = # of sites copied from my own bins
 
@@ -870,8 +870,8 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
     for (n = 0; n < ccount; n++) {
       m = binhead[cbinsrc[n]];
       while (m >= 0) {
-	if (m < nlocal) copycount++;
-	m = next[m];
+        if (m < nlocal) copycount++;
+        m = next[m];
       }
     }
 
@@ -929,7 +929,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
   int offset = 0;
   for (int irecv = 0; irecv < nrecv; irecv++) {
     MPI_Irecv(&rbuf[offset],size_one*rtotal[irecv],MPI_DOUBLE,
-	      rproc[irecv],0,world,&request[irecv]);
+              rproc[irecv],0,world,&request[irecv]);
     offset += size_one*rtotal[irecv];
   }
 
@@ -947,19 +947,19 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
       ibin = sindex[isend][n];
       m = binhead[ibin];
       while (m >= 0) {
-	if (m < nlocal) {
-	  sbuf[i++] = id[m];
-	  sbuf[i++] = xyz[m][0] - pbcoffset[ibin][0]*xprd;
-	  sbuf[i++] = xyz[m][1] - pbcoffset[ibin][1]*yprd;
-	  sbuf[i++] = xyz[m][2] - pbcoffset[ibin][2]*zprd;
-	  if (site_only) sbuf[i++] = site[m];
-	  else {
-	    for (k = 0; k < ninteger; k++) sbuf[i++] = iarray[k][m];
-	    for (k = 0; k < ndouble; k++) sbuf[i++] = darray[k][m];
-	  }
-	  m = appoff->delete_owned_site(m);
-	  nlocal = appoff->nlocal;
-	} else m = next[m];
+        if (m < nlocal) {
+          sbuf[i++] = id[m];
+          sbuf[i++] = xyz[m][0] - pbcoffset[ibin][0]*xprd;
+          sbuf[i++] = xyz[m][1] - pbcoffset[ibin][1]*yprd;
+          sbuf[i++] = xyz[m][2] - pbcoffset[ibin][2]*zprd;
+          if (site_only) sbuf[i++] = site[m];
+          else {
+            for (k = 0; k < ninteger; k++) sbuf[i++] = iarray[k][m];
+            for (k = 0; k < ndouble; k++) sbuf[i++] = darray[k][m];
+          }
+          m = appoff->delete_owned_site(m);
+          nlocal = appoff->nlocal;
+        } else m = next[m];
       }
     }
 
@@ -974,16 +974,16 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
       jbin = cbindest[m];
       i = binhead[ibin];
       while (i >= 0) {
-	if (i < nlocal) {
-	  nextptr = next[i];
-	  xyz[i][0] -= pbcoffset[ibin][0]*xprd;
-	  xyz[i][1] -= pbcoffset[ibin][1]*yprd;
-	  xyz[i][2] -= pbcoffset[ibin][2]*zprd;
-	  appoff->delete_from_bin(i,ibin);
-	  appoff->add_to_bin(i,jbin);
-	  bin[i] = jbin;
-	  i = nextptr;
-	} else i = next[i];
+        if (i < nlocal) {
+          nextptr = next[i];
+          xyz[i][0] -= pbcoffset[ibin][0]*xprd;
+          xyz[i][1] -= pbcoffset[ibin][1]*yprd;
+          xyz[i][2] -= pbcoffset[ibin][2]*zprd;
+          appoff->delete_from_bin(i,ibin);
+          appoff->add_to_bin(i,jbin);
+          bin[i] = jbin;
+          i = nextptr;
+        } else i = next[i];
       }
     }
 
@@ -1002,20 +1002,20 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
   for (int irecv = 0; irecv < nrecv; irecv++) {
     for (n = 0; n < rcount[irecv]; n++) {
       for (i = 0; i < rsite[irecv][n]; i++) {
-	j = appoff->new_owned_site();
-	jbin = rindex[irecv][n];
-	id[j] = static_cast<tagint> (rbuf[m++]);
-	xyz[j][0] = rbuf[m++];
-	xyz[j][1] = rbuf[m++];
-	xyz[j][2] = rbuf[m++];
-	if (site_only) site[j] = static_cast<int> (rbuf[m++]);
-	else {
-	  for (k = 0; k < ninteger; k++) 
-	    iarray[k][j] = static_cast<int> (rbuf[m++]);
-	  for (k = 0; k < ndouble; k++) darray[k][m] = rbuf[m++];
-	}
-	bin[j] = jbin;
-	appoff->add_to_bin(j,jbin);
+        j = appoff->new_owned_site();
+        jbin = rindex[irecv][n];
+        id[j] = static_cast<tagint> (rbuf[m++]);
+        xyz[j][0] = rbuf[m++];
+        xyz[j][1] = rbuf[m++];
+        xyz[j][2] = rbuf[m++];
+        if (site_only) site[j] = static_cast<int> (rbuf[m++]);
+        else {
+          for (k = 0; k < ninteger; k++)
+            iarray[k][j] = static_cast<int> (rbuf[m++]);
+          for (k = 0; k < ndouble; k++) darray[k][m] = rbuf[m++];
+        }
+        bin[j] = jbin;
+        appoff->add_to_bin(j,jbin);
       }
     }
   }
@@ -1027,8 +1027,8 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
    nbinx,nbiny,nbinz = extent of local bins
 ------------------------------------------------------------------------- */
 
-int CommOffLattice::bin_sector_ghost(int isector, int ibin, 
-				     int nbinx, int nbiny, int nbinz)
+int CommOffLattice::bin_sector_ghost(int isector, int ibin,
+                                     int nbinx, int nbiny, int nbinz)
 {
   int i = ibin % nbinx;
   int j = (ibin/nbinx) % nbiny;
@@ -1036,8 +1036,8 @@ int CommOffLattice::bin_sector_ghost(int isector, int ibin,
 
   for (int m = 0; m < nchunk; m++)
     if (i >= chunklo[isector][m][0] && i <= chunkhi[isector][m][0] &&
-	j >= chunklo[isector][m][1] && j <= chunkhi[isector][m][1] &&
-	k >= chunklo[isector][m][2] && k <= chunkhi[isector][m][2]) return 1;
+        j >= chunklo[isector][m][1] && j <= chunkhi[isector][m][1] &&
+        k >= chunklo[isector][m][2] && k <= chunkhi[isector][m][2]) return 1;
 
   return 0;
 }
@@ -1153,8 +1153,8 @@ void CommOffLattice::setup_sector_chunks(int nbinx, int nbiny, int nbinz)
 ------------------------------------------------------------------------- */
 
 void CommOffLattice::fill_chunk(int isector, int ichunk,
-				int ilo, int ihi, int jlo, int jhi, 
-				int klo, int khi)
+                               int ilo, int ihi, int jlo, int jhi,
+                               int klo, int khi)
 {
   chunklo[isector][ichunk][0] = ilo;
   chunklo[isector][ichunk][1] = jlo;

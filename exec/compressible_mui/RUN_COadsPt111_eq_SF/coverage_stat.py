@@ -2,7 +2,7 @@ import sys
 import numpy as np
 
 assert len(sys.argv)==2
-infile = sys.argv[1] 
+infile = sys.argv[1]
 
 [tt,nvac,nCO] = np.loadtxt(infile,usecols=(0,1,2),unpack=True)
 

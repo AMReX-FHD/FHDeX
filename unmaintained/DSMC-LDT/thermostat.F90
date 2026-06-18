@@ -1,12 +1,12 @@
 module thermostat_module
   use amrex_fort_module, only: amrex_real, amrex_particle_real
   use iso_c_binding ,    only: c_int
-  
+
   implicit none
 
   public thermostat, getVelocity, getTemp
 
-contains        
+contains
 
   subroutine thermostat(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
     cellvols, cvlo, cvhi, neff, np, paramplanes, ns, meanLx, meanRx, meanLy, meanRy, &
@@ -182,7 +182,7 @@ contains
     !mid = (hi(1)-lo(1))/2 !does not set correctly - fix later
     mid = 1.0
     !print *, "mid = ", mid
-   
+
     !get the temperature on left and right through the velocity sample variance
     do k = lo(3), hi(3)
       do j = lo(2), hi(2)

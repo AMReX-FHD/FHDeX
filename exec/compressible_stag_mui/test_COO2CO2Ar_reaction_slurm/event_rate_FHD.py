@@ -8,8 +8,8 @@ kB = 1.381e-16#64852e-16         # Boltzmann constant
 AVONUM = 6.02214076e23      # Avogadro constant
 h_cgs = 6.6261e-27#76e-27
 eV_cgs = 1.602e-12
-temp = 600. 
-pres = 10*1.01325e6            # 1atm 
+temp = 600.
+pres = 10*1.01325e6            # 1atm
 
 ##########
 
@@ -17,7 +17,7 @@ pres = 10*1.01325e6            # 1atm
 M1 = 28.01    # CO
 M2 = 32.00    # O2
 M3 = 44.01    # CO2
-M4 = 39.95    # Ar 
+M4 = 39.95    # Ar
 # molecular masses
 m1 = M1/AVONUM
 m2 = M2/AVONUM
@@ -64,14 +64,14 @@ print("- average molecular mass = %e\n" % mavg)
 
 ##########
 rho = pres*Mavg/Runiv/temp  # total mass density
-rho1 = rho*Y1 
-rho2 = rho*Y2 
+rho1 = rho*Y1
+rho2 = rho*Y2
 rho3 = rho*Y3
 rho4 = rho*Y4
 
 dens = pres/kB/temp         # total number density
 n1 = dens*X1
-n2 = dens*X2 
+n2 = dens*X2
 n3 = dens*X3
 n4 = dens*X4
 
@@ -146,7 +146,7 @@ lat_const_y = 3.12e-8  # lattice constant of Ru(110)
 
 Nucx = 150          # number of unit cells in dx
 Nucy = 300          # number of unit cells in dy
-Ntot = Nucx*Nucy  # total number of sites per dx*dy (2 sites per unit cell) 
+Ntot = Nucx*Nucy  # total number of sites per dx*dy (2 sites per unit cell)
 
 dx = Nucx*lat_const_x
 dy = Nucy*lat_const_y
@@ -184,7 +184,7 @@ print("- number of gas molecules of spec4 in dv = %e\n" % N4)
 print("** surface **")
 
 print("- lattice constant for Ru(110): %e, %e\n" % (lat_const_x, lat_const_y))
-print("- total number of sites per dx*dy = %d" % Ntot) 
+print("- total number of sites per dx*dy = %d" % Ntot)
 print("- surf_site_num_dens = %e\n" % (Ntot/dx/dy))
 
 ##########

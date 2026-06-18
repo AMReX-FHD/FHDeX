@@ -20,8 +20,8 @@ void InitializeMFSurfchemNamespace();
 
 void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom);
 
-void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, const amrex::Geometry& geom, const amrex::Real dt);
+void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes, const amrex::Geometry& geom, const amrex::Real dt);
 
-void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, const amrex::Geometry& geom);
+void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes, const amrex::Geometry& geom);
 
 #endif

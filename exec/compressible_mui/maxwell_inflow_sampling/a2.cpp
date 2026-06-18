@@ -12,7 +12,7 @@ int main()
     double Navo = 6.0221409e+23;
 
     double Temp = 300;
-    
+
     double M = 83.8000;
     double m = M/Navo;
 
@@ -62,7 +62,7 @@ int main()
                 if (exp(-z*z)>unif(rng)) break;
             }
         }
-    
+
         double vz = (a-z)*vT;
 
         cout <<  vx << '\t';

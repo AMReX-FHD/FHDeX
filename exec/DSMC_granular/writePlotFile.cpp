@@ -8,17 +8,17 @@ using namespace amrex;
 using namespace std;
 
 void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
-						const MultiFab& mfcuMeans,
-						const MultiFab& mfcuVars,
-						const MultiFab& mfprimInst,
-						const MultiFab& mfprimMeans,
-						const MultiFab& mfprimVars,
-						const MultiFab& mfcoVars,
-            const MultiFab& mfspatialCorr1d,
-						const Geometry& geom,
-						Real time,
-            const int ncross,
-						int step) {
+                                         const MultiFab& mfcuMeans,
+                                         const MultiFab& mfcuVars,
+                                         const MultiFab& mfprimInst,
+                                         const MultiFab& mfprimMeans,
+                                         const MultiFab& mfprimVars,
+                                         const MultiFab& mfcoVars,
+                                         const MultiFab& mfspatialCorr1d,
+                                         const Geometry& geom,
+                                         Real time,
+                                         const int ncross,
+                                         int step) {
     BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
     int ncon    = (nspecies+1)*5;
@@ -64,11 +64,11 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     cuNames[cnt++] = "KInstant";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
-      cuNames[cnt++] = amrex::Concatenate("rhoInstant_",ispec,2);
-      cuNames[cnt++] = amrex::Concatenate("JxInstant_",ispec,2);
-      cuNames[cnt++] = amrex::Concatenate("JyInstant_",ispec,2);
-      cuNames[cnt++] = amrex::Concatenate("JzInstant_",ispec,2);
-      cuNames[cnt++] = amrex::Concatenate("KInstant_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("rhoInstant_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("JxInstant_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("JyInstant_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("JzInstant_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("KInstant_",ispec,2);
     }
     MultiFab::Copy(mfcuplt, mfcuInst, 0, ncon*0, ncon, 0);
 
@@ -80,11 +80,11 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     cuNames[cnt++] = "KMean";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
-      cuNames[cnt++] = amrex::Concatenate("rhoMean_",ispec,2);
-      cuNames[cnt++] = amrex::Concatenate("JxMean_",ispec,2);
-      cuNames[cnt++] = amrex::Concatenate("JyMean_",ispec,2);
-      cuNames[cnt++] = amrex::Concatenate("JzMean_",ispec,2);
-      cuNames[cnt++] = amrex::Concatenate("KMean_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("rhoMean_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("JxMean_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("JyMean_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("JzMean_",ispec,2);
+        cuNames[cnt++] = amrex::Concatenate("KMean_",ispec,2);
     }
     MultiFab::Copy(mfcuplt, mfcuMeans, 0, ncon*1, ncon, 0);
     WriteSingleLevelPlotfile(pltcu, mfcuplt, cuNames, geom, time, step);
@@ -106,15 +106,15 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     primNames[cnt++] = "EInstant";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
-      primNames[cnt++] = amrex::Concatenate("nInstant_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("rhoInstant_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("uInstant_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("vInstant_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("wInstant_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("GInstant_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("TInstant_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("PInstant_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("EInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("nInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("rhoInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("uInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("vInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("wInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("GInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("TInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("PInstant_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("EInstant_",ispec,2);
     }
     MultiFab::Copy(mfprimplt, mfprimInst, 0, nprim*0, nprim, 0);
 
@@ -130,15 +130,15 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     primNames[cnt++] = "EMean";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
-      primNames[cnt++] = amrex::Concatenate("nMean_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("rhoMean_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("uMean_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("vMean_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("wMean_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("GMean_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("TMean_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("PMean_",ispec,2);
-      primNames[cnt++] = amrex::Concatenate("EMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("nMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("rhoMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("uMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("vMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("wMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("GMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("TMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("PMean_",ispec,2);
+        primNames[cnt++] = amrex::Concatenate("EMean_",ispec,2);
     }
     MultiFab::Copy(mfprimplt, mfprimMeans, 0, nprim*1, nprim, 0);
     WriteSingleLevelPlotfile(pltprim, mfprimplt, primNames, geom, time, step);
@@ -158,11 +158,11 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     varNames[cnt++] = "KVar";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
-      varNames[cnt++] = amrex::Concatenate("rhoVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("JxVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("JyVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("JzVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("KVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("rhoVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("JxVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("JyVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("JzVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("KVar_",ispec,2);
     }
     MultiFab::Copy(mfvarplt, mfcuVars, 0, istart, ncon, 0);
     istart += ncon;
@@ -179,15 +179,15 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     varNames[cnt++] = "EVar";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
-      varNames[cnt++] = amrex::Concatenate("nVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("rhoVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("uVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("vVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("wVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("GVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("TVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("PVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("EVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("nVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("rhoVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("uVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("vVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("wVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("GVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("TVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("PVar_",ispec,2);
+        varNames[cnt++] = amrex::Concatenate("EVar_",ispec,2);
     }
     MultiFab::Copy(mfvarplt, mfprimVars, 0, istart, nprim, 0);
     istart += nprim;

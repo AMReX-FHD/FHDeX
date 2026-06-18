@@ -2,7 +2,7 @@ subroutine get_ptsource_2d( lo, hi, &
      &            ctag, c_lo, c_hi, &
      &            ptS, pts_lo, pts_hi, &
      &            strength, dx, prob_lo, Num_loc ) bind(C, name="get_ptsource_2d")
-  
+
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
   implicit none

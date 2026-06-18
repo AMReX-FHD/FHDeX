@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -36,7 +36,7 @@ enum{XSIN,STRING,NONE};
 
 /* ---------------------------------------------------------------------- */
 
-AppSOS::AppSOS(SPPARKS *spk, int narg, char **arg) : 
+AppSOS::AppSOS(SPPARKS *spk, int narg, char **arg) :
   AppLattice(spk,narg,arg)
 {
   ninteger = 1;
@@ -51,7 +51,7 @@ AppSOS::AppSOS(SPPARKS *spk, int narg, char **arg) :
   // parse arguments
 
   if (narg < 2) error->all(FLERR,"Illegal app_style command");
-  
+
   bondeng = atof(arg[1]);
 
   instyle = NONE;
@@ -123,7 +123,7 @@ void AppSOS::init_app()
     if (instyle == XSIN) create_height(xwl,zwl,amp);
     else if (instyle == STRING)
       for (int i = 0; i < nlocal; i++)
-	height[i] = (int) invalues[i];
+        height[i] = (int) invalues[i];
 
     check = new int[nlocal+nghost];
     firstevent = (int *) memory->smalloc(nlocal*sizeof(int),"app:firstevent");
@@ -175,7 +175,7 @@ double AppSOS::site_energy(int i)
     eng = eng + abs(isite-jsite);
   }
 
-  return (double) 0.5*eng*bondeng*stepheight; 
+  return (double) 0.5*eng*bondeng*stepheight;
 }
 
 /* ----------------------------------------------------------------------
@@ -336,7 +336,7 @@ void AppSOS::add_event(int i, int partner, double propensity, int incre)
 
   if (nevents == maxevent) {
     maxevent += DELTAEVENT;
-    events = 
+    events =
       (Event *) memory->srealloc(events,maxevent*sizeof(Event),"app:events");
     for (int m = nevents; m < maxevent; m++) events[m].next = m+1;
     freeevent = nevents;
@@ -354,7 +354,7 @@ void AppSOS::add_event(int i, int partner, double propensity, int incre)
 /* ----------------------------------------------------------------------
   create height values
 ------------------------------------------------------------------------- */
- 
+
 void AppSOS::create_height(double xwl, double zwl, double amp)
 {
   double x,y,z;

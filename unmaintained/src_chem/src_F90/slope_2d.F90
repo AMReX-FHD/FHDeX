@@ -3,13 +3,13 @@ module slope_module_2d
   implicit none
 
   double precision, parameter:: four3rd=4.d0/3.d0, sixth=1.d0/6.d0
-  
+
   private
- 
+
   public :: slopex_2d, slopey_2d
- 
+
 contains
- 
+
   subroutine slopex_2d(lo, hi, &
                     q, qlo, qhi, &
                     dq, dqlo, dqhi)
@@ -123,4 +123,4 @@ contains
 
   end subroutine slopey_doit_2d
 
-end module slope_module_2d 
+end module slope_module_2d

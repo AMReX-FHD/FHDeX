@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -22,20 +22,20 @@ enum{ID,SITE,X,Y,Z,ENERGY,PROPENSITY,IARRAY,DARRAY};  // in other dump files
 
 /* ---------------------------------------------------------------------- */
 
-DumpSites::DumpSites(SPPARKS *spk, int narg, char **arg) : 
+DumpSites::DumpSites(SPPARKS *spk, int narg, char **arg) :
   DumpText(spk, narg, arg)
 {
   // error check for allowed dump sites output
 
   if (!multifile)
     error->all(FLERR,"Dump sites must write one file per snapshot");
-  if (multiproc) 
+  if (multiproc)
     error->all(FLERR,"Dump sites cannot write multiple files per snapshot");
   if (binary) error->all(FLERR,"Dump sites cannot write to binary files");
 
   // require ID first, then one or more per-site values
 
-  if (fields[0] != ID) 
+  if (fields[0] != ID)
     error->all(FLERR,"Dump sites requires ID as first field");
   if (size_one < 2) error->all(FLERR,"Dump sites requires two or more fields");
 

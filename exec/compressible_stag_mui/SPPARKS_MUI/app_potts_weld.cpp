@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -84,11 +84,11 @@ namespace DEMO {
 
 /* ---------------------------------------------------------------------- */
 
-AppPottsWeld::AppPottsWeld(SPPARKS *spk, int narg, char **arg) : 
-   AppPotts(spk,narg,arg), yp(0.0), alpha(0.5), beta(0.75), velocity(12500.0), 
+AppPottsWeld::AppPottsWeld(SPPARKS *spk, int narg, char **arg) :
+   AppPotts(spk,narg,arg), yp(0.0), alpha(0.5), beta(0.75), velocity(12500.0),
    haz(-1.0),  distance(nullptr),
    random_park(std::atof(arg[2])), simulation_time(0.0),
-   pulse_amplitude(0.0), pulse_step_frequency(1.0), shape_type(ShapeType::undefined), 
+   pulse_amplitude(0.0), pulse_step_frequency(1.0), shape_type(ShapeType::undefined),
    width(-1.0), length(-1.0), teardrop_control_points()
 
 
@@ -97,7 +97,7 @@ AppPottsWeld::AppPottsWeld(SPPARKS *spk, int narg, char **arg) :
    if (std::strcmp(arg[0],"potts/weld") != 0 || narg != 7 )
       error->all(FLERR,"Illegal app_style in 'potts/weld' command");
 
-   // Flag which forces 'callback' to this app each step time 'time' is updated; 
+   // Flag which forces 'callback' to this app each step time 'time' is updated;
    // See 'allow_app_update' in app_lattice.h
    allow_app_update=1;
    // Adding 'distance' array; number of 'double' values per site
@@ -110,7 +110,7 @@ AppPottsWeld::AppPottsWeld(SPPARKS *spk, int narg, char **arg) :
    // app_potts_weld model parameters
    yp  =       std::atof(arg[2]); // initial pool position along y-axis
    alpha =     std::atof(arg[3]); // relative size of pool shape at bottom compared to top
-   beta =      std::atof(arg[4]); // defines curvature of pool shape through thickness 
+   beta =      std::atof(arg[4]); // defines curvature of pool shape through thickness
    velocity =  std::atof(arg[5]); // travel speed: units=lattice spacings per unit time
    haz =       std::atof(arg[6]); // distance which defines 'heat affected zone'
 
@@ -190,17 +190,17 @@ void AppPottsWeld::input_app(char *command, int narg, char **arg)
       length = std::atof(arg[1]); // weld pool length: ellipse major axis along y-direction
    } else if(strcmp(command,"weld_shape_teardrop")==0) {
       shape_type=ShapeType::teardrop;
-      if(strcmp(arg[0],"width")==0){ 
+      if(strcmp(arg[0],"width")==0){
         width =  std::atof(arg[1]); // weld pool width (x-coordinate axis)
       } else error->all(FLERR,"Unrecognized 'weld_shape_teardrop' command.  Expected 'width'.");
-      if(strcmp(arg[2],"case")==0){ 
+      if(strcmp(arg[2],"case")==0){
          if(strcmp("I",arg[3])==0) teardrop_control_points=DEMO::get_demo_control_points(DEMO::InchesPerMinute::I);
          else if(strcmp("II",arg[3])==0) teardrop_control_points=DEMO::get_demo_control_points(DEMO::InchesPerMinute::II);
          else if(strcmp("III",arg[3])==0) teardrop_control_points=DEMO::get_demo_control_points(DEMO::InchesPerMinute::III);
          else if(strcmp("control_points",arg[3])==0) error->all(FLERR,"NOT IMPLEMENTED 'weld_shape_teardrop control_points' command.");
          else error->all(FLERR,"Unrecognized 'weld_shape_teardrop case' command");
       } else error->all(FLERR,"Unrecognized 'weld_shape_teardrop' command");
-   } 
+   }
    else error->all(FLERR,"Unrecognized AppPottsWeld::input_app(char* command, ...) command.");
 }
 
@@ -216,7 +216,7 @@ void AppPottsWeld::app_update(double dt)
     * NOTE: 'p' is used below to scale size of elliptical pool
     */
    double t = simulation_time;
-   // Represents background power -- essentially defined by 
+   // Represents background power -- essentially defined by
    //     original ellipsoidal dimensions
    double b=1.0;
    // Amplitude of pulse
@@ -241,7 +241,7 @@ void AppPottsWeld::app_update(double dt)
    // Update pool position
    // Location of weld pool is a function of time along y-axis but is fixed along x,z axes
    // xp: x-position of pool is at center of domain along x-axis
-   // yp: y-position of pool moves along y-axis with 'velocity'; 
+   // yp: y-position of pool moves along y-axis with 'velocity';
    // zp: z-position of pool is relative to top surface of weld pool
    double xp=lx/2.0;
    yp+=velocity*dt;

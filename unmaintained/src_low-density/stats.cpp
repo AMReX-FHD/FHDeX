@@ -15,8 +15,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
     {
         const Box& bx = mfi.validbox();
 
-        evaluate_means(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-                       cons[mfi].dataPtr(),  
+        evaluate_means(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                       cons[mfi].dataPtr(),
                        consMean[mfi].dataPtr(),
                        &steps);
 
@@ -30,8 +30,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
     {
         const Box& bx = mfi.validbox();
 
-        evaluate_corrs(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-                       cons[mfi].dataPtr(),  
+        evaluate_corrs(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                       cons[mfi].dataPtr(),
                        consMean[mfi].dataPtr(),
                        consVar[mfi].dataPtr(),
                        &steps);

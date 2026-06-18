@@ -17,24 +17,24 @@ using namespace std::chrono;
 using namespace common;
 
 namespace {
-	void GotoNextLine (std::istream& is) {
-		constexpr std::streamsize bl_ignore_max { 100000 };
-		is.ignore(bl_ignore_max, '\n');
-	}
+    void GotoNextLine (std::istream& is) {
+        constexpr std::streamsize bl_ignore_max { 100000 };
+        is.ignore(bl_ignore_max, '\n');
+    }
 }
 
 void WriteCheckPoint(int step,
-			               const Real time,
-			               const Real dt,
-			               int statsCount,
-			               const amrex::MultiFab& cuInst,
-			               const amrex::MultiFab& cuMeans,
-			               const amrex::MultiFab& cuVars,
-			               const amrex::MultiFab& primInst,
-			               const amrex::MultiFab& primMeans,
-			               const amrex::MultiFab& primVars,
-			               const amrex::MultiFab& coVars,
-			               const FhdParticleContainer& particles,
+                     const Real time,
+                     const Real dt,
+                     int statsCount,
+                     const amrex::MultiFab& cuInst,
+                     const amrex::MultiFab& cuMeans,
+                     const amrex::MultiFab& cuVars,
+                     const amrex::MultiFab& primInst,
+                     const amrex::MultiFab& primMeans,
+                     const amrex::MultiFab& primVars,
+                     const amrex::MultiFab& coVars,
+                     const FhdParticleContainer& particles,
                      const amrex::MultiFab& spatialCross1D,
                      const int ncross) {
 
@@ -43,7 +43,7 @@ void WriteCheckPoint(int step,
 
     // checkpoint file name, e.g., chk0000010
     const std::string& checkpointname =
-      amrex::Concatenate(chk_base_name,step,12);
+        amrex::Concatenate(chk_base_name,step,12);
 
     amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
@@ -102,12 +102,12 @@ void WriteCheckPoint(int step,
               std::ofstream::trunc |
               std::ofstream::binary);
 
-              if( !rngFile.good()) {
-                  amrex::FileOpenFailed(rngFileName);
-              }
-              amrex::SaveRandomState(rngFile);
-          }
-          ParallelDescriptor::Barrier();
+            if( !rngFile.good()) {
+                amrex::FileOpenFailed(rngFileName);
+            }
+            amrex::SaveRandomState(rngFile);
+        }
+        ParallelDescriptor::Barrier();
     }
 
     //////////////////////////////////////
@@ -116,19 +116,19 @@ void WriteCheckPoint(int step,
 
     // Stat MFs
     VisMF::Write(cuInst,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
     VisMF::Write(cuMeans,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
     VisMF::Write(cuVars,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
     VisMF::Write(primInst,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
     VisMF::Write(primMeans,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
     VisMF::Write(primVars,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
     VisMF::Write(coVars,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
     VisMF::Write(spatialCross1D,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross1D"));
 
@@ -137,16 +137,16 @@ void WriteCheckPoint(int step,
 }
 
 void ReadCheckPoint(int& step,
-			              Real& time,
-			              Real& dt,
-			              int& statsCount,
-			              amrex::MultiFab& cuInst,
-			              amrex::MultiFab& cuMeans,
-			              amrex::MultiFab& cuVars,
-			              amrex::MultiFab& primInst,
-			              amrex::MultiFab& primMeans,
-			              amrex::MultiFab& primVars,
-			              amrex::MultiFab& coVars,
+                    Real& time,
+                    Real& dt,
+                    int& statsCount,
+                    amrex::MultiFab& cuInst,
+                    amrex::MultiFab& cuMeans,
+                    amrex::MultiFab& cuVars,
+                    amrex::MultiFab& primInst,
+                    amrex::MultiFab& primMeans,
+                    amrex::MultiFab& primVars,
+                    amrex::MultiFab& coVars,
                     amrex::MultiFab& spatialCross1D,
                     const int ncross) {
 
@@ -256,26 +256,26 @@ void ReadCheckPoint(int& step,
 
     }
     else if (seed == 0) {
-      // initializes seed for random number calls from clock
-      auto now = time_point_cast<nanoseconds>(system_clock::now());
-      int randSeed = now.time_since_epoch().count();
-      // broadcast the same root seed to all processors
-      ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-      InitRandom(randSeed+ParallelDescriptor::MyProc(),
-                 ParallelDescriptor::NProcs(),
-                 randSeed+ParallelDescriptor::MyProc());
+        // initializes seed for random number calls from clock
+        auto now = time_point_cast<nanoseconds>(system_clock::now());
+        int randSeed = now.time_since_epoch().count();
+        // broadcast the same root seed to all processors
+        ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+        InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   randSeed+ParallelDescriptor::MyProc());
     } else {
-      // initializes the seed for C++ random number calls
-      InitRandom(seed+ParallelDescriptor::MyProc(),
-                 ParallelDescriptor::NProcs(),
-                 seed+ParallelDescriptor::MyProc());
+        // initializes the seed for C++ random number calls
+        InitRandom(seed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   seed+ParallelDescriptor::MyProc());
     }
 
     // read in the MultiFab data
     VisMF::Read(cuInst,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
     VisMF::Read(primInst,
-      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
 
     // Set all stats to zero if reset stats, else read
     if (reset_stats == 1) {
@@ -314,43 +314,42 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
 
     std::string line, word;
 
-        int temp;
-        std::string File(checkpointname + "/Header");
-        Vector<char> fileCharPtr;
-        ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
-        std::string fileCharPtrString(fileCharPtr.dataPtr());
-        std::istringstream is(fileCharPtrString, std::istringstream::in);
+    int temp;
+    std::string File(checkpointname + "/Header");
+    Vector<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream is(fileCharPtrString, std::istringstream::in);
 
-        // read in title line
-        std::getline(is, line);
+    // read in title line
+    std::getline(is, line);
 
-        // read in time step number
-        is >> temp;
-        GotoNextLine(is);
+    // read in time step number
+    is >> temp;
+    GotoNextLine(is);
 
-        // read in time
-        is >> temp;
-        GotoNextLine(is);
+    // read in time
+    is >> temp;
+    GotoNextLine(is);
 
-        // read in dt
-        is >> temp;
-        GotoNextLine(is);
+    // read in dt
+    is >> temp;
+    GotoNextLine(is);
 
-        // read in statsCount
-        is >> temp;
-        GotoNextLine(is);
+    // read in statsCount
+    is >> temp;
+    GotoNextLine(is);
 
-        // read in BoxArray (fluid) from Header
-        BoxArray ba;
-        ba.readFrom(is);
-        GotoNextLine(is);
+    // read in BoxArray (fluid) from Header
+    BoxArray ba;
+    ba.readFrom(is);
+    GotoNextLine(is);
 
-        // create a distribution mapping
-        DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
+    // create a distribution mapping
+    DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
 
     RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                        {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-
 
     //cout << "Restoring!\n";
     particles.Restart(checkpointname,"particle");
@@ -361,7 +360,7 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     particles.ReInitParticles();
 }
 
-void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
               bool bExitOnError) {
 
     enum { IO_Buffer_Size = 262144 * 8 };
@@ -393,11 +392,11 @@ void ReadFile(const std::string& filename, Vector<char>& charBuf,
     }
 
     if(fileLength == -1) {
-      return;
+        return;
     }
 
     fileLengthPadded = fileLength + 1;
-//    fileLengthPadded += fileLengthPadded % 8;
+    //    fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);
 
     iss.read(charBuf.dataPtr(), fileLength);

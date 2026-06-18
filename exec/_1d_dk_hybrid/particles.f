@@ -60,7 +60,7 @@ c              write(6,*)n,num_part,xl(j),rn_unif,part(num_part)
 c     write(6,*) num_part,dx
 
       do n=1,num_part
-           
+
           bin = part(n)/dx + 1
 
           if(bin.ge.jpartl .and. bin .le.jpartr)then
@@ -183,31 +183,31 @@ c             write(6,*)"bad point ",ibad,inc,dx,inc/dx
            write(6,*)ibad," of ", num_part," took step gt dx"
        endif
 
-          
+
       if(jpartl.gt.1 .and. jpartr.le.npts)then
 
-          do n=1,num_part 
+          do n=1,num_part
 
-              if(part_new(n).ge.xl(jpartl) 
-     1            .and. part(n).lt.xl(jpartl))then 
+              if(part_new(n).ge.xl(jpartl)
+     1            .and. part(n).lt.xl(jpartl))then
 
                  crossl = crossl-1.d0
 
               endif
-              if(part_new(n).lt.xl(jpartl) 
-     1            .and. part(n).ge.xl(jpartl))then 
+              if(part_new(n).lt.xl(jpartl)
+     1            .and. part(n).ge.xl(jpartl))then
 
                  crossl = crossl+1.d0
 
               endif
-              if(part_new(n).ge.xl(jpartr+1) 
-     1            .and. part(n).lt.xl(jpartr+1))then 
+              if(part_new(n).ge.xl(jpartr+1)
+     1            .and. part(n).lt.xl(jpartr+1))then
 
                  crossr = crossr-1.d0
 
               endif
-              if(part_new(n).lt.xl(jpartr+1) 
-     1            .and. part(n).ge.xl(jpartr+1))then 
+              if(part_new(n).lt.xl(jpartr+1)
+     1            .and. part(n).ge.xl(jpartr+1))then
 
                  crossr = crossr+1.d0
 
@@ -243,13 +243,13 @@ c     write(6,*)" number of particles crossing ", crossl, crossr
              num_part_new = num_part_new + 1
              part_new(num_part_new) = part(n)
 
-         elseif(iper.eq.1 .and. jpartl .eq. 1 .and. 
+         elseif(iper.eq.1 .and. jpartl .eq. 1 .and.
      1           part(n).lt.xl(1))then
 
              num_part_new = num_part_new + 1
              part_new(num_part_new) = part(n)+xl(npts+1)
 
-         elseif(iper.eq.1 .and. jpartr .eq. npts .and. 
+         elseif(iper.eq.1 .and. jpartr .eq. npts .and.
      1           part(n).ge.xl(npts+1))then
 
              num_part_new = num_part_new + 1
@@ -261,7 +261,7 @@ c     write(6,*)" number of particles crossing ", crossl, crossr
 
 c      write(6,*)"before and after ", num_part,num_part_new,
 c    1        num_part_new-num_part
-  
+
        return
        end
        subroutine reflux(u,fluxregl,fluxregr,crossl,crossr,
@@ -278,7 +278,7 @@ c    1        num_part_new-num_part
       if(jpartl .gt. 1)then
 
          u(jpartl-1) = u(jpartl-1)+ (crossl-fluxregl)/dx
-  
+
       endif
       if(jpartr .lt. npts)then
 

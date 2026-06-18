@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from statsmodels.graphics import tsaplots
 
 assert len(sys.argv)==2
-infile = sys.argv[1] 
+infile = sys.argv[1]
 
 [tt,nvac,nCO] = np.loadtxt(infile,usecols=(0,1,2),unpack=True)
 
@@ -14,7 +14,7 @@ Nsite = nvac[0]+nCO[0]
 print("No sites: %d" % Nsite)
 
 #t0 = int(len(tt)*0.1)
-t0 = 0 
+t0 = 0
 theta = nCO[t0:]/float(Nsite)
 Ntpt = len(theta)
 dt = tt[1]-tt[0];

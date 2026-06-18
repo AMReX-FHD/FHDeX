@@ -27,7 +27,7 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         // create MultiFabs with one (coarse) box on one MPI rank
         // cell-centered
-        MultiFab mf_onegrid(ba_onegrid, dm_onegrid, 1, 0);        
+        MultiFab mf_onegrid(ba_onegrid, dm_onegrid, 1, 0);
         // face-centered
         std::array< MultiFab, AMREX_SPACEDIM > umac_onegrid;
         AMREX_D_TERM(umac_onegrid[0].define(convert(ba_onegrid,nodal_flag_x), dm_onegrid, 1, 0);,
@@ -53,19 +53,19 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
         Print() << "Initializing from a plotfile coarser by a factor of " << rr << std::endl;
-        
+
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        
+
             // parallel copy (coarse) plotfile data to (coarse) MF with one grid
             mf_onegrid.ParallelCopy(plot_init,i+3,0,1);
-        
+
             // shift velocities onto faces
             ShiftCCToFace_onegrid(umac_onegrid[i],0,mf_onegrid,0,1);
 
             // obtain BoxArray and DistributionMap from the final output MF
             BoxArray ba_final = umac[i].boxArray();
             DistributionMapping dm_final = umac[i].DistributionMap();
-            
+
             // make a coarsened version of the BoxArray from the final output MF
             BoxArray ba_final_coarse = ba_final.coarsen(rr);
 
@@ -91,18 +91,18 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 Array4<Real      > const& fine = umac[i].array(mfi);
                 Array4<Real const> const& crse = umac_coarse.array(mfi);
-                
+
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     fine(i,j,k) = crse(i/rr,j/rr,k/rr);
                 });
             }
         }
-        
+
         return;
     }
 
-    
+
     Real zshft = (AMREX_SPACEDIM == 2) ? 0. : 0.5;
 
     GpuArray<Real,AMREX_SPACEDIM> reallo = geom.ProbLoArray();
@@ -141,7 +141,7 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
         return;
     }
-    
+
     for ( MFIter mfi(umac[0]); mfi.isValid(); ++mfi ) {
 
         AMREX_D_TERM(const Array4<Real> & u = (umac[0]).array(mfi);,
@@ -154,7 +154,7 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      Box bx_y = mfi.tilebox(nodal_flag_y);,
                      Box bx_z = mfi.tilebox(nodal_flag_z););
 
-        
+
         amrex::ParallelFor(bx_x,
                            bx_y,
 #if (AMREX_SPACEDIM == 3)
@@ -180,7 +180,7 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             }
 
             Real rad = std::sqrt(rad2);
-            
+
             // note prob_type == 0 handled above
             if (prob_type == 1) {
 
@@ -195,7 +195,7 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     *(1.+std::tanh(k2_inv*((width1/2.+perturb) - relpos[1])));
 
             } else if (prob_type == 3) {
-                
+
                 u(i,j,k) = 0.25*(1.+std::tanh(k1_inv*(relpos[1] - (-width1/2.))))
                     *(1.+std::tanh(k2_inv*((width1/2.) - relpos[1])));
 
@@ -229,9 +229,9 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 // Multiply velocity magnitude by -cos(theta)
                 v(i,j,k) = 0.25*(1.+std::tanh(k1_inv*(rad-r_a)))*(1.+std::tanh(k2_inv*(r_b-rad)))
                     *(-relpos[0]/rad);
-                
+
             } else if (prob_type == 2) {
-                
+
                 Real perturb = amp*sin(freq*relpos[0]);
                 Real slope = amp*freq*cos(freq*relpos[0]);
                 Real fun_ptrb = 0.25*(1.*tanh(k1_inv*(relpos[1] - (-width1/2.+perturb))))

@@ -5,7 +5,7 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
                 const amrex::Geometry& geom, const amrex::Real* dx, const amrex::Real dt)
 {
     BL_PROFILE_VAR("doMembrane()",doMembrane);
-    
+
     AMREX_D_TERM(flux[0].setVal(0.0);,
                  flux[1].setVal(0.0);,
                  flux[2].setVal(0.0););
@@ -24,7 +24,7 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
 
     for ( MFIter mfi(flux[0]); mfi.isValid(); ++mfi) {
 
-        // note bx is nodal in x        
+        // note bx is nodal in x
         const Box& bx = mfi.validbox();
 
         const Array4<Real>& xflux = flux[0].array(mfi);
@@ -95,7 +95,7 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
     Real fac5 = transmission*(std::pow(k_B,2.5))*6.0/std::sqrt(2*mm*3.142);;
     Real fac3 = transmission*(std::pow(k_B,1.5))*2.0/std::sqrt(2*mm*3.142);
     Real fac1 = transmission*(std::pow(k_B,0.5))/std::sqrt(2*mm*3.142);
-    
+
     for ( MFIter mfi(flux[0]); mfi.isValid(); ++mfi) {
 
         // note bx is nodal in x
@@ -161,7 +161,7 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
 
                     cu(i,j,k,0) = cu(i,j,k,0) + xflux(i,j,k,0);
                     cu(i,j,k,4) = cu(i,j,k,4) + xflux(i,j,k,4);
-            
+
                     if((cu(i,j,k,0) < 0.) || (cu(i,j,k,4) < 0.)) {
                         Print() << "Negative effusion removed";
                         cu(i,j,k,0) = cu(i,j,k,0) - xflux(i,j,k,0);

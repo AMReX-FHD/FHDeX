@@ -57,15 +57,15 @@ void main_driver(const char* argv)
     Real dVol = dx[0]*dx[1];
     int tot_n_cells = n_cells[0]*n_cells[1];
     if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
+        dVol *= cell_depth;
     } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
+        dVol *= dx[2];
+        tot_n_cells = n_cells[2]*tot_n_cells;
     }
-    
+
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
-    
+
     /////////////////////////////////////////
 
     Vector< std::string > var_names(2);
@@ -77,7 +77,7 @@ void main_driver(const char* argv)
     var_scaling[0] = 1./dVol;
     var_scaling[1] = 1./dVol;
     var_scaling[2] = 1./dVol;
-    
+
     MultiFab struct_cc(ba, dmap, 2, 0);
 
     // WRITE INIT ROUTINE
@@ -109,11 +109,11 @@ void main_driver(const char* argv)
             }
             */
 
-            
+
         });
 
     }
-    
+
 
     amrex::Vector< int > s_pairA(3);
     amrex::Vector< int > s_pairB(3);
@@ -134,7 +134,7 @@ void main_driver(const char* argv)
     // take an FFT and write them out
     MultiFab dft_real(ba, dmap, 2, 0);
     MultiFab dft_imag(ba, dmap, 2, 0);
-    structFact.ComputeFFT(struct_cc,dft_real,dft_imag,geom);
+    structFact.ComputeFFT(struct_cc,dft_real,dft_imag);
 
     WriteSingleLevelPlotfile("plt_real", dft_real, {"var1", "var2"}, geom, 0., 0);
     WriteSingleLevelPlotfile("plt_imag", dft_imag, {"var1", "var2"}, geom, 0., 0);
@@ -147,10 +147,10 @@ void main_driver(const char* argv)
     WriteSingleLevelPlotfile("plt_mag", dft_real, {"var1", "var2"}, geom, 0., 0);
     /////////////////////////////////
 
-    
-    structFact.FortStructure(struct_cc,geom);
-      
-    structFact.WritePlotFile(0,0.,geom,"plt_SF");
+
+    structFact.FortStructure(struct_cc);
+
+    structFact.WritePlotFile(0,0.,"plt_SF");
 
     // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors

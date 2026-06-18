@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -61,14 +61,14 @@ CommLattice::~CommLattice()
 /* ----------------------------------------------------------------------
    setup comm pattern
    3 kinds of patterns: all ghosts, sector ghosts, sector reverse
-   if nsector_request = 1, just ghosts for entire proc domain 
+   if nsector_request = 1, just ghosts for entire proc domain
    if nsector_request > 1, do all and sector ghosts, reverse if needed
    array = NULL = communicate iarray/darray from app
    array = non-NULL = communicate passed-in array (from diagnostic)
 ------------------------------------------------------------------------- */
 
 void CommLattice::init(int nsector_request, int delpropensity, int delevent,
-		       int *array) 
+                       int *array)
 {
   delghost = delpropensity;
   delreverse = delevent;
@@ -115,14 +115,14 @@ void CommLattice::init(int nsector_request, int delpropensity, int delevent,
     sectorswap = new Swap*[nsector];
     for (int i = 0; i < nsector; i++)
       sectorswap[i] = create_swap_sector(applattice->set[i].nlocal,
-					 applattice->set[i].site2i);
+                                         applattice->set[i].site2i);
   }
   if (delreverse && nsector > 1) {
     sectorreverseswap = new Swap*[nsector];
     for (int i = 0; i < nsector; i++)
-      sectorreverseswap[i] = 
-	create_swap_sector_reverse(applattice->set[i].nlocal,
-				   applattice->set[i].site2i);
+      sectorreverseswap[i] =
+        create_swap_sector_reverse(applattice->set[i].nlocal,
+                                   applattice->set[i].site2i);
   }
 }
 
@@ -259,8 +259,8 @@ CommLattice::Swap *CommLattice::create_swap_all_reverse()
     for (i = 0; i < ntotal; i++) {
       if (flag[i] != ilayer) continue;
       for (j = 0; j < numneigh[i]; j++) {
-	if (neighbor[i][j] < nlocal) continue;
-	if (flag[neighbor[i][j]] == -1) flag[neighbor[i][j]] = ilayer+1;
+        if (neighbor[i][j] < nlocal) continue;
+        if (flag[neighbor[i][j]] == -1) flag[neighbor[i][j]] = ilayer+1;
       }
     }
   }
@@ -332,8 +332,8 @@ CommLattice::Swap *CommLattice::create_swap_sector(int nsites, int *site2i)
     for (i = 0; i < ntotal; i++) {
       if (flag[i] != ilayer) continue;
       for (j = 0; j < numneigh[i]; j++) {
-	if (neighbor[i][j] < nlocal) continue;
-	if (flag[neighbor[i][j]] == -1) flag[neighbor[i][j]] = ilayer+1;
+        if (neighbor[i][j] < nlocal) continue;
+        if (flag[neighbor[i][j]] == -1) flag[neighbor[i][j]] = ilayer+1;
       }
     }
   }
@@ -378,7 +378,7 @@ CommLattice::Swap *CommLattice::create_swap_sector(int nsites, int *site2i)
 ------------------------------------------------------------------------- */
 
 CommLattice::Swap *CommLattice::create_swap_sector_reverse(int nsites,
-							   int *site2i)
+                               int *site2i)
 {
   int i,j,m;
 
@@ -407,8 +407,8 @@ CommLattice::Swap *CommLattice::create_swap_sector_reverse(int nsites,
     for (i = 0; i < ntotal; i++) {
       if (flag[i] != ilayer) continue;
       for (j = 0; j < numneigh[i]; j++) {
-	if (neighbor[i][j] < nlocal) continue;
-	if (flag[neighbor[i][j]] == -1) flag[neighbor[i][j]] = ilayer+1;
+        if (neighbor[i][j] < nlocal) continue;
+        if (flag[neighbor[i][j]] == -1) flag[neighbor[i][j]] = ilayer+1;
       }
     }
   }
@@ -455,7 +455,7 @@ CommLattice::Swap *CommLattice::create_swap_sector_reverse(int nsites,
 ------------------------------------------------------------------------- */
 
 void CommLattice::create_send_from_recv(int nsite, int maxsite,
-					Site *buf, Swap *swap)
+                                        Site *buf, Swap *swap)
 {
   int i,isend;
 
@@ -463,7 +463,7 @@ void CommLattice::create_send_from_recv(int nsite, int maxsite,
   tagint *id = app->id;
   int nlocal = applattice->nlocal;
 
-  Site *bufcopy = (Site *) 
+  Site *bufcopy = (Site *)
     memory->smalloc(maxsite*sizeof(Site),"comm:bufcopy");
 
   // put my entire list of owned site IDs in a hash
@@ -477,7 +477,7 @@ void CommLattice::create_send_from_recv(int nsite, int maxsite,
   // setup ring of procs
 
   int next = me + 1;
-  int prev = me -1; 
+  int prev = me -1;
   if (next == nprocs) next = 0;
   if (prev < 0) prev = nprocs - 1;
 
@@ -525,10 +525,10 @@ void CommLattice::create_send_from_recv(int nsite, int maxsite,
       // if original_proc not last one in sproc[], add proc to send list
 
       if (nsend == 0 || sproc[nsend-1] != original_proc) {
-	sproc[nsend] = original_proc;
-	scount[nsend] = 0;
-	sindex[nsend] = NULL;
-	nsend++;
+        sproc[nsend] = original_proc;
+        scount[nsend] = 0;
+        sindex[nsend] = NULL;
+        nsend++;
       }
 
       // add index to send list going to a particular proc
@@ -536,8 +536,8 @@ void CommLattice::create_send_from_recv(int nsite, int maxsite,
 
       isend = nsend - 1;
       if (scount[isend] == smax[isend]) {
-	smax[isend] += DELTA;
-	memory->grow(sindex[isend],smax[isend],"comm:sindex");
+        smax[isend] += DELTA;
+        memory->grow(sindex[isend],smax[isend],"comm:sindex");
       }
       sindex[isend][scount[isend]] = loc->second;
       scount[isend]++;
@@ -613,7 +613,7 @@ void CommLattice::create_send_from_list(int nsite, Site *buf, Swap *swap)
       isend = nsend;
       nsend++;
     } else isend = loc->second;
-    
+
     // add index to send list going to a particular proc
     // grow rindex array if necessary
 
@@ -658,7 +658,7 @@ void CommLattice::create_send_from_list(int nsite, Site *buf, Swap *swap)
 ------------------------------------------------------------------------- */
 
 void CommLattice::create_recv_from_send(int nsite, int maxsite,
-					Site *buf, Swap *swap)
+                                        Site *buf, Swap *swap)
 {
   int i,irecv;
 
@@ -666,7 +666,7 @@ void CommLattice::create_recv_from_send(int nsite, int maxsite,
   tagint *id = app->id;
   int nlocal = applattice->nlocal;
 
-  Site *bufcopy = (Site *) 
+  Site *bufcopy = (Site *)
     memory->smalloc(maxsite*sizeof(Site),"comm:bufcopy");
 
   // put my entire list of owned site IDs in a hash
@@ -680,7 +680,7 @@ void CommLattice::create_recv_from_send(int nsite, int maxsite,
   // setup ring of procs
 
   int next = me + 1;
-  int prev = me -1; 
+  int prev = me -1;
   if (next == nprocs) next = 0;
   if (prev < 0) prev = nprocs - 1;
 
@@ -730,19 +730,19 @@ void CommLattice::create_recv_from_send(int nsite, int maxsite,
       // if original_proc not last one in rproc[], add proc to recv list
 
       if (nrecv == 0 || rproc[nrecv-1] != original_proc) {
-	rproc[nrecv] = original_proc;
-	rcount[nrecv] = 0;
-	rindex[nrecv] = NULL;
-	nrecv++;
+        rproc[nrecv] = original_proc;
+        rcount[nrecv] = 0;
+        rindex[nrecv] = NULL;
+        nrecv++;
       }
 
       // add index to recv list from a particular proc
       // grow rindex array if necessary
-      
+
       irecv = nrecv - 1;
       if (rcount[irecv] == rmax[irecv]) {
-	rmax[irecv] += DELTA;
-	memory->grow(rindex[irecv],rmax[irecv],"comm:rindex");
+        rmax[irecv] += DELTA;
+        memory->grow(rindex[irecv],rmax[irecv],"comm:rindex");
       }
       rindex[irecv][rcount[irecv]] = loc->second;
       rcount[irecv]++;
@@ -814,7 +814,7 @@ void CommLattice::create_recv_from_list(int nsite, Site *buf, Swap *swap)
   // error if any site is not filled in
 
   for (i = 0; i < nsite; i++) {
-    if (buf[i].proc == -1) 
+    if (buf[i].proc == -1)
       error->one(FLERR,"Site-site interaction was not found");
 
     // if sending proc not in rproc[], add proc to recv list and to hash
@@ -829,7 +829,7 @@ void CommLattice::create_recv_from_list(int nsite, Site *buf, Swap *swap)
       irecv = nrecv;
       nrecv++;
     } else irecv = loc->second;
-    
+
     // add index to recv list from a particular proc
     // grow rindex array if necessary
 
@@ -915,7 +915,7 @@ void CommLattice::perform_swap_site(Swap *swap)
 
   for (i = 0; i < swap->nrecv; i++)
     MPI_Irecv(swap->ribuf[i],swap->rcount[i],MPI_INT,swap->rproc[i],0,world,
-	      &swap->request[i]);
+              &swap->request[i]);
 
   // pack data to send to each proc and send it
 
@@ -955,7 +955,7 @@ void CommLattice::perform_swap_int(Swap *swap)
 
   for (i = 0; i < swap->nrecv; i++)
     MPI_Irecv(swap->ribuf[i],ninteger*swap->rcount[i],MPI_INT,
-	      swap->rproc[i],0,world,&swap->request[i]);
+              swap->rproc[i],0,world,&swap->request[i]);
 
   // pack data to send to each proc and send it
 
@@ -1002,7 +1002,7 @@ void CommLattice::perform_swap_double(Swap *swap)
 
   for (i = 0; i < swap->nrecv; i++)
     MPI_Irecv(swap->rdbuf[i],ndouble*swap->rcount[i],MPI_DOUBLE,
-	      swap->rproc[i],0,world,&swap->request[i]);
+              swap->rproc[i],0,world,&swap->request[i]);
 
   // pack data to send to each proc and send it
 
@@ -1050,7 +1050,7 @@ void CommLattice::perform_swap_general(Swap *swap)
   int ntotal = ninteger + ndouble;
   for (i = 0; i < swap->nrecv; i++)
     MPI_Irecv(swap->rdbuf[i],ntotal*swap->rcount[i],MPI_DOUBLE,
-	      swap->rproc[i],0,world,&swap->request[i]);
+              swap->rproc[i],0,world,&swap->request[i]);
 
   // pack data to send to each proc and send it
 
@@ -1082,7 +1082,7 @@ void CommLattice::perform_swap_general(Swap *swap)
     for (n = 0; n < ninteger; n++) {
       ivector = iarray[n];
       for (j = 0; j < swap->rcount[i]; j++)
-	ivector[index[j]] = static_cast<int> (buf[m++]);
+        ivector[index[j]] = static_cast<int> (buf[m++]);
     }
     for (n = 0; n < ndouble; n++) {
       dvector = darray[n];

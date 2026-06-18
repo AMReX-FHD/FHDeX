@@ -982,7 +982,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         JLS_P_rhs.FillBoundary(geom.periodicity());
 
         // use multigrid to solve for Phi ............. JLS_P = Lp^{-1} DA^{-1}S JLS
-        
+
         macproj.Solve(alphainv_fc, JLS_P_rhs, JLS_P, geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs

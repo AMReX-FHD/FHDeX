@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -43,10 +43,10 @@ DiagSurfchemtest::DiagSurfchemtest(SPPARKS *spk, int narg, char **arg) : Diag(sp
       list = new char*[nlist];
       int j = 0;
       for (int i = iarg+1; i < narg; i++) {
-	int n = strlen(arg[i]) + 1;
-	list[j] = new char[n];
-	strcpy(list[j],arg[i]);
-	j++;
+        int n = strlen(arg[i]) + 1;
+        list[j] = new char[n];
+        strcpy(list[j],arg[i]);
+        j++;
       }
       iarg = narg;
     } else error->all(FLERR,"Illegal diag_style surfchemtest command");
@@ -92,32 +92,32 @@ void DiagSurfchemtest::init()
     else if (list[i][0] == 's') {
       which[i] = ONE;
       int n = atoi(&list[i][1]);
-      if (n < 1 || n > none) 
-	    error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
+      if (n < 1 || n > none)
+        error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
       index[i] = n - 1;
     } else if (list[i][0] == 'd') {
       which[i] = TWO;
       int n = atoi(&list[i][1]);
-      if (n < 1 || n > ntwo) 
-	    error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
+      if (n < 1 || n > ntwo)
+        error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
       index[i] = n - 1;
     } else if (list[i][0] == 't') {
       which[i] = THREE;
       int n = atoi(&list[i][1]);
-      if (n < 1 || n > nthree) 
-	    error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
+      if (n < 1 || n > nthree)
+        error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
       index[i] = n - 1;
     } else if (list[i][0] == 'A') {
       which[i] = ADS;
       int n = atoi(&list[i][1]);
       if (n < 1 || n > nads)
-	    error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
+        error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
       index[i] = n - 1;
     } else if (list[i][0] == 'D') {
       which[i] = DES;
       int n = atoi(&list[i][1]);
       if (n < 1 || n > ndes)
-	    error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
+        error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
       index[i] = n - 1;
     } else error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
   }
@@ -156,7 +156,7 @@ void DiagSurfchemtest::compute()
     else if (which[i] == THREE) ivalue = appsurfchemtest->tcount[index[i]];
     else if (which[i] == ADS) ivalue = appsurfchemtest->adscount[index[i]];
     else if (which[i] == DES) ivalue = appsurfchemtest->descount[index[i]];
-    
+
     MPI_Allreduce(&ivalue,&ivector[i],1,MPI_INT,MPI_SUM,world);
   }
 }

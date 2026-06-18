@@ -1,0 +1,24 @@
+rm potentialDistribution*
+rm radialDistribution*
+rm nearestNeighbour*
+rm cartesianDistribution*
+rm -r plt*
+rm -r mplt*
+rm -r parplt*
+rm -r cplt*
+rm -r eplt*
+rm -r stag*
+rm -r chk*
+rm *ascii*
+rm particleout.*
+rm currentEst
+rm bulkFlowEst
+rm volEst
+rm diffusionEst
+rm conductivityEst
+rm Backtrace.*
+rm threepm*
+rm *_ascii_*
+rm partX*
+rm partY*
+rm partZ*

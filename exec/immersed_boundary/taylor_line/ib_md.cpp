@@ -74,12 +74,12 @@ void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 
 Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 
-	
+
 
 
 /*******************************This ony has to do with flagellum(fourier)******************************/
-    
-	if(immbdy::contains_fourier) {
+
+    if(immbdy::contains_fourier) {
 
         // First two nodes reserved as "anchor"
         // index_marker = amrex::max(0, index_marker-1);
@@ -105,7 +105,7 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
         return amp_ramp*th/N;
 
 
-	/*This is the information if the input does not need to undergo fourier transform(taylor line)**/
+        /*This is the information if the input does not need to undergo fourier transform(taylor line)**/
     } else {
 
         int  N          = ib_flagellum::n_marker[i_ib];
@@ -125,7 +125,7 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 }
 
 /*This is when the particles get their new information*/
- 
+
 void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
                        int component, bool pred_pos,
@@ -159,7 +159,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     Print() << "number of flagellum = ";
     for (auto & i:ibs) Print() << i << " ";
     Print() << std::endl;
-   
+
 
     //Vectors for storing forces in each direction
     Vector<Real> fx(ib_mc.getTotalNumIDs());
@@ -175,16 +175,16 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
     int index_start = 0;
 
-    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {   
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
         if (n_marker[i_ib] <= 0) continue;
 
         int N       = ib_flagellum::n_marker[i_ib];
-    	Real L      = ib_flagellum::length[i_ib];
-    	Real l_link = L/(N-1);
+        Real L      = ib_flagellum::length[i_ib];
+        Real l_link = L/(N-1);
 
-    	Real k_spr  = ib_flagellum::k_spring[i_ib];
-    	Real k_driv = ib_flagellum::k_driving[i_ib]; 
+        Real k_spr  = ib_flagellum::k_spring[i_ib];
+        Real k_driv = ib_flagellum::k_driving[i_ib];
 
         for (int ind = index_start; ind <(index_start + N - 1); ++ind){
             int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
@@ -247,7 +247,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                         Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
                         Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
 
-			Print() << "Updating spring forces..." << std::endl;
+                        Print() << "Updating spring forces..." << std::endl;
 
                         //update spring forces between previous/minus and current markers
                         fx[i_m] += fm_0 * r_m[0];   fy[i_m] += fm_0 * r_m[1];   fz[i_m] += fm_0 * r_m[2];
@@ -260,7 +260,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
                 // update bending forces for curent, minus/prev, and next/plus
                 if(immbdy::contains_fourier) {  //for periodic waveform of flagellum in Fourier series
-			Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
+                        Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
                         RealVect target_pos = marker_positions[ids[i_c]];
 
                         fx[i_c] += k_driv*(target_pos[0] - pos_x[i_c]);
@@ -270,8 +270,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 } else {                        // for harmonic waveform of Taylor lines
 
                         if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last markers on the flagellum that doesn't have either next or previous marker
- 
- 				Print() << "Updating bending forces..." << std::endl;
+
+                                Print() << "Updating bending forces..." << std::endl;
 
                                 int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
                                 int i_m = IBMarkerContainer::storage_idx(sorted_ibs[ind-1]);
@@ -302,8 +302,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 }
        }
        index_start += N;
-    }	
-		
+    }
+
     // Fianlly, Iterating through all markers and add forces
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
@@ -321,20 +321,19 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
             //int i_c = id + std::distance(sorted_ibs.begin(), std::find_if(sorted_ibs.begin(), sorted_ibs.end(), [&](const auto& pair) { return pair.first == i_ib; }));
 
-	    int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
+            int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
 
-	    Print() << "Adding forces to particles..." << std::endl;
+            Print() << "Adding forces to particles..." << std::endl;
 
-	    mark.rdata(IBMReal::forcex) += fx[i_c];
+            mark.rdata(IBMReal::forcex) += fx[i_c];
             mark.rdata(IBMReal::forcey) += fy[i_c];
             mark.rdata(IBMReal::forcez) += fz[i_c];
-	}
+        }
     }
     BL_PROFILE_VAR_STOP(UpdateForces);
 };
 
 
-        
 
    // for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
    //     // Get marker data (local to current thread)
@@ -342,12 +341,12 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
    //     AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
    //     long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
-   //	for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+   //    for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
    //         ParticleType & mark = markers[m_index.first];
 
    //         int id      = mark.idate(IBMInt::id_1);   //id # on the flagellum
-   //	    int i_ib    = mark.idata(IBMInt::cpu_1);  // flagellum #
+   //        int i_ib    = mark.idata(IBMInt::cpu_1);  // flagellum #
    //         int N       = ib_flagellum::n_marker[i_ib];
             //Real L      = ib_flagellum::length[i_ib];
             //Real l_link = L/(N-1);
@@ -355,7 +354,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
             //Real k_spr  = ib_flagellum::k_spring[i_ib];
             //Real k_driv = ib_flagellum::k_driving[i_ib];
 
-	    // Get previous and next markers connected to current marker (if they exist)
+        // Get previous and next markers connected to current marker (if they exist)
             //ParticleType * next_marker = NULL;
             //ParticleType * prev_marker = NULL;
 

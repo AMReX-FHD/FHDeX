@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -29,7 +29,7 @@ RegCylinder::RegCylinder(SPPARKS *spk, int narg, char **arg) :
 {
   options(narg-8,&arg[8]);
 
-  if (strcmp(arg[2],"x") && strcmp(arg[2],"y") && strcmp(arg[2],"z")) 
+  if (strcmp(arg[2],"x") && strcmp(arg[2],"y") && strcmp(arg[2],"z"))
     error->all(FLERR,"Illegal region cylinder command");
   axis = arg[2][0];
 
@@ -46,7 +46,7 @@ RegCylinder::RegCylinder(SPPARKS *spk, int narg, char **arg) :
   radius = xscale*atof(arg[5]);
 
   if (strcmp(arg[6],"INF") == 0 || strcmp(arg[6],"EDGE") == 0) {
-    if (domain->box_exist == 0) 
+    if (domain->box_exist == 0)
       error->all(FLERR,"Cannot use region INF or EDGE when box does not exist");
     if (axis == 'x') {
       if (strcmp(arg[6],"INF") == 0) lo = -BIG;
@@ -67,7 +67,7 @@ RegCylinder::RegCylinder(SPPARKS *spk, int narg, char **arg) :
   }
 
   if (strcmp(arg[7],"INF") == 0 || strcmp(arg[6],"EDGE") == 0) {
-    if (domain->box_exist == 0) 
+    if (domain->box_exist == 0)
       error->all(FLERR,"Cannot use region INF or EDGE when box does not exist");
     if (axis == 'x') {
       if (strcmp(arg[7],"INF") == 0) hi = BIG;

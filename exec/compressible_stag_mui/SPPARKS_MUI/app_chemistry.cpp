@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -29,7 +29,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-AppChemistry::AppChemistry(SPPARKS *spk, int narg, char **arg) : 
+AppChemistry::AppChemistry(SPPARKS *spk, int narg, char **arg) :
   App(spk,narg,arg)
 {
   if (narg != 1) error->all(FLERR,"Illegal app_style command");
@@ -170,16 +170,16 @@ void AppChemistry::iterate()
 
       rcount[ireaction]++;
       for (m = 0; m < nreactant[ireaction]; m++)
-	pcount[reactants[ireaction][m]]--;
+        pcount[reactants[ireaction][m]]--;
       for (m = 0; m < nproduct[ireaction]; m++)
-	pcount[products[ireaction][m]]++;
+        pcount[products[ireaction][m]]++;
 
       // update propensities of dependent reactions
       // inform Gillespie solver of changes
 
       for (m = 0; m < ndepends[ireaction]; m++)
-	propensity[depends[ireaction][m]] = 
-	  compute_propensity(depends[ireaction][m]);
+        propensity[depends[ireaction][m]] =
+          compute_propensity(depends[ireaction][m]);
       solve->update(ndepends[ireaction],depends[ireaction],propensity);
 
       // update time by Gillepsie dt
@@ -235,7 +235,7 @@ void AppChemistry::stats_header(char *strtmp)
 void AppChemistry::set_count(int narg, char **arg)
 {
   if (narg != 2) error->all(FLERR,"Illegal count command");
-  
+
   int ispecies = find_species(arg[0]);
   if (ispecies < 0) {
     char *str = new char[128];
@@ -261,7 +261,7 @@ void AppChemistry::add_reaction(int narg, char **arg)
 
   int n = nreactions + 1;
   rname = (char **) memory->srealloc(rname,n*sizeof(char *),
-					  "chemistry:rname");
+                                          "chemistry:rname");
   int nlen = strlen(arg[0]) + 1;
   rname[nreactions] = new char[nlen];
   strcpy(rname[nreactions],arg[0]);
@@ -287,9 +287,9 @@ void AppChemistry::add_reaction(int narg, char **arg)
   // error checks
 
   if (iarg == narg) error->all(FLERR,"Reaction has no numeric rate");
-  if (iarg < 1 || iarg > 3) 
+  if (iarg < 1 || iarg > 3)
     error->all(FLERR,"Reaction must have 0,1,2 reactants");
-  if (narg-1 - iarg > MAX_PRODUCT) 
+  if (narg-1 - iarg > MAX_PRODUCT)
     error->all(FLERR,"Reaction cannot have more than MAX_PRODUCT products");
 
   // extract reactant and product species names
@@ -312,7 +312,7 @@ void AppChemistry::add_reaction(int narg, char **arg)
     products[nreactions][i - (iarg+1)] = ispecies;
     nproduct[nreactions]++;
   }
-  
+
   nreactions++;
 }
 
@@ -326,9 +326,9 @@ void AppChemistry::add_species(int narg, char **arg)
 
   int n = nspecies + narg;
   sname = (char **) memory->srealloc(sname,n*sizeof(char *),
-					  "chemistry:sname");
+                                          "chemistry:sname");
   pcount = (int *) memory->srealloc(pcount,n*sizeof(int),
-					 "chemistry:pcount");
+                                         "chemistry:pcount");
 
   for (int iarg = 0; iarg < narg; iarg++) {
     if (find_species(arg[iarg]) >= 0) {
@@ -399,20 +399,20 @@ void AppChemistry::build_dependency_graph()
     for (i = 0; i < nreactant[m]; i++) {
       mspecies = reactants[m][i];
       for (n = 0; n < nreactions; n++) {
-	for (j = 0; j < nreactant[n]; j++) {
-	  nspecies = reactants[n][j];
-	  if (mspecies == nspecies) flag[n] = 1;
-	}
+        for (j = 0; j < nreactant[n]; j++) {
+          nspecies = reactants[n][j];
+          if (mspecies == nspecies) flag[n] = 1;
+        }
       }
     }
 
     for (i = 0; i < nproduct[m]; i++) {
       mspecies = products[m][i];
       for (n = 0; n < nreactions; n++) {
-	for (j = 0; j < nreactant[n]; j++) {
-	  nspecies = reactants[n][j];
-	  if (mspecies == nspecies) flag[n] = 1;
-	}
+        for (j = 0; j < nreactant[n]; j++) {
+          nspecies = reactants[n][j];
+          if (mspecies == nspecies) flag[n] = 1;
+        }
       }
     }
 
@@ -442,28 +442,28 @@ void AppChemistry::build_dependency_graph()
     for (i = 0; i < nreactant[m]; i++) {
       mspecies = reactants[m][i];
       for (n = 0; n < nreactions; n++) {
-	for (j = 0; j < nreactant[n]; j++) {
-	  nspecies = reactants[n][j];
-	  if (mspecies == nspecies) {
-	    for (k = 0; k < ndepends[m]; k++)
-	      if (n == depends[m][k]) break;
-	    if (k == ndepends[m]) depends[m][ndepends[m]++] = n;
-	  }
-	}
+        for (j = 0; j < nreactant[n]; j++) {
+          nspecies = reactants[n][j];
+          if (mspecies == nspecies) {
+            for (k = 0; k < ndepends[m]; k++)
+              if (n == depends[m][k]) break;
+            if (k == ndepends[m]) depends[m][ndepends[m]++] = n;
+          }
+        }
       }
     }
 
     for (i = 0; i < nproduct[m]; i++) {
       mspecies = products[m][i];
       for (n = 0; n < nreactions; n++) {
-	for (j = 0; j < nreactant[n]; j++) {
-	  nspecies = reactants[n][j];
-	  if (mspecies == nspecies) {
-	    for (k = 0; k < ndepends[m]; k++)
-	      if (n == depends[m][k]) break;
-	    if (k == ndepends[m]) depends[m][ndepends[m]++] = n;
-	  }
-	}
+        for (j = 0; j < nreactant[n]; j++) {
+          nspecies = reactants[n][j];
+          if (mspecies == nspecies) {
+            for (k = 0; k < ndepends[m]; k++)
+              if (n == depends[m][k]) break;
+            if (k == ndepends[m]) depends[m][ndepends[m]++] = n;
+          }
+        }
       }
     }
   }
@@ -482,12 +482,12 @@ double AppChemistry::compute_propensity(int m)
   if (nreactant[m] == 0) p = factor_zero * rate[m];
   else if (nreactant[m] == 1) p = pcount[reactants[m][0]] * rate[m];
   else {
-    if (reactants[m][0] == reactants[m][1]) 
-      p = 0.5 * factor_dual * pcount[reactants[m][0]] * 
-	(pcount[reactants[m][1]] - 1) * rate[m];
+    if (reactants[m][0] == reactants[m][1])
+      p = 0.5 * factor_dual * pcount[reactants[m][0]] *
+        (pcount[reactants[m][1]] - 1) * rate[m];
     else
-      p = factor_dual * pcount[reactants[m][0]] * 
-	pcount[reactants[m][1]] * rate[m];
+      p = factor_dual * pcount[reactants[m][0]] *
+        pcount[reactants[m][1]] * rate[m];
   }
   return p;
 }

@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -43,10 +43,10 @@ class AppChemistry : public App {
   char **rname;                  // ID of each reaction
   int *nreactant;                // nreactant[I] = # of reactants of reaction I
   int **reactants;               // reactants[I][J] = particle species of Jth
-				 //   reactant of reaction I
+        //   reactant of reaction I
   int *nproduct;                 // nproduct[I] = # of products of reaction I
   int **products;                // products[I][J] = particle species of Jth
-				 //   product of reaction I
+        //   product of reaction I
   double *rate;                  // rate[I] = input rate for reaction I
 
   int *pcount;               // counts for each species

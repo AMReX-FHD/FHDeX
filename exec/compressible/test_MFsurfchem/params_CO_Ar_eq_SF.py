@@ -85,7 +85,7 @@ print "- Lz = %e\n" % Lz
 ##########
 
 n1s = 2*n1x*n1y
-print "- total number of sites per dxFHD*dyFHD = %d" % n1s 
+print "- total number of sites per dxFHD*dyFHD = %d" % n1s
 print "- surf_site_num_dens = %e" % (n1s/dx/dy)
 
 Ntot = ntot*dv
@@ -158,7 +158,7 @@ print "drho1sq = %e (size correction)" % (drho1sq*(1-1./ncell))
 print "drho2sq = %e (size correction)" % (drho2sq*(1-1./ncell))
 print "djasq = %e (size correction - slip jx, jy)" % (djasq*(1-1./ncell))
 print "dTsq = %e (size correction)" % (dTsq*(1+1./ncell))
-print "dEsq = %e (size correction)\n" % (e1**2*drho1sq*(1-1./ncell)+e2**2*drho2sq*(1-1./ncell)+rhotot**2*cvmix**2*dTsq*(1+1./ncell)) 
+print "dEsq = %e (size correction)\n" % (e1**2*drho1sq*(1-1./ncell)+e2**2*drho2sq*(1-1./ncell)+rhotot**2*cvmix**2*dTsq*(1+1./ncell))
 
 print "drhosq  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
 print "drho1sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)

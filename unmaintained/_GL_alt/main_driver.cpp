@@ -29,14 +29,14 @@ void main_driver(const char* argv)
 {
 
 
-    amrex::Real umbrella; //spring constant 
-    amrex::Real phi0; // umbrella center 
+    amrex::Real umbrella; //spring constant
+    amrex::Real phi0; // umbrella center
     amrex::Real alpha; // spring constant scaling parameter
-    amrex::Real r1; //  phi0 step parameter, see overleaf notes 
+    amrex::Real r1; //  phi0 step parameter, see overleaf notes
     amrex::Real r2; //  overlap parameter, see overleaf notes
     int N_Burn; // This corresponds to  the integer "Equil" input. This is the number of time-steps taken before data collection begins
     int L; //Integer corresponding to the "Number_of_Samples" input. This is the number of samples considered in each umbrella
-    int Plot_Skip; //An integer used to limit the number of plot files saved. See input file and overleaf for more information. 
+    int Plot_Skip; //An integer used to limit the number of plot files saved. See input file and overleaf for more information.
     int adaptive; //  1= adaptive method used, 0= uniform phi_0 step method. Specified at input
     int Reverse; //! 1= "forward" direction (i.e phi_0) is increased, 0= "backward" direction (i.e phi_0) is decreased. Specified at input
 
@@ -134,7 +134,7 @@ void main_driver(const char* argv)
      WritePlotFile(step, time, geom, phi,umbrella,phi0);
 
      if( proc == 0 ) {
-      
+
         std::cout << "DT = " << dt << std::endl;
         std::cout << "Mesh spacing = " << dx[0] << " , " << dx[1] << std::endl;
         std::cout << " Domain = [ 0 , " << prob_hi[0] << " ] x [ 0 , " << prob_hi[1] <<" ]" << std::endl;
@@ -179,7 +179,7 @@ void main_driver(const char* argv)
                         N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
                     Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
                 }
-            }else // If first comparson is NOT sucessful, the adaptive algorithm tries to find a spring constant and phi_0 that does work. The first such pair is used. 
+            }else // If first comparson is NOT sucessful, the adaptive algorithm tries to find a spring constant and phi_0 that does work. The first such pair is used.
             {
                 while(!sucessful_compare)// This while loop continues until a successful combination of phi_0 and spring constant is found
                 {
@@ -189,12 +189,12 @@ void main_driver(const char* argv)
                 }
             }
                 //Below, the sucessful phi_0 and spring constant values are used to compute the accepted umbrella data. This data is written to an umbrellaxxxxx.txt file.
-                //After this, phi_0 is shifted, and all flags are reset appropriately 
+                //After this, phi_0 is shifted, and all flags are reset appropriately
                 Make_PltFiles = true;
                 Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
                         N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
                 Shift_Flag=1;
-                inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag); 
+                inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
                 umbrella_size=0;
                 Make_PltFiles = false;
                 First_Loop_Step=true;
@@ -227,7 +227,7 @@ void main_driver(const char* argv)
                         N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
                     Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
                 }
-            }else// If first comparson is NOT sucessful, the adaptive algorithm tries to find a spring constant and phi_0 that does work. The first such pair is used. 
+            }else// If first comparson is NOT sucessful, the adaptive algorithm tries to find a spring constant and phi_0 that does work. The first such pair is used.
             {
                 while(!sucessful_compare)// This while loop continues until a successful combination of phi_0 and spring constant is found
                 {
@@ -237,7 +237,7 @@ void main_driver(const char* argv)
                 }
             }
                 //Below, the sucessful phi_0 and spring constant values are used to compute the accepted umbrella data. This data is written to an umbrellaxxxxx.txt file.
-                //After this, phi_0 is shifted, and all flags are reset appropriately 
+                //After this, phi_0 is shifted, and all flags are reset appropriately
                 Make_PltFiles = true;
                 Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
                         N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
@@ -302,7 +302,7 @@ void main_driver(const char* argv)
     //             Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
     //         }
     //     }
-        
+
     //     Make_PltFiles = true;
     //     Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
     //             N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);

@@ -33,7 +33,7 @@ spec_init[3] = 0.;
 
 N = 100000
 N_0 = 80*80
-    
+
 # calculate h (step-size)
 h = (T - t0)/N
 
@@ -65,11 +65,11 @@ for i in range(0,N):
         k[j,0] = h*F[j](spec1[i],spec2[i],spec3[i],spec4[i])
     for j in range(0,num_F):
         k[j,1] = h*F[j](spec1[i] + k[0,0]/2,spec2[i] + k[1,0]/2,spec3[i] + k[2,0]/2,spec4[i] + k[3,0]/2)
-    for j in range(0,num_F):   
+    for j in range(0,num_F):
         k[j,2] = h*F[j](spec1[i] + k[0,1]/2,spec2[i] + k[1,1]/2,spec3[i] + k[2,1]/2,spec4[i] + k[3,1]/2)
     for j in range(0,num_F):
         k[j,3] = h*F[j](spec1[i] + k[0,2]  ,spec2[i] + k[1,2]  ,spec3[i] + k[2,2]  ,spec4[i] + k[3,2])
-    
+
     spec1[i+1] = spec1[i] + (1./6)*(k[0,0] + 2*k[0,1] + 2*k[0,2] + k[0,3])
     spec2[i+1] = spec2[i] + (1./6)*(k[1,0] + 2*k[1,1] + 2*k[1,2] + k[1,3])
     spec3[i+1] = spec3[i] + (1./6)*(k[2,0] + 2*k[2,1] + 2*k[2,2] + k[2,3])

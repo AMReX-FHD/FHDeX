@@ -12,15 +12,15 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                    MultiFab& visccorn_in,
                    MultiFab& rancorn_in,
                    const amrex::Geometry& geom,
-		   const amrex::Vector< amrex::Real >& /*stoch_weights*/,
+                   const amrex::Vector< amrex::Real >& /*stoch_weights*/,
                    const amrex::Real dt)
 {
     BL_PROFILE_VAR("calculateFlux()",calculateFlux);
-    
+
     int n_cells_z = n_cells[2];
-    
+
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    
+
     AMREX_D_TERM(flux_in[0].setVal(0);,
                  flux_in[1].setVal(0);,
                  flux_in[2].setVal(0););
@@ -36,12 +36,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     ////////////////////
     // stochastic fluxes
     ////////////////////
-    
+
     if (stoch_stress_form == 1) {
 
         Real volinv = 1./(dx[0]*dx[1]*dx[2]);
         Real dtinv = 1./dt;
-        
+
         // Loop over boxes
         for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
@@ -57,7 +57,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             // const Array4<const Real> cons = cons_in.array(mfi);
 
             const Array4<const Real> rancorn = rancorn_in.array(mfi);
-        
+
             const Array4<const Real> eta   = eta_in.array(mfi);
             const Array4<const Real> zeta  = zeta_in.array(mfi);
             const Array4<const Real> kappa = kappa_in.array(mfi);
@@ -67,26 +67,26 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             const Box& tbx = mfi.nodaltilebox(0);
             const Box& tby = mfi.nodaltilebox(1);
             const Box& tbz = mfi.nodaltilebox(2);
-        
+
             amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
                 GpuArray<Real,MAX_SPECIES+5> fweights;
                 GpuArray<Real,MAX_SPECIES+5> wiener;
-                
+
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
                 GpuArray<Real,MAX_SPECIES> yyp;
-                
+
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
-                                   
+
                 Real muxp = (eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
                 Real kxp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4));
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i-1,j,k,4));
 
-                if ((i == 0) and is_lo_x_dirichlet_mass) { 
+                if ((i == 0) and is_lo_x_dirichlet_mass) {
                     muxp = 2.0*eta(i-1,j,k)*prim(i-1,j,k,4);
                     kxp  = 2.0*kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4);
                     meanT = prim(i-1,j,k,4);
@@ -108,9 +108,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 for (int n=0; n<5; ++n) {
                     wiener[n] = fweights[n]*ranfluxx(i,j,k,n);
                 }
-                
+
                 Real nweight=sqrt(k_B*volinv*dtinv);
-                                
+
                 if (n_cells_z > 1) {
 
                     // Corner viscosity coefficients in 3D
@@ -118,17 +118,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                         eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
                                         eta(i,j+1,k+1)*prim(i,j+1,k+1,4) + eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/3.;
-                    
+
                     Real muzemp = 0.25*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                         eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
                                         eta(i,j-1,k+1)*prim(i,j-1,k+1,4) + eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
                                         eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/3.;
-                    
+
                     Real muzepm = 0.25*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                         eta(i,j+1,k-1)*prim(i,j+1,k-1,4) + eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                         eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
                                         eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/3.;
-                    
+
                     Real muzemm = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                         eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                         eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
@@ -139,17 +139,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                       eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                       eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
                                       eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/3.;
-                        
+
                         muzemp = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                       eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
                                       eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/3.;
-                        
+
                         muzepm = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                       eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                       eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/3.;
-                        
+
                         muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                       eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                       eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
@@ -160,24 +160,24 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                       eta(i,j+1,k)*prim(i,j+1,k,4) +
                                       eta(i,j,k+1)*prim(i,j,k+1,4) +
                                       eta(i,j+1,k+1)*prim(i,j+1,k+1,4) )/3.;
-                        
+
                         muzemp = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) +
                                       eta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
                                       eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
-                        
+
                         muzepm = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                       eta(i,j,k)*prim(i,j,k,4) +
                                       eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
-                        
+
                         muzemm = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) )/3.;
                     }
 
-                        
+
 
                     if (amrex::Math::abs(visc_type) == 3) {
                         if ((i == 0) and is_lo_x_dirichlet_mass) {
@@ -185,17 +185,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                           zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                           zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
                                           zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) );
-                            
+
                             muzemp += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                           zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
                                           zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) );
-                            
+
                             muzepm += 0.5*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                           zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) );
-                            
+
                             muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                           zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
@@ -206,17 +206,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                           zeta(i,j+1,k)*prim(i,j+1,k,4) +
                                           zeta(i,j,k+1)*prim(i,j,k+1,4) +
                                           zeta(i,j+1,k+1)*prim(i,j+1,k+1,4) );
-                            
+
                             muzemp += 0.5*(zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
                                           zeta(i,j,k+1)*prim(i,j,k+1,4) );
-                            
+
                             muzepm += 0.5*(zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i,j+1,k)*prim(i,j+1,k,4) );
-                            
+
                             muzemm += 0.5*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
@@ -227,17 +227,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                            zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                            zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
                                            zeta(i,j+1,k+1)*prim(i,j+1,k+1,4) + zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) );
-                            
+
                             muzemp += 0.25*(zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                            zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) + zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
                                            zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) );
-                            
+
                             muzepm += 0.25*(zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                            zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) + zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                            zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) );
-                            
+
                             muzemm += 0.25*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) + zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                             zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                             zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
@@ -272,17 +272,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                             factor_hi_z = (bc_vel_hi[2] == 1) ? std::sqrt(2.0) : 0.;
                         }
                     }
-                    
+
                     // Random "divergence" stress
                     wiener[1] = wiener[1] + 0.25*nweight*(factor_hi_y*factor_hi_z*sqrt(muzepp)*rancorn(i,j+1,k+1) +
                                                           factor_lo_y*factor_hi_z*sqrt(muzemp)*rancorn(i,j,k+1) +
-                                                          factor_hi_y*factor_lo_z*sqrt(muzepm)*rancorn(i,j+1,k) + 
+                                                          factor_hi_y*factor_lo_z*sqrt(muzepm)*rancorn(i,j+1,k) +
                                                           factor_lo_y*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
 
                 } else if (n_cells_z == 1) {
 
                     Abort("n_cells_z==1 case for stoch flux not written");
-/*                    
+/*
           ! Corner viscosity coefficients in 2D
           muzepp = 0.5*(eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) + &
                eta(i,j+1,k)*prim(i,j+1,k,5) + eta(i-1,j+1,k)*prim(i-1,j+1,k,5) )/3.
@@ -390,7 +390,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                         }
                     }
-                    
+
                     for (int ns=0; ns<nspecies; ++ns) {
                         if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
                             for (int n=0; n<nspecies; ++n) {
@@ -436,14 +436,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 GpuArray<Real,MAX_SPECIES+5> fweights;
                 GpuArray<Real,MAX_SPECIES+5> wiener;
-                
+
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
                 GpuArray<Real,MAX_SPECIES> yyp;
-                
+
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
-                
+
 
                 Real muyp = eta(i,j,k)*prim(i,j,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4);
                 Real kyp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4);
@@ -474,7 +474,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 Real nweight=sqrt(k_B*volinv*dtinv);
-                                
+
                 if (n_cells_z > 1) {
 
                     // Corner viscosity coefficients 3D
@@ -499,46 +499,46 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                     if ((j == 0) and is_lo_y_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                        muzepp = 0.5*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                      eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + 
+                                      eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) +
                                       eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
 
-                        muzemp = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                        muzemp = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                      eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + 
+                                      eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
                                       eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
 
-                        muzepm = 0.5*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + 
+                        muzepm = 0.5*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
                                       eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                      eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                      eta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + 
+                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                       eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                      eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                                      eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                     }
                     if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                        muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) +
-                                      eta(i+1,j,k+1)*prim(i+1,j,k+1,4) + 
+                                      eta(i+1,j,k+1)*prim(i+1,j,k+1,4) +
                                       eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
 
-                        muzemp = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                        muzemp = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) +
-                                      eta(i-1,j,k+1)*prim(i-1,j,k+1,4) + 
+                                      eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
                                       eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
 
-                        muzepm = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                        muzepm = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                      eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                      eta(i+1,j,k)*prim(i+1,j,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) )/3.;
 
-                        muzemm = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                        muzemm = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                      eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                      eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) )/3.;
 
                     }
@@ -546,50 +546,50 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     if (amrex::Math::abs(visc_type) == 3) {
 
                         if ((j == 0) and is_lo_y_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                            muzepp += 0.5*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                          zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + 
+                                          zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) +
                                           zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
 
-                            muzemp += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                            muzemp += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                          zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + 
+                                          zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
                                           zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
 
-                            muzepm += 0.5*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + 
+                            muzepm += 0.5*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                          zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                          zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + 
+                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                          zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                                          zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                         }
                         else  if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
+                            muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
-                                          zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) + 
+                                          zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) +
                                           zeta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
 
-                            muzemp += 0.5*(zeta(i-1,j,k)*prim(i-1,j,k,4) + 
+                            muzemp += 0.5*(zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
-                                          zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) + 
+                                          zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
                                           zeta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
 
-                            muzepm += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                            muzepm += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                          zeta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                          zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) )/3.;
 
-                            muzemm += 0.5*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                            muzemm += 0.5*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                          zeta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                          zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) )/3.;
 
                         }
-                        else {  
+                        else {
                             muzepp += 0.25*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                            zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
@@ -627,7 +627,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
                         if (k == 0) {
                             factor_lo_z = (bc_vel_lo[2] == 1) ? std::sqrt(2.0) : 0.;
-                        }                        
+                        }
                     }
                     if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
                         if (i == n_cells[0]-1) {
@@ -647,7 +647,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                           factor_lo_x*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
 
                 } else if (n_cells_z == 1) {
-                    
+
                     Abort("n_cells_z==1 case for stoch flux not written");
 /*
           ! Corner viscosity coefficients 2D
@@ -678,10 +678,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // heat flux
                 fluxy(i,j,k,nvars) = fluxy(i,j,k,nvars) + wiener[4];
-            
+
                 // Viscous heating:
                 Real phiflxdiag = wiener[2]*(prim(i,j-1,k,2)+prim(i,j,k,2));
-                
+
                 Real phiflxshear = wiener[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
                                    wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
 
@@ -758,7 +758,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                             }
                         }
                     }
-                    
+
                     for (int ns=0; ns<nspecies; ++ns) {
                         if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
                             for (int n=0; n<nspecies; ++n) {
@@ -803,14 +803,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 GpuArray<Real,MAX_SPECIES+5> fweights;
                 GpuArray<Real,MAX_SPECIES+5> wiener;
-                
+
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
                 GpuArray<Real,MAX_SPECIES> yyp;
-                
+
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
-                
+
                 if (n_cells_z > 1) {
 
                     Real muzp = eta(i,j,k)*prim(i,j,k,4) + eta(i,j,k-1)*prim(i,j,k-1,4);
@@ -840,7 +840,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int n=0; n<5; ++n) {
                         wiener[n] = fweights[n]*ranfluxz(i,j,k,n);
                     }
-                
+
                     Real nweight=sqrt(k_B*volinv*dtinv);
 
                     // Corner viscosity coefficients
@@ -865,46 +865,46 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                        muzepp = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                      eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + 
+                                      eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) +
                                       eta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/3.;
 
-                        muzemp = 0.5*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + 
+                        muzemp = 0.5*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                       eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
-                                      eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                      eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
-                        muzepm = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                        muzepm = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                      eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + 
+                                      eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
                                       eta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/3.;
 
-                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + 
+                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                       eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                      eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                      eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) +
-                                       eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
+                                       eta(i+1,j+1,k)*prim(i+1,j+1,k,4) +
                                        eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
 
                         muzemp = 0.5*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                        eta(i,j+1,k)*prim(i,j+1,k,4) +
-                                       eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                       eta(i-1,j,k)*prim(i-1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
 
                         muzepm = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) +
-                                       eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                       eta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                        eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                         muzemm = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                        eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                       eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                       eta(i-1,j,k)*prim(i-1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
 
                     }
@@ -912,46 +912,46 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     if (amrex::Math::abs(visc_type) == 3) {
 
                         if ((k == 0) and is_lo_z_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                            muzepp += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                          zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + 
+                                          zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) +
                                           zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/3.;
 
-                            muzemp += 0.5*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + 
+                            muzemp += 0.5*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                           zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
-                                          zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                          zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
-                            muzepm += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                            muzepm += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                          zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + 
+                                          zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/3.;
 
-                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + 
+                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                          zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                          zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
                         }
                         if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
+                            muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) +
-                                           zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
+                                           zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) +
                                            zeta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
 
-                            muzemp += 0.5*(zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) + 
+                            muzemp += 0.5*(zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                            zeta(i,j+1,k)*prim(i,j+1,k,4) +
-                                           zeta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                           zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) )/3.;
 
-                            muzepm += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
+                            muzepm += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) +
-                                           zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                           zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                            zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                            muzemm += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                            muzemm += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                            zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                           zeta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                           zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) )/3.;
 
                         }
@@ -994,7 +994,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
                         if (j == 0) {
                             factor_lo_y = (bc_vel_lo[1] == 1) ? std::sqrt(2.0) : 0.;
-                        }                        
+                        }
                     }
                     if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
                         if (i == n_cells[0]-1) {
@@ -1006,7 +1006,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                             factor_hi_y = (bc_vel_hi[1] == 1) ? std::sqrt(2.0) : 0.;
                         }
                     }
-                    
+
                     // Random "divergence" stress
                     wiener[3] = wiener[3] + 0.25*nweight*(factor_hi_x*factor_hi_y*sqrt(muzepp)*rancorn(i+1,j+1,k) +
                                                           factor_lo_x*factor_hi_y*sqrt(muzemp)*rancorn(i,j+1,k) +
@@ -1019,10 +1019,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     // heat flux
                     fluxz(i,j,k,nvars) = fluxz(i,j,k,nvars) + wiener[4];
-                    
+
                     // Viscous heating:
                     Real phiflxdiag = wiener[3]*(prim(i,j,k-1,3)+prim(i,j,k,3));
-                    
+
                     Real phiflxshear = wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +
                                        wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2));
 
@@ -1138,10 +1138,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         soret = soret + soret_s;
                     }
                     fluxz(i,j,k,nvars+3) = fluxz(i,j,k,nvars+3) + soret;
-                    
+
                     }
                 }
-                
+
             }); // end lambda function
 
         } // end MFIter
@@ -1149,11 +1149,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         StochFlux(flux_in,geom);
         MembraneFlux(flux_in,geom);
     }
-        
+
     ////////////////////
     // diffusive flxues
     ////////////////////
-    
+
     // Loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
@@ -1163,7 +1163,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
         const Array4<const Real> prim = prim_in.array(mfi);
         // const Array4<const Real> cons = cons_in.array(mfi);
-        
+
         const Array4<const Real> eta   = eta_in.array(mfi);
         const Array4<const Real> zeta  = zeta_in.array(mfi);
         const Array4<const Real> kappa = kappa_in.array(mfi);
@@ -1180,7 +1180,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         const Array4<Real> cornvz = cornz_in[1].array(mfi);
         const Array4<Real> cornwz = cornz_in[2].array(mfi);
         const Array4<Real> visccorn = visccorn_in.array(mfi);
-        
+
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
@@ -1189,7 +1189,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         const Box& tbn = mfi.tilebox(nd);
 
         Real half = 0.5;
-        
+
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
@@ -1240,7 +1240,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                           +  tauzxp*(prim(i,j,k,3)));
                 Qflux = kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0]);
             }
-            
+
             fluxx(i,j,k,1) = fluxx(i,j,k,1) - (tauxxp+divxp);
             fluxx(i,j,k,2) = fluxx(i,j,k,2) - tauyxp;
             fluxx(i,j,k,3) = fluxx(i,j,k,3) - tauzxp;
@@ -1319,11 +1319,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         Q5s = (hk[ns] + Runiv*meanT*chi(i-1,j,k,ns)/molmass[ns])*Fk[ns];
                     }
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                        Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
+                        Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];
                     }
                     Q5 = Q5 + Q5s;
                 }
-                // heat conduction already included in flux(5)       
+                // heat conduction already included in flux(5)
 
                 fluxx(i,j,k,nvars+3) = fluxx(i,j,k,nvars+3) + Q5;
 
@@ -1334,7 +1334,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
+
             GpuArray<Real,MAX_SPECIES> meanXk;
             GpuArray<Real,MAX_SPECIES> meanYk;
             GpuArray<Real,MAX_SPECIES> dk;
@@ -1461,7 +1461,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j-1,k,ns)/molmass[ns])*Fk[ns];
                     }
                     if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                        Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
+                        Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];
                     }
                     Q5 = Q5 + Q5s;
                 }
@@ -1479,14 +1479,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
             if (n_cells_z > 1) {
-            
+
             GpuArray<Real,MAX_SPECIES> meanXk;
             GpuArray<Real,MAX_SPECIES> meanYk;
             GpuArray<Real,MAX_SPECIES> dk;
             GpuArray<Real,MAX_SPECIES> Fk;
             GpuArray<Real,MAX_SPECIES> hk;
             GpuArray<Real,MAX_SPECIES> soret;
-                
+
             Real muzp = half*(eta(i,j,k) + eta(i,j,k-1));
             Real kzp = half*(kappa(i,j,k) + kappa(i,j,k-1));
 
@@ -1606,7 +1606,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k-1,ns)/molmass[ns])*Fk[ns];
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
+                        Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];
                     }
                     Q5 = Q5 + Q5s;
                 }
@@ -1618,12 +1618,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk[ns];
                 }
             }
-            
+
             } // n_cells_z test
         });
 
         if (n_cells_z > 1) {
-        
+
         amrex::ParallelFor(tbn,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
@@ -1643,7 +1643,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             DX[0] = dx[0];
             DX[1] = dx[1];
             DX[2] = dx[2];
-            
+
             if ((i == 0) and is_lo_x_dirichlet_mass) {
                 DX[0] = 0.5*dx[0];
                 muxp = 0.25*(eta(i-1,j-1,k-1) + eta(i-1,j-1,k) + eta(i-1,j,k-1) + eta(i-1,j,k));
@@ -1709,14 +1709,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 (prim(i-1,j  ,k  ,2)-prim(i-1,j-1,k  ,2))/DX[1] + (prim(i,j,  k,  2)-prim(i  ,j-1,k,  2))/DX[1] +
                 (prim(i-1,j-1,k  ,3)-prim(i-1,j-1,k-1,3))/DX[2] + (prim(i,j-1,k,  3)-prim(i  ,j-1,k-1,3))/DX[2] +
                 (prim(i-1,j  ,k  ,3)-prim(i-1,j  ,k-1,3))/DX[2] + (prim(i,j,  k,  3)-prim(i  ,j  ,k-1,3))/DX[2]);
-                               
+
         });
 
         } else if (n_cells_z == 1) {
 
             Abort("diffusive flux n_cells_z == 1 case not converted yet");
-            
-/* OLD FORTRAN CODE TO CONVERT            
+
+/* OLD FORTRAN CODE TO CONVERT
        do k = lo(3),hi(3)
        do j = lo(2),hi(2)+1
        do i = lo(1),hi(1)+1
@@ -1766,21 +1766,21 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 */
 
         } // n_cells_z test
-        
+
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                               
+
             fluxx(i,j,k,1) = fluxx(i,j,k,1) - 0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
                                                       visccorn(i,j+1,k)+visccorn(i,j,k)); // Viscous "divergence" stress
 
-            fluxx(i,j,k,1) = fluxx(i,j,k,1) + .25*  
+            fluxx(i,j,k,1) = fluxx(i,j,k,1) + .25*
                 (cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                  cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k));
 
-            fluxx(i,j,k,2) = fluxx(i,j,k,2) - .25*  
+            fluxx(i,j,k,2) = fluxx(i,j,k,2) - .25*
                 (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k));
 
-            fluxx(i,j,k,3) = fluxx(i,j,k,3) - .25*  
+            fluxx(i,j,k,3) = fluxx(i,j,k,3) - .25*
                 (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k));
 
             Real phiflx;
@@ -1792,11 +1792,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                               cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
                             (prim(i-1,j,k,1));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
                             (prim(i-1,j,k,2));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
                             (prim(i-1,j,k,3));
 
@@ -1808,11 +1808,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                               cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
                             (prim(i,j,k,1));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
                             (prim(i,j,k,2));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
                             (prim(i,j,k,3));
 
@@ -1824,11 +1824,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                               cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
                             (prim(i-1,j,k,1)+prim(i,j,k,1));
 
-                phiflx = phiflx + .25*  
+                phiflx = phiflx + .25*
                             (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
                             (prim(i-1,j,k,2)+prim(i,j,k,2));
 
-                phiflx = phiflx + .25*  
+                phiflx = phiflx + .25*
                             (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
                             (prim(i-1,j,k,3)+prim(i,j,k,3));
 
@@ -1846,26 +1846,26 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 (cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
                  cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k));
 
-            fluxy(i,j,k,1) = fluxy(i,j,k,1) - .25*  
+            fluxy(i,j,k,1) = fluxy(i,j,k,1) - .25*
                 (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k));
 
-            fluxy(i,j,k,3) = fluxy(i,j,k,3) - .25*  
+            fluxy(i,j,k,3) = fluxy(i,j,k,3) - .25*
                 (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k));
 
             Real phiflx;
 
             if ((j == 0) and is_lo_y_dirichlet_mass) {
-            
+
                 phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
                                  cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
                               (prim(i,j-1,k,2));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
                             (prim(i,j-1,k,1));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
                             (prim(i,j-1,k,3));
 
@@ -1877,11 +1877,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                  cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
                               (prim(i,j,k,2));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
                             (prim(i,j,k,1));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
                             (prim(i,j,k,3));
 
@@ -1892,35 +1892,35 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                  cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
                               (prim(i,j-1,k,2)+prim(i,j,k,2));
 
-                phiflx = phiflx + .25*  
+                phiflx = phiflx + .25*
                             (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
                             (prim(i,j-1,k,1)+prim(i,j,k,1));
 
-                phiflx = phiflx + .25*  
+                phiflx = phiflx + .25*
                             (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
                             (prim(i,j-1,k,3)+prim(i,j,k,3));
 
             }
 
             fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1)-0.5*phiflx;
-            
+
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
             if (n_cells_z > 1) {
-            
+
             fluxz(i,j,k,3) = fluxz(i,j,k,3) -
                 0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k));
 
-            fluxz(i,j,k,3) = fluxz(i,j,k,3) + .25*  
+            fluxz(i,j,k,3) = fluxz(i,j,k,3) + .25*
                 (cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                  cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k));
 
-            fluxz(i,j,k,1) = fluxz(i,j,k,1) - .25*  
+            fluxz(i,j,k,1) = fluxz(i,j,k,1) - .25*
                 (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k));
 
-            fluxz(i,j,k,2) = fluxz(i,j,k,2) - .25*  
+            fluxz(i,j,k,2) = fluxz(i,j,k,2) - .25*
                 (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k));
 
             Real phiflx;
@@ -1929,14 +1929,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
+                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) *
                                 (prim(i,j,k-1,3));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
                             (prim(i,j,k-1,1));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
                             (prim(i,j,k-1,2));
 
@@ -1945,14 +1945,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
+                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) *
                                 (prim(i,j,k,3));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
                             (prim(i,j,k,1));
 
-                phiflx = phiflx + .5*  
+                phiflx = phiflx + .5*
                             (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
                             (prim(i,j,k,2));
 
@@ -1960,14 +1960,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             else {
                 phiflx = 0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
+                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) *
                                 (prim(i,j,k-1,3)+prim(i,j,k,3));
 
-                phiflx = phiflx + .25*  
+                phiflx = phiflx + .25*
                             (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
                             (prim(i,j,k-1,1)+prim(i,j,k,1));
 
-                phiflx = phiflx + .25*  
+                phiflx = phiflx + .25*
                             (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
                             (prim(i,j,k-1,2)+prim(i,j,k,2));
 
@@ -1976,9 +1976,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1)-0.5*phiflx;
 
             }
-            
+
         });
-        
+
     }
 
     // Set species flux to zero at the walls (also Dufour)
@@ -2011,15 +2011,15 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         const Box& tbz = mfi.nodaltilebox(2);
 
         if (advection_type == 1) { // interpolate primitive quantities
-            
+
             // Loop over the cells and compute fluxes
             amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
+
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
-                    
+
                 for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) - wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l));
                 }
@@ -2068,11 +2068,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
+
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
-                    
+
                 for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
                 }
@@ -2121,11 +2121,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
+
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
-                    
+
                 for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
                 }
@@ -2173,17 +2173,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
             });
-            
+
         } else if (advection_type == 2) { // interpolate conserved quantitites
 
             // Loop over the cells and compute fluxes
             amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
+
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
-    
+
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i-1,j,k,l)) - wgt2*(cons(i-2,j,k,l)+cons(i+1,j,k,l));
@@ -2243,11 +2243,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
+
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
-    
+
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j-1,k,l)) - wgt2*(cons(i,j-2,k,l)+cons(i,j+1,k,l));
@@ -2293,7 +2293,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 yflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[2];
                 yflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[2]+primitive[5];
                 yflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[2]  ;
-           
+
                 yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
 
                 // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
@@ -2305,13 +2305,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 }
             },
-                
+
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
+
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
-    
+
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j,k-1,l)) - wgt2*(cons(i,j,k-2,l)+cons(i,j,k+1,l));
@@ -2370,7 +2370,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 }
             });
-            
+
         }
     }
 }

@@ -11,7 +11,7 @@ void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
                            const Geometry& geom)
 {
     BL_PROFILE_VAR("SubtractWeightedGradP()",SubtractWeightedGradP);
-    
+
     BoxArray ba = phi.boxArray();
     DistributionMapping dmap = phi.DistributionMap();
 
@@ -29,7 +29,7 @@ void CCApplyNegLap(MultiFab& phi,
                    const Geometry& geom)
 {
     BL_PROFILE_VAR("CCApplyOp()",CCApplyOp);
-    
+
     int lev=0;
 
     BoxArray ba = phi.boxArray();

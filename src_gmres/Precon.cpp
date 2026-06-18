@@ -18,7 +18,7 @@ void Precon::Define(const BoxArray& ba_in,
     macproj.Define(ba_in,dmap_in,geom_in);
 
 
-}    
+}
 
 void Precon::Apply(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
                    const MultiFab & b_p,

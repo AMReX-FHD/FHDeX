@@ -2,7 +2,7 @@ subroutine get_ptsource_3d( lo, hi, &
      &            ctag, c_lo, c_hi, &
      &            ptS, pts_lo, pts_hi, &
      &            strength, dx, prob_lo, Num_loc) bind(C, name="get_ptsource_3d")
-  
+
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
   implicit none
@@ -25,7 +25,7 @@ subroutine get_ptsource_3d( lo, hi, &
           numloc =1
        else
           numloc=Num_loc
-      end if 
+      end if
  do       k = lo(3), hi(3)
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)

@@ -1,0 +1,109 @@
+# This inputs file is used for generating
+# - Figure 8 (Section V.C)
+# in Paper by C. Kim et al. "Stochastic simulation of reaction-diffusion
+#  systems: A fluctuating-hydrodynamics approach"
+#  J. Chem. Phys. 146, 124110 (2017).
+# You can change some relevant parameters such as
+# - initial_variance_mass: 0 (smooth initial condition) 1 (with fluctuations):
+# - variance_coef_mass: 0 (deterministic diffusion) 1 (stochastic)
+# - reaction_type: 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
+# and run this inputs file.
+
+# Problem specification
+prob_lo =   0.0   0.0   0.0      # physical lo coordinate
+prob_hi = 512.0 512.0 512.0      # physical hi coordinate
+
+# number of cells in domain and maximum number of cells in a box
+n_cells = 256 256 256
+max_grid_size = 256 256 256
+
+# volume scale factor in 3D problems
+cell_depth = 1000.
+
+# Time-step control
+fixed_dt = 0.25
+
+# Controls for number of steps between actions
+max_step = 800
+plot_int = 10
+struct_fact_int = -1
+n_steps_skip = 200
+
+seed = 1
+
+nspecies = 2
+nreaction = 4
+
+prob_type = 5
+perturb_width = 16.    # scale factor for perturbed part in initial profile (for prob_type=4,5)
+smoothing_width = 1.   # scale factor for smoothing initial profile (for prob_type=4,5)
+
+n_init_in_1 = 2.16245 1.35018
+n_init_in_2 = 0. 10.
+
+# 0=D+R (first-order splitting)
+# 1=(1/2)R + D + (1/2)R (Strang option 1)
+# 2=(1/2)D + R + (1/2)D (Strang option 2)
+# -1=unsplit forward Euler
+# -2=unsplit explicit midpoint 
+# -3=unsplit multinomial diffusion
+# -4=unsplit implicit midpoint
+temporal_integrator = -4
+
+# only used for split schemes (temporal_integrator>=0)
+# 0=explicit trapezoidal predictor/corrector
+# 1=Crank-Nicolson semi-implicit
+# 2=explicit midpoint
+# 3=multinomial diffusion
+# 4=forward Euler  
+reactDiff_diffusion_type = 4
+
+# Fickian diffusion coeffs
+D_Fick = 1. 10.
+
+variance_coef_mass = 1.
+
+# how to compute n on faces for stochastic weighting
+# 1=arithmetic (with C0-Heaviside), 2=geometric, 3=harmonic
+# 10=arithmetic average with discontinuous Heaviside function
+# 11=arithmetic average with C1-smoothed Heaviside function
+# 12=arithmetic average with C2-smoothed Heaviside function
+avg_type = 1
+
+# only used for split schemes (temporal_integrator>=0)
+# 0=first-order (deterministic, tau leaping, CLE, or SSA)
+# 1=second-order (determinisitc, tau leaping, or CLE only)
+reactDiff_reaction_type = 0
+
+# 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
+reaction_type = 3
+
+#     (1) A -> 0
+#     (2) 2A + B --> 3A
+#     (3) B --> 0
+#     (4) 0 --> B
+stoich_1R = 1 0
+stoich_1P = 0 0
+stoich_2R = 2 1
+stoich_2P = 3 0
+stoich_3R = 0 1
+stoich_3P = 0 0
+stoich_4R = 0 0
+stoich_4P = 0 1
+
+# reaction rate constant for each reaction (assuming Law of Mass Action holds)
+# using rate_multiplier, reaction rates can be changed by the same factor
+# if include_discrete_LMA_correction, n^2 and n^3 in rate expressions become
+# n*(n-1/dv) and n*(n-1/dv)*(n-2/dv). 
+rate_const =  4. 1.37 1. 10.
+rate_multiplier = 0.1
+include_discrete_LMA_correction = 1
+
+# Boundary conditions
+# ----------------------
+# BC specifications:
+# -1 = periodic
+#  1 = wall (Neumann)
+#  2 = reservoir (Dirichlet)
+bc_mass_lo = -1 -1 -1
+bc_mass_hi = -1 -1 -1

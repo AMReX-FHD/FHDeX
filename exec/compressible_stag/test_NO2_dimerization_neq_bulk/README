@@ -1,0 +1,18 @@
+* this file:            README
+
+* slurm execution       submit_job.sh
+                        job_script.sh (for Pinnacles:--partition test, pi.ckim103, or dept.appliedmath) 
+    -> output               slurm-*.out
+
+* FHD inputs files      inputs_NO2_dimerization_neq_bulk0 (equilibration)
+                        inputs_NO2_dimerization_neq_bulk1 (actual noneq simulation)
+    -> output               plt*
+
+* clean-up              clean.sh
+* comparison            diff.sh
+
+
+---analysis codes---
+* avg of T,rho1,rho2    avg.sh
+    -> output               res.avg
+                            res.avg_plt*

@@ -9,11 +9,12 @@ USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
 DSMC      = FALSE
-MAX_SPEC      = 8
+MAX_SPEC  = 8
+USE_FFT   = TRUE
 # MAX_ELEM needs to be MAX_SPEC*(MAX_SPEC-1)/2
-MAX_ELEM      = 28
+MAX_ELEM  = 28
 
-TINY_PROFILE = TRUE
+TINY_PROFILE = FALSE
 USE_PARTICLES = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -50,6 +51,7 @@ INCLUDE_LOCATIONS += ../../src_common/
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

@@ -1,13 +1,13 @@
  # Problem specification
-  prob_lo = 0.0 0.0 0.0     			 	# physical lo coordinate
-  prob_hi = 0.08 0.08 0.01	# physical hi coordinate (cm)
+  prob_lo = -0.000597375 -0.00020999999999999998 0.0     			 	# physical lo coordinate
+  prob_hi = 0.000597375 0.00020999999999999998 145e-7	# physical hi coordinate (cm)
 
-  n_cells = 80 80 10 # keep as powers of two
-  max_grid_size = 80 80 10
-  max_particle_tile_size = 256 256 256
+  n_cells = 80 80 4 # keep as powers of two
+  max_grid_size = 20 20 4
+  max_particle_tile_size = 256 256 4
 
   # Time-step control
-  fixed_dt = 1e-9
+  fixed_dt = 2e-12
 
   # Controls for number of steps between actions
   max_step =     10000
