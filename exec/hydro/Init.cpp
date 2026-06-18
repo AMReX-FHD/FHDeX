@@ -1,10 +1,37 @@
 #include "hydro_test_functions.H"
+#include <AMReX_ParmParse.H>
 
 using namespace amrex;
 
 void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              const Geometry& geom) {
 
+    Real kh_sigma = Real(0);
+    Real kh_eps = Real(0);
+    Gpu::DeviceVector<Real> perturb_kh;
+
+    if (5 == prob_type) {
+        ParmParse pp("kh");
+        pp.get("sigma", kh_sigma);
+        pp.get("eps", kh_eps);
+
+        const int nx = n_cells[0]+1;
+        perturb_kh.resize(nx);
+        Real* perturb_kh_ptr = perturb_kh.dataPtr();
+
+        ParallelForRNG(nx, [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
+        {
+            perturb_kh_ptr[i] = RandomNormal(Real(0), Real(1), engine);
+        });
+
+        const Real perturb_kh_mean = Reduce::Sum(nx, perturb_kh_ptr, Real(0)) / Real(nx);
+
+        ParallelFor(nx, [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
+            perturb_kh_ptr[i] -= perturb_kh_mean;
+        });
+    }
+    
     // restart from a possibly-coarser plotfile
     if (prob_type == -1) {
 
@@ -210,6 +237,32 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     u(i,j,k) = 1.0;
                 }
             }
+            else if (prob_type == 5) {
+                const Real Ly = realhi[1] - reallo[1];
+                const Real y_rel = reallo[1] + (Real(j) + Real(0.5)) * dx[1];
+                const Real y_low = reallo[1] + Real(0.25) * Ly;
+                const Real y_high = reallo[1] + Real(0.75) * Ly;
+                const Real inv_sqrt2_sigma = Real(1) / (std::sqrt(Real(2)) * kh_sigma);
+
+                const Real h_low =
+                    Real(0.5) * (Real(1) + std::erf((y_rel - y_low) * inv_sqrt2_sigma));
+                const Real h_high =
+                    Real(0.5) * (Real(1) + std::erf((y_rel - y_high) * inv_sqrt2_sigma));
+                const Real s = h_low - h_high;
+
+                //const int ii = i - domlo_x;
+                const Real a = Real(1) + kh_eps * perturb_kh[i];
+
+                u(i,j,k) = a * (Real(2) * s - Real(1));
+                //Real quarter = reallo[1] + 0.25*(realhi[1]-reallo[1]);
+                //Real threequarter = reallo[1] + 0.75*(realhi[1]-reallo[1]);
+                //Real y = reallo[1] + (j+0.5)*dx[1];
+                //if (y < quarter || y > threequarter) {
+                //    u(i,j,k) = -1.0;
+                //} else {
+                //    u(i,j,k) = 1.0;
+                //}
+            }
         },
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -250,6 +303,8 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             } else if (prob_type == 3) {
                 v(i,j,k) = 0.;
             } else if (prob_type == 4) {
+                v(i,j,k) = 0.;
+            } else if (prob_type == 5) {
                 v(i,j,k) = 0.;
             }
         }
