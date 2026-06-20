@@ -57,6 +57,8 @@ print("- average molecular mass = %e\n" % mavg)
 
 temp = 1000.
 pres = 1.01325e6            # 1atm
+p1 = pres*X1
+p2 = pres*X2
 
 rho = pres*Mavg/Runiv/temp  # total mass density
 rho1 = rho*Y1
@@ -135,11 +137,11 @@ rcol2 = math.sqrt(kB*temp/2/math.pi/m1)*n2*(lat_const**2*2)
 sprob = 1.
 
 rads1 = sprob*rcol1
-kads1 = rads1/n1
+kads1 = rads1/p1
 kdes1 = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
 
 rads2 = sprob*rcol2
-kads2 = rads2/n2
+kads2 = rads2/p2
 kdes2 = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
 
 print("** adsorption/desorption **")
@@ -150,11 +152,11 @@ print("- collision rate rcol2 = %e" % rcol2)
 print("- sticking prob = %f" % sprob)
 
 print("- rads1 = %e (rate)" % rads1)
-print("- kads1 = rads1/n1 (rate const) = %e" % kads1)
+print("- kads1 = rads1/p1 (rate const) = %e" % kads1)
 print("- kdes1 = %e" % kdes1)
 
 print("- rads2 = %e (rate)" % rads2)
-print("- kads2 = rads2/n2 (rate const) = %e" % kads2)
+print("- kads2 = rads2/p2 (rate const) = %e" % kads2)
 print("- kdes2 = %e" % kdes2)
 
 theta1_eq = rads1/(rads1+kdes1)

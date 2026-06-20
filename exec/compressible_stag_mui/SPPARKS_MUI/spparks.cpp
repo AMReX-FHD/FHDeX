@@ -348,6 +348,7 @@ void SPPARKS::print_styles()
 #define AppStyle(key,Class) printf(" %s",#key);
 #ifdef USE_AMREX_MPMD
 #include "app_surfchemtest.h"
+#include "app_lotkavolterra.h"
 #else
 #include "style_app.h"
 #endif

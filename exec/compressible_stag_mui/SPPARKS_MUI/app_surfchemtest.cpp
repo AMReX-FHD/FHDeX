@@ -56,7 +56,7 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
                   // dc1/dc2/dc3/dc4/dc5: desorption count
                   // dac1/dac2/dac3/dac4/dac5: dissociative adsorption count
                   // adc1/adc2/adc3/adc4/adc5: associative desorption count
-  ndouble = 7;    // density1/density2/density3/density4/density5: number density of the contacting FHD cell
+  ndouble = 7;    // pressure1/pressure2/pressure3/pressure4/pressure5: partial pressure of the contacting FHD cell
                   // temp: temperature of the contacting FHD cell
                   // Vz: normal velocity of the contacting FHD cell
   delpropensity = 1;
@@ -400,7 +400,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       adsrate[nads] = atof(arg[3]);
 
       // want to make sure that darray[0], darray[1], darray[2], darray[3], darray[4]
-      // correspond to number densities of spec1, spec2, spec3, spec4, spec5
+      // correspond to partial pressures of spec1, spec2, spec3, spec4, spec5
       if (strcmp(arg[4],"spec1") == 0) adsoutput[nads] = SPEC1;
       else if (strcmp(arg[4],"spec2") == 0) adsoutput[nads] = SPEC2;
       else if (strcmp(arg[4],"spec3") == 0) adsoutput[nads] = SPEC3;
@@ -437,7 +437,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       desrate[ndes] = atof(arg[3]);
 
       // want to make sure that darray[0], darray[1], darray[2], darray[3], darray[4]
-      // correspond to number densities of spec1, spec2, spec3, spec4, spec5
+      // correspond to partial pressures of spec1, spec2, spec3, spec4, spec5
       if (strcmp(arg[4],"spec1") == 0)
         error->all(FLERR,"rstyle=5 only allows spec1/2/3/4/5->vac");
       else if (strcmp(arg[4],"spec2") == 0)
@@ -754,11 +754,11 @@ void AppSurfchemtest::grow_app()
   adc3 = iarray[19];
   adc4 = iarray[20];
   adc5 = iarray[21];
-  density1 = darray[0];
-  density2 = darray[1];
-  density3 = darray[2];
-  density4 = darray[3];
-  density5 = darray[4];
+  pressure1 = darray[0];
+  pressure2 = darray[1];
+  pressure3 = darray[2];
+  pressure4 = darray[3];
+  pressure5 = darray[4];
   temp = darray[5];
   Vz = darray[6];
 }
@@ -872,9 +872,10 @@ void AppSurfchemtest::setup_app()
     rxncount[m] = 0;
   }
 
-  reaction_summary_log();
+//  reaction_summary_log();
 }
 
+/*
 void AppSurfchemtest::reaction_summary_log()
 {
   if (domain->me == 0) {
@@ -904,6 +905,7 @@ void AppSurfchemtest::reaction_summary_log()
   }
 
 }
+*/
 
 /* ----------------------------------------------------------------------
    compute energy of site
@@ -1002,11 +1004,11 @@ double AppSurfchemtest::site_propensity(int i)
     if (ads_is_rate) adspropensity = adsrate[m];
     else
     {
-      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*pow(tempratio,ads_beta[m]); // beta
-      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*pow(tempratio,ads_beta[m]);
-      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*pow(tempratio,ads_beta[m]);
-      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*pow(tempratio,ads_beta[m]);
-      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*pow(tempratio,ads_beta[m]);
+      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*pressure1[i]*pow(tempratio,ads_beta[m]); // beta
+      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*pressure2[i]*pow(tempratio,ads_beta[m]);
+      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*pressure3[i]*pow(tempratio,ads_beta[m]);
+      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*pressure4[i]*pow(tempratio,ads_beta[m]);
+      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*pressure5[i]*pow(tempratio,ads_beta[m]);
     }
 
     add_event(i,4,m,adspropensity,-1,-1);
@@ -1045,11 +1047,11 @@ double AppSurfchemtest::site_propensity(int i)
       if (type[j] != dadstype[m][1] || element[j] != dadsinput[m][1]) continue;
       if (dads_is_rate) dadspropensity = dadsrate[m];
       else {
-        if (dadsadsorbate[m]==SPEC1) dadspropensity = dadsrate[m]*density1[i]*pow(tempratio,dads_beta[m]);
-        else if (dadsadsorbate[m]==SPEC2) dadspropensity = dadsrate[m]*density2[i]*pow(tempratio,dads_beta[m]);
-        else if (dadsadsorbate[m]==SPEC3) dadspropensity = dadsrate[m]*density3[i]*pow(tempratio,dads_beta[m]);
-        else if (dadsadsorbate[m]==SPEC4) dadspropensity = dadsrate[m]*density4[i]*pow(tempratio,dads_beta[m]);
-        else if (dadsadsorbate[m]==SPEC5) dadspropensity = dadsrate[m]*density5[i]*pow(tempratio,dads_beta[m]);
+        if (dadsadsorbate[m]==SPEC1) dadspropensity = dadsrate[m]*pressure1[i]*pow(tempratio,dads_beta[m]);
+        else if (dadsadsorbate[m]==SPEC2) dadspropensity = dadsrate[m]*pressure2[i]*pow(tempratio,dads_beta[m]);
+        else if (dadsadsorbate[m]==SPEC3) dadspropensity = dadsrate[m]*pressure3[i]*pow(tempratio,dads_beta[m]);
+        else if (dadsadsorbate[m]==SPEC4) dadspropensity = dadsrate[m]*pressure4[i]*pow(tempratio,dads_beta[m]);
+        else if (dadsadsorbate[m]==SPEC5) dadspropensity = dadsrate[m]*pressure5[i]*pow(tempratio,dads_beta[m]);
       }
       add_event(i,6,m,dadspropensity,j,-1);
       proball += dadspropensity;
@@ -1384,14 +1386,14 @@ void AppSurfchemtest::grow_reactions(int rstyle)
     memory->grow(neighboring_ades,n,"app/surfchemtest:neighboring_ades");
   } else if (rstyle == 8) {
     int n = nreaction + 1;
-    memory->grow(rxnrate,n,"app/surfchemtest:adesrate");
-    memory->grow(rxnpropensity,n,"app/surfchemtest:adespropensity");
-    rxntype = memory->grow(rxntype,n,2,"app/surfchemtest:adestype");
-    rxninput = memory->grow(rxninput,n,2,"app/surfchemtest:adesinput");
-    rxnoutput = memory->grow(rxnoutput,n,2,"app/surfchemtest:adesoutput");
-    memory->grow(rxncount,n,"app/surfchemtest:adescount");
-    memory->grow(reactionsorbate,n,"app/surfchemtest:adesdesorbate");
-    memory->grow(neighboring_rxn,n,"app/surfchemtest:neighboring_ades");
+    memory->grow(rxnrate,n,"app/surfchemtest:rxnrate");
+    memory->grow(rxnpropensity,n,"app/surfchemtest:rxnpropensity");
+    rxntype = memory->grow(rxntype,n,2,"app/surfchemtest:rxntype");
+    rxninput = memory->grow(rxninput,n,2,"app/surfchemtest:rxninput");
+    rxnoutput = memory->grow(rxnoutput,n,2,"app/surfchemtest:rxnoutput");
+    memory->grow(rxncount,n,"app/surfchemtest:rxncount");
+    memory->grow(reactionsorbate,n,"app/surfchemtest:reactionsorbate");
+    memory->grow(neighboring_rxn,n,"app/surfchemtest:neighboring_rxn");
   }
 }
 
@@ -1742,25 +1744,25 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
         spk->uniface->push("CH_adc5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},adc5[i]);
         adc5[i] = 0;
       }
-    } else if (strcmp(arg[k],"density1") == 0) {    // d1
+    } else if (strcmp(arg[k],"pressure1") == 0) {    // d1
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density1[i]);
+        spk->uniface->push("CH_pressure1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},pressure1[i]);
       }
-    } else if (strcmp(arg[k],"density2") == 0) {    // d2
+    } else if (strcmp(arg[k],"pressure2") == 0) {    // d2
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density2[i]);
+        spk->uniface->push("CH_pressure2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},pressure2[i]);
       }
-    } else if (strcmp(arg[k],"density3") == 0) {    // d3
+    } else if (strcmp(arg[k],"pressure3") == 0) {    // d3
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density3[i]);
+        spk->uniface->push("CH_pressure3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},pressure3[i]);
       }
-    } else if (strcmp(arg[k],"density4") == 0) {    // d4
+    } else if (strcmp(arg[k],"pressure4") == 0) {    // d4
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density4[i]);
+        spk->uniface->push("CH_pressure4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},pressure4[i]);
       }
-    } else if (strcmp(arg[k],"density5") == 0) {    // d5
+    } else if (strcmp(arg[k],"pressure5") == 0) {    // d5
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density5[i]);
+        spk->uniface->push("CH_pressure5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},pressure5[i]);
       }
     } else if (strcmp(arg[k],"temp") == 0) {        // d6
       for (int i=0;i<nlocal;i++) {
@@ -1904,25 +1906,25 @@ void AppSurfchemtest::mui_fetch(int narg, char **arg)
 
   for (int k=1;k<narg;k++)
   {
-    if (strcmp(arg[k],"density1") == 0) {           // d1
+    if (strcmp(arg[k],"pressure1") == 0) {           // d1
       for (int i=0;i<nlocal;i++) {
-        density1[i] = spk->uniface->fetch("CH_density1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
+        pressure1[i] = spk->uniface->fetch("CH_pressure1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"density2") == 0) {    // d2
+    } else if (strcmp(arg[k],"pressure2") == 0) {    // d2
       for (int i=0;i<nlocal;i++) {
-        density2[i] = spk->uniface->fetch("CH_density2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
+        pressure2[i] = spk->uniface->fetch("CH_pressure2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"density3") == 0) {    // d3
+    } else if (strcmp(arg[k],"pressure3") == 0) {    // d3
       for (int i=0;i<nlocal;i++) {
-        density3[i] = spk->uniface->fetch("CH_density3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
+        pressure3[i] = spk->uniface->fetch("CH_pressure3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"density4") == 0) {    // d4
+    } else if (strcmp(arg[k],"pressure4") == 0) {    // d4
       for (int i=0;i<nlocal;i++) {
-        density4[i] = spk->uniface->fetch("CH_density4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
+        pressure4[i] = spk->uniface->fetch("CH_pressure4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"density5") == 0) {    // d5
+    } else if (strcmp(arg[k],"pressure5") == 0) {    // d5
       for (int i=0;i<nlocal;i++) {
-        density5[i] = spk->uniface->fetch("CH_density5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
+        pressure5[i] = spk->uniface->fetch("CH_pressure5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
     } else if (strcmp(arg[k],"temp") == 0) {        // d6
       for (int i=0;i<nlocal;i++) {
@@ -1962,13 +1964,13 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
 
   for (int k=1;k<narg;k++)
   {
-    if (strcmp(arg[k],"density1") == 0) {
+    if (strcmp(arg[k],"pressure1") == 0) {
       // get info for each FHD cell
       for (int n=0;n<nlocalFHDcell;n++)
-        MUIdblval[n] = spk->uniface->fetch("CH_density1",{xFHD[n],yFHD[n]},timestamp,s,t);
+        MUIdblval[n] = spk->uniface->fetch("CH_pressure1",{xFHD[n],yFHD[n]},timestamp,s,t);
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
-        density1[i] = MUIdblval[localFHDcell[i]];
+        pressure1[i] = MUIdblval[localFHDcell[i]];
     }
     else if (strcmp(arg[k],"temp") == 0) {
       // get info for each FHD cell
@@ -2263,6 +2265,14 @@ void AppSurfchemtest::amrex_push_agg(int narg, char **arg)
                 dac2[i] = 0;
             }
             amrex_send_intval();
+        } else if (std::strcmp(arg[k],"dac3") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += dac3[i];
+                dac3[i] = 0;
+            }
+            amrex_send_intval();
         } else if (std::strcmp(arg[k],"adc1") == 0) {
             // compute the sum over each FHD domain
             for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
@@ -2357,23 +2367,23 @@ void AppSurfchemtest::amrex_fetch_agg(int narg, char **arg)
 
     for (int k=1;k<narg;k++)
     {
-        if (std::strcmp(arg[k],"density1") == 0) {
+        if (std::strcmp(arg[k],"pressure1") == 0) {
             amrex_recv_dblval();
             // distribute info to each KMC site
             for (int i=0;i<nlocal;i++)
-                density1[i] = dblval[localFHDcell[i]];
+                pressure1[i] = dblval[localFHDcell[i]];
         }
-        else if (std::strcmp(arg[k],"density2") == 0) {
+        else if (std::strcmp(arg[k],"pressure2") == 0) {
             amrex_recv_dblval();
             // distribute info to each KMC site
             for (int i=0;i<nlocal;i++)
-                density2[i] = dblval[localFHDcell[i]];
+                pressure2[i] = dblval[localFHDcell[i]];
         }
-        else if (std::strcmp(arg[k],"density3") == 0) {
+        else if (std::strcmp(arg[k],"pressure3") == 0) {
             amrex_recv_dblval();
             // distribute info to each KMC site
             for (int i=0;i<nlocal;i++)
-                density3[i] = dblval[localFHDcell[i]];
+                pressure3[i] = dblval[localFHDcell[i]];
         }
         else if (std::strcmp(arg[k],"temp") == 0) {
             amrex_recv_dblval();
