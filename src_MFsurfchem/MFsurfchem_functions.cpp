@@ -202,6 +202,9 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
     BL_PROFILE_VAR_STOP(p_load);
 #endif
 
+    std::unique_ptr< amrex::MultiFab > surfcov_slice = nullptr;
+    surfcov_slice = amrex::get_slice_data(ads_wall_dir, 0.5*dx[ads_wall_dir], surfcov, geom, 0, 1);
+    
     BL_PROFILE_VAR_NS("compute_ML_updates", p_compute_ml);
     BL_PROFILE_VAR_NS("compute_standard_updates", p_compute_std);
 
@@ -212,12 +215,12 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 #else
         BL_PROFILE_VAR_START(p_compute_ml);
 
-        for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*surfcov_slice,false); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             const Array4<Real> & cu_arr = cu.array(mfi);
             const Array4<Real> & prim_arr = prim.array(mfi);
-            const Array4<Real> & surfcov_arr = surfcov.array(mfi);
+            const Array4<Real> & surfcov_arr = surfcov_slice->array(mfi);
             const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
             const Array4<Real> & dNads_arr = dNads.array(mfi);
             const Array4<Real> & dNdes_arr = dNdes.array(mfi);
@@ -254,17 +257,14 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 cell += kk*nbox[0]*nbox[1];
 #endif
                 int index = cell * n_ads_spec + m;
-                bool ads_on_wall = (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0);
 
                 amrex::Real pres = 0.0;
                 amrex::Real tempratio = prim_arr(i,j,k,4) / T_init[0];
                 amrex::Real theta = 0.0;
 
-                if (ads_on_wall) {
                     pres = prim_arr(i,j,k,5);
                     pres *= prim_arr(i,j,k,6 + nspecies + m);
                     theta = surfcov_arr(i,j,k,m);
-                }
 
                 auxPtr[index*Nc_in + 0] = pres;
                 auxPtr[index*Nc_in + 1] = tempratio;
@@ -291,9 +291,6 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 int kk = k - bx_lo[2];
                 cell += kk*nbox[0]*nbox[1];
 #endif
-                bool ads_on_wall = (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0);
-
-                if (ads_on_wall) {
 
                     for (int m=0;m<n_ads_spec;m++) {
                         int index = cell * n_ads_spec + m;
@@ -314,7 +311,6 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                         dNadsdes_arr(i,j,k,m) = Nads - Ndes;
                         }
                     }
-                }
             });
         }
 
@@ -325,7 +321,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 
         BL_PROFILE_VAR_START(p_compute_std);
 
-        for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*surfcov_slice,false); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             const Array4<Real> & cu_arr = cu.array(mfi);
@@ -390,6 +386,8 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         }
         BL_PROFILE_VAR_STOP(p_compute_std);
     }
+
+    surfcov.ParallelCopy(*surfcov_slice, 0, 0, 1);
 
     return;
 
