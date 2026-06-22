@@ -1,6 +1,9 @@
 #include "MFsurfchem_functions.H"
 #include "AMReX_ParmParse.H"
+
+#ifdef AMREX_USE_ML
 #include <torch/script.h>
+#endif
 
 
 AMREX_GPU_MANAGED int MFsurfchem::n_ads_spec;
@@ -169,6 +172,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
     BL_PROFILE("sample_MFsurfchem");
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
+#ifdef AMREX_USE_ML
     bool model_loaded = false;
     torch::jit::script::Module model;
     auto dtype0 = torch::kFloat64;
@@ -190,31 +194,36 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
             tensoropt = tensoropt.device(device0);
 //            amrex::Print() << "Copying model to GPU." << std::endl;
 #endif
-
         }
         catch (const c10::Error& e) {
             amrex::Abort(std::string("Error loading ML model: ") + model_filename + " :: " + e.what());
         }
     }
     BL_PROFILE_VAR_STOP(p_load);
+#endif
 
     BL_PROFILE_VAR_NS("compute_ML_updates", p_compute_ml);
     BL_PROFILE_VAR_NS("compute_standard_updates", p_compute_std);
 
-    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        const Array4<Real> & cu_arr = cu.array(mfi);
-        const Array4<Real> & prim_arr = prim.array(mfi);
-        const Array4<Real> & surfcov_arr = surfcov.array(mfi);
-        const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
-        const Array4<Real> & dNads_arr = dNads.array(mfi);
-        const Array4<Real> & dNdes_arr = dNdes.array(mfi);
+    if (use_ml_mfsurfchem > 0) {
 
-        amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites
+#ifndef AMREX_USE_ML
+        Abort("use_ml_mfsurfchem requires building with USE_ML=TRUE");
+#else
+        BL_PROFILE_VAR_START(p_compute_ml);
 
-        if (use_ml_mfsurfchem > 0) {
-            BL_PROFILE_VAR_START(p_compute_ml);
+        for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const Array4<Real> & cu_arr = cu.array(mfi);
+            const Array4<Real> & prim_arr = prim.array(mfi);
+            const Array4<Real> & surfcov_arr = surfcov.array(mfi);
+            const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
+            const Array4<Real> & dNads_arr = dNads.array(mfi);
+            const Array4<Real> & dNdes_arr = dNdes.array(mfi);
+
+            amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites
+
             if (!model_loaded) {
                 Abort("ML model requested but not loaded");
             }
@@ -307,10 +316,27 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                     }
                 }
             });
-            BL_PROFILE_VAR_STOP(p_compute_ml);
         }
-        else {
-            BL_PROFILE_VAR_START(p_compute_std);
+
+        BL_PROFILE_VAR_STOP(p_compute_ml);
+#endif
+
+    } else { // use_ml_mfsurfchem <= 0
+
+        BL_PROFILE_VAR_START(p_compute_std);
+
+        for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const Array4<Real> & cu_arr = cu.array(mfi);
+            const Array4<Real> & prim_arr = prim.array(mfi);
+            const Array4<Real> & surfcov_arr = surfcov.array(mfi);
+            const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
+            const Array4<Real> & dNads_arr = dNads.array(mfi);
+            const Array4<Real> & dNdes_arr = dNdes.array(mfi);
+
+            amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites
+
             amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
             {
                 if ( (ads_wall_dir == 0 && i == 0) || (ads_wall_dir == 1 && j == 0) || (ads_wall_dir == 2 && k == 0) ) {
@@ -361,10 +387,12 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                     }
                 }
             });
-            BL_PROFILE_VAR_STOP(p_compute_std);
         }
+        BL_PROFILE_VAR_STOP(p_compute_std);
     }
+
     return;
+
 }
 void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes,
                        const amrex::Geometry& geom)

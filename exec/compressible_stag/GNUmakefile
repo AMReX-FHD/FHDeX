@@ -18,6 +18,8 @@ USE_FFT       = TRUE
 USE_PARTICLES = FALSE
 DO_TURB       = FALSE
 
+USE_ML        = TRUE
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 VPATH_LOCATIONS   += .
@@ -59,47 +61,17 @@ ifeq ($(DO_TURB), TRUE)
   DEFINES += -DTURB
 endif
 
+ifeq  ($(USE_ML), TRUE)
+  DEFINES += -DAMREX_USE_ML
+endif
+
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
 
 MAXREACTION := $(strip $(MAX_REAC))
 DEFINES += -DMAX_REACTION=$(MAXREACTION)
 
-#ifeq ($(USE_CUDA),TRUE)
-#    PYTORCH_ROOT := ./test_MFsurfchem_COAr_eq_ML/libtorch_cuda
-#else
-#    PYTORCH_ROOT := ./test_MFsurfchem_COAr_eq_ML/libtorch_cpu
-#endif
-
-#ifeq ($(USE_CUDA),TRUE)
-#    PYTORCH_ROOT := $(abspath $(CURDIR))/test_MFsurfchem_COAr_eq_ML/libtorch_cuda
-#    TORCH_RPATH  := $$ORIGIN/test_MFsurfchem_COAr_eq_ML/libtorch_cuda/lib
-#else
-#    PYTORCH_ROOT := $(abspath $(CURDIR))/test_MFsurfchem_COAr_eq_ML/libtorch_cpu
-#    TORCH_RPATH  := $$ORIGIN/test_MFsurfchem_COAr_eq_ML/libtorch_cpu/lib
-#endif
-
-#TORCH_LIBPATH = $(PYTORCH_ROOT)/lib
-#
-#ifeq ($(USE_CUDA),TRUE)
-#    TORCH_LIBS = -ltorch -ltorch_cpu -lc10 -lc10_cuda -lcuda
-#else
-#    TORCH_LIBS = -ltorch -ltorch_cpu -lc10
-#endif
-
-
-#INCLUDE_LOCATIONS += $(PYTORCH_ROOT)/include \
-#                     $(PYTORCH_ROOT)/include/torch/csrc/api/include
-#LIBRARY_LOCATIONS += $(TORCH_LIBPATH)
-
-#DEFINES += -D_GLIBCXX_USE_CXX11_ABI=1
-#ifeq ($(USE_CUDA),TRUE)
-#    LDFLAGS += -Xlinker "--no-as-needed,-rpath $(TORCH_RPATH) $(TORCH_LIBS)"
-#else
-#    LDFLAGS += -Wl,--no-as-needed,-rpath=$(TORCH_RPATH) $(TORCH_LIBS)
-#endif
-
-
+ifeq ($(USE_ML),TRUE)
 
 ifeq ($(USE_CUDA),TRUE)
     PYTORCH_ROOT := $(abspath $(CURDIR))/test_MFsurfchem_COAr_eq_ML/libtorch_cuda
@@ -126,4 +98,6 @@ ifeq ($(USE_CUDA),TRUE)
     LDFLAGS += -Xlinker --no-as-needed -Xlinker -rpath=$(TORCH_LIBPATH) $(TORCH_LIBS)
 else
     LDFLAGS += -Wl,--no-as-needed,-rpath=$(TORCH_LIBPATH) $(TORCH_LIBS)
+endif
+
 endif

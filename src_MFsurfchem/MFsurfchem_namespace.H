@@ -1,4 +1,4 @@
- namespace MFsurfchem {
+namespace MFsurfchem {
 
     extern AMREX_GPU_MANAGED int n_ads_spec;
     extern AMREX_GPU_MANAGED int ads_wall_dir;
