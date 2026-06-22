@@ -451,7 +451,7 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                 Vsubx = 2.*sinx*cosx*siny*siny/gamma;
                 Vsuby = 2.*siny*cosy*sinx*sinx/gamma;
 
-                
+
                 if(on_surf == 0){
 
                    p.pos(0) += -dt*Vsubx;
@@ -469,14 +469,14 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
                  amrex::Real xloc = p.pos(0);
                  amrex::Real yloc = p.pos(1);
-            
+
                  sinx = std::sin(xloc);
                  siny = std::sin(yloc);
                  cosx = std::cos(xloc);
                  cosy = std::cos(yloc);
 
                  det = 1 + amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy);
-                 
+
                  fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy))*sinx*cosx*siny*siny;
                  fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy))*siny*cosy*sinx*sinx;
 
@@ -507,7 +507,7 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
                  amrex::Real xloc = p.pos(0);
                  amrex::Real yloc = p.pos(1);
-            
+
                  sinx = std::sin(xloc);
                  siny = std::sin(yloc);
                  cosx = std::cos(xloc);
@@ -516,10 +516,10 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
                  det = 1. + 4.* amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy)*sinx*sinx*siny*siny;
 
-                 amrex::Real detx = 8.*amp*amp*sinx*siny*cosx*(2.*cosy*cosy*sinx*sinx*siny + 
+                 amrex::Real detx = 8.*amp*amp*sinx*siny*cosx*(2.*cosy*cosy*sinx*sinx*siny +
                                            siny*siny*siny*(cosx*cosx - sinx*sinx));
 
-                 amrex::Real dety = 8.*amp*amp*sinx*siny*cosy*(2.*cosx*cosx*siny*siny*sinx + 
+                 amrex::Real dety = 8.*amp*amp*sinx*siny*cosy*(2.*cosx*cosx*siny*siny*sinx +
                                            sinx*sinx*sinx*(cosy*cosy - siny*siny));
 
 
@@ -544,7 +544,7 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                  sig21 = sig12;
 
 
-                 
+
                  fx = 2.*amp*amp*(2.*cosx*sinx*sinx*sinx*siny*siny/det + ((cosx*cosy*sinx*sinx*sinx*siny*siny*siny*dety)-
                              ( cosy*cosy*sinx*sinx*sinx*sinx*siny*siny)*detx)/(det*det)) - .5*detx/(det*det);
 
@@ -557,10 +557,10 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                  amrex::Real updatey = fy*dt + std::sqrt(2.)*(sig21*incx + sig22*incy);
 
                  if(ext_pot == 1){
-           
+
                     updatex -= dt*(gmet0*Vsubx+gmet1*Vsuby);
                     updatey -= dt*(gmet2*Vsubx+gmet3*Vsuby);
-                    
+
                  }
 
                  if(std::abs(updatex) > dx[0] || std::abs(updatey) > dx[1])
@@ -572,7 +572,7 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                  updatey = std::max(-dx[1], std::min( dx[1], updatey));
 
                  //amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << std::endl;
-                
+
                  p.pos(0) += static_cast<ParticleReal> (updatex);
                  p.pos(1) += static_cast<ParticleReal> (updatey);
 

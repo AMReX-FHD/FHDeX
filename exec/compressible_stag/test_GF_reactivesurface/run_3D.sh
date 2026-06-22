@@ -8,12 +8,12 @@
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=16
 #SBATCH -q regular
-#SBATCH -J 
-#SBATCH -A 
-#SBATCH -t 
+#SBATCH -J
+#SBATCH -A
+#SBATCH -t
 
 executable=../main3d.gnu.MPI.CUDA.ex
 inputs_file=inputs_GF_reactivesurface_3D
 
-#run the application: 
+#run the application:
 srun $executable $inputs_file >> scrout
