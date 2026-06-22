@@ -162,7 +162,7 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 
     return;
 }
- 
+
 void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, MultiFab& dNads, MultiFab& dNdes,
                        const amrex::Geometry& geom, const amrex::Real dt)
 {
@@ -211,12 +211,12 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         const Array4<Real> & dNads_arr = dNads.array(mfi);
         const Array4<Real> & dNdes_arr = dNdes.array(mfi);
 
-        amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites 
+        amrex::Real Ntot = surf_site_num_dens*dx[(ads_wall_dir+1)%3]*dx[(ads_wall_dir+2)%3];  // total number of reactive sites
 
         if (use_ml_mfsurfchem > 0) {
             BL_PROFILE_VAR_START(p_compute_ml);
             if (!model_loaded) {
-                Abort("ML model requested but not loaded"); 
+                Abort("ML model requested but not loaded");
             }
             // number of inputs and outputs of the pytorch model
             int Nc_in = 3;
