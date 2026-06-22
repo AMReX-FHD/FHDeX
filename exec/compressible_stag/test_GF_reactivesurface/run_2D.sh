@@ -6,12 +6,12 @@
 #SBATCH -C cpu
 #SBATCH --ntasks-per-node=128
 #SBATCH -q regular
-#SBATCH -J 
-#SBATCH -A 
-#SBATCH -t 
+#SBATCH -J
+#SBATCH -A
+#SBATCH -t
 
 executable=../main3d.gnu.x86-milan.MPI.ex
 inputs_file=inputs_GF_reactivesurface_quasi2D
 
-#run the application: 
+#run the application:
 srun --cpu-bind=cores $executable $inputs_file >> scrout

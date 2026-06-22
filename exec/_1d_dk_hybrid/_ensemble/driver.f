@@ -69,7 +69,7 @@ c
      1   jmidl,jmidr,midfact,jpartl,jpartr,is_hybrid,ensemble,
      1   is_gaussian,irestart, ipdf, binlo, nbins, dbin, ensout
 
-       
+
        xlen = 1.d0
        iper = 1
        irestart = 0
@@ -92,8 +92,8 @@ c
        ipdf = 0
        ensout = 1
        maxntot = 0.d0
-    
- 
+
+
        read(5,input_param)
        write(6,input_param)
 
@@ -126,8 +126,8 @@ c
        endif
 
        pi = 4.d0*atan2(1.d0,1.d0)
- 
- 	time =0.0
+
+     time =0.0
         dx = xlen/dfloat(npts)
 
         do j=1,npts
@@ -137,7 +137,7 @@ c
           xl(npts+1) = xlen
 
        if(cfl.gt.0.d0)then
- 
+
           dt = cfl*dx**2
 
        endif
@@ -169,8 +169,8 @@ c   set initial conditions
         do j=1,npts
 
            u(j,k) = uinit
-           
-           if(j.ge.jmidl .and. j.le.jmidr)then 
+
+           if(j.ge.jmidl .and. j.le.jmidr)then
               u(j,k) = u(j,k)*midfact
            endif
 
@@ -184,7 +184,7 @@ c   set initial conditions
                 totmass = totmass+u(j,1)
 
             enddo
- 
+
             totmass = totmass * dx
 
 
@@ -204,7 +204,7 @@ c   set initial conditions
                 totmass = totmass+u(j,1)
 
             enddo
- 
+
             totmass = totmass * dx
 
 c          write(6,*)"init totmass after = ",totmass
@@ -339,7 +339,7 @@ c      enddo
 
             enddo
            maxntot = max(maxn,maxntot)
- 
+
 
          if(n.gt.ntherm .and. mod(n,nout).eq.0)then
 
@@ -352,7 +352,7 @@ c      enddo
                 minmass = min(minmass,u(j,1))
 
             enddo
- 
+
             totmass = totmass * dx
 
 c          write(6,*)n, "time = ",time, " totmass = ",totmass,
@@ -571,7 +571,7 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
       character*9 step
       character*5  ensemble
 
-    
+
       write(ensemble,'(i5.5)') ens
       write(step,'(i9.9)') n
       ufile = "u_" // ensemble // "_" // step
@@ -589,7 +589,7 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
       enddo
 
 c     close(20)
-     
+
   101 format(1p8e15.7)
   102 format(1p6e20.12)
       return
