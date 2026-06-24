@@ -84,7 +84,7 @@ print "- Lz = %e\n" % Lz
 ##########
 
 n1s = 2*n1x*n1y
-print "- total number of sites per dxFHD*dyFHD = %d" % n1s 
+print "- total number of sites per dxFHD*dyFHD = %d" % n1s
 
 Ntot = ntot*dv
 N1 = n1*dv

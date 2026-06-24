@@ -14,7 +14,7 @@ subroutine initdata(level, time, lo, hi, &
 
   integer          :: i,j,k
   double precision :: x,y,z,r2
- ! Use for initial condition for concentration  
+ ! Use for initial condition for concentration
   do k=lo(3),hi(3)
      do j=lo(2),hi(2)
         do i=lo(1),hi(1)

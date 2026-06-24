@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -18,8 +18,8 @@
 using namespace SPPARKS_NS;
 
 Cluster::Cluster(int id, int iv, double dv, double vol,
-		 double cx_in, double cy_in, double cz_in,
-		 int nn, double* neighs, double* pbcs) {
+  double cx_in, double cy_in, double cz_in,
+  int nn, double* neighs, double* pbcs) {
   global_id = id;
   ivalue = iv;
   dvalue = dv;
@@ -73,7 +73,7 @@ Cluster& Cluster::operator=(const Cluster& c) {
   }
   return *this;
 }
-  
+
 Cluster::~Cluster() {
   if (neighlist != NULL) {
     free(neighlist);
@@ -82,7 +82,7 @@ Cluster::~Cluster() {
 }
 
 // Include cluster id in list of neighbors of this cluster
-  
+
 void Cluster::add_neigh(int id) {
   for (int ineigh = 0; ineigh < nneigh; ineigh++) {
     if (id == neighlist[ineigh]) return;
@@ -96,14 +96,14 @@ void Cluster::add_neigh(int id) {
   pbcflags[3*(nneigh-1)+2] = 0;
 }
 
-// Record which periodic boundaries separate 
+// Record which periodic boundaries separate
 // this cluster and the neighbor cluster.
 // input id is the id of neighbor.
 // pbcflags_in take values -1,0,+1.
 // non-zero values are copied to pbcflags
 // overwriting previous value which is
 // either zero or identical to pbcflags_in.
-// exception case is if pbcflags is already 
+// exception case is if pbcflags is already
 // non-zero and opposite. This means
 // that the two clusters meet at both left
 // and right processor boundaries, which
@@ -118,23 +118,23 @@ void Cluster::add_neigh(int id) {
 // the spanning direction, say Px.
 //
 // 1. Px = 1. This can only be detected
-// in AppLattice::push_connected_neighbors(). If a 
+// in AppLattice::push_connected_neighbors(). If a
 // neighbor has already been assigned to the cluster
 // and its distance in x is greater than lx/2, then
-// the cluster has wrapped around the periodic 
+// the cluster has wrapped around the periodic
 // boundary in x, and so is infinite in x dir.
 //
 // 2. Px = 2. This can only be detected in
 // Cluster::add_pbcflags(), as mentioned above.
 //
 // 3. Px > 3. This can only be detected at
-// the level of the cluster analysis. If a 
+// the level of the cluster analysis. If a
 // neighbor cluster has already been processed
 // and its centroid distance is more than lx/2
 // then this has "probably" wrapped around. It
 // is easy to construct counter-examples. A more
 // rigorous test requires performing the same test
-// when the cluster is mapped onto the 1-D lattice 
+// when the cluster is mapped onto the 1-D lattice
 // of the processor grid.
 
 void Cluster::add_pbcflags(int id, int* pbcflags_in) {
@@ -150,8 +150,8 @@ void Cluster::add_pbcflags(int id, int* pbcflags_in) {
   if (ix) pbcflags[3*ineigh] = ix;
   if (iy) pbcflags[3*ineigh+1] = iy;
   if (iz) pbcflags[3*ineigh+2] = iz;
-} 
-  
+}
+
 void Cluster::print(FILE* fp) {
   fprintf(fp,"%d %d %g %g %g %g %g %d ",global_id,ivalue,dvalue,volume,cx,cy,cz,nneigh);
   for (int ineigh = 0; ineigh < nneigh; ineigh++) {
@@ -162,4 +162,3 @@ void Cluster::print(FILE* fp) {
   }
   fprintf(fp,"\n");
 }
-  

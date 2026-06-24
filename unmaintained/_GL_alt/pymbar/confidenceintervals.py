@@ -297,14 +297,14 @@ def generateConfidenceIntervals(replicates, K):
             vals_std[rindex] = replicate['destimated']
         elif dim == 1:
             for i in range(0, K):
-                vals[rindex,:] = replicate['estimated']      
-                vals_error[rindex,:] = replicate['error']      
+                vals[rindex,:] = replicate['estimated']
+                vals_error[rindex,:] = replicate['error']
                 vals_std[rindex,:] = replicate['destimated']
         elif dim == 2:
             for i in range(0, K):
                 for j in range(0, i):
-                    vals[rindex,:,:] = replicate['estimated']      
-                    vals_error[rindex,:,:] = replicate['error']      
+                    vals[rindex,:,:] = replicate['estimated']
+                    vals_error[rindex,:,:] = replicate['error']
                     vals_std[rindex,:,:] = replicate['destimated']
         rindex += 1
 

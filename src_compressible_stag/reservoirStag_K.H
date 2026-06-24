@@ -8,8 +8,8 @@
 #include <math.h>
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-amrex::Real 
-random_cross_vel(const amrex::Real& a, const amrex::Real& vT, bool tangential, amrex::Real Vtangential, 
+amrex::Real
+random_cross_vel(const amrex::Real& a, const amrex::Real& vT, bool tangential, amrex::Real Vtangential,
                  amrex::RandomEngine const& engine)
 {
     constexpr amrex::Real sqrtPI = 1.77245385091;
@@ -92,7 +92,7 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
     amrex::GpuArray<amrex::Real,MAX_SPECIES> thermal_speed;
     amrex::GpuArray<amrex::Real,MAX_SPECIES> speed_ratio;
     amrex::GpuArray<bool,MAX_SPECIES> stop_flag;
-    
+
     for (int n=0;n<nspec;++n) {
         thermal_speed[n] = sqrt(2.0*kB*T/mass[n]);
         speed_ratio[n] = Vnormal/thermal_speed[n];
@@ -117,12 +117,12 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
     // Run Poisson Process
     bool stop = false;
     while(!stop) {
-        
+
         // add a particle for each species (if stop[n] = false)
         amrex::Real vel_rand;
         for (int n=0;n<nspec;++n) {
             if (!stop_flag[n]) {
-                
+
                 // normal component
                 mass_cross += mass[n]; // add a particle crossing for total mass
                 spec_mass_cross[n] += mass[n]; // add a particle crossing for species mass

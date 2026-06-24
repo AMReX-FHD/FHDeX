@@ -24,7 +24,7 @@ void AdvanceDiffusion(MultiFab& n_old,
             diff_coef_face[d].setVal(D_Fick[i],i,1,0);
         }
     }
-    
+
     // do not do diffusion if only one cell (well-mixed system)
     // there is no restriction on the number of cells
     // but we can shortcut the single cell case anyway for simplicity
@@ -85,7 +85,7 @@ void AdvanceDiffusion(MultiFab& n_old,
             n_new.FillBoundary(geom.periodicity());
             MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
         }
-        
+
     } else if (reactDiff_diffusion_type == 1) {
         /*
        ! Crank-Nicolson
@@ -109,7 +109,7 @@ void AdvanceDiffusion(MultiFab& n_old,
         ImplicitDiffusion(n_old, n_new, stoch_fluxdiv, diff_coef_face, geom, 0.5*dt, time);
 
     } else if (reactDiff_diffusion_type == 2) {
-        
+
         /*
        ! explicit midpoint scheme
 
@@ -153,7 +153,7 @@ void AdvanceDiffusion(MultiFab& n_old,
     } else {
         Abort("AdvanceDiffusion() - invalid reactDiff_diffusion_type");
     }
-    
+
 }
 
 void GenerateStochasticFluxdivCorrector(MultiFab& n_old,
@@ -185,7 +185,7 @@ void GenerateStochasticFluxdivCorrector(MultiFab& n_old,
 
         // use n_new=2*n_pred-n_old
         StochasticNFluxdiv(n_new,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
-                
+
     } else {
         Abort("GenerateStochasticFluxdivCorrector() - invalid midpoint_stoch_flux_type");
     }

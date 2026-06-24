@@ -7,9 +7,9 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
-DIM       = 2
-MAX_SPEC      = 8
-MAX_ELEM      = 28
+DIM       = 3
+MAX_SPEC  = 2
+USE_FFT   = TRUE
 
 TINY_PROFILE = FALSE
 
@@ -49,6 +49,7 @@ INCLUDE_LOCATIONS += ../../src_multispec/
 CEXE_SOURCES += multispec_namespace.H
 
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/FFT/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 

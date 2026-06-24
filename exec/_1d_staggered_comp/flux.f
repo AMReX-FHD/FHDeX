@@ -42,7 +42,7 @@
       double precision cu0, cu1,cuy,cuz, conc,temp
       double precision diamx,mx,omc,ctemp
       double precision  s0, s1, dmudcm1,Jx
- 
+
       double precision prom,ratm,difm,summ,omcsq,comc,csq,cvmix
 
       double precision kxp
@@ -63,7 +63,7 @@
      1   etaC0,etaC1,kappaC0, kappaC1,Tleft,Tright,pi,cleft,cright
 
 
-       
+
 
        ratm = mass0/mass1
 
@@ -81,7 +81,7 @@
         enddo
 
         do j=2,npts
-         
+
            u(j) = con(j,2)*2.d0/(rho(j-1)+rho(j))
 
         enddo
@@ -124,81 +124,81 @@
                rho(npts+1) = p(npts+1)/(T(npts+1)*
      1              (rgas1*comp(npts+1)+rgas0*(1.d0-comp(npts+1))))
              endif
-             
-             
-             
+
+
+
 
          endif
-   
+
 
 
 1000   format(4e15.7)
 
- 
+
       prom = mass0*mass1
       ratm = mass0/mass1
       difm = (mass0-mass1)**2/prom
       summ = (mass0+mass1)**2/prom
- 
+
       mx = 2.d0*mass0*mass1/(mass0+mass1)
       diamx = 0.5d0*(d0+d1)
- 
+
          do j=0,npts+1
 
- 
+
         ctemp = comp(j)
         ctemp = max(0.d0,min(1.d0,ctemp))
         conc = ratm*ctemp/(1.d0-(1.d0-ratm)*ctemp)
- 
+
         omc = 1.d0-conc
         temp = T(j)
         eta1 = etaC1*sqrt(temp)
         eta0 = etaC0*sqrt(temp)
- 
+
         etax = 5.d0*sqrt(mx*kboltz*temp/pi)/(16.d0*diamx**2)
 
- 
+
         csq = conc*conc
         omcsq = omc*omc
         comc = conc*omc
- 
+
         xeta = omcsq/eta0+2.d0*comc/etax+csq/eta1
         yeta = .6d0*( omcsq*ratm/eta0+
      1       .5d0*comc*etax*summ/(eta0*eta1) + csq/(eta1*ratm))
         zeta = .6*(omcsq*ratm+2.d0*comc*(0.25d0*summ*(etax/eta0
      2      +etax/eta1)-1.d0)+csq/ratm)
- 
+
         eta(j) = (1.d0+zeta)/(xeta+yeta)
         dfic(j) = 6.d0*etax/(5.d0*rho(j))
- 
- 
+
+
         kap0 = 15*kboltz*eta0/(4.d0*mass0)
         kap1 = 15*kboltz*eta1/(4.d0*mass1)
         kapx = 15*kboltz*etax/(4.d0*mx)
- 
+
         cu0 = 4.d0/15.d0-17.d0*ratm/60.d0+ 0.5d0*  difm
         cu1 = 4.d0/15.d0-17.d0/(60.d0*ratm)+ 0.5d0*  difm
         cuy = summ*kapx**2/
      1    (15.d0*kap0*kap1) -17.d0/60.d0 +
      2   13.d0/32.d0*difm
         cuz = (summ*(kapx/kap0+kapx/kap1)-4.d0)/15.d0-17.d0/60.d0
- 
+
         xkap = omcsq/kap0+2.d0*comc/kapx+csq/kap1
         ykap = omcsq*cu0/kap0+2*comc*cuy/kapx+csq*cu1/kap1
         zkap = omcsq*cu0+2*comc*cuz+csq*cu1
 
- 
+
         kappa(j) = (1.d0+zkap)/(xkap+ykap)
- 
+
         s0 = 0.5d0*(mass0+mass1)*kapx/(mass1*kap0) -
      1        15d0*(mass1-mass0)/(8.d0*mass0)-1.d0
         s1 = 0.5d0*(mass0+mass1)*kapx/(mass0*kap1) +
      1        15d0*(mass1-mass0)/(8.d0*mass1)-1.d0
- 
+
         dmudcm1 =  ratm/(ratm + (1.d0-ratm)*conc)**2*
      &    mass0*mass1*conc*omc/(mass0*omc+mass1*conc)
 
- 
+
         kT(j) = conc*omc*(s1*conc-s0*omc)/(6.d0*kapx*(xkap+ykap))
         kP(j) = (mass0-mass1)*ctemp*(1.d0-ctemp)*
      &       (ctemp/mass1+(1.d0-ctemp)/mass0)
@@ -253,7 +253,7 @@
 
                  fluxrm(0) = fluxrm(npts)
                  fluxrm(npts+1) = fluxrm(1)
-  
+
           endif
 
 
@@ -262,8 +262,8 @@
            dxp = 0.5d0*(dfic(j-1)*rho(j-1)+dfic(j)*rho(j))
            kTxp = 0.5d0*(kT(j-1)/T(j-1)+kT(j)/T(j))
            kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
- 
- 
+
+
         Jx = dxp*(comp(j)-comp(j-1))/dx
      &      + dxp*(kTxp*(T(j)-T(j-1))/dx +
      &          kpxp*(p(j)-p(j-1))/dx)
@@ -278,19 +278,19 @@
         mx = ctemp*(1.d0-ctemp)*(mass1*(1.d0-ctemp)
      &           + mass0*ctemp)
 
- 
+
 
 
               q(j) = 0.5d0*(kappa(j)+kappa(j-1))*
      1               (T(j)-T(j-1))/dx
 
-             viscenef(j) = q(j) 
+             viscenef(j) = q(j)
      &     +(soret+0.5d0* (cv1+rgas1-cv0-rgas0)*
      &         (T(j-1)+T(j)))*Jx
 
              viscspec(j) =  Jx
 
- 
+
           enddo
 
           if(iper.eq.1)then
@@ -302,7 +302,7 @@
 
                Jx = 0.d0
                q(1) = 2.d0*kappa(0)*(T(1)-T(0))/dx
-               viscenef(1) = q(1) 
+               viscenef(1) = q(1)
                viscspec(1) =  Jx
                viscenef(npts+1) = 2.d0*kappa(npts+1)*
      &          (T(npts+1)-T(npts))/dx
@@ -315,8 +315,8 @@
                kTxp = kT(j-1)/T(j-1)
 c              kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
                kpxp = kp(j-1)/p(j-1)
- 
- 
+
+
                Jx =2.d0* dxp*(comp(j)-comp(j-1))/dx
      &                 + 2.d0*dxp*(kTxp*(T(j)-T(j-1))/dx +
      &               2.d0*  kpxp*(p(j)-p(j-1))/dx)
@@ -331,13 +331,13 @@ c              kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
         mx = ctemp*(1.d0-ctemp)*(mass1*(1.d0-ctemp)
      &           + mass0*ctemp)
 
- 
+
 
 
               q(j) = 2.d0*kappa(j-1)*
      1               (T(j)-T(j-1))/dx
 
-             viscenef(j) = q(j) 
+             viscenef(j) = q(j)
      &     +(soret+ (cv1+rgas1-cv0-rgas0)*
      &         T(j-1))*Jx
 
@@ -350,7 +350,7 @@ c              kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
            kTxp = kT(j)/T(j)
 c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
            kpxp = kp(j)/p(j)
- 
+
         Jx =2.d0* dxp*(comp(j)-comp(j-1))/dx
      &      +2.d0* dxp*(kTxp*(T(j)-T(j-1))/dx +
      &       2.d0* kpxp*(p(j)-p(j-1))/dx)
@@ -365,13 +365,13 @@ c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
         mx = ctemp*(1.d0-ctemp)*(mass1*(1.d0-ctemp)
      &           + mass0*ctemp)
 
- 
+
 
 
               q(j) = 2.d0*kappa(j)*
      1               (T(j)-T(j-1))/dx
 
-             viscenef(j) = q(j) 
+             viscenef(j) = q(j)
      &     +(soret+ (cv1+rgas1-cv0-rgas0)*
      &         T(j))*Jx
 
@@ -416,7 +416,7 @@ c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
 
         endif
 
-      do j=1,npts+1 
+      do j=1,npts+1
 
         gradc = rspec(j,1)+weight*rspec(j,2)
         gradt = rtemp(j,1)+weight*rtemp(j,2)
@@ -430,11 +430,11 @@ c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
         endif
         gradt = gradt*sqrt(2.d0)
 
-        kxp = 2.d0* kappa(j-1)*kboltz*T(j-1)**2 
+        kxp = 2.d0* kappa(j-1)*kboltz*T(j-1)**2
 
           soret = kTdmudc(j-1)
- 
- 
+
+
         ctempp = comp(j-1)
         ctempp = max(0.d0,min(1.d0,ctemp))
         concp = ratm*ctempp/(1.d0-(1.d0-ratm)*ctempp)
@@ -457,8 +457,8 @@ c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
         kxp = 2.d0*  kappa(j)*kboltz*T(j)**2
 
           soret = kTdmudc(j)
- 
- 
+
+
         ctemp = comp(j)
         ctemp = max(0.d0,min(1.d0,ctemp))
         conc = ratm*ctemp/(1.d0-(1.d0-ratm)*ctemp)
@@ -477,8 +477,8 @@ c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
      1   kappa(j)*kboltz*T(j)**2
 
           soret = 0.5d0*(kTdmudc(j-1)+kTdmudc(j))
- 
- 
+
+
         ctemp = comp(j)
         ctemp = max(0.d0,min(1.d0,ctemp))
         conc = ratm*ctemp/(1.d0-(1.d0-ratm)*ctemp)
@@ -499,8 +499,8 @@ c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
         tsum = 0.5d0*(T(j)+T(j-1))
 
         endif
- 
- 
+
+
         gradc = dorand * gradc*sqrt(dxp/(vcell*dt))
         gradt = dorand * gradt*sqrt(kxp/(vcell*dt))
 
@@ -520,7 +520,7 @@ c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
 
       do j=jstart,npts
 
- 
+
          vloc = 0.5d0*u(j)*(ranmomf(j)+ranmomf(j-1))
          ranenef(j) = ranenef(j)+vloc
 

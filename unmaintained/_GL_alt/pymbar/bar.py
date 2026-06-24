@@ -172,7 +172,7 @@ def BAR(w_F, w_R, DeltaF=0.0, compute_uncertainty=True, maximum_iterations=500, 
     method : str, optional, defualt='false-position'
         choice of method to solve BAR nonlinear equations, one of 'self-consistent-iteration' or 'false-position' (default: 'false-position')
     iterated_solution : bool, optional, default=True
-        whether to fully solve the optimized BAR equation to consistency, or to stop after one step, to be 
+        whether to fully solve the optimized BAR equation to consistency, or to stop after one step, to be
         equivalent to transition matrix sampling.
 
     Returns

@@ -170,7 +170,7 @@ amrex::Vector<amrex::Real>    common::density_weights;
 amrex::Vector<int>            common::shift_cc_to_boundary;
 
 int                           common::particle_placement;
-int			                  common::particle_input;
+int                           common::particle_input;
 amrex::Vector<int>            common::particle_count;
 amrex::Vector<int>            common::p_move_tog;
 amrex::Vector<int>            common::p_force_tog;
@@ -225,8 +225,8 @@ int                        common::rfd_tog;
 AMREX_GPU_MANAGED int      common::dry_move_tog;
 AMREX_GPU_MANAGED int      common::sr_tog;
 int                        common::graphene_tog;
-int	                   common::thermostat_tog;
-int	                   common::zero_net_force;
+int                        common::thermostat_tog;
+int                        common::zero_net_force;
 
 int                        common::crange;
 
@@ -239,8 +239,10 @@ amrex::Vector<amrex::Real> common::body_force_density;
 int                        common::plot_ascii;
 int                        common::plot_means;
 int                        common::plot_vars;
+int                        common::plot_mom3;
 int                        common::plot_covars;
 int                        common::plot_cross;
+int                        common::plot_deltaY_dir;
 int                        common::particle_motion;
 
 AMREX_GPU_MANAGED amrex::Real common::turb_a;
@@ -254,7 +256,7 @@ AMREX_GPU_MANAGED int         common::turbForcing;
 void InitializeCommonNamespace() {
 
     BL_PROFILE_VAR("InitializeCommonNamespace()",InitializeCommonNameSpace);
-    
+
     nodal_flag_dir.resize(AMREX_SPACEDIM);
     nodal_flag_edge.resize(AMREX_SPACEDIM);
 
@@ -310,11 +312,11 @@ void InitializeCommonNamespace() {
 
     diff.resize(MAX_SPECIES);
 
-    eamp.resize(3);    
+    eamp.resize(3);
     efreq.resize(3);
     ephase.resize(3);
     body_force_density.resize(3);
-    
+
 
     // specify default values first, then read in values from inputs file
 
@@ -329,18 +331,18 @@ void InitializeCommonNamespace() {
         max_grid_size[i] = 1;          // max number of cells in a box
         max_particle_tile_size[i] = 0;
     }
-    
+
     cell_depth = 1.;
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         ngc[i] = 1;           // number of ghost cells
     }
-    
+
     // nvars - number of conserved variables (no default)
     // primvars - number of primative variables (no default)
 
     cross_cell = 0;     // cell to compute spatial correlation
-    do_slab_sf = 0;     // whether to compute SF in two slabs separated by cross_cell
+    do_slab_sf = 0;     // whether to compute SF in two slabs separated by membrane_cell
 
     for (int i=0; i<MAX_SPECIES; ++i) {
         qval[i] = 0.;                // charge on an ion
@@ -362,11 +364,11 @@ void InitializeCommonNamespace() {
         p_int_tog[i] = 1.;
         particle_n0[i] = -1.;
     }
-    
+
     // p_int_tog_wall (no default)
     particle_neff = 1;
-    
-    
+
+
     for (int i=0; i<MAX_SPECIES; ++i) {
         msd_int[i] = 0;
         msd_len[i] = 0;
@@ -488,10 +490,10 @@ void InitializeCommonNamespace() {
 
         t_lo[i] = 0.;
         t_hi[i] = 0.;
-  
+
         rho_lo[i] = -1.;
         rho_hi[i] = -1.;
-    } 
+    }
 
     // c_i boundary conditions
     for (int i=0; i<MAX_SPECIES; ++i) {
@@ -573,7 +575,7 @@ void InitializeCommonNamespace() {
     // rmax_wall (no default)
     // eepsilon_wall (no default)
     // sigma_wall (no default)
-  
+
     poisson_verbose = 1;
     poisson_bottom_verbose = 0;
     poisson_max_iter = 100;
@@ -602,14 +604,16 @@ void InitializeCommonNamespace() {
         efreq[i] = 0.;
         ephase[i] = 0.;
         body_force_density[i] = 0.;
-        
+
     }
 
     // plot_ascii (no default)
     plot_means = 0;
     plot_vars = 0;
+    plot_mom3 = 0;
     plot_covars = 0;
     plot_cross = 0;
+    plot_deltaY_dir = -1;
     particle_motion = 0;
 
     // turblent forcing parameters
@@ -631,14 +635,14 @@ void InitializeCommonNamespace() {
         phi_domain[i] = -1.;
         Yk0[i] = 0.;
     }
-  
+
     ParmParse pp;
 
     int temp_max = std::max(3,MAX_SPECIES*MAX_SPECIES);
-    
+
     amrex::Vector<amrex::Real> temp    (temp_max,0.);
     amrex::Vector<int>         temp_int(temp_max,0 );
-    
+
     // pp.query searches for optional parameters
     // pp.get aborts if the parameter is not found
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
@@ -648,7 +652,7 @@ void InitializeCommonNamespace() {
         Abort("nspecies > MAX_SPECIES; recompile with a new MAX_SPEC in the GNUmakefile");
     }
     pp.query("nbonds",nbonds);
-    
+
     if (pp.queryarr("prob_lo",temp)) {
         for (int i=0; i<3; ++i) {
             prob_lo[i] = temp[i];
@@ -715,7 +719,7 @@ void InitializeCommonNamespace() {
     pp.query("reset_stats",reset_stats);
     pp.query("particle_restart",particle_restart);
     pp.query("print_int",print_int);
-    pp.query("project_eos_int",project_eos_int);    
+    pp.query("project_eos_int",project_eos_int);
     if (pp.queryarr("grav",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             grav[i] = temp[i];
@@ -1136,8 +1140,10 @@ void InitializeCommonNamespace() {
     pp.query("plot_ascii",plot_ascii);
     pp.query("plot_means",plot_means);
     pp.query("plot_vars",plot_vars);
+    pp.query("plot_mom3",plot_mom3);
     pp.query("plot_covars",plot_covars);
     pp.query("plot_cross",plot_cross);
+    pp.query("plot_deltaY_dir",plot_deltaY_dir);
     pp.query("particle_motion",particle_motion);
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);
@@ -1170,6 +1176,6 @@ void InitializeCommonNamespace() {
         Abort("you are specifying a normal velocity on a wall; wallspeed_z_hi[2] must be 0");
     }
 #endif
-    
-    
+
+
 }

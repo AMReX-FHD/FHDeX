@@ -15,7 +15,7 @@ program main
     ! this shall be properly handled via MPI
     write(error_unit,*)"Wrong number of arguments passed"
     stop -101
-  endif 
+  endif
 
   call mui_create_uniface3d_f(uniface, trim(arg)//c_null_char)
   call mui_push_f(uniface, "position"//c_null_char, zero, zero, zero, zero)

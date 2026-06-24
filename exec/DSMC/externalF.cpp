@@ -9,7 +9,7 @@ void FhdParticleContainer::externalForce(Real dt)
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
 
-		Real meanDrag, fluctDrag;
+    Real meanDrag, fluctDrag;
 
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -25,9 +25,9 @@ void FhdParticleContainer::externalForce(Real dt)
         {
             ParticleType & part = particles[i];
 
-						part.rdata(FHD_realData::velx) += (grav[0]*dt);
-						part.rdata(FHD_realData::vely) += (grav[1]*dt);
-						part.rdata(FHD_realData::velz) += (grav[2]*dt);
+            part.rdata(FHD_realData::velx) += (grav[0]*dt);
+            part.rdata(FHD_realData::vely) += (grav[1]*dt);
+            part.rdata(FHD_realData::velz) += (grav[2]*dt);
 
         }
     }

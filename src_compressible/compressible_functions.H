@@ -22,7 +22,7 @@ void InitConsVar(MultiFab& cons,
 
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
-		   const MultiFab& chi, const MultiFab& D,
+                   const MultiFab& chi, const MultiFab& D,
                    std::array<MultiFab, AMREX_SPACEDIM>& flux,
                    std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornx,
@@ -31,19 +31,19 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    MultiFab& visccorn,
                    MultiFab& rancorn,
                    const Geometry& geom,
-		   const Vector< Real >& stoch_weights,
-	           const Real dt);
+                   const Vector< Real >& stoch_weights,
+                   const Real dt);
 
 void calculateTransportCoeffs(const MultiFab& prim_in,
-			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
-			      MultiFab& chi_in, MultiFab& Dij_in);
+                              MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
+                              MultiFab& chi_in, MultiFab& Dij_in);
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& prim, MultiFab& source,
              MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
              MultiFab& chi, MultiFab& D,
              std::array<MultiFab, AMREX_SPACEDIM>& flux,
-             std::array<MultiFab, AMREX_SPACEDIM>& stochFlux, 
+             std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
              std::array<MultiFab, AMREX_SPACEDIM>& cornx,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
@@ -84,25 +84,25 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
 void WritePlotFile(int step,
                    const Real time,
                    const Geometry& geom,
-	           const MultiFab& cu,
-	           const MultiFab& cuMeans,
-	           const MultiFab& cuVars,
-	           const MultiFab& prim,
-	           const MultiFab& primMeans,
-	           const MultiFab& primVars,
+                   const MultiFab& cu,
+                   const MultiFab& cuMeans,
+                   const MultiFab& cuVars,
+                   const MultiFab& prim,
+                   const MultiFab& primMeans,
+                   const MultiFab& primVars,
                    const MultiFab& spatialCross,
-                   const MultiFab& eta, 
-		   const MultiFab& kappa);
+                   const MultiFab& eta,
+                   const MultiFab& kappa);
 
-void yzAverage(const MultiFab& consMean, 
-               const MultiFab& consVar, 
-               const MultiFab& primMean, 
-               const MultiFab& primVar, 
-               const MultiFab& spatialCross, 
-               MultiFab& consMeanAv, 
-               MultiFab& consVarAv, 
-               MultiFab& primMeanAv, 
-               MultiFab& primVarAv, 
+void yzAverage(const MultiFab& consMean,
+               const MultiFab& consVar,
+               const MultiFab& primMean,
+               const MultiFab& primVar,
+               const MultiFab& spatialCross,
+               MultiFab& consMeanAv,
+               MultiFab& consVarAv,
+               MultiFab& primMeanAv,
+               MultiFab& primVarAv,
                MultiFab& spatialCrossAv);
 
 void WriteCheckPoint(int step,
@@ -115,9 +115,9 @@ void WriteCheckPoint(int step,
                      const MultiFab& prim,
                      const MultiFab& primMeans,
                      const MultiFab& primVars,
-                     const MultiFab& spatialCross, 
-                     const MultiFab& miscStats, 
-                     const MultiFab& eta, 
+                     const MultiFab& spatialCross,
+                     const MultiFab& miscStats,
+                     const MultiFab& eta,
                      const MultiFab& kappa);
 
 void ReadCheckPoint(int& step,
@@ -131,7 +131,7 @@ void ReadCheckPoint(int& step,
                      MultiFab& primMeans,
                      MultiFab& primVars,
                      MultiFab& spatialCross,
-                     MultiFab& miscStats, 
+                     MultiFab& miscStats,
                      MultiFab& eta,
                      MultiFab& kappa);
 
@@ -199,7 +199,7 @@ void GetPressureGas ( Real& pressure,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetSoundSpeed (Real& c, 
+void GetSoundSpeed (Real& c,
                     const GpuArray<Real,MAX_SPECIES>& Yk,
                     Real const temp)
 {
@@ -229,7 +229,7 @@ void Decomp ( int const neq,
     int i, j, k, l, n;
     Real eps  = 1.e-30;
     Real eps2 = 1.e-60;
-      
+
     nm1=neq-1;
     for (n=0; n<neq; ++n) {
         ip[n]=n+1;
@@ -278,7 +278,7 @@ void Decomp2 ( int const neq,
     int i, j, k, l, n;
     Real eps  = 1.e-30;
     Real eps2 = 1.e-60;
-      
+
     nm1=neq-1;
     for (n=0; n<neq; ++n) {
         ip[n]=n+1;
@@ -314,7 +314,7 @@ void Decomp2 ( int const neq,
             //std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
             Abort("singular matrix in decomp");
     }
-            
+
 }
 
 
@@ -410,9 +410,9 @@ void Decompnp ( int const neq,
     Real eps2 = 1.e-60;
 
     Real amult;
-    
+
     int i,k,l,nm1,ip1;
-      
+
     nm1=neq-1;
     for (i=0; i<nm1; ++i) {
         ip1 = i+2;
@@ -428,7 +428,7 @@ void Decompnp ( int const neq,
     if (std::abs(a[(neq-1)*ndim+neq-1])<eps) {
         //std::printf("%e",a[(neq-1)*ndim+neq-1]);
         Abort("singular matrix in decomp");
-    }            
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -438,7 +438,7 @@ void Solvenp ( int const neq,
                GpuArray<Real,MAX_SPECIES>& b)
 {
     int j,k,l,nm1,lm1,jp1;
-    
+
     nm1 = neq-1;
     for (l=1; l<neq; ++l) {
         lm1=l;
@@ -463,7 +463,7 @@ void CholeskyDecomp( GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
                      GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& sqda)
 {
     GpuArray<Real,MAX_SPECIES> p;
-    
+
     Real sum1 = 0.;
     int ising;
 
@@ -505,7 +505,7 @@ void CholeskyDecomp( GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
         }
         sqda[i*nspecies+i] = p[i];
     }
-    
+
 }
 
 
@@ -528,7 +528,7 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 
     int jmax = 3;
 
-    // Find Di matrix 
+    // Find Di matrix
     for (i=0; i<nspecies; ++i) {
         term2 = 0.;
         for (j=0; j<nspecies; ++j) {
@@ -622,14 +622,14 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
                     matrix1[i*nspecies+j] = scr+matrix2[i*nspecies+j];
                 }
             }
-        
+
             for (i=0; i<nspecies; ++i) {
                 for (j=0; j<nspecies; ++j) {
                     Diff_ij[i*nspecies+j]=matrix1[i*nspecies+j];
                 }
             }
         }
-        
+
     }
 
     // Compute D_tilde
@@ -640,7 +640,7 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
            D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
        }
     }
-    
+
 }
 
 
@@ -662,7 +662,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
 
     int jmax = 3;
 
-    // Find Di matrix 
+    // Find Di matrix
     for (i=0; i<nspecies; ++i) {
         term2 = 0.;
         for (j=0; j<nspecies; ++j) {
@@ -756,14 +756,14 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
                     matrix1[i*nspecies+j] = scr+matrix2[i*nspecies+j];
                 }
             }
-        
+
             for (i=0; i<nspecies; ++i) {
                 for (j=0; j<nspecies; ++j) {
                     Diff_ij[i*nspecies+j]=matrix1[i*nspecies+j];
                 }
             }
         }
-        
+
     }
 
     // Compute D_tilde
@@ -774,7 +774,7 @@ void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
            D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
        }
     }
-    
+
 }
 
 
@@ -799,7 +799,7 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
     int i,j,k;
     Real sum00, sum01, sum11, sum1, lamdaprime, ntotal, ratm, sqratm, scr;
 
-        
+
     // find number density
     for (i=0; i<nspecies; ++i) {
         nk[i] = rho*Ykp[i]/mk[i];
@@ -811,13 +811,13 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 
     for (i=0; i<nspecies; ++i) {
         for (k=0; k<nspecies; ++k) {
-            
+
             diag1[i] =diag1[i]+ nk[k]*mk[k]/(mk[i]+mk[k]) *
                 nk[i]*mk[i]*omega11[i*nspecies+k];
             if (k != i) {
                 diag2[i] = diag2[i]+nk[k]*mk[k]/(mk[i]+mk[k])*omega11[i*nspecies+k];
             }
-            diag3[i] = diag3[i] + nk[i]*nk[k]*pow(mk[k],2.)/pow(mk[i]+mk[k],2.) 
+            diag3[i] = diag3[i] + nk[i]*nk[k]*pow(mk[k],2.)/pow(mk[i]+mk[k],2.)
                 *  .5*omega11[i*nspecies+k];
 
             diag4[i] = diag4[i]+ nk[i]*nk[k]*mk[k]/pow(mk[i]+mk[k],3.) *
@@ -871,13 +871,13 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 
     // print*, "Hack (lambda_lin) postdecomp: ", QQ
     // stop
-    
-    for (i=0; i<nspecies; ++i) {          
+
+    for (i=0; i<nspecies; ++i) {
        // HCB 7.4-9
         D_T[i] = 0.5*nk[i]*beta[i]*mk[i]*aSonine[i];
     }
 
-    sum1=0;        
+    sum1=0;
     // HCB 7.4-33
     for (i=0; i<nspecies; ++i) {
         sum1 = sum1 + nk[i]*beta[i]* aSonine[nspecies+i];
@@ -906,9 +906,9 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
     // print*, "Hack (lambda_lin): ", lammix, lamdaprime, ntotal, sum1
     // print*, "Hack (lambda_lin) inputs: ", Dbin,omega11,Ykp,T,rho,mk,lammix
     // stop
-        
 
-    
+
+
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -938,7 +938,7 @@ void ThermalDiff ( int iloc, int jloc, int kloc,
         }
         AA[i] = 15./4.;
     }
-    
+
     for (i=0; i<nspecies; ++i) {
         sumTemp = 0.;
         for (k=0; k<nspecies; ++k) {
@@ -980,9 +980,9 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> QoR;
     GpuArray<Real,MAX_SPECIES> nk, bSonine, diag;
     GpuArray<int,MAX_SPECIES> ip;
-    
+
     Real sum1;
-    
+
     // find number density
     for (int ii=0; ii<nspecies; ++ii) {
         nk[ii] = rho*Ykp[ii]/mk[ii];
@@ -1038,7 +1038,7 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
     }
 
     etaMix = 0.5*k_B*T*sum1;
-    
+
     // print*, "Hack (visc_lin): etaMix = ", etaMix, T
     // stop
 }
@@ -1064,7 +1064,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> a_ij1;
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> a_ij2;
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> alphabar;
-    
+
     GpuArray<Real,MAX_SPECIES> xxtr;
     GpuArray<Real,MAX_SPECIES> yytr;
     GpuArray<Real,MAX_SPECIES> molecular_mass;
@@ -1076,7 +1076,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
     for (int n=0; n<nspecies; ++n) {
         molecular_mass[n] = molmass[n]*(k_B/Runiv);;
     }
-            
+
     // mole fracions correction - EGLIB
     for (int ii=0; ii<nspecies; ++ii) {
         Real sumXk = 0.;
@@ -1086,7 +1086,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
         // GM: Why this factor of 1E-15???
         xxtr[ii] = Xk[ii] + 1.e-15*(sumXk/nspecies - Xk[ii]);
     }
-    
+
     // molecular weight of mixture - EGLIB
     MWmix = 0.;
     for (int ii=0; ii<nspecies; ++ii) {
@@ -1100,8 +1100,8 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
 
     Fijstar = -27./5.;
 
-    // find binary diffusion coefficients  
-    // HCB 8.2-9   
+    // find binary diffusion coefficients
+    // HCB 8.2-9
     sqrtT = sqrt(temperature);
 
     for (int i=0; i<nspecies; ++i) {
@@ -1113,9 +1113,9 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
             mu = molecular_mass[i]*molecular_mass[j]/(molecular_mass[i] + molecular_mass[j]);
             Fij = (6.0*molecular_mass[i]*molecular_mass[i] + 13.0/5.0*molecular_mass[j]*molecular_mass[j] +
                    16.0/5.0*molecular_mass[i]*molecular_mass[j])/(pow(molecular_mass[i]+molecular_mass[j],2.));
-                
+
             sigma11bar = sqrt( k_B/(2.0*pi*mu) )*pi*pow(diamat,2.);
-          
+
             alphabar[i*nspecies+j] = 8.0/(3.0*k_B)*mu*mu*(-.5*sigma11bar);
 
             Dbin[i*nspecies+j] = 3.0/16.0*
@@ -1134,10 +1134,10 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
 
     ViscLin(omega11,yytr,temperature,density,molecular_mass,eta,nspecies,k_B);
     // eta = 0.0d0
-   
+
     // // GCM: Why hard-coded in? from original LLNS
     zeta = 0.;
-    
+
     LambdaLin(Dbin,omega11,yytr,temperature,density,molecular_mass,kappa,nspecies,k_B);
     // kappa = 0.d0
 
@@ -1190,7 +1190,7 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
         mbar += Yk[n]/molecular_mass[n];
     }
     mbar = 1.0/mbar;
-            
+
     // mole fracions
     Xksum = 0.0;
     for (int n=0; n<nspecies; ++n) {
@@ -1323,7 +1323,7 @@ void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
         kappa += rhs[i]*Bi[i];
     }
     kappa *= pressure/temperature;
-     
+
     // Thermal Diffusion Ratios
     for (int i=0; i<nspecies; ++i) {
         chitil(iloc,jloc,kloc,i) = 0.0;
@@ -1367,11 +1367,11 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
                                    const Array4<Real>& chitil)
 {
 
-    // This routine calculates transport coefficients for a 
+    // This routine calculates transport coefficients for a
     // binary mixtures of gases of monoatomic hard spheres
     // The components 0 and 1 of Yk and Xk are the only relevant
     // ones.
-    
+
     GpuArray<Real,2> xxtr;
     GpuArray<Real,2> yytr;
     GpuArray<Real,2> molecular_mass;
@@ -1382,7 +1382,7 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
     for (int n=0; n<2; ++n) {
         molecular_mass[n] = molmass[n]*(k_B/Runiv);;
     }
-            
+
     // mole fracions correction - EGLIB
     for (int ii=0; ii<2; ++ii) {
         Real sumXk = 0.;
@@ -1392,7 +1392,7 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
         // GM: Why this factor of 1E-15???
         xxtr[ii] = Xk[ii] + 1.e-15*(sumXk/2.0 - Xk[ii]);
     }
-    
+
     // molecular weight of mixture - EGLIB
     Real MWmix = 0.;
     for (int ii=0; ii<2; ++ii) {
@@ -1423,8 +1423,8 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
     Real etax = (5.0/(16.0*dx*dx)) * sqrt(mx*k_B*temperature/pi);
 
     Real Xeta = (onc*onc/eta0) + (2.0*conc*onc/etax) + (conc*conc/eta1);
-    Real Yeta = (3.0/5.0) * ( (onc*onc*m0)/(eta0*m1) + 
-                              (2.0*conc*onc*etax*(m0+m1)*(m0+m1))/(4.0*eta0*eta1*m0*m1) + 
+    Real Yeta = (3.0/5.0) * ( (onc*onc*m0)/(eta0*m1) +
+                              (2.0*conc*onc*etax*(m0+m1)*(m0+m1))/(4.0*eta0*eta1*m0*m1) +
                               (conc*conc*m1)/(eta1*m0) );
     Real Zeta = (3.0/5.0) * ( (onc*onc*m0/m1) + 2.0*conc*onc*( ((m0+m1)*(m0+m1)/(4.0*m0*m1))*((etax/eta0) + (etax/eta1)) - 1.0 ) + conc*conc*m1/m0 );
 
@@ -1472,7 +1472,7 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
 
     // Fil the thermal diffusion ratio vector
     thermal_diff = thermal_diff*mR*yytr[1]*yytr[1]/(xxtr[1]*xxtr[1]);
-    chitil(iloc,jloc,kloc,0) = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]); 
+    chitil(iloc,jloc,kloc,0) = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]);
     chitil(iloc,jloc,kloc,1) =  1.0*xxtr[1]*thermal_diff/(mR*yytr[1]*yytr[1]);
 
 }
@@ -1491,7 +1491,7 @@ void GetDensity ( const Real pressure,
     molmix = 1./molmix;
 
     density = pressure/(Runiv/molmix)/temp;
-    
+
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

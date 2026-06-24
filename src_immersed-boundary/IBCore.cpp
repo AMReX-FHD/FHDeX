@@ -198,7 +198,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    
+
     for (MFIter mfi(* tag_interface, true); mfi.isValid(); ++ mfi) {
         const FArrayBox & phi_tile   = (* ls)[mfi];
         // Using the ID tags to test if current box contains immersed boundaries
@@ -231,10 +231,10 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
               IArrayBox & iface_tile = (* tag_interface)[mfi];
               IArrayBox & cat_tile = (* tag_catalyst)[mfi];
-         
+
         tag_catalyst_interface (BL_TO_FORTRAN_BOX(tile_box),
-                                info.dataPtr(), & n_ibm, 
-                                BL_TO_FORTRAN_3D(iface_tile), 
+                                info.dataPtr(), & n_ibm,
+                                BL_TO_FORTRAN_3D(iface_tile),
                                 BL_TO_FORTRAN_3D(cat_tile), dx.dataPtr());
 
 
@@ -414,8 +414,8 @@ void IBCore::IBForceDeposition (       MultiFab & f_u,       MultiFab & f_v,    
      ***************************************************************************/
 
     std::unique_ptr<iMultiFab> et = std::unique_ptr<iMultiFab>(
-	new iMultiFab(u_s.boxArray(), u_s.DistributionMap(), 1, u_s.nGrow())
-	);
+    new iMultiFab(u_s.boxArray(), u_s.DistributionMap(), 1, u_s.nGrow())
+    );
 
     et->setVal(0);
 
@@ -518,8 +518,8 @@ void IBCore::IBForceDeposition ( MultiFab & force, MultiFab & vel_d, const Multi
      ***************************************************************************/
 
     std::unique_ptr<iMultiFab> et = std::unique_ptr<iMultiFab>(
-	new iMultiFab(vel_s.boxArray(), vel_s.DistributionMap(), vel_s.nComp(), vel_s.nGrow())
-	);
+    new iMultiFab(vel_s.boxArray(), vel_s.DistributionMap(), vel_s.nComp(), vel_s.nGrow())
+    );
 
     et->setVal(0);
 
@@ -654,7 +654,7 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
                                   BL_TO_FORTRAN_3D(iface_tile),
                                   BL_TO_FORTRAN_3D(vel_tile));
     }
-    
+
     u_d.FillBoundary(Geom(lev).periodicity());
     v_d.FillBoundary(Geom(lev).periodicity());
     w_d.FillBoundary(Geom(lev).periodicity());
@@ -678,10 +678,10 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
         const auto & et_tile = (* et)[mfi];
 
         fill_fgds_ib (BL_TO_FORTRAN_BOX(tile_box),
-        		      BL_TO_FORTRAN_3D(f_u_tile),
-		              BL_TO_FORTRAN_3D(f_v_tile),
-		              BL_TO_FORTRAN_3D(f_w_tile),
-		              BL_TO_FORTRAN_3D(et_tile));
+                      BL_TO_FORTRAN_3D(f_u_tile),
+                      BL_TO_FORTRAN_3D(f_v_tile),
+                      BL_TO_FORTRAN_3D(f_w_tile),
+                      BL_TO_FORTRAN_3D(et_tile));
 
     }
 

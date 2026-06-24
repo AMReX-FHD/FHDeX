@@ -728,15 +728,15 @@ void IBMarkerContainer::UpdatePIDMap() {
     IBMarkerContainerBase<IBMReal, IBMInt>::UpdatePIDMap();
 
     Vector<int> ibs(getTotalNumIDs());
-    PullDownInt(0, ibs, IBMInt::cpu_1);    
+    PullDownInt(0, ibs, IBMInt::cpu_1);
 
     Vector<int> ids(getTotalNumIDs());
     PullDownInt(0, ids, IBMInt::id_1);
 
     for (int i = 0; i < ibs.size(); ++i) {
         sorted_map.push_back(std::make_tuple(ibs[i], ids[i], i));
-    }       
- 
+    }
+
     sort(sorted_map.begin(), sorted_map.end());
 
     Print() << "Flagellum number\t" << "index in PullDown Vector" << std::endl;
@@ -747,9 +747,9 @@ void IBMarkerContainer::UpdatePIDMap() {
                 << std::endl;
     }
 
-    //Create a reduced vector storing only the beginning index of each flagellum in the sorted map 
+    //Create a reduced vector storing only the beginning index of each flagellum in the sorted map
     int n_ibs =1 + ibs[std::distance(ibs.begin(), std::max_element(ibs.begin(), ibs.end()))];
-    
+
     for (int i=0; i < n_ibs; i++) {
         reduced_map.push_back(
             std::distance(

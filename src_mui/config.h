@@ -17,16 +17,16 @@ namespace mui {
 template<typename... TYPES> struct type_list {};
 
 struct crunch {
-	static const int D = 3;
+    static const int D = 3;
 
-	using REAL = double;
-	using INT  = int64_t;
-	using point_type = point<REAL,D>;
-	using time_type  = REAL; // INT-typed time stamp might be an alternative
-	using data_types = type_list<int,double,float>;
+    using REAL = double;
+    using INT  = int64_t;
+    using point_type = point<REAL,D>;
+    using time_type  = REAL; // INT-typed time stamp might be an alternative
+    using data_types = type_list<int,double,float>;
 
-	static const bool DEBUG = false;
-	using EXCEPTION = exception_segv;
+    static const bool DEBUG = false;
+    using EXCEPTION = exception_segv;
 };
 
 // backward-compatibility

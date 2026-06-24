@@ -7,7 +7,7 @@ MacProj::MacProj() {}
 void MacProj::Define(const BoxArray& ba,
                      const DistributionMapping& dmap,
                      const Geometry& geom) {
-    
+
     LPInfo info;
     mlabec.define({geom}, {ba}, {dmap}, info);
 
@@ -30,7 +30,7 @@ void MacProj::Define(const BoxArray& ba,
     }
     mlabec.setDomainBC(lo_mlmg_bc,hi_mlmg_bc);
 }
-    
+
 
 void MacProj::Solve(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
                     MultiFab& mac_rhs,

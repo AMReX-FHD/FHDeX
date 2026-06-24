@@ -39,7 +39,7 @@ void MultinomialDiffusion(MultiFab& n_old,
         const Array4<Real> & n_arr = n_new.array(mfi);
 
         const Array4<Real> & update = cell_update.array(mfi);
-        
+
         AMREX_D_TERM(const Array4<const Real> & diffx = diff_coef_face[0].array(mfi);,
                      const Array4<const Real> & diffy = diff_coef_face[1].array(mfi);,
                      const Array4<const Real> & diffz = diff_coef_face[2].array(mfi););
@@ -60,7 +60,7 @@ void MultinomialDiffusion(MultiFab& n_old,
 #endif
 
             int N = std::max(0., std::round(n_arr(i,j,k,n)*dv));
-            
+
             multinomial_rng(fluxes, N, p, engine);
 
             // lo-x face
@@ -148,7 +148,7 @@ AMREX_GPU_HOST_DEVICE void multinomial_rng(GpuArray<Real,2*AMREX_SPACEDIM>& samp
 
     sum_p = 0.;
     int sum_n = 0;
-    
+
     for (int sample=0; sample<2*AMREX_SPACEDIM; ++sample) {
 
         std::binomial_distribution<int> distribution(N-sum_n, p[sample]/(1.-sum_p));

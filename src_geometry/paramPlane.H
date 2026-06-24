@@ -70,19 +70,19 @@ typedef struct {
     double temperatureRight;
     double momentumConsRight;
     double densityRight[MAX_SPECIES];
-    
+
     double massFluxRight[MAX_SPECIES];
     double massFluxLeft[MAX_SPECIES];
-    
+
     double xMomFluxRight[MAX_SPECIES];
     double xMomFluxLeft[MAX_SPECIES];
     double yMomFluxRight[MAX_SPECIES];
     double yMomFluxLeft[MAX_SPECIES];
     double zMomFluxRight[MAX_SPECIES];
-    double zMomFluxLeft[MAX_SPECIES];  
-    
+    double zMomFluxLeft[MAX_SPECIES];
+
     double energyFluxRight[MAX_SPECIES];
-    double energyFluxLeft[MAX_SPECIES];      
+    double energyFluxLeft[MAX_SPECIES];
 
     double sourceLeft;
     double sourceRight;
@@ -110,35 +110,35 @@ typedef struct {
     double fzRightAv;
 
     int boundary;
-    
+
     double species[5];
 
     double tension;
     double stiffness;
     double temperature;
-    
+
     double* xVelRecLeft;
     double* yVelRecLeft;
     double* zVelRecLeft;
-    
+
     double* xVelRecRight;
     double* yVelRecRight;
     double* zVelRecRight;
-    
+
     double* xPosRecLeft;
     double* yPosRecLeft;
     double* zPosRecLeft;
-    
+
     double* xPosRecRight;
     double* yPosRecRight;
     double* zPosRecRight;
-    
+
     double* freqRecRight;
     double* freqRecLeft;
 
     double* timeRecRight;
     double* timeRecLeft;
-    
+
     int recCountRight;
     int recCountLeft;
 
@@ -147,7 +147,7 @@ typedef struct {
 void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi);
 void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi);
 
-void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, iMultiFab& bCell);
+void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, const Geometry & Geom, iMultiFab& bCell, int paramPlaneCount);
 
 double getTheta(double nx, double ny, double nz);
 double getPhi(double nx, double ny, double nz);

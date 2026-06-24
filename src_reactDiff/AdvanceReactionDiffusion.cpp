@@ -79,7 +79,7 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
         MultiFab::Saxpy(n_new,dt,ext_src,0,0,nspecies,0);
         n_new.FillBoundary(geom.periodicity());
         MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
-        
+
     } else if (temporal_integrator == -2) { // explicit midpoint
 
         // temporary storage for second rate
@@ -103,7 +103,7 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
 
             // computing rate1 = R(n^{**},dt/2) / (dt/2)
             ChemicalRates(n_new,rate1,geom,0.5*dt,n_old,mattingly_lin_comb_coef,volume_factor);
-            
+
             // n_k^* = n_k^{**} + R(n^{**},dt/2)
             MultiFab::Saxpy(n_new,0.5*dt,rate1,0,0,nspecies,0);
             n_new.FillBoundary(geom.periodicity());
@@ -175,10 +175,10 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
 
             // Here we do not write this in the form that Mattingly et al do
             // where we just continue the second half of the time step from where we left
-            // Rather, we compute terms at the midpoint and then add contributions from both 
+            // Rather, we compute terms at the midpoint and then add contributions from both
             // halves of the time step to n_old
             // This works simpler with diffusion but we have to store both rates1 and rates2
-         
+
             // compute diffusive flux divergence
             DiffusiveNFluxdiv(n_new,diff_fluxdiv,diff_coef_face,geom,time);
 
@@ -213,9 +213,9 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
             MultiFab::Saxpy(n_new,dt,ext_src,0,0,nspecies,0);
             n_new.FillBoundary(geom.periodicity());
             MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
-                                     
+
         } // explicit midpoint for det/tau/CLE
-        
+
     } else if (temporal_integrator == -4) { // implicit midpoint
 
         if (reaction_type == 2) { // implicit midpoint with SSA
@@ -309,7 +309,7 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
             mattingly_lin_comb_coef[0] = -1.;
             mattingly_lin_comb_coef[1] = 2.;
             ChemicalRates(n_old,rate2,geom,0.5*dt,n_new,mattingly_lin_comb_coef,volume_factor);
-            
+
             // compute stochastic flux divergence and add to the ones from the predictor stage
             if (variance_coef_mass > 0.) {
                 // compute n on faces to use in the stochastic flux in the corrector
@@ -317,7 +317,7 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
                 GenerateStochasticFluxdivCorrector(n_old,n_new,stoch_fluxdiv,diff_coef_face,dt,time,geom);
             }
 
-/*            
+/*
          ! Crank-Nicolson
          ! n_k^{n+1} = n_k^n + (dt/2) div (D_k grad n_k)^n
          !                   + (dt/2) div (D_k grad n_k)^{n+1}

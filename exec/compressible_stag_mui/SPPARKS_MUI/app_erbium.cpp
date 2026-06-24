@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -30,7 +30,7 @@ enum{ZERO,ERBIUM,HYDROGEN,HELIUM,VACANCY};      // same as DiagErbium
 
 /* ---------------------------------------------------------------------- */
 
-AppErbium::AppErbium(SPPARKS *spk, int narg, char **arg) : 
+AppErbium::AppErbium(SPPARKS *spk, int narg, char **arg) :
   AppLattice(spk,narg,arg)
 {
   ninteger = 2;
@@ -122,7 +122,7 @@ void AppErbium::input_app(char *command, int narg, char **arg)
       else error->all(FLERR,"Illegal event command");
 
       none++;
-      
+
     } else if (rstyle == 2) {
       if (narg != 8) error->all(FLERR,"Illegal event command");
 
@@ -239,7 +239,7 @@ void AppErbium::init_app()
     memory->create(firstevent,nlocal,"app:firstevent");
 
     // esites must be large enough for 3 sites and their 1st neighbors
-    
+
     esites = new int[3 + 3*maxneigh];
   }
 
@@ -345,11 +345,11 @@ double AppErbium::site_propensity(int i)
       if (jj == kk) continue;
       k = neighbor[i][kk];
       for (m = 0; m < nthree; m++) {
-	if (type[i] != ttype[m][0] || element[i] != tinput[m][0]) continue;
-	if (type[j] != ttype[m][1] || element[j] != tinput[m][1]) continue;
-	if (type[k] != ttype[m][2] || element[k] != tinput[m][2]) continue;
-	add_event(i,3,m,tpropensity[m],j,k);
-	proball += tpropensity[m];
+        if (type[i] != ttype[m][0] || element[i] != tinput[m][0]) continue;
+        if (type[j] != ttype[m][1] || element[j] != tinput[m][1]) continue;
+        if (type[k] != ttype[m][2] || element[k] != tinput[m][2]) continue;
+        add_event(i,3,m,tpropensity[m],j,k);
+        proball += tpropensity[m];
       }
     }
   }
@@ -430,9 +430,9 @@ void AppErbium::site_event(int i, class RandomPark *random)
       m = neighbor[j][n];
       isite = i2site[m];
       if (isite >= 0 && echeck[isite] == 0) {
-	propensity[isite] = site_propensity(m);
-	esites[nsites++] = isite;
-	echeck[isite] = 1;
+        propensity[isite] = site_propensity(m);
+        esites[nsites++] = isite;
+        echeck[isite] = 1;
       }
     }
   }
@@ -442,9 +442,9 @@ void AppErbium::site_event(int i, class RandomPark *random)
       m = neighbor[k][n];
       isite = i2site[m];
       if (isite >= 0 && echeck[isite] == 0) {
-	propensity[isite] = site_propensity(m);
-	esites[nsites++] = isite;
-	echeck[isite] = 1;
+        propensity[isite] = site_propensity(m);
+        esites[nsites++] = isite;
+        echeck[isite] = 1;
       }
     }
   }
@@ -481,13 +481,13 @@ void AppErbium::clear_events(int i)
 ------------------------------------------------------------------------- */
 
 void AppErbium::add_event(int i, int rstyle, int which, double propensity,
-			  int jpartner, int kpartner)
+                          int jpartner, int kpartner)
 {
   // grow event list and setup free list
 
   if (nevents == maxevent) {
     maxevent += DELTAEVENT;
-    events = 
+    events =
       (Event *) memory->srealloc(events,maxevent*sizeof(Event),"app:events");
     for (int m = nevents; m < maxevent; m++) events[m].next = m+1;
     freeevent = nevents;

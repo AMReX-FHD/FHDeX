@@ -11,6 +11,7 @@ DIM           = 3
 TINY_PROFILE  = FALSE
 MAX_SPEC      = 8
 MAX_REAC      = 5
+USE_FFT       = TRUE
 
 USE_PARTICLES = FALSE
 

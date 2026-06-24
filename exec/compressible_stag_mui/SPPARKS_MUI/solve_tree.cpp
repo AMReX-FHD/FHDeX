@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -27,7 +27,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-SolveTree::SolveTree(SPPARKS *spk, int narg, char **arg) : 
+SolveTree::SolveTree(SPPARKS *spk, int narg, char **arg) :
   Solve(spk, narg, arg)
 {
   if (narg != 1) error->all(FLERR,"Illegal solve command");
@@ -95,7 +95,7 @@ void SolveTree::init(int n, double *propensity)
   memory->create(tree,ntotal,"solve:tree");
 
   for (int i = 0; i < ntotal; i++) tree[i] = 0.0;
-  for (int i = offset; i < offset + nevents; i++) 
+  for (int i = offset; i < offset + nevents; i++)
     tree[i] = propensity[i-offset];
   sum_tree();
 }
@@ -132,7 +132,7 @@ int SolveTree::event(double *pdt)
 
   r2 = random->uniform();
   m = find(r2*sum);
-  
+
   *pdt = -1.0/sum * log(random->uniform());
 
   return m;
@@ -158,7 +158,7 @@ void SolveTree::sum_tree()
   // update number of active events
 
   num_active = 0;
-  for (int i = offset; i < ntotal; i++) 
+  for (int i = offset; i < ntotal; i++)
     if (tree[i] > 0.0) num_active++;
 }
 

@@ -1,5 +1,5 @@
 #include "AMReX_PlotFileUtil.H"
- 
+
 #include "common_functions.H"
 
 #include "compressible_functions_stag.H"
@@ -20,19 +20,20 @@ void WritePlotFileStag(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& mom3,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
-		       const amrex::MultiFab& surfcovcoVars,
+                       const amrex::MultiFab& surfcovcoVars,
                        const amrex::MultiFab& eta,
                        const amrex::MultiFab& kappa,
                        const amrex::MultiFab& zeta)
 {
     BL_PROFILE_VAR("writePlotFileStag()",writePlotFileStag);
-    
+
     int cnt, numvars, i = 0;
 
-    int nplot = 0; 
+    int nplot = 0;
 
     // instantaneous values
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
@@ -66,7 +67,7 @@ void WritePlotFileStag(int step,
         if (nspec_surfcov>0) nplot += nspec_surfcov;
     }
 
-    
+
     // variances
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
     // shifted [jx, jy, jz] -- 3
@@ -80,14 +81,20 @@ void WritePlotFileStag(int step,
 
         if (nspec_surfcov>0) nplot += nspec_surfcov;
     }
-   
+
     // co-variances -- see the list in main_driver
     if (plot_covars == 1) {
         nplot += 26;
 
-	if (nspec_surfcov>0) nplot += nspec_surfcov*6;
+        if (nspec_surfcov>0) nplot += nspec_surfcov*6;
     }
-   
+
+    if (plot_mom3) nplot += nvars+1;
+
+    if (plot_deltaY_dir != -1) {
+        nplot += nspecies;
+    }
+
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
@@ -100,39 +107,39 @@ void WritePlotFileStag(int step,
     // Load into plotfile MF
     cnt = 0;
 
-    // instantaneous 
+    // instantaneous
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
     numvars = nvars;
     amrex::MultiFab::Copy(plotfile,cu,0,cnt,numvars,0);
     cnt+=numvars;
 
-    // instantaneous 
+    // instantaneous
     // shifted [jx, jy, jz] -- 3
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         ShiftFaceToCC(cumom[d],0,plotfile,cnt,1);
         ++cnt;
     }
 
-    // instantaneous 
+    // instantaneous
     // prim: [vx, vy, vz, T, p, Yk, Xk] -- 5 + 2*nspecies
     numvars = 5+2*nspecies;
     amrex::MultiFab::Copy(plotfile,prim,1,cnt,numvars,0);
     cnt+=numvars;
 
-    // instantaneous 
+    // instantaneous
     // shifted [vx, vy, vz] -- 3
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         ShiftFaceToCC(vel[d],0,plotfile,cnt,1);
         ++cnt;
     }
 
-    // instantaneous 
+    // instantaneous
     // eta -- 1
     numvars = 1;
     amrex::MultiFab::Copy(plotfile,eta,0,cnt,numvars,0);
     cnt+=numvars;
 
-    // instantaneous 
+    // instantaneous
     // kappa -- 1
     numvars = 1;
     amrex::MultiFab::Copy(plotfile,kappa,0,cnt,numvars,0);
@@ -155,7 +162,7 @@ void WritePlotFileStag(int step,
     }
 
     if (plot_means == 1) {
-    
+
         // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
         numvars = nvars;
         amrex::MultiFab::Copy(plotfile,cuMeans,0,cnt,numvars,0);
@@ -166,7 +173,7 @@ void WritePlotFileStag(int step,
             ShiftFaceToCC(cumomMeans[d],0,plotfile,cnt,1);
             ++cnt;
         }
-    
+
         // prim: [vx, vy, vz, T, p, Yk, Xk] -- 5 + nspecies
         numvars = 5 + 2*nspecies;
         amrex::MultiFab::Copy(plotfile,primMeans,1,cnt,numvars,0);
@@ -192,7 +199,7 @@ void WritePlotFileStag(int step,
     }
 
     if (plot_vars == 1) {
-    
+
         // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
         numvars = nvars;
         amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
@@ -203,8 +210,8 @@ void WritePlotFileStag(int step,
             ShiftFaceToCC(cumomVars[d],0,plotfile,cnt,1);
             ++cnt;
         }
-    
-        // prim: [vx, vy, vz, T] -- 4 
+
+        // prim: [vx, vy, vz, T] -- 4
         numvars = 4;
         amrex::MultiFab::Copy(plotfile,primVars,1,cnt,numvars,0);
         cnt+=numvars;
@@ -214,7 +221,7 @@ void WritePlotFileStag(int step,
         amrex::MultiFab::Copy(plotfile,primVars,6,cnt,numvars,0);
         cnt+=numvars;
 
-        // <delg delg> 
+        // <delg delg>
         amrex::MultiFab::Copy(plotfile,primVars,nprimvars+0,cnt,1,0);
         ++cnt;
         // <delg delenergy>
@@ -250,18 +257,34 @@ void WritePlotFileStag(int step,
         amrex::MultiFab::Copy(plotfile,coVars,0,cnt,numvars,0);
         cnt+=numvars;
 
-	if (nspec_surfcov>0) {
-	    numvars = nspec_surfcov*6;
-	    amrex::MultiFab::Copy(plotfile,surfcovcoVars,0,cnt,numvars,0);
-	    cnt+=numvars;
-	}
+        if (nspec_surfcov>0) {
+            numvars = nspec_surfcov*6;
+            amrex::MultiFab::Copy(plotfile,surfcovcoVars,0,cnt,numvars,0);
+            cnt+=numvars;
+        }
+    }
+
+    if (plot_mom3) {
+        numvars = nvars+1;
+        amrex::MultiFab::Copy(plotfile,mom3,0,cnt,numvars,0);
+        cnt+=nvars+1;
+    }
+
+    if (plot_deltaY_dir != -1) {
+        MultiFab Ybar(ba, dmap, nspecies, 0);
+        // Yk is component 6: in prim
+        WriteHorizontalAverageToMF(prim,Ybar,plot_deltaY_dir,6,nspecies,0);
+        Ybar.mult(-1.);
+        amrex::MultiFab::Add(Ybar,prim,6,0,nspecies,0);
+        amrex::MultiFab::Copy(plotfile,Ybar,0,cnt,nspecies,0);
+        cnt+= nspecies;
     }
 
     // Set variable names
     cnt = 0;
 
     varNames[cnt++] = "rhoInstant";
-    varNames[cnt++] = "jxInstantCC"; 
+    varNames[cnt++] = "jxInstantCC";
     varNames[cnt++] = "jyInstantCC";
     varNames[cnt++] = "jzInstantCC";
     varNames[cnt++] = "rhoEInstant";
@@ -271,9 +294,9 @@ void WritePlotFileStag(int step,
         varNames[cnt++] += 48+i;
     }
 
-    varNames[cnt++] = "jxInstantFACE";  
-    varNames[cnt++] = "jyInstantFACE";  
-    varNames[cnt++] = "jzInstantFACE";  
+    varNames[cnt++] = "jxInstantFACE";
+    varNames[cnt++] = "jyInstantFACE";
+    varNames[cnt++] = "jzInstantFACE";
 
     varNames[cnt++] = "uxInstantCC";
     varNames[cnt++] = "uyInstantCC";
@@ -291,9 +314,9 @@ void WritePlotFileStag(int step,
         varNames[cnt++] += 48+i;
     }
 
-    varNames[cnt++] = "uxInstantFACE";  
-    varNames[cnt++] = "uyInstantFACE";  
-    varNames[cnt++] = "uzInstantFACE";  
+    varNames[cnt++] = "uxInstantFACE";
+    varNames[cnt++] = "uyInstantFACE";
+    varNames[cnt++] = "uzInstantFACE";
 
     varNames[cnt++] = "eta";
     varNames[cnt++] = "kappa";
@@ -432,17 +455,38 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "rhoYkL-vx";
         varNames[cnt++] = "rhoYkH-vx";
 
-	if (nspec_surfcov>0) {
-	    for (i=0; i<nspec_surfcov; i++) {
-		varNames[cnt++] = "rhoYk-T";
-	        varNames[cnt++] = "theta-rhoYk";
-	        varNames[cnt++] = "theta-vx";
-	        varNames[cnt++] = "theta-vy";
-	        varNames[cnt++] = "theta-vz";
-	        varNames[cnt++] = "theta-T";
-	    }
-	}
+        if (nspec_surfcov>0) {
+            for (i=0; i<nspec_surfcov; i++) {
+                varNames[cnt++] = "rhoYk-T";
+                varNames[cnt++] = "theta-rhoYk";
+                varNames[cnt++] = "theta-vx";
+                varNames[cnt++] = "theta-vy";
+                varNames[cnt++] = "theta-vz";
+                varNames[cnt++] = "theta-T";
+            }
+        }
+    }
 
+    if (plot_mom3) {
+        varNames[cnt++] = "rhomom3";
+        varNames[cnt++] = "velxmom3";
+        varNames[cnt++] = "velymom3";
+        varNames[cnt++] = "velzmom3";
+        varNames[cnt++] = "rhoEmom3";
+        x = "Ykmom3_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
+        varNames[cnt++] = "Tmom3";
+    }
+
+    if (plot_deltaY_dir != -1) {
+        x = "deltaYk_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
     }
 
     AMREX_ASSERT(cnt==nplot);
@@ -450,15 +494,15 @@ void WritePlotFileStag(int step,
     // write a plotfile
     // timer
     Real t1 = ParallelDescriptor::second();
-    
+
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
-    
+
     Real t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2,  ParallelDescriptor::IOProcessorNumber());
     amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;
 }
 
-void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geometry& geom, const int ncross) 
+void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geometry& geom, const int ncross)
 {
     if (ParallelDescriptor::IOProcessor()) {
 
@@ -469,9 +513,9 @@ void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geome
 
         // cell size
         Real h = geom.CellSize(0);
-    
+
         for (auto i=0; i<n_cells[0]; ++i) {
-            outfile << prob_lo[0] + (i+0.5)*h << " "; 
+            outfile << prob_lo[0] + (i+0.5)*h << " ";
             for (auto n=0; n<ncross; ++n) {
                 outfile << std::setprecision(16) << spatialCross[i*ncross+n] << " ";
             }
@@ -481,7 +525,7 @@ void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geome
     }
 }
 
-void WriteSpatialCross1D(const amrex::MultiFab& spatialCross, int step, const Geometry& geom, const int ncross) 
+void WriteSpatialCross1D(const amrex::MultiFab& spatialCross, int step, const Geometry& geom, const int ncross)
 {
     if (all_correl == 0) { // single spatial correlation file
         std::string file_prefix = "spatialCross1D_";
@@ -495,58 +539,123 @@ void WriteSpatialCross1D(const amrex::MultiFab& spatialCross, int step, const Ge
     }
 }
 
-void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag, const amrex::Geometry& geom,
+void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag,
                          const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base) {
 
-      // Magnitude of the Structure Factor
-      std::string name = plotfile_base;
-      name += "_mag";
-      const std::string plotfilename1 = amrex::Concatenate(name,step,9);
-      
-      Real dx0 = geom.CellSize(0);
-      Real dx1 = geom.CellSize(1);
-      Real dx2 = geom.CellSize(2);
-      Real pi = 3.1415926535897932;
-      Box domain = geom.Domain();
-      RealBox real_box({AMREX_D_DECL(-pi/dx0,-pi/dx1,-pi/dx2)},
-                       {AMREX_D_DECL( pi/dx0, pi/dx1, pi/dx2)});
-      Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-      for (int i=0; i<AMREX_SPACEDIM; ++i) {
-          is_periodic[i] = geom.isPeriodic(i);
-      }
-      Geometry geom2;
-      geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    // Magnitude of the Structure Factor
+    std::string name = plotfile_base;
+    name += "_mag";
+    const std::string plotfilename1 = amrex::Concatenate(name,step,9);
 
-      Vector<std::string> varNames;
-      varNames.resize(names.size());
-      for (int n=0; n<names.size(); n++) {
-          varNames[n] = names[n];
-      }
+    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // only needed to make a plotfile
 
-      WriteSingleLevelPlotfile(plotfilename1,mag,varNames,geom2,time,step);
+    Geometry geom;
 
-      // Components of the Structure Factor
-      name = plotfile_base;
-      name += "_real_imag";
-      const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+    Box domain_flat = mag.boxArray().minimalBox();
 
-      varNames.resize(2*names.size());
-      int cnt = 0; // keep a counter for plotfile variables
-      for (int n=0; n<names.size(); n++) {
-          varNames[cnt] = names[cnt];
-          varNames[cnt] += "_real";
-          cnt++;
-      }
+    Vector<Real> projected_lo(AMREX_SPACEDIM);
+    Vector<Real> projected_hi(AMREX_SPACEDIM);
 
-      int index = 0;
-      for (int n=0; n<names.size(); n++) {
-          varNames[cnt] = names[index];
-          varNames[cnt] += "_imag";
-          index++;
-          cnt++;
-      }
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        projected_lo[d] = -domain_flat.length(d)/2 - 0.5;
+        projected_hi[d] = domain_flat.length(d)/2 - 1 + 0.5;
+    }
+    projected_lo[project_dir] = -0.5;
+    projected_hi[project_dir] =  0.5;
 
-      WriteSingleLevelPlotfile(plotfilename2,realimag,varNames,geom2,time,step);
+    RealBox real_box_flat({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
+                          {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+
+    geom.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+    Vector<std::string> varNames;
+    varNames.resize(names.size());
+    for (int n=0; n<names.size(); n++) {
+        varNames[n] = names[n];
+    }
+
+    WriteSingleLevelPlotfile(plotfilename1,mag,varNames,geom,time,step);
+
+    // Components of the Structure Factor
+    name = plotfile_base;
+    name += "_real_imag";
+    const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+
+    varNames.resize(2*names.size());
+    int cnt = 0; // keep a counter for plotfile variables
+    for (int n=0; n<names.size(); n++) {
+        varNames[cnt] = names[cnt];
+        varNames[cnt] += "_real";
+        cnt++;
+    }
+
+    int index = 0;
+    for (int n=0; n<names.size(); n++) {
+        varNames[cnt] = names[index];
+        varNames[cnt] += "_imag";
+        index++;
+        cnt++;
+    }
+
+    WriteSingleLevelPlotfile(plotfilename2,realimag,varNames,geom,time,step);
 }
 
+void WritePlotFilesSF_1D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag,
+                         const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base) {
 
+    // Magnitude of the Structure Factor
+    std::string name = plotfile_base;
+    name += "_mag";
+    const std::string plotfilename1 = amrex::Concatenate(name,step,9);
+
+    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // only needed to make a plotfile
+
+    Geometry geom;
+
+    Box domain_pencil = mag.boxArray().minimalBox();
+
+    Vector<Real> projected_lo(AMREX_SPACEDIM);
+    Vector<Real> projected_hi(AMREX_SPACEDIM);
+
+    projected_lo[0] = -domain_pencil.length(0)/2 - 0.5;
+    projected_hi[0] = domain_pencil.length(0)/2 - 1 + 0.5;
+
+    projected_lo[1] = projected_lo[2] = -0.5;
+    projected_hi[1] = projected_hi[2] =  0.5;
+
+    RealBox real_box_pencil({AMREX_D_DECL(projected_lo[0],projected_lo[1],projected_lo[2])},
+                            {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+
+    geom.define(domain_pencil,&real_box_pencil,CoordSys::cartesian,is_periodic.data());
+
+    Vector<std::string> varNames;
+    varNames.resize(names.size());
+    for (int n=0; n<names.size(); n++) {
+        varNames[n] = names[n];
+    }
+
+    WriteSingleLevelPlotfile(plotfilename1,mag,varNames,geom,time,step);
+
+    // Components of the Structure Factor
+    name = plotfile_base;
+    name += "_real_imag";
+    const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+
+    varNames.resize(2*names.size());
+    int cnt = 0; // keep a counter for plotfile variables
+    for (int n=0; n<names.size(); n++) {
+        varNames[cnt] = names[cnt];
+        varNames[cnt] += "_real";
+        cnt++;
+    }
+
+    int index = 0;
+    for (int n=0; n<names.size(); n++) {
+        varNames[cnt] = names[index];
+        varNames[cnt] += "_imag";
+        index++;
+        cnt++;
+    }
+
+    WriteSingleLevelPlotfile(plotfilename2,realimag,varNames,geom,time,step);
+}

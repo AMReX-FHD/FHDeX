@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -17,7 +17,7 @@
 
 using namespace SPPARKS_NS;
 
-/* ---------------------------------------------------------------------- 
+/* ----------------------------------------------------------------------
     Marsaglia RNG
 ------------------------------------------------------------------------ */
 
@@ -45,7 +45,7 @@ void RanMars::init(int seed)
 
   // assume input seed is positive value > 0
   // insure seed is from 1 to 900,000,000 inclusive
-  
+
   while (seed > 900000000) seed -= 900000000;
 
   u = new double[97+1];
@@ -79,7 +79,7 @@ void RanMars::init(int seed)
 }
 
 /* ----------------------------------------------------------------------
-   uniform RN 
+   uniform RN
 ------------------------------------------------------------------------- */
 
 double RanMars::uniform()

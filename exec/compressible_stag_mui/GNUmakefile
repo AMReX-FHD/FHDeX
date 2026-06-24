@@ -3,21 +3,24 @@
 AMREX_HOME ?= ../../../amrex/
 MUI_HOME ?= ../../src_mui/
 
-BL_NO_FORT    = TRUE
 DEBUG         = FALSE
 USE_MPI       = TRUE
 USE_OMP       = FALSE
 USE_CUDA      = FALSE
+USE_HIP       = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
-USE_MUI       = TRUE
-USE_SLURM     = FALSE
-USE_AMREX_MPMD = TRUE
 MAX_SPEC      = 8
 MAX_REAC      = 5
+USE_FFT       = TRUE
 
 USE_PARTICLES = FALSE
+DO_TURB       = FALSE
+
+USE_MUI       = FALSE
+USE_SLURM     = FALSE
+USE_AMREX_MPMD = TRUE
 
 ifeq ($(MAKECMDGOALS),spk)
   EBASE = spk
@@ -101,16 +104,16 @@ $(srcTempDir)/main_spk.cpp: SPPARKS_MUI/main.cpp
 
 spk: $(executable)
 
-else
-  ifeq ($(findstring cgpu, $(HOST)), cgpu)
-    CXXFLAGS += $(FFTW)
-  endif
+endif
 
-  ifeq ($(USE_CUDA),TRUE)
-    LIBRARIES += -lcufft
-  else
-    LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
+ifeq ($(USE_FFT),TRUE)
+  ifeq ($(USE_CUDA),FALSE)
+    LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3f -lfftw3
   endif
+endif
+
+ifeq ($(DO_TURB), TRUE)
+  DEFINES += -DTURB
 endif
 
 ifeq ($(USE_MUI), TRUE)

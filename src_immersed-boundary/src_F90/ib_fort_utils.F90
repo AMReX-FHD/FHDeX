@@ -978,7 +978,7 @@ contains
             end do
         end do
 
- 
+
 
     end subroutine spread_kernel_cc
 
@@ -1821,7 +1821,7 @@ contains
         ! ** work region
         integer(c_int), dimension(3), intent(in   ) :: lo, hi
         integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
-        
+
         ! ** IN:  interpolating v_interp from staggered MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
         real(amrex_real), intent(in   ) :: mf_x(mfx_lo(1):mfx_hi(1), &

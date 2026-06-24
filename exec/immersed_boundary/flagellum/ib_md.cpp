@@ -168,7 +168,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
         Real l_link = L/(N-1);
 
         Real k_spr  = ib_flagellum::k_spring[i_ib];
-    	  Real k_driv = ib_flagellum::k_driving[i_ib]; 
+        Real k_driv = ib_flagellum::k_driving[i_ib];
 
         for (int ind = index_start; ind <(index_start + N - 1); ++ind){
             int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);

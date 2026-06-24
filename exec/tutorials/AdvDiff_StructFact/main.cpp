@@ -16,13 +16,13 @@ int main() {
     */
 
 ///////////////////////////////////////////////////////
-    
+
     // 0 = centered advection
     // 1 = upwind advection
     // 2 = MOL Godunov
     // 3 = Characteristic Godunov
     int integrator = 0;
-    
+
     // grid spacing
     double dx = 1.;
 
@@ -39,7 +39,7 @@ int main() {
     int nsteps = 1000000;
 
 ///////////////////////////////////////////////////////
-    
+
     // volume
     double vol = pow(dx,3);
 
@@ -47,7 +47,7 @@ int main() {
     // the valid region spans from indices 1 through 64
     // index 0 and 65 are ghost cells (periodic)
     double phiold[66], phinew[66];
-    
+
     // initialize solution to zero and then fill periodic ghost cells
     for (int i=1; i<=64; ++i) {
         phiold[i] = 0.;
@@ -87,59 +87,59 @@ int main() {
 
         if (integrator == 0) {
             // centered advection
-            
+
             // forward euler predictor
             for (int i=1; i<=64; ++i) {
-                updateold[i] = 
+                updateold[i] =
                     - dt * u * (phiold[i+1] - phiold[i-1]) / (2.*dx)
                     + dt * mu * (phiold[i+1] - 2.*phiold[i] + phiold[i-1]) / (dx*dx)
                     + sqrt(2.*mu*dt/vol) * (random[i+1] - random[i]) / dx;
-            
+
                 phinew[i] = phiold[i] + updateold[i];
             }
             phinew[0]  = phinew[64];
             phinew[65] = phinew[1];
-        
+
             // trapezoidal corrector
             for (int i=1; i<=64; ++i) {
-                updatenew[i] = 
+                updatenew[i] =
                     - dt * u * (phinew[i+1] - phinew[i-1]) / (2.*dx)
                     + dt * mu * (phinew[i+1] - 2.*phinew[i] + phinew[i-1]) / (dx*dx)
                     + sqrt(2.*mu*dt/vol) * (random[i+1] - random[i]) / dx;
-            
+
                 phinew[i] = phiold[i] + 0.5*(updateold[i]+updatenew[i]);
             }
             phinew[0]  = phinew[64];
             phinew[65] = phinew[1];
-        
+
 
         }
         else if (integrator == 1) {
             // upwind advection
-            
+
             // forward euler predictor
             for (int i=1; i<=64; ++i) {
-                updateold[i] = 
+                updateold[i] =
                     - dt * u * (phiold[i] - phiold[i-1]) / dx
                     + dt * mu * (phiold[i+1] - 2.*phiold[i] + phiold[i-1]) / (dx*dx)
                     + sqrt(2.*mu*dt/vol) * (random[i+1] - random[i]) / dx;
-            
+
                 phinew[i] = phiold[i] + updateold[i];
             }
             phinew[0]  = phinew[64];
             phinew[65] = phinew[1];
-        
+
             // trapezoidal corrector
             for (int i=1; i<=64; ++i) {
-                updatenew[i] = 
+                updatenew[i] =
                     - dt * u * (phinew[i] - phinew[i-1]) / dx
                     + dt * mu * (phinew[i+1] - 2.*phinew[i] + phinew[i-1]) / (dx*dx)
                     + sqrt(2.*mu*dt/vol) * (random[i+1] - random[i]) / dx;
-            
+
                 phinew[i] = phiold[i] + 0.5*(updateold[i]+updatenew[i]);
             }
             phinew[0]  = phinew[64];
-            phinew[65] = phinew[1];        
+            phinew[65] = phinew[1];
 
         }
         else if (integrator == 2) {
@@ -151,7 +151,7 @@ int main() {
 
             // stores the face values at indicies 1 through 65
             double phiface[66];
-            
+
             // forward euler predictor
 
             // 2nd-order centered slopes
@@ -159,7 +159,7 @@ int main() {
                 slope[i] = (phiold[i+1]-phiold[i-1]) / (2.*dx);
             }
             slope[0]  = slope[64];
-            
+
             // compute face values
             for (int i=1; i<=65; ++i) {
                 phiface[i] = phiold[i-1] + 0.5*dx*slope[i-1];
@@ -167,16 +167,16 @@ int main() {
 
             // update
             for (int i=1; i<=64; ++i) {
-                updateold[i] = 
+                updateold[i] =
                     - dt * u * (phiface[i+1] - phiface[i]) / dx
                     + dt * mu * (phiold[i+1] - 2.*phiold[i] + phiold[i-1]) / (dx*dx)
                     + sqrt(2.*mu*dt/vol) * (random[i+1] - random[i]) / dx;
-            
+
                 phinew[i] = phiold[i] + updateold[i];
             }
             phinew[0]  = phinew[64];
             phinew[65] = phinew[1];
-        
+
             // trapezoidal corrector
 
             // 2nd-order centered slopes
@@ -184,24 +184,24 @@ int main() {
                 slope[i] = (phinew[i+1]-phinew[i-1]) / (2.*dx);
             }
             slope[0]  = slope[64];
-            
+
             // compute face values
             for (int i=1; i<=65; ++i) {
                 phiface[i] = phinew[i-1] + 0.5*dx*slope[i-1];
             }
 
-            // update 
-            for (int i=1; i<=64; ++i) {                
-                updatenew[i] = 
+            // update
+            for (int i=1; i<=64; ++i) {
+                updatenew[i] =
                     - dt * u * (phiface[i+1] - phiface[i]) / dx
                     + dt * mu * (phinew[i+1] - 2.*phinew[i] + phinew[i-1]) / (dx*dx)
                     + sqrt(2.*mu*dt/vol) * (random[i+1] - random[i]) / dx;
-            
+
                 phinew[i] = phiold[i] + 0.5*(updateold[i]+updatenew[i]);
             }
             phinew[0]  = phinew[64];
             phinew[65] = phinew[1];
-            
+
         }
         else if (integrator == 3) {
             // Characteristic Godunov
@@ -212,7 +212,7 @@ int main() {
 
             // stores the face values at indicies 1 through 65
             double phiface[66];
-            
+
             // forward euler predictor
 
             // 2nd-order centered slopes
@@ -220,7 +220,7 @@ int main() {
                 slope[i] = (phiold[i+1]-phiold[i-1]) / (2.*dx);
             }
             slope[0]  = slope[64];
-            
+
             // compute face values
             for (int i=1; i<=65; ++i) {
                 phiface[i] = phiold[i-1] + (0.5*dx - 0.5*dt)*slope[i-1];
@@ -228,32 +228,32 @@ int main() {
 
             // update
             for (int i=1; i<=64; ++i) {
-                updateold[i] = 
+                updateold[i] =
                     - dt * u * (phiface[i+1] - phiface[i]) / dx
                     + dt * mu * (phiold[i+1] - 2.*phiold[i] + phiold[i-1]) / (dx*dx)
                     + sqrt(2.*mu*dt/vol) * (random[i+1] - random[i]) / dx;
-            
+
                 phinew[i] = phiold[i] + updateold[i];
             }
             phinew[0]  = phinew[64];
             phinew[65] = phinew[1];
-        
+
             // trapezoidal corrector
 
             // (resuse same face values as predictor)
 
-            // update 
-            for (int i=1; i<=64; ++i) {                
-                updatenew[i] = 
+            // update
+            for (int i=1; i<=64; ++i) {
+                updatenew[i] =
                     - dt * u * (phiface[i+1] - phiface[i]) / dx
                     + dt * mu * (phinew[i+1] - 2.*phinew[i] + phinew[i-1]) / (dx*dx)
                     + sqrt(2.*mu*dt/vol) * (random[i+1] - random[i]) / dx;
-            
+
                 phinew[i] = phiold[i] + 0.5*(updateold[i]+updatenew[i]);
             }
             phinew[0]  = phinew[64];
             phinew[65] = phinew[1];
-            
+
         }
 
         // copy phinew into phiold (including ghost cells)
@@ -268,24 +268,24 @@ int main() {
 
         // collect stats for structure factor after the first 50% of the run
         if (istep > nsteps/2) {
-        
+
             // perform the FFT
             int N = 64;
             fftw_complex out[N/2+1];
             fftw_plan p1 = fftw_plan_dft_r2c_1d(N, fft_in, out, FFTW_ESTIMATE);
             fftw_execute(p1);
-            
+
             // compute structure factor
             structFactCount++;
             for (int i=0; i<33; ++i) {
                 structFactSum[i] += (out[i][0]*out[i][0] + out[i][1]*out[i][1]) / 64;
                 structFactAvg[i] = structFactSum[i] / structFactCount;
             }
-            
+
             fftw_destroy_plan(p1);
         }
     }
-    
+
     for (int i=0; i<33; ++i) {
         std::cout << structFactAvg[i] << std::endl;
     }

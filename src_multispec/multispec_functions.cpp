@@ -34,7 +34,6 @@ AMREX_GPU_MANAGED int                                       multispec::n_gex;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_1;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_2;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_3;
-  
 int                                                         multispec::midpoint_stoch_mass_flux_type;
 AMREX_GPU_MANAGED int                                       multispec::avg_type;
 int                                                         multispec::mixture_type;
@@ -69,7 +68,7 @@ void InitializeMultispecNamespace() {
         Print() << "MAX_SPECIES " << MAX_SPECIES << std::endl;
         Abort("MAX_ELEMENT != (MAX_SPECIES*MAX_SPECIES-1)/2)");
     }
-    
+
     E_ext_value.resize(AMREX_SPACEDIM);
 
     // specify default values first, then read in values from inputs file
@@ -80,7 +79,7 @@ void InitializeMultispecNamespace() {
                                  // must be larger than machine eps of else the W=(1,0) case fails)
     start_time = 0.;
     inverse_type = 1;       // Only for LAPACK:  1=inverse, 2=pseudo inverse
-    correct_flux = 1;       // Manually ensure mass is conserved to roundoff 
+    correct_flux = 1;       // Manually ensure mass is conserved to roundoff
     print_error_norms = 1;
     is_ideal_mixture = 1;   // If T assume Gamma=I (H=0) and simplify
     is_nonisothermal = 0;   // If T Soret effect will be included
@@ -101,7 +100,7 @@ void InitializeMultispecNamespace() {
         contact_angle_hi[i] = 90.;        // spacedim-vector specifying external E field
     }
 
-    // Initial and boundary conditions 
+    // Initial and boundary conditions
     //----------------------
 
     temp_type = 0;  // for initializing temperature
@@ -110,7 +109,7 @@ void InitializeMultispecNamespace() {
         c_init_2[i] = 1.;
         c_init_3[i] = 1.;
     }
-  
+
     // Thermodynamic and transport properties:
     //----------------------
 
@@ -125,7 +124,7 @@ void InitializeMultispecNamespace() {
     for (int i=0; i<MAX_ELEMENT; ++i) {
         Dbar[i] = 1.;      // Maxwell-Stefan diffusion constant
         H_offdiag[i] = 0.;
-    }  
+    }
 
     // Algorithm control
     //----------------------
@@ -152,7 +151,7 @@ void InitializeMultispecNamespace() {
     for (int i=0; i<MAX_SPECIES; ++i) {
         charge_per_mass[i] = 0.;
     }
-    bc_function_type = 0;  // 0 = constant 
+    bc_function_type = 0;  // 0 = constant
                            // 1 = cubic, see description below
 
     L_pos = 0.;            // length of part of boundary where there is positive charge flux, if cubic function is imposed
@@ -168,13 +167,13 @@ void InitializeMultispecNamespace() {
         E_ext_value[i] = 0.;        // spacedim-vector specifying external E field
     }
     electroneutral = 0;              // use electroneutral diffusion fluxes
-    induced_charge_eo = 0;           // are we simulating ICEO?  
+    induced_charge_eo = 0;           // are we simulating ICEO?
     relxn_param_charge = 1.;         // Used to prevent slow buildup of charge for electroneutral, keep at 1.0
     zero_eps_on_wall_type = 0;       // set eps=0 on certain Dirichlet walls
-    // if we want homogeneous Neumann bc's on 
+    // if we want homogeneous Neumann bc's on
     // phi for part of a Dirichlet wall
     zero_charge_on_wall_type = 0;    // set sigma=0 on certain Neumann walls
-    // if we want homogeneous Neumann bc's on 
+    // if we want homogeneous Neumann bc's on
     // phi for part of a Dirichlet wall
     zero_eps_on_wall_left_end = 0.25;    // eg if set to 0.25, then eps will be set to 0 on the wall from 0*Lx --> 0.25*Lx
     zero_eps_on_wall_right_start = 0.75; // eg if set to 0.75, then eps will be set to 0 on the wall from 0.75*Lx --> 1.*Lx
@@ -183,9 +182,9 @@ void InitializeMultispecNamespace() {
 
     int temp_max = std::max(3,MAX_SPECIES);
     temp_max = std::max(temp_max,MAX_ELEMENT);
-    
+
     amrex::Vector<amrex::Real> temp(temp_max,0.);
-    
+
     // pp.query searches for optional parameters
     // pp.get aborts if the parameter is not found
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
@@ -278,8 +277,8 @@ void InitializeMultispecNamespace() {
     if(pp.queryarr("H_offdiag",temp,0,nspecies*(nspecies-1)/2)) {
         for (int i=0; i<nspecies*(nspecies-1)/2; ++i) {
             H_offdiag[i] = temp[i];
-        } 
-    }   
+        }
+    }
     pp.query("midpoint_stoch_mass_flux_type",midpoint_stoch_mass_flux_type);
     pp.query("avg_type",avg_type);
     pp.query("mixture_type",mixture_type);

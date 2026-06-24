@@ -33,8 +33,8 @@ public:
 
     // advance solution (of the advection diffusion equation) in time
     void EvolveChem(
-            std::array<MultiFab, AMREX_SPACEDIM> & umac_pre, 
-            std::array<MultiFab, AMREX_SPACEDIM> & umac, 
+            std::array<MultiFab, AMREX_SPACEDIM> & umac_pre,
+            std::array<MultiFab, AMREX_SPACEDIM> & umac,
             const iMultiFab & iface_pre,
             const iMultiFab & iface,
             const iMultiFab & catalyst_pre,
@@ -173,13 +173,13 @@ private:
    Vector< std::unique_ptr<MultiFab> >  uface;
    Vector< std::unique_ptr<MultiFab> >  vface;
    Vector< std::unique_ptr<MultiFab> >  wface;
-   
+
    Vector< std::unique_ptr<MultiFab> >  uface_pre;
    Vector< std::unique_ptr<MultiFab> >  vface_pre;
    Vector< std::unique_ptr<MultiFab> >  wface_pre;
- 
+
    // array of multifabs to store the surface gradient at each level of refinement (face centered and cell centered) and the magnitude of the gradient (cell centerd)
- 
+
    Vector< std::unique_ptr<MultiFab> >  Dcon_x;
    Vector< std::unique_ptr<MultiFab> >  Dcon_y;
    Vector< std::unique_ptr<MultiFab> >  Dcon_z;
@@ -197,7 +197,7 @@ private:
    // multifabs to store the location of the point sources, the location of th einterface, and the levelset
    std::unique_ptr<iMultiFab>           source_loc;
    std::unique_ptr<iMultiFab>           source_loc_pre;
-   
+
    std::unique_ptr<iMultiFab>           interface_loc;
    std::unique_ptr<iMultiFab>           interface_loc_pre;
    std::unique_ptr<MultiFab>            levset;
@@ -205,7 +205,7 @@ private:
 
     // condition types at the lo/hi walls in each direction
     //BCRec bcs;
-   amrex::Vector<BCRec> bcs; 
+   amrex::Vector<BCRec> bcs;
     // stores fluxes at coarse-fine interface for synchronization
     // this will be sized "nlevs_max+1"
     // NOTE: the flux register associated with flux_reg[lev] is associated

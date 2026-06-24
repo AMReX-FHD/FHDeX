@@ -75,7 +75,7 @@ void main_driver(const char* argv)
     // make BoxArray and Geometry
     BoxArray ba;
     Geometry geom;
-    
+
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
@@ -128,7 +128,7 @@ void main_driver(const char* argv)
 
 
 
-    //Construct the boundaries 
+    //Construct the boundaries
 
     ifstream paramPlaneFile("paramplanes.dat");
     int paramPlaneCount;
@@ -278,7 +278,7 @@ void main_driver(const char* argv)
     double simParticles = 0;
 
     for(int i=0;i<nspecies;i++) {
-        
+
         dsmcParticle[i].m = mass[i];
         dsmcParticle[i].d = diameter[i];
 
@@ -287,7 +287,7 @@ void main_driver(const char* argv)
         dsmcParticle[i].T = T_init[0]; //this is meaningless here
 
         if(particle_count[i] >= 0) {
-            //set particle totals - change later to if on pL and pB          
+            //set particle totals - change later to if on pL and pB
             //dsmcParticle[i].ppb = (int)amrex::Math::ceil((double)particle_count[i]/(double)ba.size());
             dsmcParticle[i].total = pL+pR;
             dsmcParticle[i].n0 = dsmcParticle[i].total/effectiveVol;
@@ -297,7 +297,7 @@ void main_driver(const char* argv)
         else {
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
             dsmcParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*effectiveVol/particle_neff);
-            // adjust number of particles up so there is the same number per box  
+            // adjust number of particles up so there is the same number per box
             dsmcParticle[i].ppb = (int)amrex::Math::ceil((double)dsmcParticle[i].total/(double)ba.size());
             dsmcParticle[i].total = dsmcParticle[i].ppb*ba.size();
             dsmcParticle[i].n0 = dsmcParticle[i].total/effectiveVol;
@@ -310,7 +310,7 @@ void main_driver(const char* argv)
         realParticles = realParticles + dsmcParticle[i].total;
         simParticles = simParticles + dsmcParticle[i].total*particle_neff;
     }
-    
+
     Print() << "Total real particles: " << realParticles << "\n";
     Print() << "Total sim particles: " << simParticles << "\n";
 
@@ -321,7 +321,7 @@ void main_driver(const char* argv)
 
 
     // MFs for storing particle statistics
-    
+
     //Members
     //Density
     //velx
@@ -351,7 +351,7 @@ void main_driver(const char* argv)
     //pressure
     //Cx
     //Cy
-    //Cz    
+    //Cz
     MultiFab particleMeans(ba, dmap, 14, 0);
 
     //Members
@@ -371,18 +371,18 @@ void main_driver(const char* argv)
     //RhoGCross
     //Cx
     //Cy
-    //Cz 
-   
+    //Cz
+
     MultiFab particleVars(ba, dmap, 18, 0);
 
 
-    MultiFab collisionPairs(ba, dmap, 1, 0);    
+    MultiFab collisionPairs(ba, dmap, 1, 0);
     MultiFab collisionFactor(ba, dmap, 1, 0);
 
 
     collisionFactor.setVal(0);
     collisionPairs.setVal(0);
-    
+
 
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geom, dmap, ba, crange);
@@ -392,7 +392,7 @@ void main_driver(const char* argv)
         particles.ApplyThermostat(dsmcParticle, cellVols, paramPlaneList, paramPlaneCount, tL, tR);
     }
 
-    
+
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
     //particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
 
@@ -464,25 +464,25 @@ void main_driver(const char* argv)
 
             statsCount = 1;
         }
-        
+
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, dsmcParticle[0], dt,statsCount);
         statsCount++;
 
         if (plot_int > 0 && step%plot_int == 0)
         {
-           
+
             WritePlotFile(step,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
         }
 
         if(step% 100 == 0)
-        {    
+        {
                 amrex::Print() << "Advanced step " << step << "\n";
         }
-        
+
         time = time + dt;
     }
 
-    // Call the timer again and compute the maximum difference between the start time 
+    // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);

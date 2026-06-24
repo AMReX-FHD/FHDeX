@@ -110,7 +110,7 @@ contains
           do j = lo(2),hi(2)+1
              do i = lo(1),hi(1)
 
- 
+
              end do
           end do
        end do
@@ -121,7 +121,7 @@ contains
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
- 
+
 
              end do
           end do
@@ -168,7 +168,7 @@ contains
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
 
-                xflux(0,j,k,l) = 0        
+                xflux(0,j,k,l) = 0
 
              end do
           end do
@@ -181,7 +181,7 @@ contains
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
 
-                xflux(hi(1)+1,j,k,l) = 0           
+                xflux(hi(1)+1,j,k,l) = 0
 
              end do
           end do
@@ -207,7 +207,7 @@ contains
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
 
-                xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)        
+                xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)
 
              end do
           end do
@@ -222,7 +222,7 @@ contains
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
 
-                yflux(i,0,k,l) = 0        
+                yflux(i,0,k,l) = 0
 
              end do
           end do
@@ -235,7 +235,7 @@ contains
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
 
-                yflux(i,hi(2)+1,k,l) = 0           
+                yflux(i,hi(2)+1,k,l) = 0
 
              end do
           end do
@@ -261,7 +261,7 @@ contains
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
 
-                yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)        
+                yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)
 
              end do
           end do
@@ -289,7 +289,7 @@ contains
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
-                zflux(i,j,hi(3)+1,l) = 0           
+                zflux(i,j,hi(3)+1,l) = 0
 
              end do
           end do
@@ -315,7 +315,7 @@ contains
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
-                zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)        
+                zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)
 
              end do
           end do
@@ -332,7 +332,7 @@ contains
 
     real(amrex_real) :: mean, variance, M, U, proposal, F,G
     integer :: Gtrials, Utrials, trialCount
-    
+
     Gtrials = 500
     Utrials = 500
     trialCount = 0
@@ -360,7 +360,7 @@ contains
         !proposal = get_fhd_normal_func() !make sure this is actually N(0,1)
         !proposal = sqrt(variance)*proposal+mean
         !CALL gaussian_density(mean, variance, proposal, G)
-        
+
         !print *, "Proposal with bounds", proposal, -N, P-N
 
         CALL RANDOM_NUMBER(U)
@@ -396,7 +396,7 @@ contains
     else
         f = 0
         !print *, 'outside'
-    endif 
+    endif
 
   end subroutine eval_density
 

@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -23,7 +23,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-AppIsing::AppIsing(SPPARKS *spk, int narg, char **arg) : 
+AppIsing::AppIsing(SPPARKS *spk, int narg, char **arg) :
   AppLattice(spk,narg,arg)
 {
   ninteger = 1;
@@ -127,7 +127,7 @@ void AppIsing::site_event_rejection(int i, RandomPark *random)
     if (einitial < 0.5*numneigh[i]) mask[i] = 1;
     if (spin[i] != oldstate)
       for (int j = 0; j < numneigh[i]; j++)
-	mask[neighbor[i][j]] = 0;
+        mask[neighbor[i][j]] = 0;
   }
 }
 

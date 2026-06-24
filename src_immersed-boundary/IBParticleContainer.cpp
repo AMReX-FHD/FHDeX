@@ -28,7 +28,7 @@ IBParticleContainer::IBParticleContainer(const Geometry & geom,
     : NeighborParticleContainer<IBP_realData::count, IBP_intData::count>(
             geom, dmap, ba, n_nbhd
         ),
-    nghost(n_nbhd)
+      nghost(n_nbhd)
 {
     InitInternals(n_nbhd);
 }
@@ -39,8 +39,8 @@ IBParticleContainer::IBParticleContainer(AmrCore * amr_core, int n_nbhd)
     : NeighborParticleContainer<IBP_realData::count, IBP_intData::count>(
             amr_core->GetParGDB(), n_nbhd
         ),
-    m_amr_core(amr_core),
-    nghost(n_nbhd)
+      m_amr_core(amr_core),
+      nghost(n_nbhd)
 {
     InitInternals(n_nbhd);
 }
@@ -55,12 +55,12 @@ void IBParticleContainer::InitList(int lev,
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
     RealVect inv_dx = RealVect(
-                AMREX_D_DECL(
-                    Geom(lev).InvCellSize(0),
-                    Geom(lev).InvCellSize(1),
-                    Geom(lev).InvCellSize(2)
-                )
-        );
+        AMREX_D_DECL(
+            Geom(lev).InvCellSize(0),
+            Geom(lev).InvCellSize(1),
+            Geom(lev).InvCellSize(2)
+        )
+    );
 
 
     int total_np = 0;
@@ -87,12 +87,12 @@ void IBParticleContainer::InitList(int lev,
             RealVect pos_grid = pos[i];
             pos_grid *= inv_dx;
             IntVect pos_ind = IntVect(
-                    AMREX_D_DECL(
-                        (int) pos_grid[0],
-                        (int) pos_grid[1],
-                        (int) pos_grid[2]
-                    )
-                );
+                AMREX_D_DECL(
+                    (int) pos_grid[0],
+                    (int) pos_grid[1],
+                    (int) pos_grid[2]
+                )
+            );
 
             // Add particle at position pos iff it's vector index is contained
             // within tile_box.
@@ -281,19 +281,19 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
                 if (part_it == ib_ppvor.end()) {
                     // Position of IBParticle
                     RealVect pos = RealVect(
-                            AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))
-                        );
+                        AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))
+                    );
 
                     // Velocity of IBParticle
                     RealVect vel = RealVect(
-                            AMREX_D_DECL(part.rdata(IBP_realData::velx),
-                                         part.rdata(IBP_realData::vely),
-                                         part.rdata(IBP_realData::velz)   )
-                        );
+                        AMREX_D_DECL(part.rdata(IBP_realData::velx),
+                                     part.rdata(IBP_realData::vely),
+                                     part.rdata(IBP_realData::velz)   )
+                    );
                    // HACK orientation hard coded in
                     RealVect ori = RealVect(
-                            AMREX_D_DECL(0.,0.,1. ));
-                     
+                        AMREX_D_DECL(0.,0.,1. ));
+
                     // Radius
                     Real r = part.rdata(IBP_realData::radius);
 
@@ -322,19 +322,19 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
                 if (part_it == ib_ppvor.end()) {
                     // Position of IBParticle
                     RealVect pos = RealVect(
-                            AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))
-                        );
+                        AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))
+                    );
 
                     // Velocity of IBParticle
                     RealVect vel = RealVect(
-                            AMREX_D_DECL(part.rdata(IBP_realData::velx),
-                                         part.rdata(IBP_realData::vely),
-                                         part.rdata(IBP_realData::velz)   )
-                        );
+                        AMREX_D_DECL(part.rdata(IBP_realData::velx),
+                                     part.rdata(IBP_realData::vely),
+                                     part.rdata(IBP_realData::velz)   )
+                    );
                    // HACK orientation hard coded in
 
                     RealVect ori = RealVect(
-                            AMREX_D_DECL(0.,0.,1. ));
+                        AMREX_D_DECL(0.,0.,1. ));
 
                     // Radius
                     Real r = part.rdata(IBP_realData::radius);
@@ -487,12 +487,12 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
                        & n_marker,
                        dx, & ghost);
 */
-         Real pos[AMREX_SPACEDIM]; 
+         Real pos[AMREX_SPACEDIM];
          Real v_spread[AMREX_SPACEDIM];
 
-	 for (int i=0; i<n_marker; ++i) {
-		 for (int j=0; j<AMREX_SPACEDIM; ++j)
-			 pos[j] = marker_positions[lev].at(pindex)[j][i];
+         for (int i=0; i<n_marker; ++i) {
+             for (int j=0; j<AMREX_SPACEDIM; ++j)
+                 pos[j] = marker_positions[lev].at(pindex)[j][i];
                  if (ghost == 0){
                          if (pos[0] < tile_box.loVect()[0]*dx[0]) continue;
                          if (pos[0] >= (tile_box.hiVect()[0]+1)*dx[0]) continue;
@@ -501,13 +501,13 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
                          if (pos[1] >= (tile_box.hiVect()[1]+1)*dx[1]) continue;
 
                          if (pos[2] < tile_box.loVect()[2]*dx[2]) continue;
-                         if (pos[2] >= (tile_box.hiVect()[2]+1)*dx[2]) continue; 
+                         if (pos[2] >= (tile_box.hiVect()[2]+1)*dx[2]) continue;
                  }
                  for (int j=0; j<AMREX_SPACEDIM; ++j)
                          v_spread[j] = f_in[j][i];
 
                  SpreadKernel(bx, f_out, f_weights, face_coords, pos, v_spread, dx, & ghost, & mfi);
-	 }
+         }
 
     }
 }
@@ -521,7 +521,7 @@ Real kernel_3p(Real r_in)
     Real r;
     Real r1;
     Real r2;
- 
+
     //initialize r
     r = r_in;
     r1 = amrex::Math::abs(r_in);
@@ -567,7 +567,7 @@ Real kernel_6p(Real r_in)
 
     //compute kernel function
     if (r <= -3){
-       kernel_6p = 0.0; 
+       kernel_6p = 0.0;
     }else if (r <= -2){
        r += 3;
        kernel_6p = phi1(r);
@@ -613,7 +613,7 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
         invdx[i]=1.0/dx[i];
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
-        invvol *= invdx[i]; 
+        invvol *= invdx[i];
 
     if (nghost == 0){
         int loc = amrex::Math::floor(pos[0] * invdx[0] - gs);
@@ -634,7 +634,7 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
         jlo = amrex::Math::floor(pos[1] * invdx[1] - gs);
         jhi = amrex::Math::floor(pos[1] * invdx[1] + gs);
         klo = amrex::Math::floor(pos[2] * invdx[2] - gs);
-        khi = amrex::Math::floor(pos[2] * invdx[2] + gs); 
+        khi = amrex::Math::floor(pos[2] * invdx[2] + gs);
     }
 
     IntVect scalx_lo(ilo,jlo,klo);
@@ -645,7 +645,7 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
     const Box bx_y(scaly_lo, scaly_hi);
     IntVect scalz_lo(ilo,jlo,klo);
     IntVect scalz_hi(ihi,jhi,khi+1);
-    const Box bx_z(scalz_lo, scalz_hi);    
+    const Box bx_z(scalz_lo, scalz_hi);
 
 
     Array4<Real> const& fout_x = f_out[0].array(*mfi);
@@ -773,7 +773,7 @@ void IBParticleContainer::InvInterpolateMarkers(int lev, const ParticleIndex & p
     for (int i=0; i<1; ++i) {
         pkernel_fluid_in[i] = pkernel_fluid[i];
     }
-    
+
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
         const Box & bx       = mfi.growntilebox();
@@ -1053,7 +1053,6 @@ void IBParticleContainer::InterpolateParticleForces(int lev,
      *                                                                          *
      ***************************************************************************/
 
-
     std::array<MultiFab, AMREX_SPACEDIM> force_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         force_buffer[d].define(
@@ -1238,7 +1237,7 @@ void IBParticleContainer::PrintParticleData(int lev) {
         // sizeof(ParticleData). All of this is a little too dangerous for my
         // taste: never hide what you're doing from your compiler!!!
         ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].GetArrayOfStructs().dataPtr();
-        for(int i = 0; i < ng; i++){
+        for (int i = 0; i < ng; i++){
             ParticleType & part = nbhd_data[i];
             Real r              = part.rdata(IBP_realData::radius);
 
@@ -1446,7 +1445,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
 
         // Add to list
 
- 
+
         if (unique) {
             // If in unique-mode: Don't add unless `part_info` is not already in `info`
             const auto & search = std::find(std::begin(info), std::end(info), part_info);

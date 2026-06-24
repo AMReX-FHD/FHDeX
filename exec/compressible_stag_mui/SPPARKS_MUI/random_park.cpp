@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -23,7 +23,7 @@ using namespace SPPARKS_NS;
 #define IQ 127773
 #define IR 2836
 
-/* ---------------------------------------------------------------------- 
+/* ----------------------------------------------------------------------
    Park/Miller RNG
    assume iseed is a positive int
 ------------------------------------------------------------------------ */
@@ -33,7 +33,7 @@ RandomPark::RandomPark(int iseed)
   seed = iseed;
 }
 
-/* ---------------------------------------------------------------------- 
+/* ----------------------------------------------------------------------
    set seed to positive int
    assume 0.0 <= rseed < 1.0
 ------------------------------------------------------------------------ */
@@ -44,7 +44,7 @@ RandomPark::RandomPark(double rseed)
   if (seed == 0) seed = 1;
 }
 
-/* ---------------------------------------------------------------------- 
+/* ----------------------------------------------------------------------
    reset seed to a positive int based on rseed and offset
    assume 0.0 <= rseed < 1.0 and offset is an int >= 0
    fmod() insures no overflow when static cast to int
@@ -69,7 +69,7 @@ void RandomPark::tagreset(double rseed, tagint offset, int warmup)
 }
 
 /* ----------------------------------------------------------------------
-   uniform RN 
+   uniform RN
 ------------------------------------------------------------------------- */
 
 double RandomPark::uniform()

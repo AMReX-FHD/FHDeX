@@ -32,7 +32,7 @@ def create_sphere_points(center, radius, num_points):
         y = center[1] + radius * np.sin(theta) * np.cos(phi)
         z = center[2] + radius * np.sin(theta) * np.sin(phi)
         x = center[0] + radius * np.cos(theta)
-        
+
         # Append the coordinates to the points list
         points.append([x, y, z,])
 
@@ -90,7 +90,7 @@ def map_points(delaunay):
             id=i,
             coord=tuple(delaunay.points[i, :]),
             neighbors=tuple(delaunay.point_neighbors(i))
-            
+
         )
     return pt_map
 pts = map_points(delaunay)
@@ -103,7 +103,7 @@ for i in range(delaunay.n_cells):
         idx = cell.point_ids[j]
 
 
-#Generates particles.dat 
+#Generates particles.dat
 
 scaler=1.0e-04  #for scaling any coord,bond length etc from um to cm
 move=0; # ??? 1e-03 # move the cell body
@@ -112,7 +112,7 @@ with open("particles.dat", "w") as f:
     for idx in pts.keys():
         i = pts[idx].id
         p0 = np.array(pts[idx].coord)
-        f.write(f"{i}\t{(p0[0]*scaler)+move}\t{(p0[1]*scaler+move)}\t{(p0[2]*scaler)+move}\t1\t0\t1\n") 
+        f.write(f"{i}\t{(p0[0]*scaler)+move}\t{(p0[1]*scaler+move)}\t{(p0[2]*scaler)+move}\t1\t0\t1\n")
 
 
 if os.path.exists("particles.dat"):
@@ -123,8 +123,8 @@ else:
 
 
 
-#For finding the max number of neighbour of point have. 
-max_nn = 0  
+#For finding the max number of neighbour of point have.
+max_nn = 0
 for _, pt in pts.items():
     max_nn = max(max_nn, len(pt.neighbors))
 
@@ -178,8 +178,8 @@ p1.show()
 #extra stuff for optimization or settings
 #print(f"{i}\t{j}\t{k/len(pts[idx].neighbors)}\t{dist}")   # this equation will print the neighbouring particles and even it by it's number to provide optimal k etc. id_point=1 neighbour_points=2 so k/n_point
 
-#For finding the max number of neighbour of point have. 
-#max_nn = 0  
+#For finding the max number of neighbour of point have.
+#max_nn = 0
 #for _, pt in pts.items():
 #    max_nn = max(max_nn, len(pt.neighbors))
 

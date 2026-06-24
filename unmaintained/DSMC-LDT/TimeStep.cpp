@@ -7,7 +7,7 @@
 //Explicit Euler
 void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
                  std::array<MultiFab, NUM_EDGE>& betaEdge,
-                 std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
+                 std::array<MultiFab, AMREX_SPACEDIM>& umacIn,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
                  std::array<MultiFab, AMREX_SPACEDIM>& alpha,
@@ -24,7 +24,7 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
     const int zOff[3] = {0,0,1};
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
-    for (MFIter mfi(betaCC); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(betaCC); mfi.isValid(); ++mfi)
     {
         const Box& validBox = mfi.validbox();
 
