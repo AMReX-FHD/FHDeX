@@ -643,6 +643,10 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	    amrex::Real rad = radius_cyl;
             amrex::Real alpha = contact_angle_lo[1];
 
+//  hack
+            alpha = M_PI/2.;
+
+           
 	    int nsub = 10;
 	    Real factor = nsub;
 	    Real dxsub = dx[0]/factor;
@@ -703,10 +707,17 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	    amrex::Real rad = radius_cyl;
             amrex::Real alpha = contact_angle_lo[1];
 	    amrex::Real rad2 = .00212;
+            rad2 = 0.007911;
+
+            amrex::Real ang_hit = 3.14159265/6.;
+            amrex::Real ang_vel = 3.14159265/5.;
+            ang_hit = 0.;
+            ang_vel = 0.;
+
             GpuArray<Real,AMREX_SPACEDIM> droplet_center;
 
-            AMREX_D_TERM(droplet_center[0] = center[0];,
-                     droplet_center[1] = rad*std::cos(alpha)+rad+rad2 + 4*dx[1];,
+            AMREX_D_TERM(droplet_center[0] = center[0]-(rad+rad2 + 4*dx[1])*std::sin(ang_hit);,
+                     droplet_center[1] = rad*std::cos(alpha)+(rad+rad2 + 4*dx[1])*std::cos(ang_hit);,
                      droplet_center[2] = center[2];);
 
 	    amrex::Print() << " rad stuff " << rad << " " << rad2 << " " << std::cos(alpha) << " " << alpha << std::endl;
@@ -779,7 +790,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                }
             });
 
-            const Array4<Real> & vmac = (umac[1]).array(mfi);
+            const Array4<Real> & vmac_arr = (umac[1]).array(mfi);
+            const Array4<Real> & umac_arr = (umac[0]).array(mfi);
             Box bx_vmac = mfi.tilebox(nodal_flag_y);
 
 	    amrex::Real veldrop = -100.;
@@ -793,7 +805,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);
                 if (r2 < rad2) {
-                        vmac(i,j,k) = veldrop;
+                        vmac_arr(i,j,k) =  veldrop*std::cos(ang_vel);
+                        umac_arr(i,j,k) = -veldrop*std::sin(ang_vel);
                 }
             });
 

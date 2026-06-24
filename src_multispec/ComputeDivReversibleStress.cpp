@@ -25,7 +25,9 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
 
     // fill conc ghost cells
     conc.FillBoundary(geom.periodicity());
-    MultiFabPhysBCFH(conc,geom,0,nspecies,scale_factor);    
+    
+    Real bc_fraction = 1.;
+    MultiFabPhysBCFH(conc,geom,0,nspecies,bc_fraction);    
 
 //  JBB  check what's in this
 //    Real scale_factor = rhobar[0]*k_B*T_init[0]/molmass[0];

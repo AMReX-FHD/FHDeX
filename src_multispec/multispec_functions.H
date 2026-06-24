@@ -67,7 +67,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
                             const Geometry& geom);
 
 void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, 
-                            const Real& scale, const Real& time = 0.);
+                            const Real& bc_frac, const Real& time = 0.);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in DiffusiveMassFlux.cpp

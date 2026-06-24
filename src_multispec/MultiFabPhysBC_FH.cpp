@@ -1,3 +1,4 @@
+#include "common_functions.H"
 #include "multispec_functions.H"
 #include "InhomogeneousBCVal.H"
 
@@ -5,7 +6,7 @@
 // Fills in ALL ghost cells to the value ON the boundary.
 // FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
-void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, const Real& scale, const Real& time) {
+void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, const Real& bc_frac, const Real& time) {
 
     BL_PROFILE_VAR("MultiFabPhysBCFH()",MultiFabPhysBCFH);
     
@@ -31,12 +32,15 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
     int nghost = phi.nGrow();
     int bccomp = SPEC_BC_COMP;
 
+    amrex::Real scale = rhobar[0]*k_B*T_init[0]/monomer_mass;
+
     amrex::Real kappa_coeff = fh_kappa(0,1);
     amrex::Real ce = fh_ce;
     amrex::Real omce = 1.-ce;
     amrex::Real hack = 1./(1.-2.*ce);
 
-//    amrex::Print() << "scale and coeff " << scale << " " << kappa_coeff << " " << scale*kappa_coeff << " " << fh_tension <<std::endl;
+
+    // amrex::Print() << "scale and coeff " << scale << " " << kappa_coeff << " " << scale*kappa_coeff << " " << fh_tension << std::endl;
 
     //Real coeff = 6.*fh_tension/(kappa_coeff*scale);
     Real coeff = 3.*fh_tension*hack/(kappa_coeff*scale);
@@ -69,7 +73,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (i < lo) {
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - bc_frac*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -79,7 +83,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 {
                     if (i < lo) {
                         amrex::Real scratch = (data(lo,j,k,scomp+0)-ce)/(omce-ce);
-                        data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + dx[0]*std::cos(contact_angle_lo[0])*scratch*(1.-scratch)*coeff;
+                        data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) +bc_frac*dx[0]*std::cos(contact_angle_lo[0])*scratch*(1.-scratch)*coeff;
                         //data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + dx[0]*std::cos(contact_angle_lo[0])*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
@@ -109,7 +113,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (i > hi) {
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n) - dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n) - bc_frac*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -119,7 +123,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 {
                     if (i > hi) {
                         amrex::Real scratch = (data(hi,j,k,scomp+0)-ce)/(omce-ce);
-                        data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + dx[0]*std::cos(contact_angle_hi[0])*scratch*(1.-scratch)*coeff;
+                        data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + bc_frac*dx[0]*std::cos(contact_angle_hi[0])*scratch*(1.-scratch)*coeff;
                         //data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + dx[0]*std::cos(contact_angle_hi[0])*data(hi,j,k,scomp+0)*data(hi,j,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
@@ -151,7 +155,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (j < lo) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n) - dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
+                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n) - bc_frac*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
                     }
                 });
             }
@@ -163,7 +167,8 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         //amrex::Real scratch = (data(i,lo,k,scomp+0)-.0348115)/(.9651885-.0348115);
                         //data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*data(i,lo,k,scomp+0)*data(i,lo,k,scomp+1)*coeff;
                         amrex::Real scratch = (data(i,lo,k,scomp+0)-ce)/(omce-ce);
-                        data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*scratch*(1.-scratch)*coeff;
+                        data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + bc_frac*dx[1]*std::cos(contact_angle_lo[1])*scratch*(1.-scratch)*coeff;
+                        //data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*scratch*(1.-scratch)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
 			if(ncomp == 3){
@@ -203,7 +208,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (j > hi) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n) - dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n) - bc_frac*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -212,7 +217,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 {
                     if (j > hi) {
                         amrex::Real scratch = (data(i,hi,k,scomp+0)-ce)/(omce-ce);
-                        data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + dx[1]*std::cos(contact_angle_hi[1])*scratch*(1.-scratch)*coeff;
+                        data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + bc_frac*dx[1]*std::cos(contact_angle_hi[1])*scratch*(1.-scratch)*coeff;
                         //data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + dx[1]*std::cos(contact_angle_hi[1])*data(i,hi,k,scomp+0)*data(i,hi,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
@@ -258,7 +263,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (k < lo) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
-                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n) - dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
+                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n) - bc_frac*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
                     }
                 });
             }
@@ -267,7 +272,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 {
                     if (k < lo) {
                         amrex::Real scratch = (data(i,j,lo,scomp+0)-ce)/(omce-ce);
-                        data(i,j,k,scomp+0) = data(i,j,lo,scomp+0) + dx[2]*std::cos(contact_angle_lo[2])*scratch*(1.-scratch)*coeff;
+                        data(i,j,k,scomp+0) = data(i,j,lo,scomp+0) + bc_frac*dx[2]*std::cos(contact_angle_lo[2])*scratch*(1.-scratch)*coeff;
                         //data(i,j,k,scomp+0) = data(i,j,lo,scomp+0) + dx[2]*std::cos(contact_angle_lo[2])*data(i,j,lo,scomp+0)*data(i,j,lo,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
@@ -291,7 +296,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (k > hi) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
-                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n) - dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n) - bc_frac*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -300,7 +305,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 {
                     if (k < hi) {
                         amrex::Real scratch = (data(i,j,hi,scomp+0)-ce)/(omce-ce);
-                        data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + dx[2]*std::cos(contact_angle_hi[2])*scratch*(1.-scratch)*coeff;
+                        data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + bc_frac*dx[2]*std::cos(contact_angle_hi[2])*scratch*(1.-scratch)*coeff;
                         //data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + dx[2]*std::cos(contact_angle_hi[2])*data(i,j,hi,scomp+0)*data(i,j,hi,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
