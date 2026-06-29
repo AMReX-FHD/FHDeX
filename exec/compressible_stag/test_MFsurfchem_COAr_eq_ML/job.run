@@ -1,0 +1,31 @@
+#!/bin/bash
+#SBATCH -A m3767
+#SBATCH -J gpu_scaling
+#SBATCH -N 1
+#SBATCH -q debug
+#SBATCH -C gpu&hbm40g
+#SBATCH -t 0:30:00
+#SBATCH --ntasks-per-node=4
+#SBATCH -c 32
+#SBATCH --gpus-per-task=1
+#SBATCH --gpu-bind=none
+
+# Enable GPU-aware MPI for MPICH
+export MPICH_GPU_SUPPORT_ENABLED=1 
+
+# Bind MPI tasks to CPU cores to improve performance
+export SLURM_CPU_BIND="cores"
+
+echo "Running on 1 GPU..."
+srun -n 1 ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_fhd_stag amrex.use_gpu_aware_mpi=1 > log_1gpu.out
+
+echo "Running on 2 GPUs..."
+srun -n 2 ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_fhd_stag amrex.use_gpu_aware_mpi=1 > log_2gpu.out
+
+echo "Running on 4 GPUs..."
+srun -n 4 ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_fhd_stag amrex.use_gpu_aware_mpi=1 > log_4gpu.out
+
+echo "All runs complete!"
+
+
+
