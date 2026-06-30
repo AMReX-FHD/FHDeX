@@ -9,6 +9,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <AMReX_FFT_Stokes.H>
+
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
@@ -135,9 +137,35 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // call GMRES to compute predictor
   GMRES gmres(ba,dmap,geom);
-  gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-              alpha_fc,beta,beta_ed,gamma,
-              theta_alpha,geom,norm_pre_rhs);
+
+  amrex::FFT::Stokes stokes(geom);
+
+  // eta scaling
+  //  0 = inertial
+  //  1 = overdamped
+  Real factor = (algorithm_type == 0) ? 0.5 : 1.0;
+
+  if (stokes_solver_type == 0) {
+      gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+                  alpha_fc,beta,beta_ed,gamma,
+                  theta_alpha,geom,norm_pre_rhs);
+  } else if (stokes_solver_type == 1) {
+      stokes.solve(umacNew[0],
+                   umacNew[1],
+#if (AMREX_SPACEDIM==3)
+                   umacNew[2],
+#endif
+                   pres,
+                   gmres_rhs_u[0],
+                   gmres_rhs_u[1],
+#if (AMREX_SPACEDIM==3)
+                   gmres_rhs_u[2],
+#endif
+                   theta_alpha/dt,
+                   factor*visc_coef);
+  } else {
+      amrex::Abort("Invalid stokes_solver_type");
+  }
 
   // for deterministic overdamped, we are done with the time step
   if (algorithm_type == 1 && variance_coef_mom == 0.) {
@@ -219,9 +247,27 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 
   // call GMRES here
-  gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-              alpha_fc,beta,beta_ed,gamma,
-              theta_alpha,geom,norm_pre_rhs);
+  if (stokes_solver_type == 0) {
+      gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+                  alpha_fc,beta,beta_ed,gamma,
+                  theta_alpha,geom,norm_pre_rhs);
+  } else if (stokes_solver_type == 1) {
+      stokes.solve(umacNew[0],
+                   umacNew[1],
+#if (AMREX_SPACEDIM==3)
+                   umacNew[2],
+#endif
+                   pres,
+                   gmres_rhs_u[0],
+                   gmres_rhs_u[1],
+#if (AMREX_SPACEDIM==3)
+                   gmres_rhs_u[2],
+#endif
+                   theta_alpha/dt,
+                   factor*visc_coef);
+  } else {
+      amrex::Abort("Invalid stokes_solver_type");
+  }
 
   gmres_abs_tol = gmres_abs_tol_in; // Restore the desired tolerance
 
