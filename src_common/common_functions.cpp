@@ -71,6 +71,7 @@ AMREX_GPU_MANAGED amrex::Real common::Runiv;
 AMREX_GPU_MANAGED amrex::Real common::avogadro;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
+AMREX_GPU_MANAGED int      common::stokes_solver_type;
 int                        common::barodiffusion_type;
 int                        common::seed;
 AMREX_GPU_MANAGED amrex::Real common::visc_coef;
@@ -436,6 +437,9 @@ void InitializeCommonNamespace() {
 
     // Algorithm control / selection
     algorithm_type = 0;
+    // 0 = GMRES
+    // 1 = FFT-based
+    stokes_solver_type = 0;
     // 0 = centered
     // 1 = unlimited bilinear bds
     // 2 = limited bilinear bds
@@ -781,6 +785,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("algorithm_type",algorithm_type);
+    pp.query("stokes_solver_type",stokes_solver_type);
     pp.query("barodiffusion_type",barodiffusion_type);
     pp.query("seed",seed);
     pp.query("visc_coef",visc_coef);
