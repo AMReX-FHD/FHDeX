@@ -138,7 +138,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // call GMRES to compute predictor
   GMRES gmres(ba,dmap,geom);
 
-  amrex::FFT::Stokes stokes(geom);
+  amrex::FFT::Stokes stokes;
+  if (stokes_solver_type == 1) {
+      stokes.define(geom);
+  }
 
   // eta scaling
   //  0 = inertial
