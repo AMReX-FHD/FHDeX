@@ -6,6 +6,7 @@ DEBUG         = FALSE
 USE_MPI       = TRUE
 USE_OMP       = FALSE
 USE_CUDA      = FALSE
+CUDA_ARCH     = 70
 USE_HIP       = FALSE
 COMP          = gnu
 DIM           = 3
@@ -16,6 +17,8 @@ USE_FFT       = TRUE
 
 USE_PARTICLES = FALSE
 DO_TURB       = FALSE
+
+USE_ML        = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -58,8 +61,43 @@ ifeq ($(DO_TURB), TRUE)
   DEFINES += -DTURB
 endif
 
+ifeq  ($(USE_ML), TRUE)
+  DEFINES += -DAMREX_USE_ML
+endif
+
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
 
 MAXREACTION := $(strip $(MAX_REAC))
 DEFINES += -DMAX_REACTION=$(MAXREACTION)
+
+ifeq ($(USE_ML),TRUE)
+
+ifeq ($(USE_CUDA),TRUE)
+    PYTORCH_ROOT := $(abspath $(CURDIR))/test_MFsurfchem_COAr_eq_ML/libtorch_cuda
+else
+    PYTORCH_ROOT := $(abspath $(CURDIR))/test_MFsurfchem_COAr_eq_ML/libtorch_cpu
+endif
+
+TORCH_LIBPATH = $(PYTORCH_ROOT)/lib
+
+ifeq ($(USE_CUDA),TRUE)
+    TORCH_LIBS = -ltorch -ltorch_cpu -lc10 -lc10_cuda -lcuda
+else
+    TORCH_LIBS = -ltorch -ltorch_cpu -lc10
+endif
+
+INCLUDE_LOCATIONS += $(PYTORCH_ROOT)/include \
+                     $(PYTORCH_ROOT)/include/torch/csrc/api/include
+LIBRARY_LOCATIONS += $(TORCH_LIBPATH)
+
+DEFINES += -D_GLIBCXX_USE_CXX11_ABI=1
+
+# FIX: Use TORCH_LIBPATH for the rpath, and ensure commas/spaces are correct!
+ifeq ($(USE_CUDA),TRUE)
+    LDFLAGS += -Xlinker --no-as-needed -Xlinker -rpath=$(TORCH_LIBPATH) $(TORCH_LIBS)
+else
+    LDFLAGS += -Wl,--no-as-needed,-rpath=$(TORCH_LIBPATH) $(TORCH_LIBS)
+endif
+
+endif

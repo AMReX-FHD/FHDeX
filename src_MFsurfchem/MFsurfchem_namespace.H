@@ -21,4 +21,6 @@ namespace MFsurfchem {
     extern AMREX_GPU_MANAGED int mean_MFsurfchem;
     extern AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> mean_pressure;
 
+    extern AMREX_GPU_MANAGED int use_ml_mfsurfchem;
+    extern std::string model_filename;
 }
