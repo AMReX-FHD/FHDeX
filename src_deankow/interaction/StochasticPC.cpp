@@ -105,7 +105,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude,
         amrex::ParallelForRNG(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
         {
-            if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))) >= 0) {return;}
+            if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))).first >= 0) {return;}
             Real rannum = amrex::Random(engine);
             int npart_in_cell = int(num_part*phi_arr(i,j,k,0)*cell_vol+rannum);
             pcount[flat_index(i, j, k)] += npart_in_cell;
@@ -260,7 +260,7 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
         amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
         {
             ParticleType& p = pstruct[i];
-            if (assign_grid(p) < 0) {
+            if (assign_grid(p).first < 0) {
                 p.id() = -1;
             }
         });
@@ -308,7 +308,7 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_fine_f
                 // int inew = new_pos[0];
                 // if (inew == 31) amrex::Print() <<" PARTICLE NOW AT 31 : OLD POS " << iold << std::endl;
 
-                if ( (assign_grid(old_pos) >= 0) && (assign_grid(new_pos) < 0)) {
+                if ( (assign_grid(old_pos).first >= 0) && (assign_grid(new_pos).first < 0)) {
                    Gpu::Atomic::AddNoRet(&phi_arr(new_pos,0), 1.0);
                 }
             });
@@ -394,7 +394,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
                 auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
                 auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
 
-                if ( (assign_grid(old_pos) < 0) && (assign_grid(new_pos) >= 0)) {
+                if ( (assign_grid(old_pos).first < 0) && (assign_grid(new_pos).first >= 0)) {
                    Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
                 }
             });
@@ -606,15 +606,30 @@ StochasticPC::AdvectParticles (int lev, Real dt,
 
     for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
+
         auto& ptile = ParticlesAt(lev, pti);
         auto& aos  = ptile.GetArrayOfStructs();
         const int np = ptile.numRealParticles();
-        auto *pstruct = aos().data();
+        auto* pstruct = aos().data();
 
-        amrex::NeighborList<ParticleType> nlist;
-        amrex::NeighborData<ParticleType> ndata(nlist.GetOffsets(), nlist.GetList(), pstruct);
+        Gpu::DeviceVector<Real> dpx(np, 0.0);
+        Gpu::DeviceVector<Real> dpy(np, 0.0);
+        Gpu::DeviceVector<Real> dpz(np, 0.0);
+        Gpu::DeviceVector<Real> incx(np, 0.0);
+        Gpu::DeviceVector<Real> incy(np, 0.0);
+        Gpu::DeviceVector<Real> incz(np, 0.0);
+
+        Real* dpxp = dpx.dataPtr();
+        Real* dpyp = dpy.dataPtr();
+        Real* dpzp = dpz.dataPtr();
+        Real* incxp = incx.dataPtr();
+        Real* incyp = incy.dataPtr();
+        Real* inczp = incz.dataPtr();
 
         if (interaction_range > 0.0) {
+
+            amrex::NeighborList<ParticleType> nlist;
+
             auto check_pair = [=] AMREX_GPU_HOST_DEVICE
                 (const ParticleType& p1, const ParticleType& p2) noexcept
             {
@@ -645,125 +660,13 @@ StochasticPC::AdvectParticles (int lev, Real dt,
                 const Real r2 = dxij*dxij + dyij*dyij + dzij*dzij;
                 return (r2 < rcut2 && r2 > 0.0);
             };
-            Box bx = pti.tilebox();
-            bx.grow(m_neighbor_cells);
-            nlist.build(ptile, bx, Geom(lev), check_pair, m_neighbor_cells);
-            ndata = nlist.data();
-        }
 
+        Box bx = pti.tilebox();
+        bx.grow(m_neighbor_cells);
+        nlist.build(ptile, bx, Geom(lev), check_pair, m_neighbor_cells);
 
-/*
-
-        if (s_print_forces && amrex::ParallelDescriptor::IOProcessor()) {
-            const int nprint = std::min(np, s_print_forces_n);
-            amrex::Print{} << " np, sp  nprint " << np << " " << s_print_forces_n << " " << nprint << std::endl;
-            for (int i = 0; i < nprint; ++i) {
-                const ParticleType& p = pstruct[i];
-
-                Real dpx = 0.0;
-                Real dpy = 0.0;
-                Real dpz = 0.0;
-
-                if (use_ext_pot == 1) {
-                    amrex::Real xloc = p.pos(0);
-                    amrex::Real yloc = p.pos(1);
-                    amrex::Real Vsubx = 2.*(xloc - beta) * (xloc - alpha) * (2.*xloc - alpha - beta) / gamma;
-                    amrex::Real Vsuby = 0.5*4.*(yloc - .5) * (yloc - .5) * (yloc - .5) / gamma;
-                    dpx += -dt * Vsubx;
-                    dpy += -dt * Vsuby;
-                }
-
-                if (interaction_range > 0.0) {
-                    const Real xi = p.pos(0);
-                    const Real yi = p.pos(1);
-#if (AMREX_SPACEDIM == 3)
-                    const Real zi = p.pos(2);
-#else
-                    const Real zi = 0.0;
-#endif
-
-                    auto nbors = ndata.getNeighbors(i);
-                    for (auto it = nbors.begin(); it != nbors.end(); ++it) {
-                        const ParticleType& q = *it;
-
-                        Real dxij = q.pos(0) - xi;
-                        Real dyij = q.pos(1) - yi;
-#if (AMREX_SPACEDIM == 3)
-                        Real dzij = q.pos(2) - zi;
-#else
-                        Real dzij = 0.0;
-#endif
-
-                        if (is_periodic_in_x) {
-                            if (dxij > 0.5*Lx) dxij -= Lx;
-                            if (dxij < -0.5*Lx) dxij += Lx;
-                        }
-                        if (is_periodic_in_y) {
-                            if (dyij > 0.5*Ly) dyij -= Ly;
-                            if (dyij < -0.5*Ly) dyij += Ly;
-                        }
-#if (AMREX_SPACEDIM == 3)
-                        if (is_periodic_in_z) {
-                            if (dzij > 0.5*Lz) dzij -= Lz;
-                            if (dzij < -0.5*Lz) dzij += Lz;
-                        }
-#endif
-
-                        const Real r2 = dxij*dxij + dyij*dyij + dzij*dzij;
-                        if (r2 >= rcut2 || r2 == 0.0) continue;
-
-                        const Real r = std::sqrt(r2);
-                        const Real r3 = r2 * r;
-                        const Real U = strength * std::exp(-r3 * inv_scale3);
-                        const Real factor = -3.0 * inv_scale3 * U * r;
-
-    amrex::Print{} << "inv_scale3 " << inv_scale3 << std::endl;
-    amrex::Print{} << "r3 " << r3 << std::endl;
-    amrex::Print{} << "dxij " << dxij << std::endl;
-    amrex::Print{} << "dyij " << dyij << std::endl;
-    amrex::Print{} << "strength " << strength << std::endl;
-    amrex::Print{} << "u " << U << std::endl;
-
-                        dpx += dt * factor * dxij;
-                        dpy += dt * factor * dyij;
-                        dpz += dt * factor * dzij;
-                amrex::Print() << "Force particle id=" << p.id()
-                               << " pos=(" << p.pos(0) << "," << p.pos(1) << " " << dxij << " " << dyij << std::endl;
-                    }
-                }
-
-                Real fx = (dt > 0.0) ? dpx / dt : 0.0;
-                Real fy = (dt > 0.0) ? dpy / dt : 0.0;
-                Real fz = (dt > 0.0) ? dpz / dt : 0.0;
-
-                amrex::Print() << "Force particle id=" << p.id()
-                               << " pos=(" << p.pos(0) << "," << p.pos(1) 
-#if (AMREX_SPACEDIM == 3)
-                               << "," << p.pos(2)
-#endif
-                               << ") force=(" << fx << "," << fy
-#if (AMREX_SPACEDIM == 3)
-                               << "," << fz
-#endif
-                               << ")\n";
-            }
-        }
-
-*/
-
-        Gpu::DeviceVector<Real> dpx(np, 0.0);
-        Gpu::DeviceVector<Real> dpy(np, 0.0);
-        Gpu::DeviceVector<Real> dpz(np, 0.0);
-        Gpu::DeviceVector<Real> incx(np, 0.0);
-        Gpu::DeviceVector<Real> incy(np, 0.0);
-        Gpu::DeviceVector<Real> incz(np, 0.0);
-
-        Real* dpxp = dpx.dataPtr();
-        Real* dpyp = dpy.dataPtr();
-        Real* dpzp = dpz.dataPtr();
-        Real* incxp = incx.dataPtr();
-        Real* incyp = incy.dataPtr();
-        Real* inczp = incz.dataPtr();
+        // IMPORTANT: NeighborData comes from the BUILT list
+        auto ndata = nlist.data();
 
         amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
         {
@@ -789,7 +692,6 @@ StochasticPC::AdvectParticles (int lev, Real dt,
                 dpy += -dt*Vsuby;
             }
 
-            if (interaction_range > 0.0) {
                 const Real xi = p.pos(0);
                 const Real yi = p.pos(1);
 #if (AMREX_SPACEDIM == 3)
@@ -833,21 +735,11 @@ StochasticPC::AdvectParticles (int lev, Real dt,
                     const Real U = strength * std::exp(-r3 * inv_scale3);
                     const Real factor = -3.0 * inv_scale3 * U * r;
 
-//    amrex::Print{} << " in actual" << std::endl;
-//    amrex::Print{} << "inv_scale3 " << inv_scale3 << std::endl;
-//    amrex::Print{} << "r3 " << r3 << std::endl;
-//    amrex::Print{} << "dxij " << dxij << std::endl;
-//    amrex::Print{} << "dyij " << dyij << std::endl;
-//    amrex::Print{} << "strength " << strength << std::endl;
-//    amrex::Print{} << "u " << U << std::endl;
-
 
                     dpx += dt * factor * dxij;
                     dpy += dt * factor * dyij;
                     dpz += dt * factor * dzij;
                 }
- //                   amrex::Print{} << "xi yi forces " << xi << " " << yi << " " << dpx/dt << " " << dpy/dt << std::endl;
-            }
 
 
             Real incx = amrex::RandomNormal(0.,stddev,engine);
@@ -864,6 +756,53 @@ StochasticPC::AdvectParticles (int lev, Real dt,
             incyp[i] = incy;
             inczp[i] = incz;
         });
+
+    } else {
+
+        // interaction_range <= 0: no neighbor forces
+        amrex::ParallelForRNG(np,
+        [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
+        {
+            ParticleType& p = pstruct[i];
+
+            AMREX_D_TERM(
+                p.rdata(RealIdx::xold) = p.pos(0);,
+                p.rdata(RealIdx::yold) = p.pos(1);,
+                p.rdata(RealIdx::zold) = p.pos(2););
+
+            Real dpx = 0.0;
+            Real dpy = 0.0;
+            Real dpz = 0.0;
+
+            if (use_ext_pot == 1) {
+                Real xloc = p.pos(0);
+                Real yloc = p.pos(1);
+
+                Real Vsubx = 2.*(xloc - beta) * (xloc - alpha) *
+                              (2.*xloc - alpha - beta) / gamma;
+                Real Vsuby = 0.5*4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
+
+                dpx += -dt*Vsubx;
+                dpy += -dt*Vsuby;
+            }
+
+            Real incx = amrex::RandomNormal(0., stddev, engine);
+            Real incy = amrex::RandomNormal(0., stddev, engine);
+            Real incz = 0.0;
+#if (AMREX_SPACEDIM == 3)
+            incz = amrex::RandomNormal(0., stddev, engine);
+#endif
+
+            dpxp[i]  = dpx;
+            dpyp[i]  = dpy;
+            dpzp[i]  = dpz;
+            incxp[i] = incx;
+            incyp[i] = incy;
+            inczp[i] = incz;
+        });
+    }
+
+
 
         amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
