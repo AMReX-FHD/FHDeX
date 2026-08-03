@@ -76,8 +76,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
         amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
-        },
-                           bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        }
+#if (AMREX_SPACEDIM >= 2)
+                         , bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
         }
@@ -86,6 +87,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
         {
             gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
         }
+#endif
 #endif
         );
 
@@ -120,6 +122,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
             }
         }
 
+#if (AMREX_SPACEDIM >= 2)
         if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
@@ -176,6 +179,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 });
             }
         }
+#endif
 #endif
     } // end MFIter
 }
@@ -321,21 +325,27 @@ void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi_in,
                      Array4<Real> const& Lphiy = Lphi_in[1].array(mfi);,
                      Array4<Real> const& Lphiz = Lphi_in[2].array(mfi););
 
-        amrex::ParallelFor(bx_x, bx_y,
+        amrex::ParallelFor(bx_x,
+#if (AMREX_SPACEDIM >= 2)
+                           bx_y,
 #if (AMREX_SPACEDIM == 3)
                            bx_z,
+#endif
 #endif
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Lphix(i,j,k) =    (phix(i+1,j,k) - 2.*phix(i,j,k) + phix(i-1,j,k)) / (dx[0]*dx[0])
+#if (AMREX_SPACEDIM >= 2)
                                 + (phix(i,j+1,k) - 2.*phix(i,j,k) + phix(i,j-1,k)) / (dx[1]*dx[1])
 #if (AMREX_SPACEDIM == 3)
                                 + (phix(i,j,k+1) - 2.*phix(i,j,k) + phix(i,j,k-1)) / (dx[2]*dx[2])
 #endif
+#endif
                     ;
 
-            },
-                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            }
+#if (AMREX_SPACEDIM >= 2)
+                           , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Lphiy(i,j,k) =    (phiy(i+1,j,k) - 2.*phiy(i,j,k) + phiy(i-1,j,k)) / (dx[0]*dx[0])
                                 + (phiy(i,j+1,k) - 2.*phiy(i,j,k) + phiy(i,j-1,k)) / (dx[1]*dx[1])
@@ -352,6 +362,7 @@ void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi_in,
                                 + (phiz(i,j+1,k) - 2.*phiz(i,j,k) + phiz(i,j-1,k)) / (dx[1]*dx[1])
                                 + (phiz(i,j,k+1) - 2.*phiz(i,j,k) + phiz(i,j,k-1)) / (dx[2]*dx[2]);
             }
+#endif
 #endif
             );
 

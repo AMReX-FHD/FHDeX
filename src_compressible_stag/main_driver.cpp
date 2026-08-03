@@ -1193,7 +1193,7 @@ void main_driver(const char* argv)
             coVars.setVal(0.0);
 
             if (plot_mom3) mom3.setVal(0.0);
-            
+
             if (plot_mom4) mom4.setVal(0.0);
 
             if (nspec_surfcov>0) {
