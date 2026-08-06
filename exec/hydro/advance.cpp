@@ -119,7 +119,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           gmres_rhs_u[d].setVal(0.);
       }
       MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
-      MultiFab::Add(gmres_rhs_u[d], rand_mom_add[d],   0, 0, 1, 0);
+      //MultiFab::Add(gmres_rhs_u[d], rand_mom_add[d],   0, 0, 1, 0);
+      MultiFab::Saxpy(gmres_rhs_u[d], dtinv, rand_mom_add[d], 0, 0, 1, 0);
   }
 
   ExternalForce(gmres_rhs_u,gmres_rhs_p);
@@ -236,7 +237,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           gmres_rhs_u[d].setVal(0.);
       }
       MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
-      MultiFab::Add(gmres_rhs_u[d], rand_mom_add[d],   0, 0, 1, 0);
+      // MultiFab::Add(gmres_rhs_u[d], rand_mom_add[d],   0, 0, 1, 0);
+      MultiFab::Saxpy(gmres_rhs_u[d], dtinv, rand_mom_add[d], 0, 0, 1, 0);
   }
 
   ExternalForce(gmres_rhs_u,gmres_rhs_p);

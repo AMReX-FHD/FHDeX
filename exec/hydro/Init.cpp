@@ -4,7 +4,7 @@
 using namespace amrex;
     
 AMREX_GPU_MANAGED int hydro::sf_restart = -1;
-AMREX_GPU_MANAGED int hydro::variance_coef_mom_scaling = 1.0;
+AMREX_GPU_MANAGED amrex::Real hydro::variance_coef_mom_scaling = 1.0;
 
 void InitializeHydroNamespace() {
     

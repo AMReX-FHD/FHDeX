@@ -9,7 +9,8 @@ void RandomMomField(std::array< MultiFab, AMREX_SPACEDIM >& rand_mom_add,
 
     // Fill random number from N(0,sqrt(dt))
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        amrex::FillRandomNormal (rand_mom_add[d],0,1,0.0,std::sqrt(dt));
+        //amrex::FillRandomNormal (rand_mom_add[d],0,1,0.0,std::sqrt(dt));
+        amrex::FillRandomNormal (rand_mom_add[d],0,1,0.0,1.0);
     }
 
     const Real* dx = geom.CellSize();

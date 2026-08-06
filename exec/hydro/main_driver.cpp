@@ -36,6 +36,7 @@ void main_driver(const char* argv)
         // copy contents of F90 modules to C++ namespaces
         InitializeCommonNamespace();
         InitializeGmresNamespace();
+        InitializeHydroNamespace();
 
         // is the problem periodic?
         Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
