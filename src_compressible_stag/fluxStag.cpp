@@ -2,6 +2,187 @@
 #include "compressible_functions_stag.H"
 #include "common_functions.H"
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void setupDirichletEdge(const Real rhomm, const Real Tmm, const Real Pmm,
+                        const Real rhomp, const Real Tmp, const Real Pmp,
+                        const Real rhopm, const Real Tpm, const Real Ppm,
+                        const Real rhopp, const Real Tpp, const Real Ppp,
+                        const GpuArray<Real,MAX_SPECIES>& Ykmm,
+                        const GpuArray<Real,MAX_SPECIES>& Ykmp,
+                        const GpuArray<Real,MAX_SPECIES>& Ykpm,
+                        const GpuArray<Real,MAX_SPECIES>& Ykpp,
+                        const int dirichlet_type_loc,
+                        bool is_bc_lo,
+                        Real& eta_edge,
+                        Real& etaT)
+{
+    Real kappa,  zeta;
+    GpuArray<Real,MAX_SPECIES> chiloc;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc;
+
+    Real rho_m, rho_p, T_m, T_p, P_m, P_p;
+    GpuArray<Real,MAX_SPECIES> Yk_m, Yk_p;
+    Real eta_m, eta_p;
+
+    if (dirichlet_type_loc == 1) { // boundary values are Dirichlet values
+        if (is_bc_lo) {
+            rho_m = rhomm; T_m = Tmm; P_m = Pmm;
+            rho_p = rhomp; T_p = Tmp; P_p = Pmp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_m[n] = Ykmm[n];
+                Yk_p[n] = Ykmp[n];
+            }
+        }
+        else {
+            rho_m = rhopm; T_m = Tpm; P_m = Ppm;
+            rho_p = rhopp; T_p = Tpp; P_p = Ppp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_m[n] = Ykpm[n];
+                Yk_p[n] = Ykpp[n];
+            }
+        }
+        TransportCoeffs(rho_m, T_m, P_m, Yk_m,
+                eta_m, kappa, zeta, Dloc, chiloc);
+        TransportCoeffs(rho_p, T_p, P_p, Yk_p,
+                eta_p, kappa, zeta, Dloc, chiloc);
+    }
+    else if (dirichlet_type_loc == 2) { // boundary = 0.5*(Dirichlet + cell)
+        rho_m = 0.5*(rhomm+rhopm); T_m = 0.5*(Tmm+Tpm); P_m = 0.5*(Pmm+Ppm);
+        rho_p = 0.5*(rhomp+rhopp); T_p = 0.5*(Tmp+Tpp); P_p = 0.5*(Pmp+Ppp);
+        for (int n=0; n<nspecies; ++n) {
+            Yk_m[n] = 0.5*(Ykmm[n]+Ykpm[n]);
+            Yk_p[n] = 0.5*(Ykmp[n]+Ykpp[n]);
+        }
+        TransportCoeffs(rho_m, T_m, P_m, Yk_m,
+                eta_m, kappa, zeta, Dloc, chiloc);
+        TransportCoeffs(rho_p, T_p, P_p, Yk_p,
+                eta_p, kappa, zeta, Dloc, chiloc);
+    }
+    else if (dirichlet_type_loc == 3) { // boundary values are 1st interior cell
+        if (is_bc_lo) {
+            rho_m = rhopm; T_m = Tpm; P_m = Ppm;
+            rho_p = rhopp; T_p = Tpp; P_p = Ppp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_m[n] = Ykpm[n];
+                Yk_p[n] = Ykpp[n];
+            }
+        }
+        else {
+            rho_m = rhomm; T_m = Tmm; P_m = Pmm;
+            rho_p = rhomp; T_p = Tmp; P_p = Pmp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_m[n] = Ykmm[n];
+                Yk_p[n] = Ykmp[n];
+            }
+        }
+        TransportCoeffs(rho_m, T_m, P_m, Yk_m,
+                eta_m, kappa, zeta, Dloc, chiloc);
+        TransportCoeffs(rho_p, T_p, P_p, Yk_p,
+                eta_p, kappa, zeta, Dloc, chiloc);
+    }
+    else {
+        if (is_bc_lo) {
+            rho_m = rhomm; T_m = Tmm; P_m = Pmm;
+            rho_p = rhomp; T_p = Tmp; P_p = Pmp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_m[n] = Ykmm[n];
+                Yk_p[n] = Ykmp[n];
+            }
+        }
+        else {
+            rho_m = rhopm; T_m = Tpm; P_m = Ppm;
+            rho_p = rhopp; T_p = Tpp; P_p = Ppp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_m[n] = Ykpm[n];
+                Yk_p[n] = Ykpp[n];
+            }
+        }
+        TransportCoeffs(rho_m, T_m, P_m, Yk_m,
+                eta_m, kappa, zeta, Dloc, chiloc);
+        TransportCoeffs(rho_p, T_p, P_p, Yk_p,
+                eta_p, kappa, zeta, Dloc, chiloc);
+    }
+    eta_edge  = 0.5*(eta_m + eta_p);
+    etaT = 0.5*(eta_m*T_m + eta_p*T_p);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void setupDirichletFace(const Real rhom, const Real Tm, const Real Pm,
+                        const Real rhop, const Real Tp, const Real Pp,
+                        const GpuArray<Real,MAX_SPECIES>& Ykm,
+                        const GpuArray<Real,MAX_SPECIES>& Ykp,
+                        const int dirichlet_type_loc,
+                        bool is_bc_lo,
+                        Real& T_wall,
+                        Real& P_wall,
+                        Real& kappa_wall,
+                        GpuArray<Real,MAX_SPECIES>& Yk_wall,
+                        GpuArray<Real,MAX_SPECIES>& chiloc_wall,
+                        GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dloc_wall)
+{
+    Real rho_wall;
+    Real eta_wall, zeta_wall; // computed by TransportCoeffs but not needed by the caller
+
+    if (dirichlet_type_loc == 1) { // boundary values are Dirichlet values
+        if (is_bc_lo) {
+            rho_wall = rhom; T_wall = Tm; P_wall = Pm;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_wall[n] = Ykm[n];
+            }
+        }
+        else {
+            rho_wall = rhop; T_wall = Tp; P_wall = Pp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_wall[n] = Ykp[n];
+            }
+        }
+        TransportCoeffs(rho_wall, T_wall, P_wall, Yk_wall,
+                eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+    }
+    else if (dirichlet_type_loc == 2) { // boundary = 0.5*(Dirichlet + cell)
+        rho_wall = 0.5*(rhom+rhop); 
+        T_wall   = 0.5*(Tm+Tp); 
+        P_wall   = 0.5*(Pm+Pp);
+        for (int n=0; n<nspecies; ++n) {
+            Yk_wall[n] = 0.5*(Ykm[n]+Ykp[n]);
+        }
+        TransportCoeffs(rho_wall, T_wall, P_wall, Yk_wall,
+                eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+    }
+    else if (dirichlet_type_loc == 3) { // boundary values are 1st interior cell
+        if (is_bc_lo) {
+            rho_wall = rhop; T_wall = Tp; P_wall = Pp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_wall[n] = Ykp[n];
+            }
+        }
+        else {
+            rho_wall = rhom; T_wall = Tm; P_wall = Pm;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_wall[n] = Ykm[n];
+            }
+        }
+        TransportCoeffs(rho_wall, T_wall, P_wall, Yk_wall,
+                eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+    }
+    else {
+        if (is_bc_lo) {
+            rho_wall = rhom; T_wall = Tm; P_wall = Pm;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_wall[n] = Ykm[n];
+            }
+        }
+        else {
+            rho_wall = rhop; T_wall = Tp; P_wall = Pp;
+            for (int n=0; n<nspecies; ++n) {
+                Yk_wall[n] = Ykp[n];
+            }
+        }
+        TransportCoeffs(rho_wall, T_wall, P_wall, Yk_wall,
+                eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+    }
+}
+
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
                        const MultiFab& eta_in, const MultiFab& zeta_in, const MultiFab& kappa_in,
@@ -81,12 +262,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                  tau_diagoff_stoch[2].setVal(0.0););
 
     // ignore for reservoirs and periodic BC
-    bool is_lo_x_dirichlet_mass = (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1);
-    bool is_hi_x_dirichlet_mass = (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1);
-    bool is_lo_y_dirichlet_mass = (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1);
-    bool is_hi_y_dirichlet_mass = (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1);
-    bool is_lo_z_dirichlet_mass = (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1);
-    bool is_hi_z_dirichlet_mass = (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1);
+    bool is_lo_x_dirichlet_mass = (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1) and (bc_mass_lo[0] != 4);
+    bool is_hi_x_dirichlet_mass = (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1) and (bc_mass_hi[0] != 4);
+    bool is_lo_y_dirichlet_mass = (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1) and (bc_mass_lo[1] != 4);
+    bool is_hi_y_dirichlet_mass = (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1) and (bc_mass_hi[1] != 4);
+    bool is_lo_z_dirichlet_mass = (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1) and (bc_mass_lo[2] != 4);
+    bool is_hi_z_dirichlet_mass = (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1) and (bc_mass_hi[2] != 4);
 
     ////////////////////
     // stochastic fluxes
@@ -211,721 +392,298 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             // Populate off-diagonal stress
             amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-                // Temporary variables for Dirichlet 
-                Real rho_wall_m, rho_wall_p;
-                Real T_wall_m, T_wall_p;
-                Real P_wall_m, P_wall_p;
-                Real eta_wall_m, eta_wall_p;
-                Real kappa_wall_m, kappa_wall_p;
-                Real zeta_wall_m, zeta_wall_p;
-                GpuArray<Real,MAX_SPECIES> Yk_wall_m, Yk_wall_p;
-                GpuArray<Real,MAX_SPECIES> chiloc_wall_m, chiloc_wall_p;
-                GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall_m, Dloc_wall_p;
-
                 if (do_1D) { // 1D
                     tauxy_stoch(i,j,k) = 0.0;
                 }
                 else { // works for both 2D and 3D
+                    // only etaT is used here; eta_edge is a required out-param of setupDirichletEdge
+                    Real eta_edge;
                     Real etaT = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
-
                     // Pick boundary values for Dirichlet (stored in ghost)
                     // For corner cases (xy), x wall takes preference
                     if ((j == 0) and is_lo_y_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j-1,k,6+n);
-                                Yk_wall_p[n] = prim(i,j-1,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j-1,k,0); rho_wall_p = prim(i,j-1,k,0);
-                            T_wall_m   = prim(i-1,j-1,k,4); T_wall_p   = prim(i,j-1,k,4);
-                            P_wall_m   = prim(i-1,j-1,k,5); P_wall_p   = prim(i,j-1,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i-1,j-1,k,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i-1,j,k,0);   Real rhomp = prim(i,j-1,k,0);
+                        Real Tmm   = prim(i-1,j-1,k,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i-1,j,k,4);   Real Tmp   = prim(i,j-1,k,4);
+                        Real Pmm   = prim(i-1,j-1,k,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i-1,j,k,5);   Real Pmp   = prim(i,j-1,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i-1,j-1,k,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i-1,j,k,6+n);
+                            Ykmp[n] = prim(i,j-1,k,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i-1,j-1,k,6+n) + prim(i-1,j,k,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i,j-1,k,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i-1,j-1,k,0)+prim(i-1,j,k,0)); 
-                            rho_wall_p = 0.5*(prim(i,j-1,k,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i-1,j-1,k,4)+prim(i-1,j,k,4)); 
-                            T_wall_p   = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i-1,j-1,k,5)+prim(i-1,j,k,5)); 
-                            P_wall_p   = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j,k,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j,k,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i-1,j,k,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i-1,j,k,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4));
-                        }
-
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 1, eta_edge, etaT);
                     }
                     if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j,k,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j,k,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i-1,j,k,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i-1,j,k,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i-1,j-1,k,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i-1,j,k,0);   Real rhomp = prim(i,j-1,k,0);
+                        Real Tmm   = prim(i-1,j-1,k,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i-1,j,k,4);   Real Tmp   = prim(i,j-1,k,4);
+                        Real Pmm   = prim(i-1,j-1,k,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i-1,j,k,5);   Real Pmp   = prim(i,j-1,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i-1,j-1,k,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i-1,j,k,6+n);
+                            Ykmp[n] = prim(i,j-1,k,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i-1,j-1,k,6+n) + prim(i-1,j,k,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i,j-1,k,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i-1,j-1,k,0)+prim(i-1,j,k,0)); 
-                            rho_wall_p = 0.5*(prim(i,j-1,k,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i-1,j-1,k,4)+prim(i-1,j,k,4)); 
-                            T_wall_p   = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i-1,j-1,k,5)+prim(i-1,j,k,5)); 
-                            P_wall_p   = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j-1,k,6+n);
-                                Yk_wall_p[n] = prim(i,j-1,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j-1,k,0); rho_wall_p = prim(i,j-1,k,0);
-                            T_wall_m   = prim(i-1,j-1,k,4); T_wall_p   = prim(i,j-1,k,4);
-                            P_wall_m   = prim(i-1,j-1,k,5); P_wall_p   = prim(i,j-1,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 0, eta_edge, etaT);
                     }
                     if ((i == 0) and is_lo_x_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j-1,k,6+n);
-                                Yk_wall_p[n] = prim(i-1,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j-1,k,0); rho_wall_p = prim(i-1,j,k,0);
-                            T_wall_m   = prim(i-1,j-1,k,4); T_wall_p   = prim(i-1,j,k,4);
-                            P_wall_m   = prim(i-1,j-1,k,5); P_wall_p   = prim(i-1,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i-1,j-1,k,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i,j-1,k,0);   Real rhomp = prim(i-1,j,k,0);
+                        Real Tmm   = prim(i-1,j-1,k,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i,j-1,k,4);   Real Tmp   = prim(i-1,j,k,4);
+                        Real Pmm   = prim(i-1,j-1,k,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i,j-1,k,5);   Real Pmp   = prim(i-1,j,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i-1,j-1,k,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i,j-1,k,6+n);
+                            Ykmp[n] = prim(i-1,j,k,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i-1,j-1,k,6+n) + prim(i,j-1,k,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i-1,j,k,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i-1,j-1,k,0)+prim(i,j-1,k,0)); 
-                            rho_wall_p = 0.5*(prim(i-1,j,k,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i-1,j-1,k,4)+prim(i,j-1,k,4)); 
-                            T_wall_p   = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i-1,j-1,k,5)+prim(i,j-1,k,5)); 
-                            P_wall_p   = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j-1,k,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j-1,k,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i,j-1,k,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i,j-1,k,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 1, eta_edge, etaT);
                     }
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j-1,k,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j-1,k,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i,j-1,k,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i,j-1,k,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i-1,j-1,k,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i,j-1,k,0);   Real rhomp = prim(i-1,j,k,0);
+                        Real Tmm   = prim(i-1,j-1,k,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i,j-1,k,4);   Real Tmp   = prim(i-1,j,k,4);
+                        Real Pmm   = prim(i-1,j-1,k,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i,j-1,k,5);   Real Pmp   = prim(i-1,j,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i-1,j-1,k,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i,j-1,k,6+n);
+                            Ykmp[n] = prim(i-1,j,k,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i-1,j-1,k,6+n) + prim(i,j-1,k,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i-1,j,k,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i-1,j-1,k,0)+prim(i,j-1,k,0)); 
-                            rho_wall_p = 0.5*(prim(i-1,j,k,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i-1,j-1,k,4)+prim(i,j-1,k,4)); 
-                            T_wall_p   = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i-1,j-1,k,5)+prim(i,j-1,k,5)); 
-                            P_wall_p   = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j-1,k,6+n);
-                                Yk_wall_p[n] = prim(i-1,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j-1,k,0); rho_wall_p = prim(i-1,j,k,0);
-                            T_wall_m   = prim(i-1,j-1,k,4); T_wall_p   = prim(i-1,j,k,4);
-                            P_wall_m   = prim(i-1,j-1,k,5); P_wall_p   = prim(i-1,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 0, eta_edge, etaT);
                     }
-
                     Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
                     tauxy_stoch(i,j,k) = fac*stochedgex_v(i,j,k);
                 }
             },
-
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-                // Temporary variables for Dirichlet 
-                Real rho_wall_m, rho_wall_p;
-                Real T_wall_m, T_wall_p;
-                Real P_wall_m, P_wall_p;
-                Real eta_wall_m, eta_wall_p;
-                Real kappa_wall_m, kappa_wall_p;
-                Real zeta_wall_m, zeta_wall_p;
-                GpuArray<Real,MAX_SPECIES> Yk_wall_m, Yk_wall_p;
-                GpuArray<Real,MAX_SPECIES> chiloc_wall_m, chiloc_wall_p;
-                GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall_m, Dloc_wall_p;
-
                 if ((do_1D) or (do_2D)) { // works for 1D and 2D
                     tauxz_stoch(i,j,k) = 0.0;
                 }
                 else {
+                    // only etaT is used here; eta_edge is a required out-param of setupDirichletEdge
+                    Real eta_edge;
                     Real etaT = 0.25*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
-
                     // Pick boundary values for Dirichlet (stored in ghost)
                     // For corner cases (xz), x wall takes preference
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j,k-1,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j,k-1,0); rho_wall_p = prim(i,j,k-1,0);
-                            T_wall_m   = prim(i-1,j,k-1,4); T_wall_p   = prim(i,j,k-1,4);
-                            P_wall_m   = prim(i-1,j,k-1,5); P_wall_p   = prim(i,j,k-1,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i-1,j,k-1,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i-1,j,k,0);   Real rhomp = prim(i,j,k-1,0);
+                        Real Tmm   = prim(i-1,j,k-1,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i-1,j,k,4);   Real Tmp   = prim(i,j,k-1,4);
+                        Real Pmm   = prim(i-1,j,k-1,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i-1,j,k,5);   Real Pmp   = prim(i,j,k-1,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i-1,j,k-1,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i-1,j,k,6+n);
+                            Ykmp[n] = prim(i,j,k-1,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i-1,j,k-1,6+n) + prim(i-1,j,k,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i,j,k-1,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i-1,j,k-1,0)+prim(i-1,j,k,0)); 
-                            rho_wall_p = 0.5*(prim(i,j,k-1,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i-1,j,k-1,4)+prim(i-1,j,k,4)); 
-                            T_wall_p   = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i-1,j,k-1,5)+prim(i-1,j,k,5)); 
-                            P_wall_p   = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j,k,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j,k,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i-1,j,k,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i-1,j,k,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 1, eta_edge, etaT);
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j,k,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j,k,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i-1,j,k,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i-1,j,k,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i-1,j,k-1,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i-1,j,k,0);   Real rhomp = prim(i,j,k-1,0);
+                        Real Tmm   = prim(i-1,j,k-1,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i-1,j,k,4);   Real Tmp   = prim(i,j,k-1,4);
+                        Real Pmm   = prim(i-1,j,k-1,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i-1,j,k,5);   Real Pmp   = prim(i,j,k-1,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i-1,j,k-1,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i-1,j,k,6+n);
+                            Ykmp[n] = prim(i,j,k-1,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i-1,j,k-1,6+n) + prim(i-1,j,k,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i,j,k-1,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i-1,j,k-1,0)+prim(i-1,j,k,0)); 
-                            rho_wall_p = 0.5*(prim(i,j,k-1,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i-1,j,k-1,4)+prim(i-1,j,k,4)); 
-                            T_wall_p   = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i-1,j,k-1,5)+prim(i-1,j,k,5)); 
-                            P_wall_p   = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j,k-1,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j,k-1,0); rho_wall_p = prim(i,j,k-1,0);
-                            T_wall_m   = prim(i-1,j,k-1,4); T_wall_p   = prim(i,j,k-1,4);
-                            P_wall_m   = prim(i-1,j,k-1,5); P_wall_p   = prim(i,j,k-1,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 0, eta_edge, etaT);
                     }
                     if ((i == 0) and is_lo_x_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j,k-1,6+n);
-                                Yk_wall_p[n] = prim(i-1,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j,k-1,0); rho_wall_p = prim(i-1,j,k,0);
-                            T_wall_m   = prim(i-1,j,k-1,4); T_wall_p   = prim(i-1,j,k,4);
-                            P_wall_m   = prim(i-1,j,k-1,5); P_wall_p   = prim(i-1,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i-1,j,k-1,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i,j,k-1,0);   Real rhomp = prim(i-1,j,k,0);
+                        Real Tmm   = prim(i-1,j,k-1,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i,j,k-1,4);   Real Tmp   = prim(i-1,j,k,4);
+                        Real Pmm   = prim(i-1,j,k-1,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i,j,k-1,5);   Real Pmp   = prim(i-1,j,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i-1,j,k-1,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i,j,k-1,6+n);
+                            Ykmp[n] = prim(i-1,j,k,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i-1,j,k-1,6+n) + prim(i,j,k-1,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i-1,j,k,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i-1,j,k-1,0)+prim(i,j,k-1,0)); 
-                            rho_wall_p = 0.5*(prim(i-1,j,k,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i-1,j,k-1,4)+prim(i,j,k-1,4)); 
-                            T_wall_p   = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i-1,j,k-1,5)+prim(i,j,k-1,5)); 
-                            P_wall_p   = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j,k-1,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i,j,k-1,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i,j,k-1,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 1, eta_edge, etaT);
                     }
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j,k-1,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i,j,k-1,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i,j,k-1,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i-1,j,k-1,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i,j,k-1,0);   Real rhomp = prim(i-1,j,k,0);
+                        Real Tmm   = prim(i-1,j,k-1,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i,j,k-1,4);   Real Tmp   = prim(i-1,j,k,4);
+                        Real Pmm   = prim(i-1,j,k-1,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i,j,k-1,5);   Real Pmp   = prim(i-1,j,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i-1,j,k-1,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i,j,k-1,6+n);
+                            Ykmp[n] = prim(i-1,j,k,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i-1,j,k-1,6+n) + prim(i,j,k-1,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i-1,j,k,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i-1,j,k-1,0)+prim(i,j,k-1,0)); 
-                            rho_wall_p = 0.5*(prim(i-1,j,k,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i-1,j,k-1,4)+prim(i,j,k-1,4)); 
-                            T_wall_p   = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i-1,j,k-1,5)+prim(i,j,k-1,5)); 
-                            P_wall_p   = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i-1,j,k-1,6+n);
-                                Yk_wall_p[n] = prim(i-1,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i-1,j,k-1,0); rho_wall_p = prim(i-1,j,k,0);
-                            T_wall_m   = prim(i-1,j,k-1,4); T_wall_p   = prim(i-1,j,k,4);
-                            P_wall_m   = prim(i-1,j,k-1,5); P_wall_p   = prim(i-1,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 0, eta_edge, etaT);
                     }
-
                     Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
                     tauxz_stoch(i,j,k) = fac*stochedgex_w(i,j,k);
                 }
             },
-
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-                // Temporary variables for Dirichlet 
-                Real rho_wall_m, rho_wall_p;
-                Real T_wall_m, T_wall_p;
-                Real P_wall_m, P_wall_p;
-                Real eta_wall_m, eta_wall_p;
-                Real kappa_wall_m, kappa_wall_p;
-                Real zeta_wall_m, zeta_wall_p;
-                GpuArray<Real,MAX_SPECIES> Yk_wall_m, Yk_wall_p;
-                GpuArray<Real,MAX_SPECIES> chiloc_wall_m, chiloc_wall_p;
-                GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall_m, Dloc_wall_p;
-
                 if ((do_1D) or (do_2D)) { // works for 1D and 2D
                     tauyz_stoch(i,j,k) = 0.0;
                 }
                 else {
+                    // only etaT is used here; eta_edge is a required out-param of setupDirichletEdge
+                    Real eta_edge;
                     Real etaT = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
-
                     // Pick boundary values for Dirichlet (stored in ghost)
                     // For corner cases (yz), y wall takes preference
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j-1,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j,k-1,6+n);
-                            }
-                            rho_wall_m = prim(i,j-1,k-1,0); rho_wall_p = prim(i,j,k-1,0);
-                            T_wall_m   = prim(i,j-1,k-1,4); T_wall_p   = prim(i,j,k-1,4);
-                            P_wall_m   = prim(i,j-1,k-1,5); P_wall_p   = prim(i,j,k-1,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i,j-1,k-1,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i,j-1,k,0);   Real rhomp = prim(i,j,k-1,0);
+                        Real Tmm   = prim(i,j-1,k-1,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i,j-1,k,4);   Real Tmp   = prim(i,j,k-1,4);
+                        Real Pmm   = prim(i,j-1,k-1,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i,j-1,k,5);   Real Pmp   = prim(i,j,k-1,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i,j-1,k-1,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i,j-1,k,6+n);
+                            Ykmp[n] = prim(i,j,k-1,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i,j-1,k-1,6+n) + prim(i,j-1,k,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i,j,k-1,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i,j-1,k-1,0)+prim(i,j-1,k,0)); 
-                            rho_wall_p = 0.5*(prim(i,j,k-1,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i,j-1,k-1,4)+prim(i,j-1,k,4)); 
-                            T_wall_p   = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i,j-1,k-1,5)+prim(i,j-1,k,5)); 
-                            P_wall_p   = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j-1,k,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j-1,k,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i,j-1,k,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i,j-1,k,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 1, eta_edge, etaT);
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j-1,k,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j-1,k,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i,j-1,k,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i,j-1,k,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i,j-1,k-1,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i,j-1,k,0);   Real rhomp = prim(i,j,k-1,0);
+                        Real Tmm   = prim(i,j-1,k-1,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i,j-1,k,4);   Real Tmp   = prim(i,j,k-1,4);
+                        Real Pmm   = prim(i,j-1,k-1,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i,j-1,k,5);   Real Pmp   = prim(i,j,k-1,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i,j-1,k-1,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i,j-1,k,6+n);
+                            Ykmp[n] = prim(i,j,k-1,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i,j-1,k-1,6+n) + prim(i,j-1,k,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i,j,k-1,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i,j-1,k-1,0)+prim(i,j-1,k,0)); 
-                            rho_wall_p = 0.5*(prim(i,j,k-1,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i,j-1,k-1,4)+prim(i,j-1,k,4)); 
-                            T_wall_p   = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i,j-1,k-1,5)+prim(i,j-1,k,5)); 
-                            P_wall_p   = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j-1,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j,k-1,6+n);
-                            }
-                            rho_wall_m = prim(i,j-1,k-1,0); rho_wall_p = prim(i,j,k-1,0);
-                            T_wall_m   = prim(i,j-1,k-1,4); T_wall_p   = prim(i,j,k-1,4);
-                            P_wall_m   = prim(i,j-1,k-1,5); P_wall_p   = prim(i,j,k-1,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 0, eta_edge, etaT);
                     }
                     if ((j == 0) and is_lo_y_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j-1,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j-1,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j-1,k-1,0); rho_wall_p = prim(i,j-1,k,0);
-                            T_wall_m   = prim(i,j-1,k-1,4); T_wall_p   = prim(i,j-1,k,4);
-                            P_wall_m   = prim(i,j-1,k-1,5); P_wall_p   = prim(i,j-1,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i,j-1,k-1,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i,j,k-1,0);   Real rhomp = prim(i,j-1,k,0);
+                        Real Tmm   = prim(i,j-1,k-1,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i,j,k-1,4);   Real Tmp   = prim(i,j-1,k,4);
+                        Real Pmm   = prim(i,j-1,k-1,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i,j,k-1,5);   Real Pmp   = prim(i,j-1,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i,j-1,k-1,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i,j,k-1,6+n);
+                            Ykmp[n] = prim(i,j-1,k,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i,j-1,k-1,6+n) + prim(i,j,k-1,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i,j-1,k,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i,j-1,k-1,0)+prim(i,j,k-1,0)); 
-                            rho_wall_p = 0.5*(prim(i,j-1,k,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i,j-1,k-1,4)+prim(i,j,k-1,4)); 
-                            T_wall_p   = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i,j-1,k-1,5)+prim(i,j,k-1,5)); 
-                            P_wall_p   = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j,k-1,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i,j,k-1,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i,j,k-1,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j-1,k)*prim(i,j-1,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 1, eta_edge, etaT);
                     }
                     if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                        if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j,k-1,0); rho_wall_p = prim(i,j,k,0);
-                            T_wall_m   = prim(i,j,k-1,4); T_wall_p   = prim(i,j,k,4);
-                            P_wall_m   = prim(i,j,k-1,5); P_wall_p   = prim(i,j,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
+                        Real rhomm = prim(i,j-1,k-1,0); Real rhopp = prim(i,j,k,0);
+                        Real rhopm = prim(i,j,k-1,0);   Real rhomp = prim(i,j-1,k,0);
+                        Real Tmm   = prim(i,j-1,k-1,4); Real Tpp   = prim(i,j,k,4);
+                        Real Tpm   = prim(i,j,k-1,4);   Real Tmp   = prim(i,j-1,k,4);
+                        Real Pmm   = prim(i,j-1,k-1,5); Real Ppp   = prim(i,j,k,5);
+                        Real Ppm   = prim(i,j,k-1,5);   Real Pmp   = prim(i,j-1,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykmm[n] = prim(i,j-1,k-1,6+n);
+                            Ykpp[n] = prim(i,j,k,6+n);
+                            Ykpm[n] = prim(i,j,k-1,6+n);
+                            Ykmp[n] = prim(i,j-1,k,6+n);
                         }
-                        else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = 0.5*(prim(i,j-1,k-1,6+n) + prim(i,j,k-1,6+n));
-                                Yk_wall_p[n] = 0.5*(prim(i,j-1,k,6+n) + prim(i,j,k,6+n));
-                            }
-                            rho_wall_m = 0.5*(prim(i,j-1,k-1,0)+prim(i,j,k-1,0)); 
-                            rho_wall_p = 0.5*(prim(i,j-1,k,0)+prim(i,j,k,0));
-                            T_wall_m   = 0.5*(prim(i,j-1,k-1,4)+prim(i,j,k-1,4)); 
-                            T_wall_p   = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-                            P_wall_m   = 0.5*(prim(i,j-1,k-1,5)+prim(i,j,k-1,5)); 
-                            P_wall_p   = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                            for (int n=0; n<nspecies; ++n) {
-                                Yk_wall_m[n] = prim(i,j-1,k-1,6+n);
-                                Yk_wall_p[n] = prim(i,j-1,k,6+n);
-                            }
-                            rho_wall_m = prim(i,j-1,k-1,0); rho_wall_p = prim(i,j-1,k,0);
-                            T_wall_m   = prim(i,j-1,k-1,4); T_wall_p   = prim(i,j-1,k,4);
-                            P_wall_m   = prim(i,j-1,k-1,5); P_wall_p   = prim(i,j-1,k,5);
-                            TransportCoeffs(rho_wall_m, T_wall_m, P_wall_m,
-                            Yk_wall_m, eta_wall_m, kappa_wall_m, zeta_wall_m, Dloc_wall_m, chiloc_wall_m);
-                            TransportCoeffs(rho_wall_p, T_wall_p, P_wall_p,
-                            Yk_wall_p, eta_wall_p, kappa_wall_p, zeta_wall_p, Dloc_wall_p, chiloc_wall_p);
-                            
-                            etaT = 0.25*(eta_wall_m+eta_wall_p)*(T_wall_m+T_wall_p);
-                        }
-                        else {
-                            etaT = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
-                        }
+                        setupDirichletEdge(rhomm, Tmm, Pmm,
+                                           rhomp, Tmp, Pmp,
+                                           rhopm, Tpm, Ppm,
+                                           rhopp, Tpp, Ppp,
+                                           Ykmm, Ykmp, Ykpm, Ykpp,
+                                           dirichlet_type, 0, eta_edge, etaT);
                     }
-
                     Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
                     tauyz_stoch(i,j,k) = fac*stochedgey_w(i,j,k);
                 }
@@ -947,100 +705,45 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
                 
                 // Temporary variables for Dirichlet 
-                Real rho_wall;
                 Real T_wall;
                 Real P_wall;
-                Real eta_wall;
                 Real kappa_wall;
-                Real zeta_wall;
                 GpuArray<Real,MAX_SPECIES> Yk_wall;
+                GpuArray<Real,MAX_SPECIES> yy_wall;
                 GpuArray<Real,MAX_SPECIES> chiloc_wall;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall;
 
-
                 if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i-1,j,k,6+n);
-                        }
-                        rho_wall = prim(i-1,j,k,0);
-                        T_wall   = prim(i-1,j,k,4);
-                        P_wall   = prim(i-1,j,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+                    Real rhom = prim(i-1,j,k,0); Real rhop = prim(i,j,k,0);
+                    Real Tm   = prim(i-1,j,k,4); Real Tp   = prim(i,j,k,4);
+                    Real Pm   = prim(i-1,j,k,5); Real Pp   = prim(i,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykm[n] = prim(i-1,j,k,6+n);
+                        Ykp[n] = prim(i,j,k,6+n);
                     }
-                    else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = 0.5*(prim(i-1,j,k,6+n) + prim(i,j,k,6+n));
-                        }
-                        rho_wall = 0.5*(prim(i-1,j,k,0)+prim(i,j,k,0));
-                        T_wall   = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
-                        P_wall   = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall = prim(i,j,k,0);
-                        T_wall   = prim(i,j,k,4);
-                        P_wall   = prim(i,j,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else {
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i-1,j,k,6+n);
-                        }
-                        rho_wall   = prim(i-1,j,k,0);
-                        T_wall     = prim(i-1,j,k,4);
-                        P_wall     = prim(i-1,j,k,5);
-                        kappa_wall = kappa(i-1,j,k);
-                        T_wall     = prim(i-1,j,k,4);
-                    }
+                    setupDirichletFace(rhom, Tm, Pm,
+                                       rhop, Tp, Pp,
+                                       Ykm, Ykp,
+                                       dirichlet_type, 1,
+                                       T_wall, P_wall, kappa_wall, Yk_wall,
+                                       chiloc_wall, Dloc_wall);
                 }
                 if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall = prim(i,j,k,0);
-                        T_wall   = prim(i,j,k,4);
-                        P_wall   = prim(i,j,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+                    Real rhom = prim(i-1,j,k,0); Real rhop = prim(i,j,k,0);
+                    Real Tm   = prim(i-1,j,k,4); Real Tp   = prim(i,j,k,4);
+                    Real Pm   = prim(i-1,j,k,5); Real Pp   = prim(i,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykm[n] = prim(i-1,j,k,6+n);
+                        Ykp[n] = prim(i,j,k,6+n);
                     }
-                    else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = 0.5*(prim(i-1,j,k,6+n) + prim(i,j,k,6+n));
-                        }
-                        rho_wall = 0.5*(prim(i-1,j,k,0)+prim(i,j,k,0));
-                        T_wall   = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
-                        P_wall   = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i-1,j,k,6+n);
-                        }
-                        rho_wall = prim(i-1,j,k,0);
-                        T_wall   = prim(i-1,j,k,4);
-                        P_wall   = prim(i-1,j,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else {
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall   = prim(i,j,k,0);
-                        T_wall     = prim(i,j,k,4);
-                        P_wall     = prim(i,j,k,5);
-                        kappa_wall = kappa(i,j,k);
-                        T_wall     = prim(i,j,k,4);
-                    }
+                    setupDirichletFace(rhom, Tm, Pm,
+                                       rhop, Tp, Pp,
+                                       Ykm, Ykp,
+                                       dirichlet_type, 0,
+                                       T_wall, P_wall, kappa_wall, Yk_wall,
+                                       chiloc_wall, Dloc_wall);
                 }
 
                 Real kxp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + 
@@ -1049,11 +752,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 
                 if ((i == 0) and is_lo_x_dirichlet_mass) {
                     kxp = 2.0*kappa_wall*T_wall*T_wall;
-                    meanT = T_wall;
                 }
                 if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                     kxp = 2.0*kappa_wall*T_wall*T_wall;
-                    meanT = T_wall;
                 }
 
                 // Weights for facial fluxes:
@@ -1093,58 +794,78 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         wiener[n] = 0.;
                     }
 
-                    for (int ns=0; ns<nspecies; ++ns) {
-                        yy[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
-                        yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                        if ((i == 0) and is_lo_x_dirichlet_mass) {
-                            yyp[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
-                        }
-                        if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                            yy[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
-                        }
-                    }
-
-                    Real sumy = 0.;
-                    Real sumyp = 0.;
-
-                    for (int n=0; n<nspecies; ++n) {
-                        sumy += yy[n];
-                        sumyp += yyp[n];
-                    }
-
-                    for (int n=0; n<nspecies; ++n) {
-                        yy[n] /= sumy;
-                        yyp[n] /= sumyp;
-                    }
-
                     Real MWmix = 0.;
+                    if (((i == 0) and is_lo_x_dirichlet_mass) or ((i == n_cells[0]) and is_hi_x_dirichlet_mass)) {
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            yy_wall[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
+                        }
 
-                    for (int ns=0; ns<nspecies; ++ns) {
+                        Real sumy_wall = 0.;
 
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+                        for (int n=0; n<nspecies; ++n) {
+                            sumy_wall += yy_wall[n];
+                        }
 
-                        for (int ll=0; ll<nspecies; ++ll) {
-                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
-                                                                 Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
-                                                                (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
-                                                                 Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                        for (int n=0; n<nspecies; ++n) {
+                            yy_wall[n] /= sumy_wall;
+                        }
 
-                            if ((i == 0) and is_lo_x_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yyp[ll] +
-                                                            Dloc_wall[ns*nspecies+ll]*yyp[ns]; 
+                        for (int ns=0; ns<nspecies; ++ns) {
+
+                            MWmix = MWmix + yy_wall[ns]/molmass[ns];
+
+                            for (int ll=0; ll<nspecies; ++ll) {
+                                DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yy_wall[ll] +
+                                                            Dloc_wall[ns*nspecies+ll]*yy_wall[ns];
                             }
-                            if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yy[ll] +
-                                                            Dloc_wall[ns*nspecies+ll]*yy[ns];
+                        }
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            if (amrex::Math::abs(yy_wall[ns]) <= 1.e-12) {
+                                for (int n=0; n<nspecies; ++n) {
+                                    DijY_edge[ns*nspecies+n]=0.;
+                                    DijY_edge[n*nspecies+ns]=0.;
+                                }
                             }
                         }
                     }
+                    else {
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
+                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        }
 
-                    for (int ns=0; ns<nspecies; ++ns) {
-                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
-                            for (int n=0; n<nspecies; ++n) {
-                                DijY_edge[ns*nspecies+n]=0.;
-                                DijY_edge[n*nspecies+ns]=0.;
+                        Real sumy = 0.;
+                        Real sumyp = 0.;
+
+                        for (int n=0; n<nspecies; ++n) {
+                            sumy += yy[n];
+                            sumyp += yyp[n];
+                        }
+
+                        for (int n=0; n<nspecies; ++n) {
+                            yy[n] /= sumy;
+                            yyp[n] /= sumyp;
+                        }
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+
+                            MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+
+                            for (int ll=0; ll<nspecies; ++ll) {
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
+                                                                     Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                    (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                     Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                            }
+                        }
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                                for (int n=0; n<nspecies; ++n) {
+                                    DijY_edge[ns*nspecies+n]=0.;
+                                    DijY_edge[n*nspecies+ns]=0.;
+                                }
                             }
                         }
                     }
@@ -1161,7 +882,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         xflux(i,j,k,5+ns) = wiener[1+ns];
                     }
 
-                    GetEnthalpies(meanT, hk);
+                    if (((i == 0) and is_lo_x_dirichlet_mass) or ((i == n_cells[0]) and is_hi_x_dirichlet_mass)) {
+                        GetEnthalpies(T_wall, hk);
+                    }
+                    else {
+                        GetEnthalpies(meanT, hk);
+                    }
 
                     Real soret = 0.;
 
@@ -1169,10 +895,10 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         Real soret_s;
                         soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                         if ((i == 0) and is_lo_x_dirichlet_mass) {
-                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
+                            soret_s = (hk[ns] + Runiv*T_wall/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
                         }
                         if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
+                            soret_s = (hk[ns] + Runiv*T_wall/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
                         }
                         soret += soret_s;
                     }
@@ -1193,100 +919,45 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
                 
                 // Temporary variables for Dirichlet 
-                Real rho_wall;
                 Real T_wall;
                 Real P_wall;
-                Real eta_wall;
                 Real kappa_wall;
-                Real zeta_wall;
                 GpuArray<Real,MAX_SPECIES> Yk_wall;
+                GpuArray<Real,MAX_SPECIES> yy_wall;
                 GpuArray<Real,MAX_SPECIES> chiloc_wall;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall;
 
-
                 if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j-1,k,6+n);
-                        }
-                        rho_wall = prim(i,j-1,k,0);
-                        T_wall   = prim(i,j-1,k,4);
-                        P_wall   = prim(i,j-1,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+                    Real rhom = prim(i,j-1,k,0); Real rhop = prim(i,j,k,0);
+                    Real Tm   = prim(i,j-1,k,4); Real Tp   = prim(i,j,k,4);
+                    Real Pm   = prim(i,j-1,k,5); Real Pp   = prim(i,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykm[n] = prim(i,j-1,k,6+n);
+                        Ykp[n] = prim(i,j,k,6+n);
                     }
-                    else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = 0.5*(prim(i,j-1,k,6+n) + prim(i,j,k,6+n));
-                        }
-                        rho_wall = 0.5*(prim(i,j-1,k,0)+prim(i,j,k,0));
-                        T_wall   = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-                        P_wall   = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall = prim(i,j,k,0);
-                        T_wall   = prim(i,j,k,4);
-                        P_wall   = prim(i,j,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else {
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i-1,j,k,6+n);
-                        }
-                        rho_wall   = prim(i,j-1,k,0);
-                        T_wall     = prim(i,j-1,k,4);
-                        P_wall     = prim(i,j-1,k,5);
-                        kappa_wall = kappa(i,j-1,k);
-                        T_wall     = prim(i,j-1,k,4);
-                    }
+                    setupDirichletFace(rhom, Tm, Pm,
+                                       rhop, Tp, Pp,
+                                       Ykm, Ykp,
+                                       dirichlet_type, 1,
+                                       T_wall, P_wall, kappa_wall, Yk_wall,
+                                       chiloc_wall, Dloc_wall);
                 }
                 if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall = prim(i,j,k,0);
-                        T_wall   = prim(i,j,k,4);
-                        P_wall   = prim(i,j,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+                    Real rhom = prim(i,j-1,k,0); Real rhop = prim(i,j,k,0);
+                    Real Tm   = prim(i,j-1,k,4); Real Tp   = prim(i,j,k,4);
+                    Real Pm   = prim(i,j-1,k,5); Real Pp   = prim(i,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykm[n] = prim(i,j-1,k,6+n);
+                        Ykp[n] = prim(i,j,k,6+n);
                     }
-                    else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = 0.5*(prim(i,j-1,k,6+n) + prim(i,j,k,6+n));
-                        }
-                        rho_wall = 0.5*(prim(i,j-1,k,0)+prim(i,j,k,0));
-                        T_wall   = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-                        P_wall   = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j-1,k,6+n);
-                        }
-                        rho_wall = prim(i,j-1,k,0);
-                        T_wall   = prim(i,j-1,k,4);
-                        P_wall   = prim(i,j-1,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else {
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall   = prim(i,j,k,0);
-                        T_wall     = prim(i,j,k,4);
-                        P_wall     = prim(i,j,k,5);
-                        kappa_wall = kappa(i,j,k);
-                        T_wall     = prim(i,j,k,4);
-                    }
+                    setupDirichletFace(rhom, Tm, Pm,
+                                       rhop, Tp, Pp,
+                                       Ykm, Ykp,
+                                       dirichlet_type, 0,
+                                       T_wall, P_wall, kappa_wall, Yk_wall,
+                                       chiloc_wall, Dloc_wall);
                 }
 
                 Real kyp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + 
@@ -1296,11 +967,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 if ((j == 0) and is_lo_y_dirichlet_mass) {
                     kyp = 2.0*kappa_wall*T_wall*T_wall;
-                    meanT = T_wall;
                 }
                 if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     kyp = 2.0*kappa_wall*T_wall*T_wall;
-                    meanT = T_wall;
                 }
 
                 // viscous heating
@@ -1349,60 +1018,82 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             wiener[n] = 0.;
                         }
 
-                        for (int ns=0; ns<nspecies; ++ns) {
-                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
-                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                            if ((j == 0) and is_lo_y_dirichlet_mass) {
-                                yyp[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
-                            }
-                            if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                                yy[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
-                            }
-                        }
-
-                        Real sumy = 0.;
-                        Real sumyp = 0.;
-
-                        for (int n=0; n<nspecies; ++n) {
-                            sumy += yy[n];
-                            sumyp += yyp[n];
-                        }
-
-                        for (int n=0; n<nspecies; ++n) {
-                            yy[n] /= sumy;
-                            yyp[n] /= sumyp;
-                        }
-
                         Real MWmix = 0.;
+                        if (((j == 0) and is_lo_y_dirichlet_mass) or ((j == n_cells[1]) and is_hi_y_dirichlet_mass)) {
+                            for (int ns=0; ns<nspecies; ++ns) {
+                                yy_wall[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
+                            }
 
-                        for (int ns=0; ns<nspecies; ++ns) {
+                            Real sumy_wall = 0.;
 
-                            MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+                            for (int n=0; n<nspecies; ++n) {
+                                sumy_wall += yy_wall[n];
+                            }
 
-                            for (int ll=0; ll<nspecies; ++ll) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
-                                                                     Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
-                                                                    (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
-                                                                     Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
-                                if ((j == 0) and is_lo_y_dirichlet_mass) {
-                                    DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yyp[ll] +
-                                                                Dloc_wall[ns*nspecies+ll]*yyp[ns]; 
+                            for (int n=0; n<nspecies; ++n) {
+                                yy_wall[n] /= sumy_wall;
+                            }
+
+                            for (int ns=0; ns<nspecies; ++ns) {
+
+                                MWmix = MWmix + yy_wall[ns]/molmass[ns];
+
+                                for (int ll=0; ll<nspecies; ++ll) {
+                                    DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yy_wall[ll] +
+                                                                Dloc_wall[ns*nspecies+ll]*yy_wall[ns];
                                 }
-                                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                                    DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yy[ll] +
-                                                                Dloc_wall[ns*nspecies+ll]*yy[ns];
+                            }
+
+                            for (int ns=0; ns<nspecies; ++ns) {
+                                if (amrex::Math::abs(yy_wall[ns]) <= 1.e-12) {
+                                    for (int n=0; n<nspecies; ++n) {
+                                        DijY_edge[ns*nspecies+n]=0.;
+                                        DijY_edge[n*nspecies+ns]=0.;
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            for (int ns=0; ns<nspecies; ++ns) {
+                                yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
+                                yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                            }
+
+                            Real sumy = 0.;
+                            Real sumyp = 0.;
+
+                            for (int n=0; n<nspecies; ++n) {
+                                sumy += yy[n];
+                                sumyp += yyp[n];
+                            }
+
+                            for (int n=0; n<nspecies; ++n) {
+                                yy[n] /= sumy;
+                                yyp[n] /= sumyp;
+                            }
+
+                            for (int ns=0; ns<nspecies; ++ns) {
+
+                                MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+
+                                for (int ll=0; ll<nspecies; ++ll) {
+                                    DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
+                                                                         Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                        (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
+                                                                         Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                                }
+                            }
+
+                            for (int ns=0; ns<nspecies; ++ns) {
+                                if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                                    for (int n=0; n<nspecies; ++n) {
+                                        DijY_edge[ns*nspecies+n]=0.;
+                                        DijY_edge[n*nspecies+ns]=0.;
+                                    }
                                 }
                             }
                         }
 
-                        for (int ns=0; ns<nspecies; ++ns) {
-                            if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
-                                for (int n=0; n<nspecies; ++n) {
-                                    DijY_edge[ns*nspecies+n]=0.;
-                                    DijY_edge[n*nspecies+ns]=0.;
-                                }
-                            }
-                        }
 
                         MWmix = 1. / MWmix;
 
@@ -1416,7 +1107,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             yflux(i,j,k,5+ns) = wiener[1+ns];
                         }
 
-                        GetEnthalpies(meanT, hk);
+                        if (((j == 0) and is_lo_y_dirichlet_mass) or ((j == n_cells[1]) and is_hi_y_dirichlet_mass)) {
+                            GetEnthalpies(T_wall, hk);
+                        }
+                        else {
+                            GetEnthalpies(meanT, hk);
+                        }
 
                         Real soret = 0.;
 
@@ -1424,10 +1120,10 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             Real soret_s;
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                             if ((j == 0) and is_lo_y_dirichlet_mass) {
-                                soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
+                                soret_s = (hk[ns] + Runiv*T_wall/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
                             }
                             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                                soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
+                                soret_s = (hk[ns] + Runiv*T_wall/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
                             }
                             soret += soret_s;
                         }
@@ -1449,99 +1145,45 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
                 
                 // Temporary variables for Dirichlet 
-                Real rho_wall;
                 Real T_wall;
                 Real P_wall;
-                Real eta_wall;
                 Real kappa_wall;
-                Real zeta_wall;
                 GpuArray<Real,MAX_SPECIES> Yk_wall;
+                GpuArray<Real,MAX_SPECIES> yy_wall;
                 GpuArray<Real,MAX_SPECIES> chiloc_wall;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall;
 
                 if ((k == 0) and is_lo_z_dirichlet_mass) {
-                    if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k-1,6+n);
-                        }
-                        rho_wall = prim(i,j,k-1,0);
-                        T_wall   = prim(i,j,k-1,4);
-                        P_wall   = prim(i,j,k-1,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+                    Real rhom = prim(i,j,k-1,0); Real rhop = prim(i,j,k,0);
+                    Real Tm   = prim(i,j,k-1,4); Real Tp   = prim(i,j,k,4);
+                    Real Pm   = prim(i,j,k-1,5); Real Pp   = prim(i,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykm[n] = prim(i,j,k-1,6+n);
+                        Ykp[n] = prim(i,j,k,6+n);
                     }
-                    else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = 0.5*(prim(i,j,k-1,6+n) + prim(i,j,k,6+n));
-                        }
-                        rho_wall = 0.5*(prim(i,j,k-1,0)+prim(i,j,k,0));
-                        T_wall   = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-                        P_wall   = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall = prim(i,j,k,0);
-                        T_wall   = prim(i,j,k,4);
-                        P_wall   = prim(i,j,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else {
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k-1,6+n);
-                        }
-                        rho_wall   = prim(i,j,k-1,0);
-                        T_wall     = prim(i,j,k-1,4);
-                        P_wall     = prim(i,j,k-1,5);
-                        kappa_wall = kappa(i,j,k-1);
-                        T_wall     = prim(i,j,k-1,4);
-                    }
+                    setupDirichletFace(rhom, Tm, Pm,
+                                       rhop, Tp, Pp,
+                                       Ykm, Ykp,
+                                       dirichlet_type, 1,
+                                       T_wall, P_wall, kappa_wall, Yk_wall,
+                                       chiloc_wall, Dloc_wall);
                 }
                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                    if (dirichlet_type == 1) { // boundary values are Dirichlet values
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall = prim(i,j,k,0);
-                        T_wall   = prim(i,j,k,4);
-                        P_wall   = prim(i,j,k,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+                    Real rhom = prim(i,j,k-1,0); Real rhop = prim(i,j,k,0);
+                    Real Tm   = prim(i,j,k-1,4); Real Tp   = prim(i,j,k,4);
+                    Real Pm   = prim(i,j,k-1,5); Real Pp   = prim(i,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykm[n] = prim(i,j,k-1,6+n);
+                        Ykp[n] = prim(i,j,k,6+n);
                     }
-                    else if (dirichlet_type == 2) { // boundary = 0.5*(Dirichlet + cell)
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = 0.5*(prim(i,j,k-1,6+n) + prim(i,j,k,6+n));
-                        }
-                        rho_wall = 0.5*(prim(i,j,k-1,0)+prim(i,j,k,0));
-                        T_wall   = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-                        P_wall   = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else if (dirichlet_type == 3) { // boundary values are 1st interior cell
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k-1,6+n);
-                        }
-                        rho_wall = prim(i,j,k-1,0);
-                        T_wall   = prim(i,j,k-1,4);
-                        P_wall   = prim(i,j,k-1,5);
-                        TransportCoeffs(rho_wall, T_wall, P_wall,
-                        Yk_wall, eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
-                    }
-                    else {
-                        for (int n=0; n<nspecies; ++n) {
-                            Yk_wall[n] = prim(i,j,k,6+n);
-                        }
-                        rho_wall   = prim(i,j,k,0);
-                        T_wall     = prim(i,j,k,4);
-                        P_wall     = prim(i,j,k,5);
-                        kappa_wall = kappa(i,j,k);
-                        T_wall     = prim(i,j,k,4);
-                    }
+                    setupDirichletFace(rhom, Tm, Pm,
+                                       rhop, Tp, Pp,
+                                       Ykm, Ykp,
+                                       dirichlet_type, 0,
+                                       T_wall, P_wall, kappa_wall, Yk_wall,
+                                       chiloc_wall, Dloc_wall);
                 }
 
                 Real kzp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + 
@@ -1551,11 +1193,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 if ((k == 0) and is_lo_z_dirichlet_mass) {
                     kzp = 2.0*kappa_wall*T_wall*T_wall;
-                    meanT = T_wall;
                 }
                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                     kzp = 2.0*kappa_wall*T_wall*T_wall;
-                    meanT = T_wall;
                 }
 
                 // viscous heating
@@ -1598,66 +1238,84 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     // heat flux
                     zflux(i,j,k,nvars) = wiener[0];
 
-
                     if (algorithm_type == 2) {
 
                         for (int n=1; n<1+nspecies; ++n) {
                             wiener[n] = 0.;
                         }
 
-                        for (int ns=0; ns<nspecies; ++ns) {
-                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
-                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                            if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                yyp[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
-                            }
-                            if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                yy[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
-                            }
-                        }
-
-                        Real sumy = 0.;
-                        Real sumyp = 0.;
-
-                        for (int n=0; n<nspecies; ++n) {
-                            sumy += yy[n];
-                            sumyp += yyp[n];
-                        }
-
-                        for (int n=0; n<nspecies; ++n) {
-                            yy[n] /= sumy;
-                            yyp[n] /= sumyp;
-                        }
-
                         Real MWmix = 0.;
+                        if (((k == 0) and is_lo_z_dirichlet_mass) or ((k == n_cells[2]) and is_hi_z_dirichlet_mass)) {
+                            for (int ns=0; ns<nspecies; ++ns) {
+                                yy_wall[ns] = amrex::max(0.,amrex::min(1.,Yk_wall[ns]));
+                            }
 
-                        for (int ns=0; ns<nspecies; ++ns) {
+                            Real sumy_wall = 0.;
 
-                            MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+                            for (int n=0; n<nspecies; ++n) {
+                                sumy_wall += yy_wall[n];
+                            }
 
-                            for (int ll=0; ll<nspecies; ++ll) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
-                                                                     Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
-                                                                    (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
-                                                                     Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                            for (int n=0; n<nspecies; ++n) {
+                                yy_wall[n] /= sumy_wall;
+                            }
 
-                                if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                    DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yyp[ll] +
-                                                                Dloc_wall[ns*nspecies+ll]*yyp[ns]; 
+                            for (int ns=0; ns<nspecies; ++ns) {
+
+                                MWmix = MWmix + yy_wall[ns]/molmass[ns];
+
+                                for (int ll=0; ll<nspecies; ++ll) {
+                                    DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yy_wall[ll] +
+                                                                Dloc_wall[ns*nspecies+ll]*yy_wall[ns];
                                 }
-                                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                    DijY_edge[ns*nspecies+ll] = Dloc_wall[ll*nspecies+ns]*yy[ll] +
-                                                                Dloc_wall[ns*nspecies+ll]*yy[ns];
+                            }
+
+                            for (int ns=0; ns<nspecies; ++ns) {
+                                if (amrex::Math::abs(yy_wall[ns]) <= 1.e-12) {
+                                    for (int n=0; n<nspecies; ++n) {
+                                        DijY_edge[ns*nspecies+n]=0.;
+                                        DijY_edge[n*nspecies+ns]=0.;
+                                    }
                                 }
                             }
                         }
+                        else {
+                            for (int ns=0; ns<nspecies; ++ns) {
+                                yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
+                                yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                            }
 
+                            Real sumy = 0.;
+                            Real sumyp = 0.;
 
-                        for (int ns=0; ns<nspecies; ++ns) {
-                            if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
-                                for (int n=0; n<nspecies; ++n) {
-                                    DijY_edge[ns*nspecies+n]=0.;
-                                    DijY_edge[n*nspecies+ns]=0.;
+                            for (int n=0; n<nspecies; ++n) {
+                                sumy += yy[n];
+                                sumyp += yyp[n];
+                            }
+
+                            for (int n=0; n<nspecies; ++n) {
+                                yy[n] /= sumy;
+                                yyp[n] /= sumyp;
+                            }
+
+                            for (int ns=0; ns<nspecies; ++ns) {
+
+                                MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+
+                                for (int ll=0; ll<nspecies; ++ll) {
+                                    DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
+                                                                         Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                        (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
+                                                                         Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                                }
+                            }
+
+                            for (int ns=0; ns<nspecies; ++ns) {
+                                if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                                    for (int n=0; n<nspecies; ++n) {
+                                        DijY_edge[ns*nspecies+n]=0.;
+                                        DijY_edge[n*nspecies+ns]=0.;
+                                    }
                                 }
                             }
                         }
@@ -1674,7 +1332,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             zflux(i,j,k,5+ns) = wiener[1+ns];
                         }
 
-                        GetEnthalpies(meanT, hk);
+                        if (((k == 0) and is_lo_z_dirichlet_mass) or ((k == n_cells[2]) and is_hi_z_dirichlet_mass)) {
+                            GetEnthalpies(T_wall, hk);
+                        }
+                        else {
+                            GetEnthalpies(meanT, hk);
+                        }
 
                         Real soret = 0.;
 
@@ -1682,18 +1345,16 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             Real soret_s;
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                             if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
+                                soret_s = (hk[ns] + Runiv*T_wall/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
                             }
                             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
+                                soret_s = (hk[ns] + Runiv*T_wall/molmass[ns]*chiloc_wall[ns])*wiener[1+ns];
                             }
                             soret += soret_s;
                         }
                         zflux(i,j,k,nvars+3) = soret;
-
                     }
                 }
-
             }); // end lambda function
 
             // Loop over edges for momemntum flux calculations [1:3]
@@ -1855,19 +1516,95 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 // For corner cases (xy), x wall takes preference
                 if ((j == 0) and is_lo_y_dirichlet_mass) {
                     u_y = (velx(i,j,k) - velx(i,j-1,k))/(0.5*dx[1]);
-                    eta_interp = 0.5*(eta(i-1,j-1,k)+eta(i,j-1,k));
+                    Real rhomm = prim(i-1,j-1,k,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i-1,j,k,0);   Real rhomp = prim(i,j-1,k,0);
+                    Real Tmm   = prim(i-1,j-1,k,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i-1,j,k,4);   Real Tmp   = prim(i,j-1,k,4);
+                    Real Pmm   = prim(i-1,j-1,k,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i-1,j,k,5);   Real Pmp   = prim(i,j-1,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i-1,j-1,k,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i-1,j,k,6+n);
+                        Ykmp[n] = prim(i,j-1,k,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 1, eta_interp, etaT);
                 }
                 if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     u_y = (velx(i,j,k) - velx(i,j-1,k))/(0.5*dx[1]);
-                    eta_interp = 0.5*(eta(i-1,j,k)+eta(i,j,k));
+                    Real rhomm = prim(i-1,j-1,k,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i-1,j,k,0);   Real rhomp = prim(i,j-1,k,0);
+                    Real Tmm   = prim(i-1,j-1,k,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i-1,j,k,4);   Real Tmp   = prim(i,j-1,k,4);
+                    Real Pmm   = prim(i-1,j-1,k,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i-1,j,k,5);   Real Pmp   = prim(i,j-1,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i-1,j-1,k,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i-1,j,k,6+n);
+                        Ykmp[n] = prim(i,j-1,k,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 0, eta_interp, etaT);
                 }
                 if ((i == 0) and is_lo_x_dirichlet_mass) {
                     v_x = (vely(i,j,k) - vely(i-1,j,k))/(0.5*dx[0]);
-                    eta_interp = 0.5*(eta(i-1,j-1,k)+eta(i-1,j,k));
+                    Real rhomm = prim(i-1,j-1,k,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i,j-1,k,0);   Real rhomp = prim(i-1,j,k,0);
+                    Real Tmm   = prim(i-1,j-1,k,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i,j-1,k,4);   Real Tmp   = prim(i-1,j,k,4);
+                    Real Pmm   = prim(i-1,j-1,k,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i,j-1,k,5);   Real Pmp   = prim(i-1,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i-1,j-1,k,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i,j-1,k,6+n);
+                        Ykmp[n] = prim(i-1,j,k,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 1, eta_interp, etaT);
                 }
                 if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                     v_x = (vely(i,j,k) - vely(i-1,j,k))/(0.5*dx[0]);
-                    eta_interp = 0.5*(eta(i,j-1,k)+eta(i,j,k));
+                    Real rhomm = prim(i-1,j-1,k,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i,j-1,k,0);   Real rhomp = prim(i-1,j,k,0);
+                    Real Tmm   = prim(i-1,j-1,k,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i,j-1,k,4);   Real Tmp   = prim(i-1,j,k,4);
+                    Real Pmm   = prim(i-1,j-1,k,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i,j-1,k,5);   Real Pmp   = prim(i-1,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i-1,j-1,k,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i,j-1,k,6+n);
+                        Ykmp[n] = prim(i-1,j,k,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 0, eta_interp, etaT);
                 }
                 tauxy(i,j,k) = eta_interp*(u_y+v_x);
             }
@@ -1887,22 +1624,97 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 // For corner cases (xz), x wall takes preference
                 if ((k == 0) and is_lo_z_dirichlet_mass) {
                     u_z = (velx(i,j,k) - velx(i,j,k-1))/(0.5*dx[2]);
-                    eta_interp = 0.5*(eta(i-1,j,k-1)+eta(i,j,k-1));
+                    Real rhomm = prim(i-1,j,k-1,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i-1,j,k,0);   Real rhomp = prim(i,j,k-1,0);
+                    Real Tmm   = prim(i-1,j,k-1,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i-1,j,k,4);   Real Tmp   = prim(i,j,k-1,4);
+                    Real Pmm   = prim(i-1,j,k-1,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i-1,j,k,5);   Real Pmp   = prim(i,j,k-1,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i-1,j,k-1,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i-1,j,k,6+n);
+                        Ykmp[n] = prim(i,j,k-1,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 1, eta_interp, etaT);
                 }
                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                     u_z = (velx(i,j,k) - velx(i,j,k-1))/(0.5*dx[2]);
-                    eta_interp = 0.5*(eta(i-1,j,k)+eta(i,j,k));
+                    Real rhomm = prim(i-1,j,k-1,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i-1,j,k,0);   Real rhomp = prim(i,j,k-1,0);
+                    Real Tmm   = prim(i-1,j,k-1,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i-1,j,k,4);   Real Tmp   = prim(i,j,k-1,4);
+                    Real Pmm   = prim(i-1,j,k-1,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i-1,j,k,5);   Real Pmp   = prim(i,j,k-1,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i-1,j,k-1,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i-1,j,k,6+n);
+                        Ykmp[n] = prim(i,j,k-1,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 0, eta_interp, etaT);
                 }
                 if ((i == 0) and is_lo_x_dirichlet_mass) {
                     w_x = (velz(i,j,k) - velz(i-1,j,k))/(0.5*dx[0]);
-                    eta_interp = 0.5*(eta(i-1,j,k-1)+eta(i-1,j,k));
+                    Real rhomm = prim(i-1,j,k-1,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i,j,k-1,0);   Real rhomp = prim(i-1,j,k,0);
+                    Real Tmm   = prim(i-1,j,k-1,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i,j,k-1,4);   Real Tmp   = prim(i-1,j,k,4);
+                    Real Pmm   = prim(i-1,j,k-1,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i,j,k-1,5);   Real Pmp   = prim(i-1,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i-1,j,k-1,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i,j,k-1,6+n);
+                        Ykmp[n] = prim(i-1,j,k,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 1, eta_interp, etaT);
                 }
                 if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                     w_x = (velz(i,j,k) - velz(i-1,j,k))/(0.5*dx[0]);
-                    eta_interp = 0.5*(eta(i,j,k-1)+eta(i,j,k));
+                    Real rhomm = prim(i-1,j,k-1,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i,j,k-1,0);   Real rhomp = prim(i-1,j,k,0);
+                    Real Tmm   = prim(i-1,j,k-1,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i,j,k-1,4);   Real Tmp   = prim(i-1,j,k,4);
+                    Real Pmm   = prim(i-1,j,k-1,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i,j,k-1,5);   Real Pmp   = prim(i-1,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i-1,j,k-1,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i,j,k-1,6+n);
+                        Ykmp[n] = prim(i-1,j,k,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 0, eta_interp, etaT);
                 }
                 tauxz(i,j,k) = eta_interp*(u_z+w_x);
-
             }
         },
 
@@ -1920,25 +1732,104 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 // For corner cases (yz), y wall takes preference
                 if ((k == 0) and is_lo_z_dirichlet_mass) {
                     v_z = (vely(i,j,k) - vely(i,j,k-1))/(0.5*dx[2]);
-                    eta_interp = 0.5*(eta(i,j-1,k-1)+eta(i,j,k-1));
+                    Real rhomm = prim(i,j-1,k-1,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i,j-1,k,0);   Real rhomp = prim(i,j,k-1,0);
+                    Real Tmm   = prim(i,j-1,k-1,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i,j-1,k,4);   Real Tmp   = prim(i,j,k-1,4);
+                    Real Pmm   = prim(i,j-1,k-1,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i,j-1,k,5);   Real Pmp   = prim(i,j,k-1,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i,j-1,k-1,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i,j-1,k,6+n);
+                        Ykmp[n] = prim(i,j,k-1,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 1, eta_interp, etaT);
                 }
                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                     v_z = (vely(i,j,k) - vely(i,j,k-1))/(0.5*dx[2]);
-                    eta_interp = 0.5*(eta(i,j-1,k)+eta(i,j,k));
+                    Real rhomm = prim(i,j-1,k-1,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i,j-1,k,0);   Real rhomp = prim(i,j,k-1,0);
+                    Real Tmm   = prim(i,j-1,k-1,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i,j-1,k,4);   Real Tmp   = prim(i,j,k-1,4);
+                    Real Pmm   = prim(i,j-1,k-1,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i,j-1,k,5);   Real Pmp   = prim(i,j,k-1,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i,j-1,k-1,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i,j-1,k,6+n);
+                        Ykmp[n] = prim(i,j,k-1,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 0, eta_interp, etaT);
                 }
                 if ((j == 0) and is_lo_y_dirichlet_mass) {
                     w_y = (velz(i,j,k) - velz(i,j-1,k))/(0.5*dx[1]);
-                    eta_interp = 0.5*(eta(i,j-1,k-1)+eta(i,j-1,k));
+                    Real rhomm = prim(i,j-1,k-1,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i,j,k-1,0);   Real rhomp = prim(i,j-1,k,0);
+                    Real Tmm   = prim(i,j-1,k-1,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i,j,k-1,4);   Real Tmp   = prim(i,j-1,k,4);
+                    Real Pmm   = prim(i,j-1,k-1,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i,j,k-1,5);   Real Pmp   = prim(i,j-1,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i,j-1,k-1,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i,j,k-1,6+n);
+                        Ykmp[n] = prim(i,j-1,k,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 1, eta_interp, etaT);
                 }
                 if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     w_y = (velz(i,j,k) - velz(i,j-1,k))/(0.5*dx[1]);
-                    eta_interp = 0.5*(eta(i,j,k-1)+eta(i,j,k));
+                    Real rhomm = prim(i,j-1,k-1,0); Real rhopp = prim(i,j,k,0);
+                    Real rhopm = prim(i,j,k-1,0);   Real rhomp = prim(i,j-1,k,0);
+                    Real Tmm   = prim(i,j-1,k-1,4); Real Tpp   = prim(i,j,k,4);
+                    Real Tpm   = prim(i,j,k-1,4);   Real Tmp   = prim(i,j-1,k,4);
+                    Real Pmm   = prim(i,j-1,k-1,5); Real Ppp   = prim(i,j,k,5);
+                    Real Ppm   = prim(i,j,k-1,5);   Real Pmp   = prim(i,j-1,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykmm, Ykpp, Ykmp, Ykpm;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykmm[n] = prim(i,j-1,k-1,6+n);
+                        Ykpp[n] = prim(i,j,k,6+n);
+                        Ykpm[n] = prim(i,j,k-1,6+n);
+                        Ykmp[n] = prim(i,j-1,k,6+n);
+                    }
+                    Real etaT;
+                    setupDirichletEdge(rhomm, Tmm, Pmm,
+                                       rhomp, Tmp, Pmp,
+                                       rhopm, Tpm, Ppm,
+                                       rhopp, Tpp, Ppp,
+                                       Ykmm, Ykmp, Ykpm, Ykpp,
+                                       dirichlet_type, 0, eta_interp, etaT);
                 }
                 tauyz(i,j,k) = eta_interp*(v_z+w_y);
             }
         });
 
         // Loop over faces for flux calculations (4:5+ns)
+        // Heat conduction, species flux and soret/dufour all use the wall state
+        // returned by setupDirichletFace, so they follow dirichlet_type consistently
+        // with the stochastic pass above.
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
@@ -1949,21 +1840,53 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             GpuArray<Real,MAX_SPECIES> hk;
             GpuArray<Real,MAX_SPECIES> soret;
 
+            Real T_wall, P_wall, kappa_wall;
+            GpuArray<Real,MAX_SPECIES> Yk_wall;
+            GpuArray<Real,MAX_SPECIES> Xk_wall;
+            GpuArray<Real,MAX_SPECIES> chiloc_wall;
+            GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall;
+
             Real kxp   = 0.5*(kappa(i-1,j,k)+kappa(i,j,k));
             Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
+
             if ((i == 0) and is_lo_x_dirichlet_mass) {
-                kxp   = kappa(i-1,j,k);
-                meanT = prim(i-1,j,k,4);
-                meanP = prim(i-1,j,k,5);
+                Real rhom = prim(i-1,j,k,0); Real rhop = prim(i,j,k,0);
+                Real Tm   = prim(i-1,j,k,4); Real Tp   = prim(i,j,k,4);
+                Real Pm   = prim(i-1,j,k,5); Real Pp   = prim(i,j,k,5);
+                GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                for (int n=0; n<nspecies; ++n) {
+                    Ykm[n] = prim(i-1,j,k,6+n);
+                    Ykp[n] = prim(i,j,k,6+n);
+                }
+                setupDirichletFace(rhom, Tm, Pm,
+                                   rhop, Tp, Pp,
+                                   Ykm, Ykp,
+                                   dirichlet_type, 1,
+                                   T_wall, P_wall, kappa_wall, Yk_wall,
+                                   chiloc_wall, Dloc_wall);
+                GetMolfrac(Yk_wall, Xk_wall);
             }
             if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                kxp   = kappa(i,j,k);
-                meanT = prim(i,j,k,4);
-                meanP = prim(i,j,k,5);
+                Real rhom = prim(i-1,j,k,0); Real rhop = prim(i,j,k,0);
+                Real Tm   = prim(i-1,j,k,4); Real Tp   = prim(i,j,k,4);
+                Real Pm   = prim(i-1,j,k,5); Real Pp   = prim(i,j,k,5);
+                GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                for (int n=0; n<nspecies; ++n) {
+                    Ykm[n] = prim(i-1,j,k,6+n);
+                    Ykp[n] = prim(i,j,k,6+n);
+                }
+                setupDirichletFace(rhom, Tm, Pm,
+                                   rhop, Tp, Pp,
+                                   Ykm, Ykp,
+                                   dirichlet_type, 0,
+                                   T_wall, P_wall, kappa_wall, Yk_wall,
+                                   chiloc_wall, Dloc_wall);
+                GetMolfrac(Yk_wall, Xk_wall);
             }
 
-            // viscous heating (automatically taken care of setting shear stress to zero above for 1D and 2D)
+            // viscous heating 
+            // (automatically taken care of setting shear stress to zero above for 1D and 2D)
             // diagonal
             xflux(i,j,k,nvars+1) -= 0.5*velx(i,j,k)*(tauxx(i-1,j,k)+tauxx(i,j,k));
             // shear
@@ -1974,7 +1897,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 visc_shear_heat -= 0.5*(velz(i-1,j,k+1)*tauxz(i,j,k+1)
                                       + velz(i-1,j,k)*tauxz(i,j,k));
                 // heat flux
-                xflux(i,j,k,nvars) -= kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0]);
+                xflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-T_wall)/(0.5*dx[0]);
             }
             else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                 visc_shear_heat -= 0.5*(vely(i,j+1,k)*tauxy(i,j+1,k)
@@ -1982,7 +1905,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 visc_shear_heat -= 0.5*(velz(i,j,k+1)*tauxz(i,j,k+1)
                                       + velz(i,j,k)*tauxz(i,j,k));
                 // heat flux
-                xflux(i,j,k,nvars) -= kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0]);
+                xflux(i,j,k,nvars) -= kappa_wall*(T_wall-prim(i-1,j,k,4))/(0.5*dx[0]);
             }
             else {
                 visc_shear_heat -= 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy(i,j+1,k)
@@ -2007,22 +1930,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
 
                     if ((i == 0) and is_lo_x_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
-                        meanXk[ns] = prim(i-1,j,k,6+nspecies+ns);
-                        meanYk[ns] = prim(i-1,j,k,6+ns);
-                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/(0.5*dx[0])/meanP;
+                        term1 = (prim(i,j,k,6+nspecies+ns)-Xk_wall[ns])/(0.5*dx[0]);
+                        term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-P_wall)/(0.5*dx[0])/P_wall;
                         dk[ns] = term1 + term2;
-                        ChiX = chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns);
-                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0])/meanT;
+                        ChiX = chiloc_wall[ns]*Xk_wall[ns];
+                        soret[ns] = ChiX*(prim(i,j,k,4)-T_wall)/(0.5*dx[0])/T_wall;
                     }
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
-                        meanXk[ns] = prim(i,j,k,6+nspecies+ns);
-                        meanYk[ns] = prim(i,j,k,6+ns);
-                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/(0.5*dx[0])/meanP;
+                        term1 = (Xk_wall[ns]-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
+                        term2 = (Xk_wall[ns]-Yk_wall[ns])*(P_wall-prim(i-1,j,k,5))/(0.5*dx[0])/P_wall;
                         dk[ns] = term1 + term2;
-                        ChiX = chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns);
-                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0])/meanT;
+                        ChiX = chiloc_wall[ns]*Xk_wall[ns];
+                        soret[ns] = ChiX*(T_wall-prim(i-1,j,k,4))/(0.5*dx[0])/T_wall;
                     }
                 }
 
@@ -2032,26 +1951,34 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     for (int ll=0; ll<nspecies; ++ll) {
                         Real Fks = half*(Dij(i-1,j,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
                         if ((i == 0) and is_lo_x_dirichlet_mass) {
-                            Fks = Dij(i-1,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
+                            Fks = Dloc_wall[ll*nspecies+kk]*( dk[ll] +soret[ll]);
                         }
                         if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                            Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
+                            Fks = Dloc_wall[ll*nspecies+kk]*( dk[ll] +soret[ll]);
                         }
                         Fk[kk] -= Fks;
                     }
                 }
 
                 // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
-                GetEnthalpies(meanT,hk);
+                if ((i == 0) and is_lo_x_dirichlet_mass) {
+                    GetEnthalpies(T_wall,hk);
+                }
+                else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
+                    GetEnthalpies(T_wall,hk);
+                }
+                else {
+                    GetEnthalpies(meanT,hk);
+                }
 
                 Real Q5 = 0.;
                 for (int ns=0; ns<nspecies; ++ns) {
                     Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i-1,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                     if ((i == 0) and is_lo_x_dirichlet_mass) {
-                        Q5s = (hk[ns] + Runiv*meanT*chi(i-1,j,k,ns)/molmass[ns])*Fk[ns];
+                        Q5s = (hk[ns] + Runiv*T_wall*chiloc_wall[ns]/molmass[ns])*Fk[ns];
                     }
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                        Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];
+                        Q5s = (hk[ns] + Runiv*T_wall*chiloc_wall[ns]/molmass[ns])*Fk[ns];
                     }
                     Q5 += Q5s;
                 }
@@ -2072,6 +1999,16 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             GpuArray<Real,MAX_SPECIES> Fk;
             GpuArray<Real,MAX_SPECIES> hk;
             GpuArray<Real,MAX_SPECIES> soret;
+
+            Real T_wall, P_wall, kappa_wall;
+            GpuArray<Real,MAX_SPECIES> Yk_wall;
+            GpuArray<Real,MAX_SPECIES> Xk_wall;
+            GpuArray<Real,MAX_SPECIES> chiloc_wall;
+            GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall;
+
+            Real kyp   = 0.5*(kappa(i,j-1,k)+kappa(i,j,k));
+            Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
+            Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
 
             // viscous heating (automatically taken care of setting shear stress to zero above for 1D and 2D)
             // diagonal
@@ -2106,25 +2043,45 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 }
             }
             else { // works for 2D and 3D
-                Real kyp, meanT, meanP;
                 if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    kyp   = kappa(i,j-1,k);
-                    meanT = prim(i,j-1,k,4);
-                    meanP = prim(i,j-1,k,5);
+                    Real rhom = prim(i,j-1,k,0); Real rhop = prim(i,j,k,0);
+                    Real Tm   = prim(i,j-1,k,4); Real Tp   = prim(i,j,k,4);
+                    Real Pm   = prim(i,j-1,k,5); Real Pp   = prim(i,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykm[n] = prim(i,j-1,k,6+n);
+                        Ykp[n] = prim(i,j,k,6+n);
+                    }
+                    setupDirichletFace(rhom, Tm, Pm,
+                                       rhop, Tp, Pp,
+                                       Ykm, Ykp,
+                                       dirichlet_type, 1,
+                                       T_wall, P_wall, kappa_wall, Yk_wall,
+                                       chiloc_wall, Dloc_wall);
+                    GetMolfrac(Yk_wall, Xk_wall);
                     // heat flux
-                    yflux(i,j,k,nvars) -= kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1]);
+                    yflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-T_wall)/(0.5*dx[1]);
                 }
                 else if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    kyp   = kappa(i,j,k);
-                    meanT = prim(i,j,k,4);
-                    meanP = prim(i,j,k,5);
+                    Real rhom = prim(i,j-1,k,0); Real rhop = prim(i,j,k,0);
+                    Real Tm   = prim(i,j-1,k,4); Real Tp   = prim(i,j,k,4);
+                    Real Pm   = prim(i,j-1,k,5); Real Pp   = prim(i,j,k,5);
+                    GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                    for (int n=0; n<nspecies; ++n) {
+                        Ykm[n] = prim(i,j-1,k,6+n);
+                        Ykp[n] = prim(i,j,k,6+n);
+                    }
+                    setupDirichletFace(rhom, Tm, Pm,
+                                       rhop, Tp, Pp,
+                                       Ykm, Ykp,
+                                       dirichlet_type, 0,
+                                       T_wall, P_wall, kappa_wall, Yk_wall,
+                                       chiloc_wall, Dloc_wall);
+                    GetMolfrac(Yk_wall, Xk_wall);
                     // heat flux
-                    yflux(i,j,k,nvars) -= kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1]);
+                    yflux(i,j,k,nvars) -= kappa_wall*(T_wall-prim(i,j-1,k,4))/(0.5*dx[1]);
                 }
                 else {
-                    kyp   = 0.5*(kappa(i,j-1,k)+kappa(i,j,k));
-                    meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-                    meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
                     // heat flux
                     yflux(i,j,k,nvars) -= kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1];
                 }
@@ -2141,22 +2098,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]/meanT;
 
                         if ((j == 0) and is_lo_y_dirichlet_mass) {
-                            term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
-                            meanXk[ns] = prim(i,j-1,k,6+nspecies+ns);
-                            meanYk[ns] = prim(i,j-1,k,6+ns);
-                            term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/(0.5*dx[1])/meanP;
+                            term1 = (prim(i,j,k,6+nspecies+ns)-Xk_wall[ns])/(0.5*dx[1]);
+                            term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-P_wall)/(0.5*dx[1])/P_wall;
                             dk[ns] = term1 + term2;
-                            ChiX = chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns);
-                            soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1])/meanT;
+                            ChiX = chiloc_wall[ns]*Xk_wall[ns];
+                            soret[ns] = ChiX*(prim(i,j,k,4)-T_wall)/(0.5*dx[1])/T_wall;
                         }
                         if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                            term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
-                            meanXk[ns] = prim(i,j,k,6+nspecies+ns);
-                            meanYk[ns] = prim(i,j,k,6+ns);
-                            term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/(0.5*dx[1])/meanP;
+                            term1 = (Xk_wall[ns]-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
+                            term2 = (Xk_wall[ns]-Yk_wall[ns])*(P_wall-prim(i,j-1,k,5))/(0.5*dx[1])/P_wall;
                             dk[ns] = term1 + term2;
-                            ChiX = chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns);
-                            soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1])/meanT;
+                            ChiX = chiloc_wall[ns]*Xk_wall[ns];
+                            soret[ns] = ChiX*(T_wall-prim(i,j-1,k,4))/(0.5*dx[1])/T_wall;
                         }
                     }
 
@@ -2166,26 +2119,34 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         for (int ll=0; ll<nspecies; ++ll) {
                             Real Fks = half*(Dij(i,j-1,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
                             if ((j == 0) and is_lo_y_dirichlet_mass) {
-                                Fks = Dij(i,j-1,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
+                                Fks = Dloc_wall[ll*nspecies+kk]*( dk[ll] +soret[ll]);
                             }
                             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                                Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
+                                Fks = Dloc_wall[ll*nspecies+kk]*( dk[ll] +soret[ll]);
                             }
                             Fk[kk] -= Fks;
                         }
                     }
 
                     // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
-                    GetEnthalpies(meanT,hk);
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
+                        GetEnthalpies(T_wall,hk);
+                    }
+                    else if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                        GetEnthalpies(T_wall,hk);
+                    }
+                    else {
+                        GetEnthalpies(meanT,hk);
+                    }
 
                     Real Q5 = 0.0;
                     for (int ns=0; ns<nspecies; ++ns) {
                         Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                         if ((j == 0) and is_lo_y_dirichlet_mass) {
-                            Q5s = (hk[ns] + Runiv*meanT*chi(i,j-1,k,ns)/molmass[ns])*Fk[ns];
+                            Q5s = (hk[ns] + Runiv*T_wall*chiloc_wall[ns]/molmass[ns])*Fk[ns];
                         }
                         if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                            Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];
+                            Q5s = (hk[ns] + Runiv*T_wall*chiloc_wall[ns]/molmass[ns])*Fk[ns];
                         }
                         Q5 += Q5s;
                     }
@@ -2211,6 +2172,16 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GpuArray<Real,MAX_SPECIES> Fk;
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> soret;
+
+                Real T_wall, P_wall, kappa_wall;
+                GpuArray<Real,MAX_SPECIES> Yk_wall;
+                GpuArray<Real,MAX_SPECIES> Xk_wall;
+                GpuArray<Real,MAX_SPECIES> chiloc_wall;
+                GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dloc_wall;
+
+                Real kzp   = 0.5*(kappa(i,j,k-1)+kappa(i,j,k));
+                Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
+                Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
 
                 // viscous heating (automatically taken care of setting shear stress to zero above for 1D and 2D)
                 // diagonal
@@ -2245,25 +2216,45 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     }
                 }
                 else { // 3D
-                    Real kzp, meanT, meanP;
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        kzp   = kappa(i,j,k-1);
-                        meanT = prim(i,j,k-1,4);
-                        meanP = prim(i,j,k-1,5);
+                        Real rhom = prim(i,j,k-1,0); Real rhop = prim(i,j,k,0);
+                        Real Tm   = prim(i,j,k-1,4); Real Tp   = prim(i,j,k,4);
+                        Real Pm   = prim(i,j,k-1,5); Real Pp   = prim(i,j,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykm[n] = prim(i,j,k-1,6+n);
+                            Ykp[n] = prim(i,j,k,6+n);
+                        }
+                        setupDirichletFace(rhom, Tm, Pm,
+                                           rhop, Tp, Pp,
+                                           Ykm, Ykp,
+                                           dirichlet_type, 1,
+                                           T_wall, P_wall, kappa_wall, Yk_wall,
+                                           chiloc_wall, Dloc_wall);
+                        GetMolfrac(Yk_wall, Xk_wall);
                         // heat flux
-                        zflux(i,j,k,nvars) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
+                        zflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-T_wall)/(0.5*dx[2]);
                     }
                     else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        kzp   = kappa(i,j,k);
-                        meanT = prim(i,j,k,4);
-                        meanP = prim(i,j,k,5);
+                        Real rhom = prim(i,j,k-1,0); Real rhop = prim(i,j,k,0);
+                        Real Tm   = prim(i,j,k-1,4); Real Tp   = prim(i,j,k,4);
+                        Real Pm   = prim(i,j,k-1,5); Real Pp   = prim(i,j,k,5);
+                        GpuArray<Real,MAX_SPECIES> Ykm, Ykp;
+                        for (int n=0; n<nspecies; ++n) {
+                            Ykm[n] = prim(i,j,k-1,6+n);
+                            Ykp[n] = prim(i,j,k,6+n);
+                        }
+                        setupDirichletFace(rhom, Tm, Pm,
+                                           rhop, Tp, Pp,
+                                           Ykm, Ykp,
+                                           dirichlet_type, 0,
+                                           T_wall, P_wall, kappa_wall, Yk_wall,
+                                           chiloc_wall, Dloc_wall);
+                        GetMolfrac(Yk_wall, Xk_wall);
                         // heat flux
-                        zflux(i,j,k,nvars) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
+                        zflux(i,j,k,nvars) -= kappa_wall*(T_wall-prim(i,j,k-1,4))/(0.5*dx[2]);
                     }
                     else {
-                        kzp   = 0.5*(kappa(i,j,k-1)+kappa(i,j,k));
-                        meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-                        meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
                         // heat flux
                         zflux(i,j,k,nvars) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2];
                     }
@@ -2281,22 +2272,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
 
                             if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
-                                meanXk[ns] = prim(i,j,k-1,6+nspecies+ns);
-                                meanYk[ns] = prim(i,j,k-1,6+ns);
-                                term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/(0.5*dx[2])/meanP;
+                                term1 = (prim(i,j,k,6+nspecies+ns)-Xk_wall[ns])/(0.5*dx[2]);
+                                term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-P_wall)/(0.5*dx[2])/P_wall;
                                 dk[ns] = term1 + term2;
-                                ChiX = chi(i,j,k-1,ns)*prim(i,j,k-1,6+nspecies+ns);
-                                soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2])/meanT;
+                                ChiX = chiloc_wall[ns]*Xk_wall[ns];
+                                soret[ns] = ChiX*(prim(i,j,k,4)-T_wall)/(0.5*dx[2])/T_wall;
                             }
                             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
-                                meanXk[ns] = prim(i,j,k,6+nspecies+ns);
-                                meanYk[ns] = prim(i,j,k,6+ns);
-                                term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/(0.5*dx[2])/meanP;
+                                term1 = (Xk_wall[ns]-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
+                                term2 = (Xk_wall[ns]-Yk_wall[ns])*(P_wall-prim(i,j,k-1,5))/(0.5*dx[2])/P_wall;
                                 dk[ns] = term1 + term2;
-                                ChiX = chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns);
-                                soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2])/meanT;
+                                ChiX = chiloc_wall[ns]*Xk_wall[ns];
+                                soret[ns] = ChiX*(T_wall-prim(i,j,k-1,4))/(0.5*dx[2])/T_wall;
                             }
                         }
 
@@ -2306,26 +2293,34 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             for (int ll=0; ll<nspecies; ++ll) {
                                 Real Fks = half*(Dij(i,j,k-1,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
                                 if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                    Fks = Dij(i,j,k-1,ll*nspecies+kk)*( dk[ll] +soret[ll]);
+                                    Fks = Dloc_wall[ll*nspecies+kk]*( dk[ll] +soret[ll]);
                                 }
                                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                    Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
+                                    Fks = Dloc_wall[ll*nspecies+kk]*( dk[ll] +soret[ll]);
                                 }
                                 Fk[kk] -= Fks;
                             }
                         }
 
                         // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
-                        GetEnthalpies(meanT,hk);
+                        if ((k == 0) and is_lo_z_dirichlet_mass) {
+                            GetEnthalpies(T_wall,hk);
+                        }
+                        else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                            GetEnthalpies(T_wall,hk);
+                        }
+                        else {
+                            GetEnthalpies(meanT,hk);
+                        }
 
                         Real Q5 = 0.0;
                         for (int ns=0; ns<nspecies; ++ns) {
-                            Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
+                            Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j,k-1,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                             if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k-1,ns)/molmass[ns])*Fk[ns];
+                                Q5s = (hk[ns] + Runiv*T_wall*chiloc_wall[ns]/molmass[ns])*Fk[ns];
                             }
                             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];
+                                Q5s = (hk[ns] + Runiv*T_wall*chiloc_wall[ns]/molmass[ns])*Fk[ns];
                             }
                             Q5 += Q5s;
                         }
@@ -2668,7 +2663,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         ke_rho_M += (momx(i+1,j,k-1) + momx(i,j,k-1))*(momx(i+1,j,k-1) + momx(i,j,k-1));
                         ke_rho_M += (momy(i,j+1,k-1) + momy(i,j,k-1))*(momy(i,j+1,k-1) + momy(i,j,k-1));
                         ke_rho_M += (momz(i,j,k) + momz(i,j,k-1))*(momz(i,j,k) + momz(i,j,k-1));
-                        ke_rho_M *= (0.125/cons(i,j-1,k,0)/cons(i,j-1,k,0));
+                        ke_rho_M *= (0.125/cons(i,j,k-1,0)/cons(i,j,k-1,0));
 
                         // add mom*KE/rho to energy flux
                         zflux(i,j,k,4) += momz(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
