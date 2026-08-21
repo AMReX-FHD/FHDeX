@@ -41,67 +41,46 @@ void setupDirichletEdge(const Real rhomm, const Real Tmm, const Real Pmm,
                 Yk_p[n] = Ykpp[n];
             }
         }
-        TransportCoeffs(rho_m, T_m, P_m, Yk_m,
-                eta_m, kappa, zeta, Dloc, chiloc);
-        TransportCoeffs(rho_p, T_p, P_p, Yk_p,
-                eta_p, kappa, zeta, Dloc, chiloc);
     }
-    else if (dirichlet_type_loc == 2) { // boundary = 0.5*(Dirichlet + cell)
+    else { // type 2: boundary = 0.5*(Dirichlet + cell)
         rho_m = 0.5*(rhomm+rhopm); T_m = 0.5*(Tmm+Tpm); P_m = 0.5*(Pmm+Ppm);
         rho_p = 0.5*(rhomp+rhopp); T_p = 0.5*(Tmp+Tpp); P_p = 0.5*(Pmp+Ppp);
         for (int n=0; n<nspecies; ++n) {
             Yk_m[n] = 0.5*(Ykmm[n]+Ykpm[n]);
             Yk_p[n] = 0.5*(Ykmp[n]+Ykpp[n]);
         }
-        TransportCoeffs(rho_m, T_m, P_m, Yk_m,
-                eta_m, kappa, zeta, Dloc, chiloc);
-        TransportCoeffs(rho_p, T_p, P_p, Yk_p,
-                eta_p, kappa, zeta, Dloc, chiloc);
     }
-    else if (dirichlet_type_loc == 3) { // boundary values are 1st interior cell
-        if (is_bc_lo) {
-            rho_m = rhopm; T_m = Tpm; P_m = Ppm;
-            rho_p = rhopp; T_p = Tpp; P_p = Ppp;
-            for (int n=0; n<nspecies; ++n) {
-                Yk_m[n] = Ykpm[n];
-                Yk_p[n] = Ykpp[n];
-            }
-        }
-        else {
-            rho_m = rhomm; T_m = Tmm; P_m = Pmm;
-            rho_p = rhomp; T_p = Tmp; P_p = Pmp;
-            for (int n=0; n<nspecies; ++n) {
-                Yk_m[n] = Ykmm[n];
-                Yk_p[n] = Ykmp[n];
-            }
-        }
-        TransportCoeffs(rho_m, T_m, P_m, Yk_m,
-                eta_m, kappa, zeta, Dloc, chiloc);
-        TransportCoeffs(rho_p, T_p, P_p, Yk_p,
-                eta_p, kappa, zeta, Dloc, chiloc);
+
+    // Constant transport changes the coefficient evaluation state, not the
+    // physical/type-selected temperature used by the stochastic covariance.
+    Real rho_m_trans = rho_m;
+    Real rho_p_trans = rho_p;
+    Real T_m_trans = T_m;
+    Real T_p_trans = T_p;
+    Real P_m_trans = P_m;
+    Real P_p_trans = P_p;
+    GpuArray<Real,MAX_SPECIES> Yk_m_trans, Yk_p_trans;
+    for (int n=0; n<nspecies; ++n) {
+        Yk_m_trans[n] = Yk_m[n];
+        Yk_p_trans[n] = Yk_p[n];
     }
-    else {
-        if (is_bc_lo) {
-            rho_m = rhomm; T_m = Tmm; P_m = Pmm;
-            rho_p = rhomp; T_p = Tmp; P_p = Pmp;
-            for (int n=0; n<nspecies; ++n) {
-                Yk_m[n] = Ykmm[n];
-                Yk_p[n] = Ykmp[n];
-            }
+    if (constant_transport) {
+        rho_m_trans = rho0;
+        rho_p_trans = rho0;
+        T_m_trans = T_init[0];
+        T_p_trans = T_init[0];
+        for (int n=0; n<nspecies; ++n) {
+            Yk_m_trans[n] = rhobar[n];
+            Yk_p_trans[n] = rhobar[n];
         }
-        else {
-            rho_m = rhopm; T_m = Tpm; P_m = Ppm;
-            rho_p = rhopp; T_p = Tpp; P_p = Ppp;
-            for (int n=0; n<nspecies; ++n) {
-                Yk_m[n] = Ykpm[n];
-                Yk_p[n] = Ykpp[n];
-            }
-        }
-        TransportCoeffs(rho_m, T_m, P_m, Yk_m,
-                eta_m, kappa, zeta, Dloc, chiloc);
-        TransportCoeffs(rho_p, T_p, P_p, Yk_p,
-                eta_p, kappa, zeta, Dloc, chiloc);
+        GetPressureGas(P_m_trans,Yk_m_trans,rho_m_trans,T_m_trans);
+        GetPressureGas(P_p_trans,Yk_p_trans,rho_p_trans,T_p_trans);
     }
+    TransportCoeffs(rho_m_trans, T_m_trans, P_m_trans, Yk_m_trans,
+            eta_m, kappa, zeta, Dloc, chiloc);
+    TransportCoeffs(rho_p_trans, T_p_trans, P_p_trans, Yk_p_trans,
+            eta_p, kappa, zeta, Dloc, chiloc);
+
     eta_edge  = 0.5*(eta_m + eta_p);
     etaT = 0.5*(eta_m*T_m + eta_p*T_p);
 }
@@ -136,51 +115,34 @@ void setupDirichletFace(const Real rhom, const Real Tm, const Real Pm,
                 Yk_wall[n] = Ykp[n];
             }
         }
-        TransportCoeffs(rho_wall, T_wall, P_wall, Yk_wall,
-                eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
     }
-    else if (dirichlet_type_loc == 2) { // boundary = 0.5*(Dirichlet + cell)
+    else { // type 2: boundary = 0.5*(Dirichlet + cell)
         rho_wall = 0.5*(rhom+rhop); 
         T_wall   = 0.5*(Tm+Tp); 
         P_wall   = 0.5*(Pm+Pp);
         for (int n=0; n<nspecies; ++n) {
             Yk_wall[n] = 0.5*(Ykm[n]+Ykp[n]);
         }
-        TransportCoeffs(rho_wall, T_wall, P_wall, Yk_wall,
-                eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
     }
-    else if (dirichlet_type_loc == 3) { // boundary values are 1st interior cell
-        if (is_bc_lo) {
-            rho_wall = rhop; T_wall = Tp; P_wall = Pp;
-            for (int n=0; n<nspecies; ++n) {
-                Yk_wall[n] = Ykp[n];
-            }
-        }
-        else {
-            rho_wall = rhom; T_wall = Tm; P_wall = Pm;
-            for (int n=0; n<nspecies; ++n) {
-                Yk_wall[n] = Ykm[n];
-            }
-        }
-        TransportCoeffs(rho_wall, T_wall, P_wall, Yk_wall,
-                eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+
+    // Keep transport evaluation outside the branches to avoid repeated forced-inline expansion.
+    Real T_wall_trans = T_wall;
+    Real rho_wall_trans = rho_wall;
+    Real P_wall_trans = P_wall;
+    GpuArray<Real,MAX_SPECIES> Yk_wall_trans;
+    for (int n=0; n<nspecies; ++n) {
+        Yk_wall_trans[n] = Yk_wall[n];
     }
-    else {
-        if (is_bc_lo) {
-            rho_wall = rhom; T_wall = Tm; P_wall = Pm;
-            for (int n=0; n<nspecies; ++n) {
-                Yk_wall[n] = Ykm[n];
-            }
+    if (constant_transport) {
+        rho_wall_trans = rho0;
+        T_wall_trans   = T_init[0];
+        for (int n=0; n<nspecies; ++n) {
+            Yk_wall_trans[n] = rhobar[n];
         }
-        else {
-            rho_wall = rhop; T_wall = Tp; P_wall = Pp;
-            for (int n=0; n<nspecies; ++n) {
-                Yk_wall[n] = Ykp[n];
-            }
-        }
-        TransportCoeffs(rho_wall, T_wall, P_wall, Yk_wall,
-                eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
+        GetPressureGas(P_wall_trans,Yk_wall_trans,rho_wall_trans,T_wall_trans);
     }
+    TransportCoeffs(rho_wall_trans, T_wall_trans, P_wall_trans, Yk_wall_trans,
+            eta_wall, kappa_wall, zeta_wall, Dloc_wall, chiloc_wall);
 }
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
@@ -1827,9 +1789,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         });
 
         // Loop over faces for flux calculations (4:5+ns)
-        // Heat conduction, species flux and soret/dufour all use the wall state
-        // returned by setupDirichletFace, so they follow dirichlet_type consistently
-        // with the stochastic pass above.
+        // Dirichlet gradients use the prescribed ghost-cell state.  Coefficients,
+        // covariance, enthalpy, and thermodynamic face factors use the type-selected
+        // state returned by setupDirichletFace.
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
@@ -1897,7 +1859,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 visc_shear_heat -= 0.5*(velz(i-1,j,k+1)*tauxz(i,j,k+1)
                                       + velz(i-1,j,k)*tauxz(i,j,k));
                 // heat flux
-                xflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-T_wall)/(0.5*dx[0]);
+                xflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0]);
             }
             else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                 visc_shear_heat -= 0.5*(vely(i,j+1,k)*tauxy(i,j+1,k)
@@ -1905,7 +1867,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 visc_shear_heat -= 0.5*(velz(i,j,k+1)*tauxz(i,j,k+1)
                                       + velz(i,j,k)*tauxz(i,j,k));
                 // heat flux
-                xflux(i,j,k,nvars) -= kappa_wall*(T_wall-prim(i-1,j,k,4))/(0.5*dx[0]);
+                xflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0]);
             }
             else {
                 visc_shear_heat -= 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy(i,j+1,k)
@@ -1930,18 +1892,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
 
                     if ((i == 0) and is_lo_x_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-Xk_wall[ns])/(0.5*dx[0]);
-                        term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-P_wall)/(0.5*dx[0])/P_wall;
+                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
+                        term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/(0.5*dx[0])/P_wall;
                         dk[ns] = term1 + term2;
                         ChiX = chiloc_wall[ns]*Xk_wall[ns];
-                        soret[ns] = ChiX*(prim(i,j,k,4)-T_wall)/(0.5*dx[0])/T_wall;
+                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0])/T_wall;
                     }
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                        term1 = (Xk_wall[ns]-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
-                        term2 = (Xk_wall[ns]-Yk_wall[ns])*(P_wall-prim(i-1,j,k,5))/(0.5*dx[0])/P_wall;
+                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
+                        term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/(0.5*dx[0])/P_wall;
                         dk[ns] = term1 + term2;
                         ChiX = chiloc_wall[ns]*Xk_wall[ns];
-                        soret[ns] = ChiX*(T_wall-prim(i-1,j,k,4))/(0.5*dx[0])/T_wall;
+                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0])/T_wall;
                     }
                 }
 
@@ -2060,7 +2022,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                        chiloc_wall, Dloc_wall);
                     GetMolfrac(Yk_wall, Xk_wall);
                     // heat flux
-                    yflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-T_wall)/(0.5*dx[1]);
+                    yflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1]);
                 }
                 else if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     Real rhom = prim(i,j-1,k,0); Real rhop = prim(i,j,k,0);
@@ -2079,7 +2041,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                        chiloc_wall, Dloc_wall);
                     GetMolfrac(Yk_wall, Xk_wall);
                     // heat flux
-                    yflux(i,j,k,nvars) -= kappa_wall*(T_wall-prim(i,j-1,k,4))/(0.5*dx[1]);
+                    yflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1]);
                 }
                 else {
                     // heat flux
@@ -2098,18 +2060,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]/meanT;
 
                         if ((j == 0) and is_lo_y_dirichlet_mass) {
-                            term1 = (prim(i,j,k,6+nspecies+ns)-Xk_wall[ns])/(0.5*dx[1]);
-                            term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-P_wall)/(0.5*dx[1])/P_wall;
+                            term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
+                            term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/(0.5*dx[1])/P_wall;
                             dk[ns] = term1 + term2;
                             ChiX = chiloc_wall[ns]*Xk_wall[ns];
-                            soret[ns] = ChiX*(prim(i,j,k,4)-T_wall)/(0.5*dx[1])/T_wall;
+                            soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1])/T_wall;
                         }
                         if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                            term1 = (Xk_wall[ns]-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
-                            term2 = (Xk_wall[ns]-Yk_wall[ns])*(P_wall-prim(i,j-1,k,5))/(0.5*dx[1])/P_wall;
+                            term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
+                            term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/(0.5*dx[1])/P_wall;
                             dk[ns] = term1 + term2;
                             ChiX = chiloc_wall[ns]*Xk_wall[ns];
-                            soret[ns] = ChiX*(T_wall-prim(i,j-1,k,4))/(0.5*dx[1])/T_wall;
+                            soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1])/T_wall;
                         }
                     }
 
@@ -2233,7 +2195,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                            chiloc_wall, Dloc_wall);
                         GetMolfrac(Yk_wall, Xk_wall);
                         // heat flux
-                        zflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-T_wall)/(0.5*dx[2]);
+                        zflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
                     }
                     else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         Real rhom = prim(i,j,k-1,0); Real rhop = prim(i,j,k,0);
@@ -2252,7 +2214,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                            chiloc_wall, Dloc_wall);
                         GetMolfrac(Yk_wall, Xk_wall);
                         // heat flux
-                        zflux(i,j,k,nvars) -= kappa_wall*(T_wall-prim(i,j,k-1,4))/(0.5*dx[2]);
+                        zflux(i,j,k,nvars) -= kappa_wall*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
                     }
                     else {
                         // heat flux
@@ -2272,18 +2234,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
 
                             if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                term1 = (prim(i,j,k,6+nspecies+ns)-Xk_wall[ns])/(0.5*dx[2]);
-                                term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-P_wall)/(0.5*dx[2])/P_wall;
+                                term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
+                                term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/(0.5*dx[2])/P_wall;
                                 dk[ns] = term1 + term2;
                                 ChiX = chiloc_wall[ns]*Xk_wall[ns];
-                                soret[ns] = ChiX*(prim(i,j,k,4)-T_wall)/(0.5*dx[2])/T_wall;
+                                soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2])/T_wall;
                             }
                             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                term1 = (Xk_wall[ns]-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
-                                term2 = (Xk_wall[ns]-Yk_wall[ns])*(P_wall-prim(i,j,k-1,5))/(0.5*dx[2])/P_wall;
+                                term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
+                                term2 = (Xk_wall[ns]-Yk_wall[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/(0.5*dx[2])/P_wall;
                                 dk[ns] = term1 + term2;
                                 ChiX = chiloc_wall[ns]*Xk_wall[ns];
-                                soret[ns] = ChiX*(T_wall-prim(i,j,k-1,4))/(0.5*dx[2])/T_wall;
+                                soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2])/T_wall;
                             }
                         }
 
