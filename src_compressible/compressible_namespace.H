@@ -11,6 +11,7 @@ namespace compressible {
     extern AMREX_GPU_MANAGED bool do_reservoir;
     extern AMREX_GPU_MANAGED amrex::Real zeta_ratio;
     extern AMREX_GPU_MANAGED int dirichlet_type;
+    extern AMREX_GPU_MANAGED bool constant_transport;
 
 }
 

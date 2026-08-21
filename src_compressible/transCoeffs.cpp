@@ -38,15 +38,29 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         {
 
             GpuArray<Real,MAX_SPECIES> Yk;
-            for (int n=0; n<nspecies; ++n) {
-                Yk[n] = prim(i,j,k,6+n);
+            Real rho, T, P;
+            if (constant_transport) {
+                for (int n=0; n<nspecies; ++n) {
+                    Yk[n] = rhobar[n];
+                }
+                rho = rho0;
+                T = T_init[0];
+                GetPressureGas(P,Yk,rho0,T);
+            }
+            else {
+                for (int n=0; n<nspecies; ++n) {
+                    Yk[n] = prim(i,j,k,6+n);
+                }
+                rho = prim(i,j,k,0);
+                T = prim(i,j,k,4);
+                P = prim(i,j,k,5);
             }
 
             amrex::GpuArray<amrex::Real,MAX_SPECIES*MAX_SPECIES> Dloc;
             amrex::GpuArray<amrex::Real,MAX_SPECIES> chiloc;
 
-            TransportCoeffs(prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
-                            Yk, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
+            TransportCoeffs(rho, T, P, Yk,
+                            eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
                             Dloc, chiloc);
 
             for (int kk=0; kk<nspecies; ++kk) {
@@ -63,4 +77,3 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         });
     }
 }
-

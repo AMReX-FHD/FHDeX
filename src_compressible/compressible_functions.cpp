@@ -12,6 +12,7 @@ AMREX_GPU_MANAGED int compressible::turbRestartRun = 1;
 AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
 AMREX_GPU_MANAGED int compressible::dirichlet_type = 1;
+AMREX_GPU_MANAGED bool compressible::constant_transport = false;
 
 void InitializeCompressibleNamespace()
 {
@@ -89,9 +90,22 @@ void InitializeCompressibleNamespace()
     // dirichlet boundary function
     // type 1: qty(x=0) [boundary] = dirichlet value
     // type 2: qty(x=0) [boundary] = 0.5*(dirichlet value + 1st cell in domain)
-    // type 3: qty(x=0) [boundary] = 1st cell in domain
     dirichlet_type = 1;
     pp.query("dirichlet_type",dirichlet_type);
+    if ((dirichlet_type != 1) and (dirichlet_type != 2)) {
+        amrex::Abort("dirichlet_type must be 1 or 2");
+    }
+
+    // constant transport: no spatial or temporal variation of transport coefficients
+    int const_trans = 0;
+    pp.query("constant_transport",const_trans);
+    if ((const_trans != 0) and (const_trans != 1)) {
+        amrex::Abort("constant_transport must be 0 or 1");
+    }
+    constant_transport = (const_trans == 1);
+    if (constant_transport) {
+        amrex::Print() << "constant transport chosen\n";
+    }
 
     return;
 }
