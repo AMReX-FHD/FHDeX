@@ -1,0 +1,12 @@
+inputs_file=../inputs_kh_2d
+target_dir=../test_no_eb_2d/KH_WENO_2048_mu_1em4_cell_depth_1p6em4_seed_600
+mpi_ranks=8
+chk_start=15000
+chk_end=24000
+chk_inc=500
+kmin=0
+kmax_start=30
+kmax_end=1000
+kmax_inc=13
+plot_filter=1
+plot_fourier=0

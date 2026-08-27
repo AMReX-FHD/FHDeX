@@ -1,0 +1,3 @@
+CEXE_sources += spectral_functions.cpp
+
+CEXE_headers += spectral_functions.H
