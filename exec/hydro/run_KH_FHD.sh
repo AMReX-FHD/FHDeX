@@ -9,4 +9,5 @@ RUN_DIR="${RAW_DIR//./p}"
 PLT_DIR="${RUN_DIR}/plt"
 
 
-mpirun -n 32 ./main2d.gnu.MPI.ex inputs_kh_2d plot_base_name="${PLT_DIR}" n_cells="${Nx} ${Ny}" seed="${SEED}" max_grid_size="${MAX_GRID_SIZE} ${MAX_GRID_SIZE}" fixed_dt="${FIXED_DT}" max_step="${MAX_STEP}" plot_int="${PLOT_INT}" visc_coef="${VISC_COEF}" cell_depth="${CELL_DEPTH}" noise_off_step="${NOISE_OFF_STEP}" k_B="${K_B}" T_init="${T_INIT}" 
+# mpirun -n 32 ./main2d.gnu.MPI.ex inputs_kh_2d plot_base_name="${PLT_DIR}" n_cells="${Nx} ${Ny}" seed="${SEED}" max_grid_size="${MAX_GRID_SIZE} ${MAX_GRID_SIZE}" fixed_dt="${FIXED_DT}" max_step="${MAX_STEP}" plot_int="${PLOT_INT}" visc_coef="${VISC_COEF}" cell_depth="${CELL_DEPTH}" noise_off_step="${NOISE_OFF_STEP}" k_B="${K_B}" T_init="${T_INIT}" 
+mpirun -n 32 ./main2d.gnu.MPI.ex inputs_kh_2d plot_base_name="${PLT_DIR}" n_cells="${Nx} ${Ny}" seed="${SEED}" max_grid_size="${MAX_GRID_SIZE} ${MAX_GRID_SIZE}" fixed_dt="${FIXED_DT}" max_step="${MAX_STEP}" plot_int="${PLOT_INT}" visc_coef="${VISC_COEF}" cell_depth="${CELL_DEPTH}" noise_off_step="${NOISE_OFF_STEP}" k_B="${K_B}" T_init="${T_INIT}"

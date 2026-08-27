@@ -1,13 +1,6 @@
   # Problem specification
   prob_lo = 0.0 0.0       # physical lo coordinate
   prob_hi = 1.0 1.0   # physical hi coordinate
-  # pi = 3.14159265359
-  # neg_pi = -3.14159265359
-  # two_pi = 6.28318530718
-  # prob_lo = 0.0 neg_pi      # physical lo coordinate
-  # prob_hi = two_pi pi   # physical hi coordinate
-
-  # if prob_type = 0, zero initial velocity
   # if prob_type = 1, vortex
   # if prob_type = 2, KH - sine
   # if prob_type = 3, KH - smooth
