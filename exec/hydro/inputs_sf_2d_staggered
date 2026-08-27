@@ -2,26 +2,30 @@
 
   # Problem specification
   prob_lo = 0.0 0.0       # physical lo coordinate
-  prob_hi = 3200. 3200.   # physical hi coordinate
+#   prob_hi = 3200. 3200.   # physical hi coordinate
+  prob_hi = 1.0 1.0 
 
   # if prob_type = 0, zero initial velocity
   # if prob_type = 1, vortex
   # if prob_type = 2, KH - sine
   # if prob_type = 3, KH - smooth
   prob_type = 0
+
+  seed = 3
   
   # number of cells in domain
   n_cells = 32 32
   # max number of cells in a box
-  # max_grid_size = 32 32
+#   max_grid_size = 32 32
   max_grid_size = 16 16
 
   # Time-step control
-  fixed_dt = 10
+  fixed_dt = 3.9e-4
 
   # Controls for number of steps between actions
-  max_step = 150000
-  plot_int = 15000
+#   max_step = 150000
+  max_step = 3000000
+  plot_int = 30000
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -30,18 +34,23 @@
   # positive = assume constant coefficients
   # negative = assume spatially-varying coefficients
   # visc_coef = 1.
-  visc_coef = 1.
+  visc_coef = 1.0e-2
+  # visc_coef = 1.0e-4
   visc_type = 1
 
   # Stochastic parameters
   variance_coef_mom = 1.
   initial_variance_mom = 1.
 
-  k_B = 1.
-  T_init = 1.
+#   k_B = 1.
+#   T_init = 1.
+  k_B = 1.380649e-16
+  T_init = 294.0
+  cell_depth = 3.0e-9
+  # cell_depth = 3.5e-5
 
-  struct_fact_int = 1
-  n_steps_skip = 30000
+  struct_fact_int = 10
+  n_steps_skip = 60000
 
   # Boundary conditions
   # ----------------------
@@ -80,3 +89,6 @@
   gmres_max_iter = 100                  # max number of gmres iterations
   gmres_min_iter = 1                    # min number of gmres iterations
 
+
+  # stokes_solver_type = 0                # 0 = GMRES
+  stokes_solver_type = 1                # 1 = FFT-based

@@ -18,6 +18,8 @@ namespace common {
     extern amrex::IntVect nodal_flag_xz;
     extern amrex::IntVect nodal_flag_yz;
 
+    extern int noise_off_step;
+
     // Below are items that are read in from the common namelist
 
     // Problem specification
@@ -91,6 +93,9 @@ namespace common {
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
+    // 0 = GMRES
+    // 1 = FFT-based
+    extern AMREX_GPU_MANAGED int      stokes_solver_type;
     // 0 = centered
     // 1 = unlimited bilinear bds
     // 2 = limited bilinear bds

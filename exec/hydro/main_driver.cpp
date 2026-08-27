@@ -471,7 +471,9 @@ void main_driver(const char* argv)
 
         //Time stepping loop
         for(int step=step_start;step<=max_step;++step) {
-
+                if(noise_off_step == step){
+                        variance_coef_mom = 0;
+                }
                 Real step_strt_time = ParallelDescriptor::second();
 
                 if(variance_coef_mom != 0.0) {

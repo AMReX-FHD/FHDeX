@@ -25,6 +25,8 @@ AMREX_GPU_MANAGED int      common::nprimvars;
 AMREX_GPU_MANAGED int      common::cross_cell;
 AMREX_GPU_MANAGED int      common::do_slab_sf;
 
+AMREX_GPU_MANAGED int      common::noise_off_step;
+
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_fluid; // GALEN - FLUID KERNEL
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_es;
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::eskernel_fluid; // EXPONENTIAL OF SEMICIRCLE KERNEL; use this as w
@@ -71,6 +73,7 @@ AMREX_GPU_MANAGED amrex::Real common::Runiv;
 AMREX_GPU_MANAGED amrex::Real common::avogadro;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
+AMREX_GPU_MANAGED int      common::stokes_solver_type;
 int                        common::barodiffusion_type;
 int                        common::seed;
 AMREX_GPU_MANAGED amrex::Real common::visc_coef;
@@ -344,6 +347,8 @@ void InitializeCommonNamespace() {
     cross_cell = 0;     // cell to compute spatial correlation
     do_slab_sf = 0;     // whether to compute SF in two slabs separated by membrane_cell
 
+    noise_off_step = -1;
+
     for (int i=0; i<MAX_SPECIES; ++i) {
         qval[i] = 0.;                // charge on an ion
         pkernel_fluid[i] = 4;        // peskin kernel for fluid
@@ -436,6 +441,9 @@ void InitializeCommonNamespace() {
 
     // Algorithm control / selection
     algorithm_type = 0;
+    // 0 = GMRES
+    // 1 = FFT-based
+    stokes_solver_type = 0;
     // 0 = centered
     // 1 = unlimited bilinear bds
     // 2 = limited bilinear bds
@@ -681,6 +689,9 @@ void InitializeCommonNamespace() {
     pp.query("cross_cell",cross_cell);
     pp.query("do_slab_sf",do_slab_sf);
 
+    pp.query("noise_off_step",noise_off_step);
+    
+
     if (pp.queryarr("pkernel_fluid",temp_int,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             pkernel_fluid[i] = temp_int[i];
@@ -781,6 +792,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("algorithm_type",algorithm_type);
+    pp.query("stokes_solver_type",stokes_solver_type);
     pp.query("barodiffusion_type",barodiffusion_type);
     pp.query("seed",seed);
     pp.query("visc_coef",visc_coef);
