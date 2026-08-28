@@ -22,19 +22,11 @@
 #include "error.h"
 #include "domain.h"
 
-#ifdef MUI
-#include "mui.h"
-#endif
-
 #if defined(USE_AMREX_MPMD)
 #include <AMReX_MPMD.H>
 #endif
 
 #include <vector>
-
-#ifdef MUI
-using namespace mui;
-#endif
 
 using namespace SPPARKS_NS;
 
@@ -82,17 +74,8 @@ AppLotkavolterra::AppLotkavolterra(SPPARKS *spk, int narg, char **arg) :
   preycount = predationcount = predatorcount = NULL;
 
   prey = predator = NULL;
-
-#ifdef MUI
-  mui_fhd_lattice_size_x = mui_fhd_lattice_size_y = -1.;
-  mui_kmc_lattice_offset_x = mui_kmc_lattice_offset_y = 0.;
-
-  xFHD = NULL;
-  yFHD = NULL;
-  MUIintval = NULL;
-  MUIdblval = NULL;
-  localFHDcell = NULL;
-  nlocalFHDcell_world = NULL;
+#if defined(USE_AMREX_MPMD)
+  ads_wall_dir = 2;
 #endif
 }
 
@@ -128,15 +111,6 @@ AppLotkavolterra::~AppLotkavolterra()
 
   memory->destroy(prey);
   memory->destroy(predator);
-
-#ifdef MUI
-  delete [] xFHD;
-  delete [] yFHD;
-  delete [] MUIintval;
-  delete [] MUIdblval;
-  delete [] localFHDcell;
-  if (domain->me == 0) delete [] nlocalFHDcell_world;
-#endif
 }
 
 /* ---------------------------------------------------------------------- */
@@ -243,39 +217,12 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
     }
   }
 
-#if defined(MUI)
-    else if (strcmp(command,"mui_init_agg") == 0) {
-    if (narg != 0) error->all(FLERR,"Illegal mui_init_agg command");
-    mui_init_agg();
-  } else if (strcmp(command,"mui_push") == 0) {
-    if (narg < 2) error->all(FLERR,"Illegal mui_push command");
-    mui_push(narg,arg);
-  } else if (strcmp(command,"mui_fetch") == 0) {
-    if (narg < 2) error->all(FLERR,"Illegal mui_fetch command");
-    mui_fetch(narg,arg);
-  } else if (strcmp(command,"mui_push_agg") == 0) {
-    if (narg < 2) error->all(FLERR,"Illegal mui_push_agg command");
-    mui_push_agg(narg,arg);
-  } else if (strcmp(command,"mui_fetch_agg") == 0) {
-    if (narg < 2) error->all(FLERR,"Illegal mui_fetch_agg command");
-    mui_fetch_agg(narg,arg);
-  } else if (strcmp(command,"mui_commit") == 0) {
-    if (narg < 1) error->all(FLERR,"Illegal mui_commit command");
-    mui_commit(narg,arg);
-  } else if (strcmp(command,"mui_forget") == 0) {
-    if (narg < 1) error->all(FLERR,"Illegal mui_forget command");
-    mui_forget(narg,arg);
-  } else if (strcmp(command,"mui_fhd_lattice_size") == 0) {
-    if (narg != 2) error->all(FLERR,"Illegal mul_fhd_lattice_size command");
-    mui_fhd_lattice_size_x = atof(arg[0]);
-    mui_fhd_lattice_size_y = atof(arg[1]);
-  } else if (strcmp(command,"mui_kmc_lattice_offset") == 0) {
-    if (narg != 2) error->all(FLERR,"Illegal mui_kmc_lattice_offset command");
-    mui_kmc_lattice_offset_x = atof(arg[0]);
-    mui_kmc_lattice_offset_y = atof(arg[1]);
-  }
-#elif defined(USE_AMREX_MPMD)
-  else if (strcmp(command,"amrex_init_agg") == 0) {
+#if defined(USE_AMREX_MPMD)
+  else if (strcmp(command,"amrex_ads_wall_dir") == 0) {
+    if (narg != 1) error->all(FLERR,"Illegal amrex_ads_wall_dir command");
+    ads_wall_dir = atoi(arg[0]);
+    if (ads_wall_dir < 0 || ads_wall_dir > 2) error->all(FLERR,"Illegal amrex_ads_wall_dir command");
+  } else if (strcmp(command,"amrex_init_agg") == 0) {
     if (narg != 0) error->all(FLERR,"Illegal amrex_init_agg command");
     amrex_init_agg();
   } else if (strcmp(command,"amrex_push_agg") == 0) {
@@ -413,7 +360,7 @@ double AppLotkavolterra::site_propensity(int i)
   double tempratio = temp[i]/temperature;
 
   if (element[i] == VACANCY) { // prey events
-    for (int jj = 0; jj < numneigh[j]; jj++) {
+    for (int jj = 0; jj < numneigh[i]; jj++) {
       j = neighbor[i][jj];
       for (m = 0; m < nprey; m++) {
         if (element[j] == preyinput[m][1]) {
@@ -433,7 +380,7 @@ double AppLotkavolterra::site_propensity(int i)
   }
 
   else if (element[i] == SPEC1) { // predation events
-    for (int jj = 0; jj < numneigh[j]; jj++) {
+    for (int jj = 0; jj < numneigh[i]; jj++) {
       j = neighbor[i][jj];
       for (m = 0; m < npredation; m++) {
         if (element[j] == predationinput[m][1]) {
@@ -476,7 +423,6 @@ void AppLotkavolterra::site_event(int i, class RandomPark *random)
 
   int rstyle = events[ievent].style;
   int which = events[ievent].which;
-  j = events[ievent].jpartner;
 
   if (rstyle == 1) { // prey case
     element[i] = preyoutput[which][0];
@@ -505,6 +451,16 @@ void AppLotkavolterra::site_event(int i, class RandomPark *random)
   propensity[isite] = site_propensity(i);
   esites[nsites++] = isite;
   echeck[isite] = 1;
+
+  for (n = 0; n < numneigh[i]; n++) {
+    m = neighbor[i][n];
+    isite = i2site[m];
+    if (isite >=0 && echeck[isite] == 0) {
+      propensity[isite] = site_propensity(m);
+      esites[nsites++] = isite;
+      echeck[isite] = 1;
+    }
+  }
 
   solve->update(nsites,esites,propensity);
 
@@ -599,524 +555,17 @@ void AppLotkavolterra::grow_reactions(int rstyle)
   }
 }
 
-#if defined(MUI)
-
-/* ----------------------------------------------------------------------
-   MUI routines
-------------------------------------------------------------------------- */
-
-void AppLotkavolterra::mui_init_agg()
-{
-    assert(nlocal>0);
-    assert(mui_fhd_lattice_size_x>0);
-    assert(mui_fhd_lattice_size_y>0);
-
-/*
-    // announce span
-
-    double tmp[2];
-
-    tmp[0] = domain->subxlo;
-    tmp[1] = domain->subylo;
-    point<double,2> send_span_lo(tmp);
-
-    tmp[0] = domain->subxhi;
-    tmp[1] = domain->subyhi;
-    point<double,2> send_span_hi(tmp);
-
-    mui::geometry::box<config_2d> send_span(send_span_lo,send_span_hi);
-
-    spk->uniface->announce_send_span(0.,1.e10,send_span);
-
-    tmp[0] = domain->subxlo - 0.5*mui_fhd_lattice_size_x;
-    tmp[1] = domain->subylo - 0.5*mui_fhd_lattice_size_y;
-    point<double,2> recv_span_lo(tmp);
-
-    tmp[0] = domain->subxhi + 0.5*mui_fhd_lattice_size_x;
-    tmp[1] = domain->subyhi + 0.5*mui_fhd_lattice_size_y;
-    point<double,2> recv_span_hi(tmp);
-
-    mui::geometry::box<config_2d> recv_span(recv_span_lo,recv_span_hi);
-
-    spk->uniface->announce_recv_span(0.,1.e10,recv_span);
-*/
-
-    // create maps between KMC sites and FHD cells
-
-    // 1. nlocalFHDcell, nlocalFHDcell_world
-
-    int nFHDcellx = rint((domain->boxxhi-domain->boxxlo)/mui_fhd_lattice_size_x);
-    int nFHDcelly = rint((domain->boxyhi-domain->boxylo)/mui_fhd_lattice_size_y);
-
-    if (domain->me == 0) {
-        fprintf(logfile,"(boxx, boxy) = %e %e\n",domain->boxxhi-domain->boxxlo,domain->boxyhi-domain->boxylo);
-        fprintf(logfile,"(mui_fhd_lattice_size_x, mui_fhd_lattice_size_y) = %e %e\n",mui_fhd_lattice_size_x,mui_fhd_lattice_size_y);
-        fprintf(logfile,"(nFHDcellx, nFHDcelly) = %d %d\n",nFHDcellx,nFHDcelly);
-    }
-
-    vector<vector<int>> cntKMCsite(nFHDcellx,vector<int>(nFHDcelly,0));
-    vector<vector<double>> sum1(nFHDcellx,vector<double>(nFHDcelly,0.));
-    vector<vector<double>> sum2(nFHDcellx,vector<double>(nFHDcelly,0.));
-
-    for (int i = 0; i < nlocal; i++) {
-        int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
-        int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
-      assert(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
-        cntKMCsite[nx][ny]++;
-        sum1[nx][ny] += xyz[i][0]+mui_kmc_lattice_offset_x;
-        sum2[nx][ny] += xyz[i][1]+mui_kmc_lattice_offset_y;
-    }
-
-    int cntFHDcell = 0;
-    for (int nx = 0; nx < nFHDcellx; nx++)
-        for (int ny = 0; ny < nFHDcelly; ny++)
-            if (cntKMCsite[nx][ny] > 0) cntFHDcell++;
-    nlocalFHDcell = cntFHDcell;
-
-    if (domain->me == 0) nlocalFHDcell_world = new int[domain->nprocs];
-
-    MPI_Gather(&nlocalFHDcell,1,MPI_INT,nlocalFHDcell_world,1,MPI_INT,0,world);
-
-    if (domain->me == 0) {
-        for (int i=0;i<domain->nprocs;i++) {
-            fprintf(logfile,"- rank %d: nlocalFHDcell = %d\n",i,nlocalFHDcell_world[i]);
-        }
-    }
-
-    // 2. xFHD, yFHD
-
-    xFHD = new double[nlocalFHDcell];
-    yFHD = new double[nlocalFHDcell];
-
-    vector<vector<int>> FHDcell(nFHDcellx,vector<int>(nFHDcelly,-1));
-
-    cntFHDcell = 0;
-    for (int nx = 0; nx < nFHDcellx; nx++) {
-        for (int ny = 0; ny < nFHDcelly; ny++) {
-            if (cntKMCsite[nx][ny] > 0) {
-                FHDcell[nx][ny] = cntFHDcell;
-                xFHD[cntFHDcell] = sum1[nx][ny]/cntKMCsite[nx][ny];
-                yFHD[cntFHDcell] = sum2[nx][ny]/cntKMCsite[nx][ny];
-                cntFHDcell++;
-            }
-        }
-    }
-    assert(cntFHDcell==nlocalFHDcell);
-
-    if (domain->me == 0) {
-        // output my info first
-        fprintf(logfile,"** rank %d **\n",domain->me);
-        for (int j=0;j<nlocalFHDcell;j++) {
-            fprintf(logfile,"- (xFHD[%d], yFHD[%d]) = %e %e\n",j,j,xFHD[j],yFHD[j]);
-        }
-        // output for other procs
-        for (int i=1;i<domain->nprocs;i++) {
-            double * data1 = new double[nlocalFHDcell_world[i]];
-            double * data2 = new double[nlocalFHDcell_world[i]];
-
-            MPI_Recv(data1,nlocalFHDcell_world[i],MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
-            MPI_Recv(data2,nlocalFHDcell_world[i],MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
-
-            fprintf(logfile,"** rank %d **\n",i);
-            for (int j=0;j<nlocalFHDcell_world[i];j++) {
-                fprintf(logfile,"- (xFHD[%d], yFHD[%d]) = %e %e\n",j,j,data1[j],data2[j]);
-            }
-
-            delete data1;
-            delete data2;
-        }
-    }
-    else {
-        MPI_Send(xFHD,nlocalFHDcell,MPI_DOUBLE,0,0,world);
-        MPI_Send(yFHD,nlocalFHDcell,MPI_DOUBLE,0,0,world);
-    }
-
-    // 3. localFHDcell, MUIintval, MUIdblval
-
-    localFHDcell = new int [nlocal];
-
-    for (int i = 0; i < nlocal; i++) {
-        int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
-        int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
-        assert(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
-        localFHDcell[i] = FHDcell[nx][ny];
-    }
-
-    vector<int> cntKMCsite2(nlocalFHDcell,0);
-    for (int i = 0; i < nlocal; i++) cntKMCsite2[localFHDcell[i]]++;
-
-    if (domain->me == 0) {
-        // output my info first
-        fprintf(logfile,"** rank %d **\n",domain->me);
-        for (int j=0;j<nlocalFHDcell;j++) {
-            fprintf(logfile,"- FHDcell %d has %d KMC sites\n",j,cntKMCsite2[j]);
-        }
-        // output for other procs
-        for (int i=1;i<domain->nprocs;i++) {
-            int * data = new int[nlocalFHDcell_world[i]];
-
-            MPI_Recv(data,nlocalFHDcell_world[i],MPI_INT,i,0,world,MPI_STATUS_IGNORE);
-
-            fprintf(logfile,"** rank %d **\n",i);
-            for (int j=0;j<nlocalFHDcell_world[i];j++) {
-                fprintf(logfile,"- FHDcell %d has %d KMC sites\n",j,data[j]);
-            }
-
-            delete data;
-        }
-    }
-    else {
-        int * data = &cntKMCsite2[0];
-        MPI_Send(data,nlocalFHDcell,MPI_INT,0,0,world);
-    }
-
-    MUIintval = new int[nlocalFHDcell];
-    MUIdblval = new double[nlocalFHDcell];
-
-    if (domain->me == 0) fflush(logfile);
-}
-
-void AppLotkavolterra::mui_print_MUIdblval(int step,const char *str1,const char *str2)
-{
-    if (domain->me == 0)
-    {
-        // first print my vals
-        fprintf(logfile,"** MUIdblval for %s at step %d **\n",str1,step);
-        for (int j=0;j<nlocalFHDcell;j++)
-            fprintf(logfile,"%s %d %d %e\n",str2,domain->me,j,MUIdblval[j]);
-        // other procs
-        for (int i=1;i<domain->nprocs;i++)
-        {
-            double * data = new double[nlocalFHDcell_world[i]];
-            MPI_Recv(data,nlocalFHDcell_world[i],MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
-            for (int j=0;j<nlocalFHDcell;j++)
-                fprintf(logfile,"%s %d %d %e\n",str2,i,j,data[j]);
-            delete [] data;
-        }
-        fflush(logfile);
-    }
-    else
-    {
-        MPI_Send(MUIdblval,nlocalFHDcell,MPI_DOUBLE,0,0,world);
-    }
-}
-
-void AppLotkavolterra::mui_print_MUIintval(int step,const char *str1,const char *str2)
-{
-    if (domain->me == 0)
-    {
-        // first print my vals
-        fprintf(logfile,"** MUIintval for %s at step %d **\n",str1,step);
-        for (int j=0;j<nlocalFHDcell;j++)
-            fprintf(logfile,"%s %d %d %d\n",str2,domain->me,j,MUIintval[j]);
-        // other procs
-        for (int i=1;i<domain->nprocs;i++)
-        {
-            int * data = new int[nlocalFHDcell_world[i]];
-            MPI_Recv(data,nlocalFHDcell_world[i],MPI_INT,i,0,world,MPI_STATUS_IGNORE);
-            for (int j=0;j<nlocalFHDcell;j++)
-                fprintf(logfile,"%s %d %d %d\n",str2,i,j,data[j]);
-            delete [] data;
-        }
-        fflush(logfile);
-    }
-    else
-    {
-        MPI_Send(MUIintval,nlocalFHDcell,MPI_INT,0,0,world);
-    }
-}
-
-void AppLotkavolterra::mui_push(int narg, char **arg)
-{
-  int timestamp = atoi(arg[0]);
-
-  if (domain->me == 0 && screen) {
-    fprintf(screen,"** DEBUG: MUI push at timestamp %d\n",timestamp);
-    fflush(screen);
-  }
-
-  for (int k=1;k<narg;k++)
-  {
-    if (strcmp(arg[k],"type") == 0) {           // i1
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_type",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},type[i]);
-      }
-    } else if (strcmp(arg[k],"element") == 0) { // i2
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_element",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},element[i]);
-      }
-    } else if (strcmp(arg[k],"ac1") == 0) {     // i3
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_ac1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},ac1[i]);
-        ac1[i] = 0;
-      }
-    } else if (strcmp(arg[k],"ac2") == 0) {     // i4
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_ac2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},ac2[i]);
-        ac2[i] = 0;
-      }
-    } else if (strcmp(arg[k],"dc1") == 0) {     // i5
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_dc1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dc1[i]);
-        dc1[i] = 0;
-      }
-    } else if (strcmp(arg[k],"dc2") == 0) {     // i6
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_dc2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dc2[i]);
-        dc2[i] = 0;
-      }
-    }
-
-    else if (strcmp(arg[k],"pressure1") == 0) {      // d1
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_pressure1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},pressure1[i]);
-      }
-    } else if (strcmp(arg[k],"pressure2") == 0) {    // d2
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_pressure2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},pressure2[i]);
-      }
-    } else if (strcmp(arg[k],"temp") == 0) {        // d3
-      for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_temp",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},temp[i]);
-      }
-    } else if (strcmp(arg[k],"occ1") == 0) {
-      for (int i=0;i<nlocal;i++) {
-        int is_occ = (element[i]==1) ? 1 : 0;
-        spk->uniface->push("CH_occ1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
-      }
-    } else if (strcmp(arg[k],"occ2") == 0) {
-      for (int i=0;i<nlocal;i++) {
-        int is_occ = (element[i]==2) ? 1 : 0;
-        spk->uniface->push("CH_occ2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
-      }
-    } else {
-      error->all(FLERR,"Illegal mui_push command");
-    }
-    if (domain->me == 0 && screen) {
-      fprintf(screen,"** DEBUG: %s pushed\n",arg[k]);
-      fflush(screen);
-    }
-  }
-  return;
-}
-
-void AppLotkavolterra::mui_push_agg(int narg, char **arg)
-{
-  int timestamp = atoi(arg[0]);
-
-  if (domain->me == 0 && screen) {
-    fprintf(screen,"** DEBUG: mui_push_agg at timestamp %d\n",timestamp);
-    fflush(screen);
-  }
-
-  for (int k=1;k<narg;k++)
-  {
-    if (strcmp(arg[k],"ac1") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += ac1[i];
-        ac1[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_ac1",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"ac2") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += ac2[i];
-        ac2[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_ac2",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"dc1") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += dc1[i];
-        dc1[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_dc1",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"dc2") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        MUIintval[localFHDcell[i]] += dc2[i];
-        dc2[i] = 0;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_dc2",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"occ1") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        int is_occ = (element[i]==1) ? 1 : 0;
-        MUIintval[localFHDcell[i]] += is_occ;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_occ1",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"occ2") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) {
-        int is_occ = (element[i]==2) ? 1 : 0;
-        MUIintval[localFHDcell[i]] += is_occ;
-      }
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_occ2",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else if (strcmp(arg[k],"one") == 0) {
-      // compute the sum over each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
-      for (int i=0;i<nlocal;i++) MUIintval[localFHDcell[i]]++;
-      // push for each FHD domain
-      for (int n=0;n<nlocalFHDcell;n++)
-        spk->uniface->push("CH_one",{xFHD[n],yFHD[n]},MUIintval[n]);
-    } else {
-      error->all(FLERR,"Illegal mui_push_agg command");
-    }
-
-    if (domain->me == 0 && screen) {
-      fprintf(screen,"** DEBUG: %s pushed\n",arg[k]);
-      fflush(screen);
-    }
-  }
-
-  return;
-}
-
-void AppLotkavolterra::mui_commit(int narg, char **arg)
-{
-  int timestamp = atoi(arg[0]);
-
-  spk->uniface->commit(timestamp);
-
-  if (domain->me == 0 && screen) {
-    fprintf(screen,"** DEBUG: mui commit at timestamp %d\n",timestamp);
-    fflush(screen);
-  }
-
-  return;
-}
-
-void AppLotkavolterra::mui_fetch(int narg, char **arg)
-{
-  int timestamp = atoi(arg[0]);
-
-  if (domain->me == 0 && screen) {
-    fprintf(screen,"** DEBUG: MUI fetch at timestamp %d\n",timestamp);
-    fflush(screen);
-  }
-
-  if (mui_fhd_lattice_size_x <= 0. || mui_fhd_lattice_size_y <= 0.)
-    error->all(FLERR,"mui_fhd_lattice_size must be set as two positive numbers");
-
-  mui::sampler_kmc_fhd2d<double> s({mui_fhd_lattice_size_x,mui_fhd_lattice_size_y});
-  mui::chrono_sampler_exact2d t;
-
-  for (int k=1;k<narg;k++)
-  {
-    if (strcmp(arg[k],"pressure1") == 0) {           // d1
-      for (int i=0;i<nlocal;i++) {
-        pressure1[i] = spk->uniface->fetch("CH_pressure1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
-      }
-    } else if (strcmp(arg[k],"pressure2") == 0) {    // d2
-      for (int i=0;i<nlocal;i++) {
-        pressure2[i] = spk->uniface->fetch("CH_pressure2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
-      }
-    } else if (strcmp(arg[k],"temp") == 0) {        // d3
-      for (int i=0;i<nlocal;i++) {
-        temp[i] = spk->uniface->fetch("CH_temp",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
-      }
-    } else error->all(FLERR,"Illegal mui_fetch command");
-
-    if (domain->me == 0 && screen) {
-      fprintf(screen,"** DEBUG: %s fetched\n",arg[k]);
-      fflush(screen);
-    }
-  }
-
-  return;
-}
-
-void AppLotkavolterra::mui_fetch_agg(int narg, char **arg)
-{
-  int timestamp = atoi(arg[0]);
-
-  if (domain->me == 0 && screen) {
-    fprintf(screen,"** DEBUG: mui_fetch_agg at timestamp %d\n",timestamp);
-    fflush(screen);
-  }
-
-  if (mui_fhd_lattice_size_x <= 0. || mui_fhd_lattice_size_y <= 0.)
-    error->all(FLERR,"mui_fhd_lattice_size must be set as two positive numbers");
-
-  mui::sampler_kmc_fhd2d<double> s({mui_fhd_lattice_size_x,mui_fhd_lattice_size_y});
-  mui::chrono_sampler_exact2d t;
-
-  for (int k=1;k<narg;k++)
-  {
-    if (strcmp(arg[k],"pressure1") == 0) {
-      // get info for each FHD cell
-      for (int n=0;n<nlocalFHDcell;n++)
-        MUIdblval[n] = spk->uniface->fetch("CH_pressure1",{xFHD[n],yFHD[n]},timestamp,s,t);
-      // distribute info to each KMC site
-      for (int i=0;i<nlocal;i++)
-        pressure1[i] = MUIdblval[localFHDcell[i]];
-    }
-    else if (strcmp(arg[k],"pressure2") == 0) {
-      // get info for each FHD cell
-      for (int n=0;n<nlocalFHDcell;n++)
-        MUIdblval[n] = spk->uniface->fetch("CH_pressure2",{xFHD[n],yFHD[n]},timestamp,s,t);
-      // distribute info to each KMC site
-      for (int i=0;i<nlocal;i++)
-        pressure2[i] = MUIdblval[localFHDcell[i]];
-    else if (strcmp(arg[k],"temp") == 0) {
-      // get info for each FHD cell
-      for (int n=0;n<nlocalFHDcell;n++)
-        MUIdblval[n] = spk->uniface->fetch("CH_temp",{xFHD[n],yFHD[n]},timestamp,s,t);
-      // distribute info to each KMC site
-      for (int i=0;i<nlocal;i++)
-        temp[i] = MUIdblval[localFHDcell[i]];
-    }
-    else error->all(FLERR,"Illegal mui_fetch_agg command");
-
-    if (domain->me == 0 && screen) {
-      fprintf(screen,"** DEBUG: %s fetched\n",arg[k]);
-      fflush(screen);
-    }
-  }
-
-  return;
-}
-
-void AppLotkavolterra::mui_forget(int narg, char **arg)
-{
-    int timestamp = atoi(arg[0]);
-
-    spk->uniface->forget(timestamp);
-
-    if (domain->me == 0 && screen) {
-        fprintf(screen,"** DEBUG: mui forget at timestamp %d\n",timestamp);
-        fflush(screen);
-    }
-
-    return;
-}
-
-#elif defined(USE_AMREX_MPMD)
+#if defined(USE_AMREX_MPMD)
 
 void AppLotkavolterra::amrex_init_agg ()
 {
     AMREX_ASSERT(nlocal>0);
     AMREX_ASSERT(amrex_fhd_lattice_size_x>0);
     AMREX_ASSERT(amrex_fhd_lattice_size_y>0);
+
+    // 0. ads_wall_dir
+    dir1 = (ads_wall_dir == 0) ? 1 : 0;
+    dir2 = (ads_wall_dir == 2) ? 1 : 2;
 
     // 1. nlocalFHDcell, nlocalFHDcell_world
 
@@ -1274,8 +723,12 @@ void AppLotkavolterra::amrex_init_agg ()
     int xhi = static_cast<int>(std::floor((*xmm.second-domain->boxxlo)/dx));
     int yhi = static_cast<int>(std::floor((*ymm.second-domain->boxylo)/dy));
     AMREX_ALWAYS_ASSERT(nlocalFHDcell==(xhi-xlo+1)*(yhi-ylo+1));
-    amrex::Vector<amrex::Box> box{amrex::Box(amrex::IntVect(xlo,ylo,0),
-                                             amrex::IntVect(xhi,yhi,0))};
+    amrex::IntVect blo(0), bhi(0);
+    blo[dir1] = xlo;
+    blo[dir2] = ylo;
+    bhi[dir1] = xhi;
+    bhi[dir2] = yhi;
+    amrex::Vector<amrex::Box> box{amrex::Box(blo,bhi)};
     amrex::AllGatherBoxes(box);
     amrex::BoxArray ba2(box.data(), box.size());
 
@@ -1417,13 +870,14 @@ void AppLotkavolterra::amrex_send_intval()
 
     for (amrex::MFIter mfi(local_imf); mfi.isValid(); ++mfi) {
         amrex::Box const& b = mfi.validbox();
-        int const ylen = b.length(1);
-        int const offset = b.smallEnd(1) + b.smallEnd(0) * ylen;
+        int const len2 = b.length(dir2);
+        int const offset = b.smallEnd(dir2) + b.smallEnd(dir1) * len2;
         amrex::Array4<int> const& ifab = local_imf.array(mfi);
         int const* p = intval.data();
-        amrex::LoopOnCpu(b, [&] (int i, int j, int) noexcept
+        amrex::LoopOnCpu(b, [&] (int i, int j, int k) noexcept
         {
-            ifab(i,j,0) = p[j+i*ylen-offset];
+            int const idx[3] = {i,j,k};
+            ifab(i,j,k) = p[idx[dir2]+idx[dir1]*len2-offset];
         });
     }
 
@@ -1446,13 +900,14 @@ void AppLotkavolterra::amrex_recv_dblval()
 
     for (amrex::MFIter mfi(local_mf); mfi.isValid(); ++mfi) {
         amrex::Box const& b = mfi.validbox();
-        int const ylen = b.length(1);
-        int const offset = b.smallEnd(1) + b.smallEnd(0) * ylen;
+        int const len2 = b.length(dir2);
+        int const offset = b.smallEnd(dir2) + b.smallEnd(dir1) * len2;
         amrex::Array4<amrex::Real const> const& fab = local_mf.const_array(mfi);
         double* p = dblval.data();
-        amrex::LoopOnCpu(b, [&] (int i, int j, int) noexcept
+        amrex::LoopOnCpu(b, [&] (int i, int j, int k) noexcept
         {
-            p[j+i*ylen-offset] = fab(i,j,0);
+            int const idx[3] = {i,j,k};
+            p[idx[dir2]+idx[dir1]*len2-offset] = fab(i,j,k);
         });
     }
 }

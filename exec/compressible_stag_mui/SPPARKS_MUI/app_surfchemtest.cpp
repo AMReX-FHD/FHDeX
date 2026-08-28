@@ -115,6 +115,9 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   localFHDcell = NULL;
   nlocalFHDcell_world = NULL;
 #endif
+#if defined(USE_AMREX_MPMD)
+  ads_wall_dir = 2;
+#endif
 }
 
 /* ---------------------------------------------------------------------- */
@@ -209,16 +212,16 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     else error->all(FLERR,"Illegal event command");
     if (strcmp(arg[2],"spec1") == 0) k = SPEC1;
     else if (strcmp(arg[2],"spec2") == 0) k = SPEC2;
-    else if (strcmp(arg[2],"sepc3") == 0) k = SPEC3;
-    else if (strcmp(arg[2],"sepc4") == 0) k = SPEC4;
-    else if (strcmp(arg[2],"sepc5") == 0) k = SPEC5;
+    else if (strcmp(arg[2],"spec3") == 0) k = SPEC3;
+    else if (strcmp(arg[2],"spec4") == 0) k = SPEC4;
+    else if (strcmp(arg[2],"spec5") == 0) k = SPEC5;
     else if (strcmp(arg[2],"vac") == 0) k = VACANCY;
     else error->all(FLERR,"Illegal event command");
     if (strcmp(arg[3],"spec1") == 0) l = SPEC1;
     else if (strcmp(arg[3],"spec2") == 0) l = SPEC2;
-    else if (strcmp(arg[3],"sepc3") == 0) l = SPEC3;
-    else if (strcmp(arg[3],"sepc4") == 0) l = SPEC4;
-    else if (strcmp(arg[3],"sepc5") == 0) l = SPEC5;
+    else if (strcmp(arg[3],"spec3") == 0) l = SPEC3;
+    else if (strcmp(arg[3],"spec4") == 0) l = SPEC4;
+    else if (strcmp(arg[3],"spec5") == 0) l = SPEC5;
     else if (strcmp(arg[3],"vac") == 0) l = VACANCY;
     else error->all(FLERR,"Illegal event command");
     V_neighbor[i][j][k][l] = atof(arg[4]);
@@ -512,7 +515,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[7],"spec3") == 0) dadsoutput[ndissocads][1] = SPEC3;
       else if (strcmp(arg[7],"spec4") == 0) dadsoutput[ndissocads][1] = SPEC4;
       else if (strcmp(arg[7],"spec5") == 0) dadsoutput[ndissocads][1] = SPEC5;
-      else if (strcmp(arg[6],"vac") == 0)
+      else if (strcmp(arg[7],"vac") == 0)
         error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
       if (strcmp(arg[8],"spec1") == 0) dadsadsorbate[ndissocads] = SPEC1;
       else if (strcmp(arg[8],"spec2") == 0) dadsadsorbate[ndissocads] = SPEC2;
@@ -703,7 +706,11 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     mui_kmc_lattice_offset_y = atof(arg[1]);
   }
 #elif defined(USE_AMREX_MPMD)
-  else if (strcmp(command,"amrex_init_agg") == 0) {
+  else if (strcmp(command,"amrex_ads_wall_dir") == 0) {
+    if (narg != 1) error->all(FLERR,"Illegal amrex_ads_wall_dir command");
+    ads_wall_dir = atoi(arg[0]);
+    if (ads_wall_dir < 0 || ads_wall_dir > 2) error->all(FLERR,"Illegal amrex_ads_wall_dir command");
+  } else if (strcmp(command,"amrex_init_agg") == 0) {
     if (narg != 0) error->all(FLERR,"Illegal amrex_init_agg command");
     amrex_init_agg();
   } else if (strcmp(command,"amrex_push_agg") == 0) {
@@ -2023,6 +2030,10 @@ void AppSurfchemtest::amrex_init_agg ()
     AMREX_ASSERT(amrex_fhd_lattice_size_x>0);
     AMREX_ASSERT(amrex_fhd_lattice_size_y>0);
 
+    // 0. ads_wall_dir
+    dir1 = (ads_wall_dir == 0) ? 1 : 0;
+    dir2 = (ads_wall_dir == 2) ? 1 : 2;
+
     // 1. nlocalFHDcell, nlocalFHDcell_world
 
     int nFHDcellx = std::rint((domain->boxxhi-domain->boxxlo)/amrex_fhd_lattice_size_x);
@@ -2179,8 +2190,12 @@ void AppSurfchemtest::amrex_init_agg ()
     int xhi = static_cast<int>(std::floor((*xmm.second-domain->boxxlo)/dx));
     int yhi = static_cast<int>(std::floor((*ymm.second-domain->boxylo)/dy));
     AMREX_ALWAYS_ASSERT(nlocalFHDcell==(xhi-xlo+1)*(yhi-ylo+1));
-    amrex::Vector<amrex::Box> box{amrex::Box(amrex::IntVect(xlo,ylo,0),
-                                             amrex::IntVect(xhi,yhi,0))};
+    amrex::IntVect blo(0), bhi(0);
+    blo[dir1] = xlo;
+    blo[dir2] = ylo;
+    bhi[dir1] = xhi;
+    bhi[dir2] = yhi;
+    amrex::Vector<amrex::Box> box{amrex::Box(blo,bhi)};
     amrex::AllGatherBoxes(box);
     amrex::BoxArray ba2(box.data(), box.size());
 
@@ -2414,13 +2429,14 @@ void AppSurfchemtest::amrex_send_intval()
 
     for (amrex::MFIter mfi(local_imf); mfi.isValid(); ++mfi) {
         amrex::Box const& b = mfi.validbox();
-        int const ylen = b.length(1);
-        int const offset = b.smallEnd(1) + b.smallEnd(0) * ylen;
+        int const len2 = b.length(dir2);
+        int const offset = b.smallEnd(dir2) + b.smallEnd(dir1) * len2;
         amrex::Array4<int> const& ifab = local_imf.array(mfi);
         int const* p = intval.data();
-        amrex::LoopOnCpu(b, [&] (int i, int j, int) noexcept
+        amrex::LoopOnCpu(b, [&] (int i, int j, int k) noexcept
         {
-            ifab(i,j,0) = p[j+i*ylen-offset];
+            int const idx[3] = {i,j,k};
+            ifab(i,j,k) = p[idx[dir2]+idx[dir1]*len2-offset];
         });
     }
 
@@ -2443,13 +2459,14 @@ void AppSurfchemtest::amrex_recv_dblval()
 
     for (amrex::MFIter mfi(local_mf); mfi.isValid(); ++mfi) {
         amrex::Box const& b = mfi.validbox();
-        int const ylen = b.length(1);
-        int const offset = b.smallEnd(1) + b.smallEnd(0) * ylen;
+        int const len2 = b.length(dir2);
+        int const offset = b.smallEnd(dir2) + b.smallEnd(dir1) * len2;
         amrex::Array4<amrex::Real const> const& fab = local_mf.const_array(mfi);
         double* p = dblval.data();
-        amrex::LoopOnCpu(b, [&] (int i, int j, int) noexcept
+        amrex::LoopOnCpu(b, [&] (int i, int j, int k) noexcept
         {
-            p[j+i*ylen-offset] = fab(i,j,0);
+            int const idx[3] = {i,j,k};
+            p[idx[dir2]+idx[dir1]*len2-offset] = fab(i,j,k);
         });
     }
 }

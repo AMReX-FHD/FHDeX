@@ -127,6 +127,8 @@ class AppSurfchemtest : public AppLattice {
   double amrex_kmc_lattice_offset_x;
   double amrex_kmc_lattice_offset_y;
 
+  int ads_wall_dir;
+  int dir1, dir2;
   int nlocalFHDcell;               // number of FHD cells overlapping with local domain
   amrex::Vector<double> xFHD;      // x-coord of COM of each overlapping FHD cell region
   amrex::Vector<double> yFHD;      // y-coord of COM of each overlapping FHD cell region
