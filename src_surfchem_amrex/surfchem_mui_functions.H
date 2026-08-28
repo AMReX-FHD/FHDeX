@@ -10,6 +10,12 @@ namespace surfchem_mui {
 
 }
 
+namespace MFsurfchem {
+
+    extern int ads_wall_dir;
+
+}
+
 void InitializeSurfChemMUINamespace();
 
 void amrex_fetch_Ntot(amrex::MultiFab& Ntot, amrex::MPMD::Copier const& copier);
