@@ -17,7 +17,7 @@ void InitializeSurfChemMUINamespace()
     pp.get("nspec_mui",surfchem_mui::nspec_mui);
 
     MFsurfchem::ads_wall_dir = 2;
-    pp.get("ads_wall_dir",MFsurfchem::ads_wall_dir);
+    pp.query("ads_wall_dir",MFsurfchem::ads_wall_dir);
 
     return;
 }
@@ -29,8 +29,8 @@ void amrex_fetch_Ntot(MultiFab& Ntot, MPMD::Copier const& copier)
 
     for (MFIter mfi(Ntot); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
-        if (bx.smallEnd(2) == 0) {
-            const Box& b2d = amrex::makeSlab(bx, 2, 0);
+        if (bx.smallEnd(MFsurfchem::ads_wall_dir) == 0) {
+            const Box& b2d = amrex::makeSlab(bx, MFsurfchem::ads_wall_dir, 0);
             auto const& Ntot_arr = Ntot.array(mfi);
             auto const& one_arr = one.const_array(mfi);
             amrex::ParallelFor(b2d, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -49,8 +49,8 @@ void amrex_fetch_surfcov(MultiFab const& Ntot, MultiFab& surfcov,
 
     for (MFIter mfi(surfcov); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
-        if (bx.smallEnd(2) == 0) {
-            const Box& b2d = amrex::makeSlab(bx, 2, 0);
+        if (bx.smallEnd(MFsurfchem::ads_wall_dir) == 0) {
+            const Box& b2d = amrex::makeSlab(bx, MFsurfchem::ads_wall_dir, 0);
             auto const& Ntot_arr = Ntot.const_array(mfi);
             auto const& occ_arr = occ.const_array(mfi);
             auto const& surfcov_arr = surfcov.array(mfi);
@@ -65,14 +65,14 @@ void amrex_fetch_surfcov(MultiFab const& Ntot, MultiFab& surfcov,
 void amrex_push(MultiFab const& cu, MultiFab const& prim, MPMD::Copier const& copier)
 // this routine pushes the following information to KMC
 // - species number densities and temperature of FHD cells contacting the interface
-// it assumes that the interface is perpendicular to the z-axis
-// and includes cells with the smallest value of z (i.e. k=0)
+// it assumes that the interface is perpendicular to the ads_wall_dir-axis (0: x, 1: y, 2: z)
+// and includes cells with the smallest value of that axis (i.e. k=0 for ads_wall_dir=2)
 {
     MultiFab pres(cu.boxArray(), cu.DistributionMap(), surfchem_mui::nspec_mui, 0);
     for (MFIter mfi(pres); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
-        if (bx.smallEnd(2) == 0) {
-            const Box& b2d = amrex::makeSlab(bx, 2, 0);
+        if (bx.smallEnd(MFsurfchem::ads_wall_dir) == 0) {
+            const Box& b2d = amrex::makeSlab(bx, MFsurfchem::ads_wall_dir, 0);
             auto const& pres_arr = pres.array(mfi);
             auto const& prim_arr = prim.array(mfi);
             amrex::ParallelFor(b2d, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -89,8 +89,8 @@ void amrex_fetch(MultiFab& cu, MultiFab const& prim, GpuArray<Real,3> const& dx,
                  MPMD::Copier const& copier)
 // this routine fetches the following information from KMC:
 // - adsoprtion and desoprtion counts of each species between time points
-// it assumes that the interface is perpendicular to the z-axis
-// and includes cells with the smallest value of z (i.e. k=0)
+// it assumes that the interface is perpendicular to the ads_wall_dir-axis (0: x, 1: y, 2: z)
+// and includes cells with the smallest value of that axis (i.e. k=0 for ads_wall_dir=2)
 {
     constexpr Real AVONUM = 6.02214076e23;
     constexpr Real BETA = 0.5;
@@ -105,8 +105,8 @@ void amrex_fetch(MultiFab& cu, MultiFab const& prim, GpuArray<Real,3> const& dx,
     for (MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
-        if (bx.smallEnd(2) == 0){
-            const Box& b2d = amrex::makeSlab(bx, 2, 0);
+        if (bx.smallEnd(MFsurfchem::ads_wall_dir) == 0){
+            const Box& b2d = amrex::makeSlab(bx, MFsurfchem::ads_wall_dir, 0);
             auto const& ac_arr = ac.const_array(mfi);
             auto const& dc_arr = dc.const_array(mfi);
             auto const& prim_arr = prim.const_array(mfi);
