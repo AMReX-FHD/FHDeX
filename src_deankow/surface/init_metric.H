@@ -144,7 +144,7 @@ void init_dk_metric(int i, int j, int k,
 
 #if 0
     amrex::Print() << " in metric " << i << " " << j << std::endl;
-    amrex::Print() << "det " << detg(i,j,k,0) << " " << detg(i,j,k,1) << " " << detg(i,j,k,2) << std::endl; 
+    amrex::Print() << "det " << detg(i,j,k,0) << " " << detg(i,j,k,1) << " " << detg(i,j,k,2) << std::endl;
     for(int n=0; n<4; n++){
     amrex::Print() << "gmet " << n  << " " << gmet(i,j,k,n) << std::endl;
     }
