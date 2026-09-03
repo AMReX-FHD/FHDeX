@@ -73,7 +73,7 @@ void main_driver(const char* argv)
     Gpu::HostVector<Real> C_alphaalpha_11(n_cells[0]);
     Gpu::HostVector<Real> C_alphaalpha_22(n_cells[0]);
 
-    // Commenting out computations for higher moments    
+    // Commenting out computations for higher moments
 //    MultiFab mom3;
 //    MultiFab mom4;
 
@@ -132,13 +132,13 @@ void main_driver(const char* argv)
 
     cons_var_names[cnt] = "stretch";
     ++cnt;
-    
+
     cons_var_names[cnt] = "mom";
     ++cnt;
-    
+
     cons_var_names[cnt] = "energy";
     ++cnt;
-    
+
     cons_var_names[cnt] = "momshifted";
     ++cnt;
 
@@ -162,7 +162,7 @@ void main_driver(const char* argv)
         Copy(phi,cu,0,0,3,0);
         ComputePhiFromState(phi);
         C_alphaalpha.define(cu.boxArray(),cu.DistributionMap(),3,0);
-        
+
         if (reset_stats == 1) statsCount = 1;
 
     } else {
@@ -290,7 +290,7 @@ void main_driver(const char* argv)
 
         // timer
         Real ts1 = ParallelDescriptor::second();
-        
+
         // time step
         RK3step(cu, cumom, faceflux, cenflux, geom, dt, step); // REDEFINE
 
@@ -383,7 +383,7 @@ void main_driver(const char* argv)
             for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
                 {
                     MultiFab pencil;
-                    ExtractXPencil(structFactConsMF, pencil, i/n_cells[1], i%n_cells[1], 
+                    ExtractXPencil(structFactConsMF, pencil, i/n_cells[1], i%n_cells[1],
                                    0, structVarsCons);
                     structFactConsArray[i].FortStructure(pencil);
                 }

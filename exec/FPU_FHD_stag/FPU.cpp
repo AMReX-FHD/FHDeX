@@ -216,7 +216,7 @@ void WriteCheckPoint(int step,
 
     VisMF::Write(coVars,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
-    
+
     VisMF::Write(phi0,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "phi0"));
 }
@@ -281,7 +281,7 @@ void ReadCheckPoint(int& step,
     cumomVars.define(convert(ba, nodal_flag_x), dmap, 1, 0);
 
     coVars.define(ba, dmap, 3, 0);
-    
+
     phi0.define(ba, dmap, 3, 0);
 
     if (common::seed == -1) {

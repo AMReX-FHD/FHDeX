@@ -67,8 +67,8 @@ void RK3step(MultiFab& cu,
              MultiFab& cumom,
              MultiFab& faceflux,
              MultiFab& cenflux,
-             const Geometry& geom, 
-             const Real dt, 
+             const Geometry& geom,
+             const Real dt,
              const int step);
 
 void calculateFlux(const MultiFab& cu,
@@ -78,7 +78,7 @@ void calculateFlux(const MultiFab& cu,
                    const MultiFab& stochface,
                    const MultiFab& stochcen,
                    const Geometry& geom);
-                     
+
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          const MultiFab& cumom,
                          MultiFab& cumomMean,
