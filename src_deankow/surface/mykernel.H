@@ -1028,31 +1028,27 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
+    amrex::ignore_unused(lo, hi);
     int coeff_index = Ncomp-1;
-    if (lo == dom_lo &&
+    // Note: the test has to be on the face index k, not on the box bounds lo/hi,
+    // otherwise every face of a box that touches the domain boundary is treated
+    // as a boundary face.
+    if (k == dom_lo &&
         (bc_lo == amrex::BCType::foextrap ||
          bc_lo == amrex::BCType::ext_dir))
     {
-        if(k == lo)
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
-        }
-        else
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
+        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
+        if(Ncomp == 2){
+            fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv / 0.5;
         }
     }
-    else if (hi == dom_hi &&
+    else if (k == dom_hi+1 &&
              (bc_hi == amrex::BCType::foextrap ||
               bc_hi == amrex::BCType::ext_dir))
     {
-        if(k == hi+1)
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
-        }
-        else
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
+        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
+        if(Ncomp == 2){
+            fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv / 0.5;
         }
     }
     else
