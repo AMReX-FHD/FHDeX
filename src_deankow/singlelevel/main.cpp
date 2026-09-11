@@ -222,6 +222,7 @@ void main_main ()
         BoxArray edge_ba = ba;
         edge_ba.surroundingNodes(dir);
         flux[dir].define(edge_ba, dm, Ncomp, 0);
+        flux[dir].setVal(0.0);
         stochFlux[dir].define(edge_ba, dm, Ncomp, 0);
     }
 
