@@ -160,6 +160,7 @@ Initialize(argc,argv);
 
     // components are r, p, and e
     MultiFab state(ba,dm,3,ng_vect);
+    MultiFab stress(ba,dm,2,0);
 
     // storage for phi = R*state
     MultiFab phi (ba,dm,3,0);
@@ -192,7 +193,15 @@ Initialize(argc,argv);
     if (plot_int > 0) {
         const std::string& pltfile = amrex::Concatenate("plt",0,7);
         amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-        WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, 0);
+        compute_stress(stress,state,a_coef,b_coef,c_coef,geom);
+
+        MultiFab plotdata(ba,dm,5,0);
+        MultiFab::Copy(plotdata,state,0,0,3,0);
+        MultiFab::Copy(plotdata,stress,0,3,2,0);
+
+        WriteSingleLevelPlotfile(pltfile, plotdata,
+                                 {"r","p","e","bond_tension","atom_stress"},
+                                 geom, time, 0);
     }
 
     for (int step=1; step<=n_steps; ++step) {
@@ -224,7 +233,15 @@ Initialize(argc,argv);
             // write the current state (r,p,e) to a plotfile
             const std::string& pltfile = amrex::Concatenate("plt",step,7);
             amrex::Print() << "Writing plotfile " << pltfile << std::endl;
-            WriteSingleLevelPlotfile(pltfile, state, {"r","p","e"}, geom, time, step);
+            compute_stress(stress,state,a_coef,b_coef,c_coef,geom);
+
+            MultiFab plotdata(ba,dm,5,0);
+            MultiFab::Copy(plotdata,state,0,0,3,0);
+            MultiFab::Copy(plotdata,stress,0,3,2,0);
+
+            WriteSingleLevelPlotfile(pltfile, plotdata,
+                                     {"r","p","e","bond_tension","atom_stress"},
+                                     geom, time, step);
 
             if (step > n_steps_skip) {
                 Copy(phi,state,0,0,3,0);

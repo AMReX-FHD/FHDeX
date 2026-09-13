@@ -45,6 +45,13 @@ void compute_energy(MultiFab& state,
                     const Real& b,
                     const Real& c);
 
+void compute_stress(MultiFab& stress,
+                    const MultiFab& state,
+                    const Real& a,
+                    const Real& b,
+                    const Real& c,
+                    const Geometry& geom);
+
 void ComputePhiFromState(MultiFab& phi,
                          const Real& r_eq,
                          const Real& p_eq,

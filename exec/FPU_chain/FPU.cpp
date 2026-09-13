@@ -263,6 +263,55 @@ void compute_energy(MultiFab& state,
 
 }
 
+void compute_stress(MultiFab& stress,
+                    const MultiFab& state,
+                    const Real& a,
+                    const Real& b,
+                    const Real& c,
+                    const Geometry& geom) {
+
+    BoxArray ba = state.boxArray();
+    DistributionMapping dm = state.DistributionMap();
+
+    MultiFab tau(ba,dm,1,1);
+
+    for (MFIter mfi(state); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<const Real>& state_fab = state.const_array(mfi);
+        const Array4<Real>& tau_fab = tau.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real r = state_fab(i,j,k,0);
+            tau_fab(i,j,k,0) = a*r + b*r*r + c*r*r*r;
+        });
+    }
+
+    tau.FillBoundary(geom.periodicity());
+
+    for (MFIter mfi(stress); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real>& stress_fab = stress.array(mfi);
+        const Array4<const Real>& state_fab = state.const_array(mfi);
+        const Array4<const Real>& tau_fab = tau.const_array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real r_left = state_fab(i-1,j,k,0);
+            Real r_here = state_fab(i,j,k,0);
+            Real tau_left = tau_fab(i-1,j,k,0);
+            Real tau_here = tau_fab(i,j,k,0);
+
+            stress_fab(i,j,k,0) = tau_here;
+            stress_fab(i,j,k,1) = -0.5*(r_left*tau_left + r_here*tau_here);
+        });
+    }
+}
+
 void ComputePhiFromState(MultiFab& phi,
                          const Real& r_eq,
                          const Real& p_eq,
@@ -325,5 +374,4 @@ void ComputeCalphaalpha(MultiFab& C_alphaalpha,
     }
 
 }
-
 
