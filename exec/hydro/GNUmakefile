@@ -71,3 +71,6 @@ DEFINES += -DMAX_ELEMENT=$(MAXELEMENT)
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
 
+
+# src_common/MultiFabPhysBC.cpp uses the multispec namespace only when this is set
+DEFINES += -DUSE_MULTISPEC

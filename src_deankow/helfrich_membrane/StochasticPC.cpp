@@ -100,7 +100,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
         amrex::ParallelForRNG(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
         {
-            if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))) >= 0) {return;}
+            if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))).first >= 0) {return;}
             Real rannum = amrex::Random(engine);
 // JBB set up particles directly
             //int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
@@ -252,7 +252,7 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
         amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
         {
             ParticleType& p = pstruct[i];
-            if (assign_grid(p) < 0) {
+            if (assign_grid(p).first < 0) {
                 p.id() = -1;
             }
         });
@@ -300,7 +300,7 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_fine_f
                 // int inew = new_pos[0];
                 // if (inew == 31) amrex::Print() <<" PARTICLE NOW AT 31 : OLD POS " << iold << std::endl;
 
-                if ( (assign_grid(old_pos) >= 0) && (assign_grid(new_pos) < 0)) {
+                if ( (assign_grid(old_pos).first >= 0) && (assign_grid(new_pos).first < 0)) {
                    Gpu::Atomic::AddNoRet(&phi_arr(new_pos,0), 1.0);
                 }
             });
@@ -386,7 +386,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
                 auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
                 auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
 
-                if ( (assign_grid(old_pos) < 0) && (assign_grid(new_pos) >= 0)) {
+                if ( (assign_grid(old_pos).first < 0) && (assign_grid(new_pos).first >= 0)) {
                    Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
                 }
             });

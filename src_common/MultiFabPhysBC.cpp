@@ -1,12 +1,14 @@
 #include "common_functions.H"
 #include "InhomogeneousBCVal.H"
+
+// The Flory-Huggins contact-angle boundary condition below needs the multispec
+// namespace.  src_common sits below src_multispec, so only builds that actually
+// link src_multispec (exec/multispec, exec/hydro) define USE_MULTISPEC.
+#ifdef USE_MULTISPEC
 #include "multispec_functions.H"
 
-// orig
-//#include "multispec_functions.H"
-//#include "InhomogeneousBCVal.H"
-
 using namespace multispec;
+#endif
 
 // Ghost cell filling routine.
 // Fills in ALL ghost cells to the value ON the boundary.
@@ -25,10 +27,19 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
     // Physical Domain
     Box dom(geom.Domain());
 
-    Real coeff;
+    // zero unless Flory-Huggins is active, which leaves the contact-angle
+    // branches below (bc_mass_lo/hi == 4) inert
+    Real coeff = 0.;
+#ifdef USE_MULTISPEC
     if( use_flory_huggins == 1 ){
        coeff = 6.*fh_tension/(fh_kappa(0,1)*rhobar[0]*k_B*T_init[0]/monomer_mass);
     }
+#else
+    // the contact angles also live in the multispec namespace; these stand-ins
+    // keep the branches below compiling, and coeff=0 zeroes out their only use
+    const GpuArray<Real,AMREX_SPACEDIM> contact_angle_lo{};
+    const GpuArray<Real,AMREX_SPACEDIM> contact_angle_hi{};
+#endif
 
     GpuArray<Real,3> dx;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
