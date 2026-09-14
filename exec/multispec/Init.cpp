@@ -491,7 +491,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                              z = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - center[2];);
 
                 Real r_ring = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y);
-		Real r = std::sqrt((r_ring-router)*(r_ring-router)+ z*z);
+        Real r = std::sqrt((r_ring-router)*(r_ring-router)+ z*z);
 
                 if (smoothing_width == 0.) {
 
@@ -524,14 +524,14 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         } else if (prob_type == 16) {
 
             /*
-	       thin film
+           thin film
             */
             //Real rad = L[0] / 8.;
-	    int nsub = 10;
-	    Real factor = nsub;
-	    Real dxsub = dx[0]/factor;
-	    Real dysub = dx[1]/factor;
-	    Real dzsub = dx[2]/factor;
+        int nsub = 10;
+        Real factor = nsub;
+        Real dxsub = dx[0]/factor;
+        Real dysub = dx[1]/factor;
+        Real dzsub = dx[2]/factor;
             amrex::Real alpha = contact_angle_lo[0];
             amrex::Real cotalph = -std::cos(alpha) / std::sin(alpha);
             amrex::Real length = prob_hi[0]-prob_lo[0];
@@ -539,7 +539,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             amrex::Print() << " alpha cotange length " << alpha << std::endl;
             
             amrex::Print() << " alpha cotange length " << alpha << " " << cotalph << " " << length << std::endl;
-	    amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
+        amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -732,11 +732,11 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             alpha = M_PI/2.;
 
            
-	    int nsub = 10;
-	    Real factor = nsub;
-	    Real dxsub = dx[0]/factor;
-	    Real dysub = dx[1]/factor;
-	    Real dzsub = dx[2]/factor;
+        int nsub = 10;
+        Real factor = nsub;
+        Real dxsub = dx[0]/factor;
+        Real dysub = dx[1]/factor;
+        Real dzsub = dx[2]/factor;
 =======
         int nsub = 10;
         Real factor = nsub;
@@ -798,7 +798,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         amrex::Real rad = radius_cyl;
             amrex::Real alpha = contact_angle_lo[1];
-	    amrex::Real rad2 = .00212;
+        amrex::Real rad2 = .00212;
             rad2 = 0.007911;
 
             amrex::Real ang_hit = 3.14159265/6.;
