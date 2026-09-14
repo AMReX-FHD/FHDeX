@@ -17,6 +17,7 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar,
                          MultiFab& mom3,
+                         MultiFab& mom4,
                          MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
@@ -37,7 +38,7 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     if ((plot_vars) or (plot_covars)) {
         if (!plot_means) Abort("plot_vars and plot_covars require plot_means");
         EvaluateVarsCoVarsMom3(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,mom3,theta,thetaMean,thetaVar,thetacoVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,mom3,mom4,theta,thetaMean,thetaVar,thetacoVar,steps);
         consVar.FillBoundary(geom.periodicity());
         primVar.FillBoundary(geom.periodicity());
     }
@@ -84,6 +85,7 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar,
                          MultiFab& mom3,
+                         MultiFab& mom4,
                          MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                          MultiFab& /*spatialCross2D*/, const int /*ncross*/,
                          const int steps,
@@ -102,7 +104,7 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     if ((plot_vars) or (plot_covars)) {
         if (!plot_means) Abort("plot_vars and plot_covars require plot_means");
         EvaluateVarsCoVarsMom3(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,mom3,theta,thetaMean,thetaVar,thetacoVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,mom3,mom4,theta,thetaMean,thetaVar,thetacoVar,steps);
         consVar.FillBoundary(geom.periodicity());
         primVar.FillBoundary(geom.periodicity());
     }
@@ -135,6 +137,7 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar,
                          MultiFab& mom3,
+                         MultiFab& mom4,
                          MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                          MultiFab& spatialCross1D, const int ncross,
                          const int steps,
@@ -153,7 +156,7 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     if ((plot_vars) or (plot_covars)) {
         if (!plot_means) Abort("plot_vars and plot_covars require plot_means");
         EvaluateVarsCoVarsMom3(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,mom3,theta,thetaMean,thetaVar,thetacoVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,mom3,mom4,theta,thetaMean,thetaVar,thetacoVar,steps);
         consVar.FillBoundary(geom.periodicity());
         primVar.FillBoundary(geom.periodicity());
     }
@@ -370,6 +373,7 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
                             std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                             MultiFab& coVar,
                             MultiFab& mom3,
+                            MultiFab& mom4,
                             const MultiFab& theta, const MultiFab& thetaMean,
                             MultiFab& thetaVar, MultiFab& thetacoVar,
                             const int steps)
@@ -598,7 +602,7 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
     } // end MFIter
 
     // Loop again for third moment calculations
-    if (plot_mom3) {
+    if (plot_mom3 || plot_mom4) {
 
         // Loop over boxes
         for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -611,6 +615,7 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
             const Array4<const Real> primmeans = primMean.array(mfi);
 
             const Array4<      Real> m3        = mom3.array(mfi);
+            const Array4<      Real> m4        = mom4.array(mfi);
 
             const Array4<const Real> velxmeans = velMean[0].array(mfi);
             const Array4<const Real> velymeans = velMean[1].array(mfi);
@@ -628,10 +633,12 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
             {
                 // conserved variable variances (rho, rhoE, rhoYk)
                 Real delrho = cu(i,j,k,0) - cumeans(i,j,k,0);
-                m3(i,j,k,0) = (m3(i,j,k,0)*stepsminusone + delrho*delrho*delrho)*stepsinv; // <rho rho rho>
+                if (plot_mom3) m3(i,j,k,0) = (m3(i,j,k,0)*stepsminusone + delrho*delrho*delrho)*stepsinv; // <rho rho rho>
+                if (plot_mom4) m4(i,j,k,0) = (m4(i,j,k,0)*stepsminusone + delrho*delrho*delrho*delrho)*stepsinv; // <rho rho rho>
 
                 Real delenergy = cu(i,j,k,4) - cumeans(i,j,k,4);
-                m3(i,j,k,4) = (m3(i,j,k,4)*stepsminusone + delenergy*delenergy*delenergy)*stepsinv; // <rhoE rhoE rhoE>
+                if (plot_mom3) m3(i,j,k,4) = (m3(i,j,k,4)*stepsminusone + delenergy*delenergy*delenergy)*stepsinv; // <rhoE rhoE rhoE>
+                if (plot_mom4) m4(i,j,k,4) = (m4(i,j,k,4)*stepsminusone + delenergy*delenergy*delenergy*delenergy)*stepsinv; // <rhoE rhoE rhoE>
 
                 // del rhoYk --> delYk
                 GpuArray<Real,MAX_SPECIES> delrhoYk;
@@ -641,7 +648,8 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
                     delrhoYk[ns] = cu(i,j,k,5+ns) - cumeans(i,j,k,5+ns); // delrhoYk
                     Ykmean[ns] = primmeans(i,j,k,6+ns); // Ykmean
                     delYk[ns] = (delrhoYk[ns] - Ykmean[ns]*delrho)/cumeans(i,j,k,0); // delYk = (delrhoYk - Ykmean*delrho)/rhomean
-                    m3(i,j,k,5+ns) = (m3(i,j,k,5+ns)*stepsminusone + delYk[ns]*delYk[ns]*delYk[ns])*stepsinv;
+                    if (plot_mom3) m3(i,j,k,5+ns) = (m3(i,j,k,5+ns)*stepsminusone + delYk[ns]*delYk[ns]*delYk[ns])*stepsinv;
+                    if (plot_mom4) m4(i,j,k,5+ns) = (m4(i,j,k,5+ns)*stepsminusone + delYk[ns]*delYk[ns]*delYk[ns]*delYk[ns])*stepsinv;
                 }
 
                 Real vx = 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
@@ -658,17 +666,25 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
                 Real delvely = (deljy - vy*delrho)*densitymeaninv;
                 Real delvelz = (deljz - vz*delrho)*densitymeaninv;
 
-                m3(i,j,k,1) = (m3(i,j,k,1)*stepsminusone + delvelx*delvelx*delvelx)*stepsinv;
-                m3(i,j,k,2) = (m3(i,j,k,2)*stepsminusone + delvely*delvely*delvely)*stepsinv;
-                m3(i,j,k,3) = (m3(i,j,k,3)*stepsminusone + delvelz*delvelz*delvelz)*stepsinv;
+                if (plot_mom3) {
+                    m3(i,j,k,1) = (m3(i,j,k,1)*stepsminusone + delvelx*delvelx*delvelx)*stepsinv;
+                    m3(i,j,k,2) = (m3(i,j,k,2)*stepsminusone + delvely*delvely*delvely)*stepsinv;
+                    m3(i,j,k,3) = (m3(i,j,k,3)*stepsminusone + delvelz*delvelz*delvelz)*stepsinv;
+                }
+
+                if (plot_mom4) {
+                    m4(i,j,k,1) = (m4(i,j,k,1)*stepsminusone + delvelx*delvelx*delvelx*delvelx)*stepsinv;
+                    m4(i,j,k,2) = (m4(i,j,k,2)*stepsminusone + delvely*delvely*delvely*delvely)*stepsinv;
+                    m4(i,j,k,3) = (m4(i,j,k,3)*stepsminusone + delvelz*delvelz*delvelz*delvelz)*stepsinv;
+                }
 
                 // use instantaneous value (the above presumably does not work for multispecies)
                 Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
-                m3(i,j,k,5+nspecies) = (m3(i,j,k,5+nspecies)*stepsminusone + delT*delT*delT)*stepsinv;
+                if (plot_mom3) m3(i,j,k,5+nspecies) = (m3(i,j,k,5+nspecies)*stepsminusone + delT*delT*delT)*stepsinv;
+                if (plot_mom4) m4(i,j,k,5+nspecies) = (m4(i,j,k,5+nspecies)*stepsminusone + delT*delT*delT*delT)*stepsinv;
             });
         } // end MFIter
-    } // end plot_mom3
-
+    } // end plot_mom3 || plot_mom4
 }
 
 

@@ -63,7 +63,9 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
         amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             facex(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n));
-        },
+        }
+#if (AMREX_SPACEDIM >= 2)
+        ,
                            bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             facey(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i,j-1,k,scomp+n));
@@ -74,6 +76,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
         {
             facez(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i,j,k-1,scomp+n));
         }
+#endif
 #endif
         );
 
@@ -103,6 +106,8 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
+
+#if (AMREX_SPACEDIM >= 2)
         if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir  || bc_lo[1] == SPEC_CONTACT_BC) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
@@ -149,6 +154,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
+#endif
 #endif
 
     }

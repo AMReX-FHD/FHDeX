@@ -9,6 +9,7 @@
 * FHD inputs file       inputs_fhd_stag
     -> output               plt*
 * parameter analysis    params_COAr_eq.py
+* NIST Chemistry        params_CO_Ar_thermochem.py
 
 * clean-up              clean.sh
 * comparison            diff.sh

@@ -71,6 +71,7 @@ AMREX_GPU_MANAGED amrex::Real common::Runiv;
 AMREX_GPU_MANAGED amrex::Real common::avogadro;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
+AMREX_GPU_MANAGED int      common::stokes_solver_type;
 int                        common::barodiffusion_type;
 int                        common::seed;
 AMREX_GPU_MANAGED amrex::Real common::visc_coef;
@@ -239,7 +240,8 @@ amrex::Vector<amrex::Real> common::body_force_density;
 int                        common::plot_ascii;
 int                        common::plot_means;
 int                        common::plot_vars;
-int                        common::plot_mom3;
+AMREX_GPU_MANAGED int      common::plot_mom3;
+AMREX_GPU_MANAGED int      common::plot_mom4;
 int                        common::plot_covars;
 int                        common::plot_cross;
 int                        common::plot_deltaY_dir;
@@ -436,6 +438,9 @@ void InitializeCommonNamespace() {
 
     // Algorithm control / selection
     algorithm_type = 0;
+    // 0 = GMRES
+    // 1 = FFT-based
+    stokes_solver_type = 0;
     // 0 = centered
     // 1 = unlimited bilinear bds
     // 2 = limited bilinear bds
@@ -611,6 +616,7 @@ void InitializeCommonNamespace() {
     plot_means = 0;
     plot_vars = 0;
     plot_mom3 = 0;
+    plot_mom4 = 0;
     plot_covars = 0;
     plot_cross = 0;
     plot_deltaY_dir = -1;
@@ -781,6 +787,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("algorithm_type",algorithm_type);
+    pp.query("stokes_solver_type",stokes_solver_type);
     pp.query("barodiffusion_type",barodiffusion_type);
     pp.query("seed",seed);
     pp.query("visc_coef",visc_coef);
@@ -1141,6 +1148,7 @@ void InitializeCommonNamespace() {
     pp.query("plot_means",plot_means);
     pp.query("plot_vars",plot_vars);
     pp.query("plot_mom3",plot_mom3);
+    pp.query("plot_mom4",plot_mom4);
     pp.query("plot_covars",plot_covars);
     pp.query("plot_cross",plot_cross);
     pp.query("plot_deltaY_dir",plot_deltaY_dir);

@@ -21,6 +21,7 @@ void WritePlotFileStag(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
                        const amrex::MultiFab& mom3,
+                       const amrex::MultiFab& mom4,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
@@ -90,6 +91,8 @@ void WritePlotFileStag(int step,
     }
 
     if (plot_mom3) nplot += nvars+1;
+
+    if (plot_mom4) nplot += nvars+1;
 
     if (plot_deltaY_dir != -1) {
         nplot += nspecies;
@@ -267,6 +270,12 @@ void WritePlotFileStag(int step,
     if (plot_mom3) {
         numvars = nvars+1;
         amrex::MultiFab::Copy(plotfile,mom3,0,cnt,numvars,0);
+        cnt+=nvars+1;
+    }
+
+    if (plot_mom4) {
+        numvars = nvars+1;
+        amrex::MultiFab::Copy(plotfile,mom4,0,cnt,numvars,0);
         cnt+=nvars+1;
     }
 
@@ -479,6 +488,20 @@ void WritePlotFileStag(int step,
             varNames[cnt++] += 48+i;
         }
         varNames[cnt++] = "Tmom3";
+    }
+
+    if (plot_mom4) {
+        varNames[cnt++] = "rhomom4";
+        varNames[cnt++] = "velxmom4";
+        varNames[cnt++] = "velymom4";
+        varNames[cnt++] = "velzmom4";
+        varNames[cnt++] = "rhoEmom4";
+        x = "Ykmom4_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
+        varNames[cnt++] = "Tmom4";
     }
 
     if (plot_deltaY_dir != -1) {

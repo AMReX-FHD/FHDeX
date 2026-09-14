@@ -78,6 +78,7 @@ c      delnreg = 10.d0
         do j=0,npts +1
 
            sqrtcoef(j) = sqrt(max(u(j,ncoef),0.d0))
+c          sqrtcoef(j) = u(j,ncoef)
 
         enddo
 
@@ -119,6 +120,12 @@ c        uplus = sqrt(max(u(j,ncoef),0.d0))
          umin = sqrtcoef(j-1)
          uplus = sqrtcoef(j)
          uave = 0.5*(uplus+umin)
+         if(ires.eq.1 .and. j.eq.1)then
+           uave = sqrt(uleft)
+         endif
+         if(ires.eq.1 .and. j.eq.npts+1)then
+           uave = sqrt(uright)
+         endif
 
          factor = 1.d0
 

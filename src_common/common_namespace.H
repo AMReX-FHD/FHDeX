@@ -91,6 +91,9 @@ namespace common {
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
+    // 0 = GMRES
+    // 1 = FFT-based
+    extern AMREX_GPU_MANAGED int      stokes_solver_type;
     // 0 = centered
     // 1 = unlimited bilinear bds
     // 2 = limited bilinear bds
@@ -314,7 +317,8 @@ namespace common {
     extern int                        plot_ascii;
     extern int                        plot_means;
     extern int                        plot_vars;
-    extern int                        plot_mom3;
+    extern AMREX_GPU_MANAGED int      plot_mom3;
+    extern AMREX_GPU_MANAGED int      plot_mom4;
     extern int                        plot_covars;
     extern int                        plot_cross;
     extern int                        plot_deltaY_dir;

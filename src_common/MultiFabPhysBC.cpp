@@ -842,8 +842,6 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
 
     BL_PROFILE_VAR("MultiFabElectricBC()",MultiFabElectricBC);
 
-#if (AMREX_SPACEDIM >= 2)
-
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -883,6 +881,7 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
             });
         }
 
+#if (AMREX_SPACEDIM >= 2)
         //___________________________________________________________________________
         // Apply y-physbc to data
         if ((bc_es_lo[1] == 1 || bc_es_lo[1] == 2) && (bx.smallEnd(1) < dom.smallEnd(1))) {
@@ -904,7 +903,6 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
                 }
             });
         }
-#endif
 
         //___________________________________________________________________________
         // Apply z-physbc to data
@@ -929,6 +927,7 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
             });
         }
 #endif
+#endif
 
     } // end MFIter
 }
@@ -947,8 +946,6 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
 void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
 
     BL_PROFILE_VAR("MultiFabPotentialBC()",MultiFabPotentialBC);
-
-#if (AMREX_SPACEDIM >= 2)
 
     if (geom.isAllPeriodic()) {
         return;
@@ -1012,6 +1009,7 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
             }
         }
 
+#if (AMREX_SPACEDIM >= 2)
         //___________________________________________________________________________
         // Apply y-physbc to data
 
@@ -1057,8 +1055,6 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
             }
         }
 
-
-#endif
 #if (AMREX_SPACEDIM >= 3)
 
         //___________________________________________________________________________
@@ -1106,6 +1102,7 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
             }
         }
 #endif
+#endif
 
     } // end MFIter
 }
@@ -1122,8 +1119,6 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
 void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
 
     BL_PROFILE_VAR("MultiFabPotentialBC_solver()",MultiFabPotentialBC_solver);
-
-#if (AMREX_SPACEDIM >= 2)
 
     if (geom.isAllPeriodic()) {
         return;
@@ -1167,6 +1162,7 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
             }
         }
 
+#if (AMREX_SPACEDIM >= 2)
         //___________________________________________________________________________
         // Apply y-physbc to data
 
@@ -1194,8 +1190,6 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
             }
         }
 
-
-#endif
 #if (AMREX_SPACEDIM >= 3)
 
         //___________________________________________________________________________
@@ -1224,6 +1218,7 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
                 });
             }
         }
+#endif
 #endif
 
     } // end MFIter

@@ -141,9 +141,10 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
 
 
         int ext_pot = 1;
-        amrex::Real alpha = .3;
-        amrex::Real beta = .7;
+        amrex::Real alpha = .25;
+        amrex::Real beta = .75;
         amrex::Real gamma = 5.e-4;
+        gamma = 1.1e-3;
 
 
         // now fill in the data
@@ -176,7 +177,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
                     Real vpy = (yp - .5)*(yp - .5)*(yp - .5)*(yp - .5);
                     Real vmy = (ym - .5)*(ym - .5)*(ym - .5)*(ym - .5);
                     Real vsubx = (vpx - vmx)/dx[0];
-                    Real vsuby = (vpy - vmy)/dx[1];
+                    Real vsuby = 0.5*(vpy - vmy)/dx[1];
 
                     Real sampx,sampy;
 
@@ -410,10 +411,12 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
     Real stddev = std::sqrt(dt);
 
-    int ext_pot = 1;
-    amrex::Real alpha = .3;
-    amrex::Real beta = .7;
+    int ext_pot = 0;
+    int on_surf = 1;
+    amrex::Real alpha = .25;
+    amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
+        gamma = 1.1e-3;
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -440,12 +443,60 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                 xloc = p.pos(0);
                 yloc = p.pos(1);
                 Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
-                Vsuby = 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
+                Vsuby = 0.5*4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
 
                 p.pos(0) += -dt*Vsubx;
                 p.pos(1) += -dt*Vsuby;
 
              }
+
+             if(on_surf == 1){
+
+                 amrex::Real amp = 0.1;
+                 amrex::Real sinx,siny,cosx,cosy,det,fx,fy,sig11,sig12,sig21,sig22;
+
+                 amrex::Real xloc = p.pos(0);
+                 amrex::Real yloc = p.pos(1);
+
+                 sinx = std::sin(xloc);
+                 siny = std::sin(yloc);
+                 cosx = std::cos(xloc);
+                 cosy = std::cos(yloc);
+
+                 det = 1 + amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy);
+
+                 fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*sinx*cosx*siny*siny);
+                 fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*siny*cosy*sinx*sinx);
+
+                 fx = fx / (2.*det*det);
+                 fy = fy / (2.*det*det);
+
+                 amrex::Real detm1 = det - 1.;
+                 amrex::Real cfac = (1. - 1./std::sqrt(1+detm1))/detm1;
+
+                 sig11 = 1. - cfac * amp*amp * cosx*cosx*siny*siny;
+                 sig22 = 1. - cfac * amp*amp * cosy*cosy*sinx*sinx;
+                 sig12 =  - cfac * amp*amp * cosy*cosx*sinx*siny;
+                 sig21 = sig12;
+
+                 amrex::Real updatex = fx*dt + sig11*incx + sig12*incy;
+                 amrex::Real updatey = fy*dt + sig21*incx + sig22*incy;
+
+                 if(std::abs(updatex) > dx[0] || std::abs(updatey) > dx[1])
+                 {
+                    amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << " mesh " << dx[0] << " " << dx[1] << std::endl;
+                 }
+
+                 updatex = std::max(-dx[0], std::min( dx[0], updatex));
+                 updatey = std::max(-dx[1], std::min( dx[1], updatey));
+
+                 // amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << std::endl;
+
+                 p.pos(0) += static_cast<ParticleReal> (updatex);
+                 p.pos(1) += static_cast<ParticleReal> (updatey);
+
+
+             } else {
 
             AMREX_D_TERM( incx = std::max(-dx[0], std::min( dx[0], incx));,
                           incy = std::max(-dx[1], std::min( dx[1], incy));,
@@ -460,6 +511,8 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
             AMREX_D_TERM( p.pos(0) += static_cast<ParticleReal> (incx);,
                           p.pos(1) += static_cast<ParticleReal> (incy);,
                           p.pos(2) += static_cast<ParticleReal> (incz););
+
+            }
 
             if (is_periodic_in_x) {
                 if (p.pos(0) < p_lo[0]) p.pos(0) += (p_hi[0] - p_lo[0]);

@@ -1,0 +1,75 @@
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 100000
+
+seed = 1024
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+npts_scale = 1.
+alg_type = 0
+
+# *****************************************************************
+# Are we restarting from an existing checkpoint file?
+# *****************************************************************
+#amr.restart  = chk00060 # restart from this checkpoint file
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0    0.0
+geometry.prob_hi     =  1.0  256.0
+geometry.is_periodic =  1    1
+bc_lo = 0 0
+bc_hi = 0 0
+
+is_ensemble_dir = 0 1
+ext_pot.exists = 0
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+
+amr.max_grid_size_x = 32 32
+amr.max_grid_size_y = 32 32
+amr.n_cell          = 100 256
+
+amr.max_level       = 0
+amr.use_particles   = 0      # Turn particles on or off
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+# Blocking factor for grid creation in each dimension --
+#   this ensures that every grid is coarsenable by a factor of 8 --
+#   this is mostly relevant for multigrid performance
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.03    # CFL constraint
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt    # root name of plot file
+amr.plot_int   =  1000    # number of timesteps between plot files
+                        # if negative then no plot files will be written
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk      # root name of checkpoint file
+amr.chk_int  = -1       # number of timesteps between checkpoint files
+                        # if negative then no checkpoint files will be written
