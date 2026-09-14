@@ -170,10 +170,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       amrex::Abort("Invalid stokes_solver_type");
   }
 
+
   // for deterministic overdamped, we are done with the time step
   if (algorithm_type == 1 && variance_coef_mom == 0.) {
       for (int d=0; d<AMREX_SPACEDIM; d++) {
           MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
+
       }
       return;
   }
@@ -248,6 +250,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
   }
+
 
   // call GMRES here
   if (stokes_solver_type == 0) {
