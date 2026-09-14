@@ -727,23 +727,14 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         amrex::Real rad = radius_cyl;
             amrex::Real alpha = contact_angle_lo[1];
 
-<<<<<<< HEAD
 //  hack
             alpha = M_PI/2.;
 
-
         int nsub = 10;
         Real factor = nsub;
         Real dxsub = dx[0]/factor;
         Real dysub = dx[1]/factor;
         Real dzsub = dx[2]/factor;
-=======
-        int nsub = 10;
-        Real factor = nsub;
-        Real dxsub = dx[0]/factor;
-        Real dysub = dx[1]/factor;
-        Real dzsub = dx[2]/factor;
->>>>>>> 55070b68a778228faf968ccf1d93ee88d036418b
             Real x,y,z;
         amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
 
