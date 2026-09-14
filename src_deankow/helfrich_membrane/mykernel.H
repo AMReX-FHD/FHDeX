@@ -57,7 +57,7 @@ void init_phi (int i, int j, int k,
 #else
       phi(i,j,k,0) = 10.1;
 #endif
-     
+
 
     }
 
@@ -468,7 +468,7 @@ void compute_flux_x (int i, int j, int k,
 
              amrex::Real caps, capsy, capr, caprx;
 
-          
+
           if(num_flux == 1){
 
              caps = 0;
@@ -539,7 +539,7 @@ elseif
 **/
 
                 capsy = -3*std::cos(yloc/2. - 0.41887902047863906*std::cos(xloc))*std::pow(std::sin(yloc/2. - 0.41887902047863906*std::cos(xloc)),5);
-                caprx = -0.27890625*std::sin(3*xloc) - 0.05625*std::sin(4*xloc) - 0.01171875*std::sin(5*xloc) + 
+                caprx = -0.27890625*std::sin(3*xloc) - 0.05625*std::sin(4*xloc) - 0.01171875*std::sin(5*xloc) +
                         std::sin(xloc)*(-0.9046875 - 2.175*std::cos(xloc) - 2.5132741228718345*std::cos(0.5*yloc - 0.41887902047863906*std::cos(xloc))*
                         std::pow(std::sin(0.5*yloc - 0.41887902047863906*std::cos(xloc)),5));
 
@@ -558,7 +558,7 @@ elseif
              fluxx(i,j,k,1) +=  phi(i-1,j,k,0)*det(i-1,j,k,1)*(gmet(i-1,j,k,0)*Vsub_x[2] + gmet(i-1,j,k,1)*Vsub_y[2]);
              fluxx(i,j,k,2) +=  phi(i,j,k,0)*det(i,j,k,1)*(gmet(i,j,k,0)*Vsub_x[3] + gmet(i,j,k,1)*Vsub_y[3]);
              fluxx(i,j,k,3) +=  phi(i-1,j,k,0)*det(i-1,j,k,1)*(gmet(i-1,j,k,0)*Vsub_x[2] + gmet(i-1,j,k,1)*Vsub_y[2]);
-         
+
           }
 
           }
@@ -869,7 +869,7 @@ elseif
 */
 
                 capsy = -3*std::cos(yloc/2. - 0.41887902047863906*std::cos(xloc))*std::pow(std::sin(yloc/2. - 0.41887902047863906*std::cos(xloc)),5);
-                caprx = -0.27890625*std::sin(3*xloc) - 0.05625*std::sin(4*xloc) - 0.01171875*std::sin(5*xloc) + 
+                caprx = -0.27890625*std::sin(3*xloc) - 0.05625*std::sin(4*xloc) - 0.01171875*std::sin(5*xloc) +
                         std::sin(xloc)*(-0.9046875 - 2.175*std::cos(xloc) - 2.5132741228718345*std::cos(0.5*yloc - 0.41887902047863906*std::cos(xloc))*
                         std::pow(std::sin(0.5*yloc - 0.41887902047863906*std::cos(xloc)),5));
 

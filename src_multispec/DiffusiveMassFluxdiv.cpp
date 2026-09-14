@@ -312,9 +312,9 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
     //Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
     // fill conc ghost cells
     molarconc.FillBoundary(geom.periodicity());
-    
+
     Real bc_fraction = 0.5;
-    MultiFabPhysBCFH(molarconc, geom, 0, nspecies, bc_fraction);    
+    MultiFabPhysBCFH(molarconc, geom, 0, nspecies, bc_fraction);
 
     // Physical Domain
     Box dom(geom.Domain());

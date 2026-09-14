@@ -66,7 +66,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                             const Geometry& geom);
 
-void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, 
+void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                             const Real& bc_frac, const Real& time = 0.);
 
 /////////////////////////////////////////////////////////////////////////////////

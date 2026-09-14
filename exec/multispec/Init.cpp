@@ -505,7 +505,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                             c(i,j,k,n) += c_init_2[n];
                         }
                     }
-                    
+
                 } else {
                     // smooth interface
                     for (int n=0; n<nspecies; ++n) {
@@ -513,9 +513,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                             0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
                     }
                 }
-             }    
-             }    
-             }    
+             }
+             }
+             }
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/(factor*factor*factor);
                }
@@ -537,10 +537,10 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             amrex::Real length = prob_hi[0]-prob_lo[0];
             amrex::Print() << "here" << std::endl;
             amrex::Print() << " alpha cotange length " << alpha << std::endl;
-            
+
             amrex::Print() << " alpha cotange length " << alpha << " " << cotalph << " " << length << std::endl;
         amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
-            
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                for (int n=0; n<nspecies; ++n) {
@@ -563,12 +563,12 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                                 film_thickness_loc += fact2-factor;
 
-                             } else { 
+                             } else {
 
                                 film_thickness_loc += fact2+factor;
 
                              }
-                             
+
 
 
 //                             amrex::Real film_thickness_loc = film_thickness + cotalph*x*x/length - cotalph*x + cotalph*length/6.;
@@ -610,8 +610,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                             0.5*(1. + std::tanh((y-film_thickness_loc)/(smoothing_width*dx[0])));
                     }
                 }
-             }    
-             }    
+             }
+             }
                for (int n=0; n<nspecies; ++n) {
                    c(i,j,k,n) = c(i,j,k,n)/(factor*factor);
                }
@@ -731,7 +731,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 //  hack
             alpha = M_PI/2.;
 
-           
+
         int nsub = 10;
         Real factor = nsub;
         Real dxsub = dx[0]/factor;

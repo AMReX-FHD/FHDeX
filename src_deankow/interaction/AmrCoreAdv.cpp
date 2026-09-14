@@ -455,7 +455,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         }
 
         }
- 
+
     } else {
         phi_new[lev].ParallelCopy(phi_new[lev-1], 0, 0, phi_new[lev].nComp());
     }
@@ -1010,7 +1010,7 @@ AmrCoreAdv::WritePlotFile () const
 //            mf[lev].setVal(-1.0,1,1,0);
 //        }
     }
- 
+
     for (int lev = 0; lev <= finest_level; ++lev) {
         const auto prob_lo = Geom(lev).ProbLoArray();
         const auto prob_hi = Geom(lev).ProbHiArray();

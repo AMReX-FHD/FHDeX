@@ -119,10 +119,10 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
     //Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
     if(use_flory_huggins == 1){
 
-    
+
        Real bc_fraction = 0.5;
        bc_fraction = 0.5;
-       MultiFabPhysBCFH(conc,geom,0,nspecies,bc_fraction);    
+       MultiFabPhysBCFH(conc,geom,0,nspecies,bc_fraction);
 
     } else {
 
