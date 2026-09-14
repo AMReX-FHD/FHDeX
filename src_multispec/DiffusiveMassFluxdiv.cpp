@@ -307,13 +307,14 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi); // fix for mole fractions
+    //BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi); // fix for mole fractions
 
-    Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
+    //Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
     // fill conc ghost cells
     molarconc.FillBoundary(geom.periodicity());
-
-    MultiFabPhysBCFH(molarconc, geom, 0, nspecies, scale_factor);
+    
+    Real bc_fraction = 0.5;
+    MultiFabPhysBCFH(molarconc, geom, 0, nspecies, bc_fraction);    
 
     // Physical Domain
     Box dom(geom.Domain());

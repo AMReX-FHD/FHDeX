@@ -116,11 +116,20 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
 
     // fill conc ghost cells
     conc.FillBoundary(geom.periodicity());
-    amrex::Print() << "calling form rhorhottotghost " << std::endl;
-    Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
-    Real time = 0.;
-    MultiFabPhysBCFH(conc,geom,0,nspecies,scale_factor,time);
-   // MultiFabPhysBC(conc,geom,0,nspecies,SPEC_BC_COMP);
+    //Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
+    if(use_flory_huggins == 1){
+
+    
+       Real bc_fraction = 0.5;
+       bc_fraction = 0.5;
+       MultiFabPhysBCFH(conc,geom,0,nspecies,bc_fraction);    
+
+    } else {
+
+       MultiFabPhysBC(conc,geom,0,nspecies,SPEC_BC_COMP);
+
+    }
+
 
     // fill rhotot ghost cells
     FillRhototGhost(rhotot,conc,geom);
