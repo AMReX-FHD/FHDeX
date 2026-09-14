@@ -10,7 +10,7 @@ then
   exit
 fi
 
-echo "mpirun -np 16 $exec -var SEED 100 < $SPKSCR" 
+echo "mpirun -np 16 $exec -var SEED 100 < $SPKSCR"
 mpirun -np 16 $exec -var SEED 100 -screen none < $SPKSCR &
 
 echo "try \"tail -f log.spparks\""

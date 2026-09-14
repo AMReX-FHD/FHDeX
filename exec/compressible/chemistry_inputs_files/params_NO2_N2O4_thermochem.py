@@ -1,7 +1,7 @@
 import math
 
 # NIST Chemistry WebBook, SRD 69
-# NO2 (nitrogen dioxide): 
+# NO2 (nitrogen dioxide):
 # https://webbook.nist.gov/cgi/cbook.cgi?Formula=NO2&NoIon=on&Units=SI&cTG=on#Thermo-Gas
 # N2O4 (dinitrogen tetroxide):
 # https://webbook.nist.gov/cgi/cbook.cgi?Formula=N2O4&NoIon=on&Units=SI&cTG=on#Thermo-Gas
@@ -80,13 +80,13 @@ def compute_thermochem_N2O4(temp):
 # Author: Atkinson, R.; Baulch, D.L.; Cox, R.A.; Crowley, J.N.; Hampson, R.F.; Hynes, R.G.; Jenkin, M.E.; Rossi, M.J.; Troe, J.
 # Title: Evaluated kinetic and photochemical data for atmospheric chemistry: Volume I - gas phase reactions of Ox, HOx, NOx and SOx species
 # Journal: Atmos. Chem. Phys. 4, 1461-1738 (2004)
-# Temp 	rate (s^-1)
-# 250	6.89e4
-# 275	7.22e5
-# 300	5.12e6
+# Temp   rate (s^-1)
+# 250    6.89e4
+# 275    7.22e5
+# 300    5.12e6
 
 def compute_rate_N2O4_2NO2(temp):
-    
+
     A = 1.15e16             # s^-1
     Ea = 53.71              # kJ/mol
     R = 8.31446261815324e-3 # kJ/mol*K
@@ -130,11 +130,11 @@ kB = 1.38064852e-16         # Boltzmann constant
 Navo = 6.0221409e23         # Avogadro constant
 
 # state
-Temp = 350. 
+Temp = 350.
 p_atm = 1.
 
 print("Temp=  \t%f" % Temp)
-print("p(atm)=\t%f\n" % p_atm) 
+print("p(atm)=\t%f\n" % p_atm)
 
 # molecular weights
 MNO2 = 46.0055
@@ -230,7 +230,7 @@ print("eq mass fractions= %e %e\n" % (rhoNO2/rhotot,rhoN2O4/rhotot))
 k_diss = compute_rate_N2O4_2NO2(Temp)
 k_diss_ref = compute_rate_N2O4_2NO2_ref(Temp)
 k_asso_c = k_diss/Kc
-k_asso_n = k_asso_c*1e3/Navo 
+k_asso_n = k_asso_c*1e3/Navo
 
 print("k_diss=     \t%e" % k_diss)
 print("ref: k_diss=\t%e\n" % k_diss_ref)

@@ -9,7 +9,7 @@ void particleGen(int step,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
-                   FhdParticleContainer& particles) 
+                   FhdParticleContainer& particles)
 {
 
     std::string cplotfilename = Concatenate("cplt",step,9);
@@ -18,7 +18,7 @@ void particleGen(int step,
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
 
- 
+
 //    int cnPlot = 40;
     int cnPlot = 46;
 

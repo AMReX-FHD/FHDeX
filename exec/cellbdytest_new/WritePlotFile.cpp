@@ -16,7 +16,7 @@ void WritePlotFile(int step,
                    const MultiFab& chargeM,
                    const MultiFab& potential,
                    const MultiFab& potentialM,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& efield) 
+                   const std::array< MultiFab, AMREX_SPACEDIM >& efield)
 {
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
 
@@ -117,17 +117,17 @@ void WritePlotFile(int step,
 
     // timer
     Real t1 = ParallelDescriptor::second();
-    
+
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
-    
+
     Real t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2);
     amrex::Print() << "Time spent writing plotfile cplt " << t2 << std::endl;
-    
+
     t1 = ParallelDescriptor::second();
-    
+
     WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
-    
+
     t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2);
     amrex::Print() << "Time spent writing plotfile eplt " << t2 << std::endl;
@@ -154,7 +154,7 @@ void WritePlotFile(int step,
         //std::string asciiName7 = Concatenate("asciiIy",step,9);
         //std::string asciiName8 = Concatenate("asciiIz",step,9);
 
-        
+
 
         //outputMFAscii(charge, asciiName1);
         //outputMFAscii(potential, asciiName2);
@@ -187,15 +187,15 @@ void WritePlotFile(int step,
 
     Vector<int> write_real_comp(FHD_realData::count);
     fill(write_real_comp.begin(), write_real_comp.end(), 1);
-    
+
     Vector<int> write_int_comp(FHD_intData::count);
     fill(write_int_comp.begin(), write_int_comp.end(), 1);
- 
+
     t1 = ParallelDescriptor::second();
-    
+
     particles.WritePlotFile(cplotfilename, "particles",
                             write_real_comp, write_int_comp, FHD_realData::names(), FHD_intData::names());
-    
+
     t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2);
     amrex::Print() << "Time spent writing particle plotfile " << t2 << std::endl;

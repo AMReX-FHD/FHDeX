@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -52,40 +52,40 @@ SPPARKS::SPPARKS(int narg, char **arg, MPI_Comm communicator)
   int iarg = 1;
   while (iarg < narg) {
     if (strcmp(arg[iarg],"-partition") == 0) {
-      if (iarg+1 > narg) 
-	error->universe_all(FLERR,"Invalid command-line argument");
+      if (iarg+1 > narg)
+        error->universe_all(FLERR,"Invalid command-line argument");
       iarg++;
       while (iarg < narg && arg[iarg][0] != '-') {
-	universe->add_world(arg[iarg]);
-	iarg++;
+        universe->add_world(arg[iarg]);
+        iarg++;
       }
     } else if (strcmp(arg[iarg],"-in") == 0) {
-      if (iarg+2 > narg) 
-	error->universe_all(FLERR,"Invalid command-line argument");
+      if (iarg+2 > narg)
+        error->universe_all(FLERR,"Invalid command-line argument");
       inflag = iarg + 1;
       iarg += 2;
     } else if (strcmp(arg[iarg],"-screen") == 0) {
-      if (iarg+2 > narg) 
-	error->universe_all(FLERR,"Invalid command-line argument");
+      if (iarg+2 > narg)
+        error->universe_all(FLERR,"Invalid command-line argument");
       screenflag = iarg + 1;
       iarg += 2;
     } else if (strcmp(arg[iarg],"-log") == 0) {
-      if (iarg+2 > narg) 
-	error->universe_all(FLERR,"Invalid command-line argument");
+      if (iarg+2 > narg)
+        error->universe_all(FLERR,"Invalid command-line argument");
       logflag = iarg + 1;
       iarg += 2;
     } else if (strcmp(arg[iarg],"-var") == 0) {
-      if (iarg+3 > narg) 
-	error->universe_all(FLERR,"Invalid command-line argument");
+      if (iarg+3 > narg)
+        error->universe_all(FLERR,"Invalid command-line argument");
       iarg += 3;
     } else if (strcmp(arg[iarg],"-echo") == 0) {
-      if (iarg+2 > narg) 
-	error->universe_all(FLERR,"Invalid command-line argument");
+      if (iarg+2 > narg)
+        error->universe_all(FLERR,"Invalid command-line argument");
       iarg += 2;
-    } else if (strcmp(arg[iarg],"-help") == 0 || 
-	       strcmp(arg[iarg],"-h") == 0) {
-      if (iarg+1 > narg) 
-	error->universe_all(FLERR,"Invalid command-line argument");
+    } else if (strcmp(arg[iarg],"-help") == 0 ||
+               strcmp(arg[iarg],"-h") == 0) {
+      if (iarg+1 > narg)
+        error->universe_all(FLERR,"Invalid command-line argument");
       helpflag = 1;
       iarg += 1;
     } else error->universe_all(FLERR,"Invalid command-line argument");
@@ -114,19 +114,19 @@ SPPARKS::SPPARKS(int narg, char **arg, MPI_Comm communicator)
       universe->uscreen = NULL;
     else {
       universe->uscreen = fopen(arg[screenflag],"w");
-      if (universe->uscreen == NULL) 
-	error->universe_one(FLERR,"Cannot open universe screen file");
+      if (universe->uscreen == NULL)
+        error->universe_one(FLERR,"Cannot open universe screen file");
     }
     if (logflag == 0) {
       universe->ulogfile = fopen("log.spparks","w");
-      if (universe->ulogfile == NULL) 
-	error->universe_one(FLERR,"Cannot open log.spparks");
+      if (universe->ulogfile == NULL)
+        error->universe_one(FLERR,"Cannot open log.spparks");
     } else if (strcmp(arg[logflag],"none") == 0)
       universe->ulogfile = NULL;
     else {
       universe->ulogfile = fopen(arg[logflag],"w");
-      if (universe->ulogfile == NULL) 
-	error->universe_one(FLERR,"Cannot open universe log file");
+      if (universe->ulogfile == NULL)
+        error->universe_one(FLERR,"Cannot open universe log file");
     }
   }
 
@@ -151,9 +151,9 @@ SPPARKS::SPPARKS(int narg, char **arg, MPI_Comm communicator)
       if (inflag == 0) infile = stdin;
       else infile = fopen(arg[inflag],"r");
       if (infile == NULL) {
-	char str[128];
-	sprintf(str,"Cannot open input script %s",arg[inflag]);
-	error->one(FLERR,str);
+        char str[128];
+        sprintf(str,"Cannot open input script %s",arg[inflag]);
+        error->one(FLERR,str);
       }
     }
 
@@ -174,68 +174,68 @@ SPPARKS::SPPARKS(int narg, char **arg, MPI_Comm communicator)
 
     if (me == 0) {
       if (screenflag == 0) {
-	char str[32];
-	sprintf(str,"screen.%d",universe->iworld);
-	screen = fopen(str,"w");
-	if (screen == NULL) error->one(FLERR,"Cannot open screen file");
+        char str[32];
+        sprintf(str,"screen.%d",universe->iworld);
+        screen = fopen(str,"w");
+        if (screen == NULL) error->one(FLERR,"Cannot open screen file");
       } else if (strcmp(arg[screenflag],"none") == 0)
-	screen = NULL;
+        screen = NULL;
       else {
-	char str[128];
-	sprintf(str,"%s.%d",arg[screenflag],universe->iworld);
-	screen = fopen(str,"w");
-	if (screen == NULL) error->one(FLERR,"Cannot open screen file");
+        char str[128];
+        sprintf(str,"%s.%d",arg[screenflag],universe->iworld);
+        screen = fopen(str,"w");
+        if (screen == NULL) error->one(FLERR,"Cannot open screen file");
       }
     } else screen = NULL;
-    
+
     if (me == 0) {
       if (logflag == 0) {
-	char str[32];
-	sprintf(str,"log.spparks.%d",universe->iworld);
-	logfile = fopen(str,"w");
-	if (logfile == NULL) error->one(FLERR,"Cannot open logfile");
+        char str[32];
+        sprintf(str,"log.spparks.%d",universe->iworld);
+        logfile = fopen(str,"w");
+        if (logfile == NULL) error->one(FLERR,"Cannot open logfile");
       } else if (strcmp(arg[logflag],"none") == 0)
-	logfile = NULL;
+        logfile = NULL;
       else {
-	char str[128];
-	sprintf(str,"%s.%d",arg[logflag],universe->iworld);
-	logfile = fopen(str,"w");
-	if (logfile == NULL) error->one(FLERR,"Cannot open logfile");
+        char str[128];
+        sprintf(str,"%s.%d",arg[logflag],universe->iworld);
+        logfile = fopen(str,"w");
+        if (logfile == NULL) error->one(FLERR,"Cannot open logfile");
       }
     } else logfile = NULL;
-    
+
     if (me == 0) {
       infile = fopen(arg[inflag],"r");
       if (infile == NULL) {
-	char str[128];
-	sprintf(str,"Cannot open input script %s",arg[inflag]);
-	error->one(FLERR,str);
+        char str[128];
+        sprintf(str,"Cannot open input script %s",arg[inflag]);
+        error->one(FLERR,str);
       }
     } else infile = NULL;
-    
+
     // screen and logfile messages for universe and world
-    
+
     if (universe->me == 0) {
       if (universe->uscreen) {
-	fprintf(universe->uscreen,"SPPARKS (%s)\n",universe->version);
-	fprintf(universe->uscreen,"Running on %d partitions of processors\n",
-		universe->nworlds);
+        fprintf(universe->uscreen,"SPPARKS (%s)\n",universe->version);
+        fprintf(universe->uscreen,"Running on %d partitions of processors\n",
+                universe->nworlds);
       }
       if (universe->ulogfile) {
-	fprintf(universe->ulogfile,"SPPARKS (%s)\n",universe->version);
-	fprintf(universe->ulogfile,"Running on %d partitions of processors\n",
-		universe->nworlds);
+        fprintf(universe->ulogfile,"SPPARKS (%s)\n",universe->version);
+        fprintf(universe->ulogfile,"Running on %d partitions of processors\n",
+                universe->nworlds);
       }
     }
-    
+
     if (me == 0) {
       if (screen) {
-	fprintf(screen,"SPPARKS (%s)\n",universe->version);
-	fprintf(screen,"Processor partition = %d\n",universe->iworld);
+        fprintf(screen,"SPPARKS (%s)\n",universe->version);
+        fprintf(screen,"Processor partition = %d\n",universe->iworld);
       }
       if (logfile) {
-	fprintf(logfile,"SPPARKS (%s)\n",universe->version);
-	fprintf(logfile,"Processor partition = %d\n",universe->iworld);
+        fprintf(logfile,"SPPARKS (%s)\n",universe->version);
+        fprintf(logfile,"Processor partition = %d\n",universe->iworld);
       }
     }
   }
@@ -252,12 +252,12 @@ SPPARKS::SPPARKS(int narg, char **arg, MPI_Comm communicator)
   int mpisize;
   MPI_Type_size(MPI_SPK_TAGINT,&mpisize);
   if (mpisize != sizeof(tagint))
-      error->all(FLERR,
-		 "MPI_SPK_TAGINT and tagint in spktype.h are not compatible");
+    error->all(FLERR,
+               "MPI_SPK_TAGINT and tagint in spktype.h are not compatible");
   MPI_Type_size(MPI_SPK_BIGINT,&mpisize);
   if (mpisize != sizeof(bigint))
-      error->all(FLERR,
-		 "MPI_SPK_BIGINT and bigint in spktype.h are not compatible");
+    error->all(FLERR,
+               "MPI_SPK_BIGINT and bigint in spktype.h are not compatible");
 
   // allocate input class now that MPI is fully setup
 

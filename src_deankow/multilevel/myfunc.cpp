@@ -9,7 +9,7 @@ void advance_phi (MultiFab& phi_old,
                   MultiFab& phi_new,
                   Array<MultiFab, AMREX_SPACEDIM>& flux,
                   Array<MultiFab, AMREX_SPACEDIM>& stochFlux,
-                  Real dt, 
+                  Real dt,
                   Real /*npts_scale*/,
                   Geometry const& geom,
                   Vector<BCRec> const& BoundaryCondition)
@@ -26,7 +26,7 @@ void advance_phi (MultiFab& phi_old,
 
     //Real variance = dxinv*dyinv/(npts_scale*dt);
     Real variance = dxinv*dyinv/dt;
- 
+
 #if(AMREX_SPACEDIM > 2)
     variance *=dzinv;
 #endif

@@ -7,18 +7,18 @@ subroutine init_s_vel(lo, hi, phic, phiclo, phichi, dx &
 
   integer         , intent(in   ) :: lo(3), hi(3), phiclo(3), phichi(3)
   real(amrex_real), intent(inout) :: phic(phiclo(1):phichi(1),phiclo(2):phichi(2),phiclo(3):phichi(3))
-  real(amrex_real), intent(in   ) :: dx(3) 
+  real(amrex_real), intent(in   ) :: dx(3)
   real(amrex_real), intent(in   ) :: reallo(3), realhi(3)
 
   integer          :: i,j,k
   double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,rad2
-  
+
   double precision :: L_hlf, k1, k1_inv, k2, k2_inv, r_a, r_b
   double precision :: pi, freq, amp, width1, width2, perturb, slope, fun, fun_ptrb
 
   center = (realhi - reallo)/2d0
   L_hlf = (realhi(1) - reallo(1))/2d0
-  
+
   !! IC parameters
   pi = acos(-1.d0)
 

@@ -9,6 +9,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <AMReX_FFT_Stokes.H>
+
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
@@ -111,13 +113,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               // account for the negative viscous operator
               MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
           }
-          
+
       } else if (algorithm_type == 1) {
           gmres_rhs_u[d].setVal(0.);
       }
       MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
   }
-  
+
   ExternalForce(gmres_rhs_u,gmres_rhs_p);
 
   // turbulence forcing
@@ -130,23 +132,54 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
   }
-    
+
   Real gmres_abs_tol_in = gmres_abs_tol; // save this
 
   // call GMRES to compute predictor
   GMRES gmres(ba,dmap,geom);
-  gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-              alpha_fc,beta,beta_ed,gamma,
-              theta_alpha,geom,norm_pre_rhs);
+
+  amrex::FFT::Stokes stokes;
+  if (stokes_solver_type == 1) {
+      stokes.define(geom);
+  }
+
+  // eta scaling
+  //  0 = inertial
+  //  1 = overdamped
+  Real factor = (algorithm_type == 0) ? 0.5 : 1.0;
+
+  if (stokes_solver_type == 0) {
+      gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+                  alpha_fc,beta,beta_ed,gamma,
+                  theta_alpha,geom,norm_pre_rhs);
+  } else if (stokes_solver_type == 1) {
+      stokes.solve(umacNew[0],
+                   umacNew[1],
+#if (AMREX_SPACEDIM==3)
+                   umacNew[2],
+#endif
+                   pres,
+                   gmres_rhs_u[0],
+                   gmres_rhs_u[1],
+#if (AMREX_SPACEDIM==3)
+                   gmres_rhs_u[2],
+#endif
+                   theta_alpha/dt,
+                   factor*visc_coef);
+  } else {
+      amrex::Abort("Invalid stokes_solver_type");
+  }
+
 
   // for deterministic overdamped, we are done with the time step
   if (algorithm_type == 1 && variance_coef_mom == 0.) {
       for (int d=0; d<AMREX_SPACEDIM; d++) {
           MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
+
       }
       return;
   }
-  
+
   // for the corrector gmres solve we want the stopping criteria based on the
   // norm of the preconditioned rhs from the predictor gmres solve.  otherwise
   // for cases where du in the corrector should be small the gmres stalls
@@ -218,11 +251,30 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
   }
 
+
   // call GMRES here
-  gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-              alpha_fc,beta,beta_ed,gamma,
-              theta_alpha,geom,norm_pre_rhs);
-    
+  if (stokes_solver_type == 0) {
+      gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+                  alpha_fc,beta,beta_ed,gamma,
+                  theta_alpha,geom,norm_pre_rhs);
+  } else if (stokes_solver_type == 1) {
+      stokes.solve(umacNew[0],
+                   umacNew[1],
+#if (AMREX_SPACEDIM==3)
+                   umacNew[2],
+#endif
+                   pres,
+                   gmres_rhs_u[0],
+                   gmres_rhs_u[1],
+#if (AMREX_SPACEDIM==3)
+                   gmres_rhs_u[2],
+#endif
+                   theta_alpha/dt,
+                   factor*visc_coef);
+  } else {
+      amrex::Abort("Invalid stokes_solver_type");
+  }
+
   gmres_abs_tol = gmres_abs_tol_in; // Restore the desired tolerance
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -238,7 +290,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
       umac[d].FillBoundary(geom.periodicity());
   }
-  
+
   //////////////////////////////////////////////////
 
 }

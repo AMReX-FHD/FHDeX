@@ -19,7 +19,7 @@ void InitConsVarStag(MultiFab& cons,
         realhi[d] = realDomain.hi(d);
         center[d] = ( realhi[d] - reallo[d] ) / 2.;
     }
-    
+
     Real t_lo_y = t_lo[1];
     Real t_hi_y = t_hi[1];
 
@@ -32,7 +32,7 @@ void InitConsVarStag(MultiFab& cons,
     Real Lf = realhi[0] - reallo[0];
 
     // compute some values and overwrite based on prob_type
-        
+
     { // Put the following in a block to avoid warnings on shadowing
         // compute internal energy
         Real intEnergy;
@@ -54,10 +54,10 @@ void InitConsVarStag(MultiFab& cons,
             momStag[d].setVal(0.,ngc);
         }
     }
-    
+
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
         const Array4<      Real> cu = cons.array(mfi);
-        
+
         AMREX_D_TERM(const Array4<Real>& momx = momStag[0].array(mfi);,
                      const Array4<Real>& momy = momStag[1].array(mfi);,
                      const Array4<Real>& momz = momStag[2].array(mfi););
@@ -66,7 +66,7 @@ void InitConsVarStag(MultiFab& cons,
         const Box& xbx = mfi.tilebox(momStag[0].ixType().toIntVect());
         const Box& ybx = mfi.tilebox(momStag[1].ixType().toIntVect());
         const Box& zbx = mfi.tilebox(momStag[2].ixType().toIntVect());
-        
+
         amrex::ParallelFor(xbx, ybx, zbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
@@ -77,15 +77,15 @@ void InitConsVarStag(MultiFab& cons,
             AMREX_D_TERM(itVec[0] = (i+0.0)*dx[0]; ,
                          itVec[1] = (j+0.5)*dx[1]; ,
                          itVec[2] = (k+0.5)*dx[2]);
-            
+
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
                 relpos[d] = pos[d] - center[d];
             }
 
             if (prob_type == 4) { // Taylor-Green Vortex
-                
-                if (mach0 < 0.0) amrex::Abort("need an initial mach number via mach0 parameter in inputs file"); 
+
+                if (mach0 < 0.0) amrex::Abort("need an initial mach number via mach0 parameter in inputs file");
                 Real x=itVec[0];
                 Real y=itVec[1];
                 Real z=itVec[2];
@@ -114,14 +114,14 @@ void InitConsVarStag(MultiFab& cons,
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
                          itVec[1] = (j+0.0)*dx[1]; ,
                          itVec[2] = (k+0.5)*dx[2]);
-            
+
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
                 relpos[d] = pos[d] - center[d];
             }
 
             if (prob_type == 4) { // Taylor-Green Vortex
-                
+
                 Real x=itVec[0];
                 Real y=itVec[1];
                 Real z=itVec[2];
@@ -150,14 +150,14 @@ void InitConsVarStag(MultiFab& cons,
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
                          itVec[1] = (j+0.5)*dx[1]; ,
                          itVec[2] = (k+0.0)*dx[2]);
-            
+
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
                 relpos[d] = pos[d] - center[d];
             }
 
             if (prob_type == 4) { // Taylor-Green Vortex
-                
+
                 Real x=itVec[0];
                 Real y=itVec[1];
                 Real z=itVec[2];
@@ -190,16 +190,16 @@ void InitConsVarStag(MultiFab& cons,
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
                          itVec[1] = (j+0.5)*dx[1]; ,
                          itVec[2] = (k+0.5)*dx[2]);
-            
+
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
                 relpos[d] = pos[d] - center[d];
             }
 
             // Total density must be pre-set
-            
+
             if (prob_type == 2) { // Rayleigh-Taylor
-                
+
                 if (relpos[2] >= 0.) {
                     massvec[0] = 0.4;
                     massvec[1] = 0.4;
@@ -214,7 +214,7 @@ void InitConsVarStag(MultiFab& cons,
 
                 Real pamb;
                 GetPressureGas(pamb, massvec, cu(i,j,k,0), T_init[0]);
-                
+
                 Real molmix = 0.;
 
                 for (int l=0; l<nspecies; ++l) {
@@ -228,7 +228,7 @@ void InitConsVarStag(MultiFab& cons,
                 // must satisfy system: dP/dz = -rho*g & P = rhogasmix*rho*T
                 // Assumes temp=const
                 cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
-                
+
                 for (int l=0; l<nspecies; ++l) {
                     cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
                 }
@@ -253,7 +253,7 @@ void InitConsVarStag(MultiFab& cons,
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
                                                            cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
-                
+
                 Real x=itVec[0];
                 Real y=itVec[1];
                 Real z=itVec[2];
@@ -269,7 +269,7 @@ void InitConsVarStag(MultiFab& cons,
                 Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
 
                 cu(i,j,k,0) = rho;
-                for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = cu(i,j,k,0)*rhobar[ns]; 
+                for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = cu(i,j,k,0)*rhobar[ns];
                 Real intEnergy;
                 GetEnergy(intEnergy, rhobar, T_init[0]);
 
@@ -279,11 +279,11 @@ void InitConsVarStag(MultiFab& cons,
                 cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
-                
+
             } else if (prob_type == 5) {
 
                 Real intEnergy;
-                
+
                 cu(i,j,k,0) = rho0;
                 cu(i,j,k,1) = 0;
                 cu(i,j,k,2) = 0;
@@ -345,7 +345,7 @@ void InitConsVarStag(MultiFab& cons,
                    cu(i,j,k,4) = density*intEnergy;
             }
             else if (prob_type == 102) { // two temperature across membrane
-                    
+
                     Real intEnergy;
                     cu(i,j,k,0) = rho0;
                     massvec[0] = 0.25; massvec[1] = 0.25; massvec[2] = 0.25; massvec[3] = 0.25;
@@ -359,7 +359,7 @@ void InitConsVarStag(MultiFab& cons,
                     }
             } // prob type
             else if (prob_type == 103) { // double the pressure in other half
-                
+
                     for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
                     Real pressure;
                     GetPressureGas(pressure,massvec,rho0,T_init[0]);
@@ -378,11 +378,11 @@ void InitConsVarStag(MultiFab& cons,
                         GetEnergy(intEnergy, massvec, temperature);
                         cu(i,j,k,4) = density*intEnergy;
                     }
-                    
+
             } // prob type
-            else if (prob_type == 104) { // temperature discontinuity 
-                
-                    if (i==15) 
+            else if (prob_type == 104) { // temperature discontinuity
+
+                    if (i==15)
                     {
                         for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
                         Real pamb;
@@ -397,11 +397,11 @@ void InitConsVarStag(MultiFab& cons,
                         GetEnergy(intEnergy, massvec, 400.0);
                         cu(i,j,k,4) = density*intEnergy;
                     }
-                    
+
             }
-            else if (prob_type == 105) { // pressure discontinuity 
-                
-                    if (i==15) 
+            else if (prob_type == 105) { // pressure discontinuity
+
+                    if (i==15)
                     {
                         for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
                         Real pamb;
@@ -417,9 +417,9 @@ void InitConsVarStag(MultiFab& cons,
                         cu(i,j,k,4) = density*intEnergy;
                     }
             }
-            else if (prob_type == 106) { // concentration discontinuity 
-                
-                    if (i==15) 
+            else if (prob_type == 106) { // concentration discontinuity
+
+                    if (i==15)
                     {
                         for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
                         Real pamb;
@@ -436,7 +436,7 @@ void InitConsVarStag(MultiFab& cons,
                         GetEnergy(intEnergy, massvec, T_init[0]);
                         cu(i,j,k,4) = density*intEnergy;
                     }
-                    
+
             } // prob type
 
             else if (prob_type == 107) { // two-fluid Rayleigh Taylor. 0: lighter species; 1: heavier
@@ -454,7 +454,7 @@ void InitConsVarStag(MultiFab& cons,
                     cu(i,j,k,5+0) = rhoYk0B*exp(molmass[0]*grav[2]*pos[2]/Runiv/T_init[0]);
                     cu(i,j,k,5+1) = rhoYk1B*exp(molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]);
                     cu(i,j,k,0) = cu(i,j,k,5+0) + cu(i,j,k,5+1);
-                    
+
                     massvec[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
                     massvec[1] = cu(i,j,k,5+1)/cu(i,j,k,0);
 
@@ -473,7 +473,7 @@ void InitConsVarStag(MultiFab& cons,
                     cu(i,j,k,5+0) = rhoYk1B*(molmass[0]/molmass[1])*exp( (molmass[0]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[1]-molmass[0])*Lz*grav[2]/2.0/Runiv/T_init[0]) );
                     cu(i,j,k,5+1) = rhoYk0B*(molmass[1]/molmass[0])*exp( (molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[0]-molmass[1])*Lz*grav[2]/2.0/Runiv/T_init[0]) );
                     cu(i,j,k,0) = cu(i,j,k,5+0) + cu(i,j,k,5+1);
-                    
+
                     massvec[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
                     massvec[1] = cu(i,j,k,5+1)/cu(i,j,k,0);
 
@@ -484,7 +484,7 @@ void InitConsVarStag(MultiFab& cons,
                                                                cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
 
                 }
-            
+
            }
 
            else if (prob_type == 108) { // two-fluid Rayleigh Taylor. 0: lighter species; 1: heavier
@@ -492,7 +492,7 @@ void InitConsVarStag(MultiFab& cons,
                // rhobar, rho0 and T_init[0] set the ambient pressure at the top of the domain
                Real pamb;
                GetPressureGas(pamb,rhobar,rho0,T_init[0]);
-               
+
                Real molmixT = 0.;
                Real molmixB = 0.;
                for (int l=0; l<nspecies; ++l) {
@@ -544,7 +544,7 @@ void InitConsVarStag(MultiFab& cons,
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
                }
-           
+
            }
 
            else if (prob_type == 109) { // two-fluid Rayleigh Taylor (iso-density; vary temperature)
@@ -552,7 +552,7 @@ void InitConsVarStag(MultiFab& cons,
                // rhobar, rho0 and T_init[0] set the ambient pressure at the top of the domain
                Real pamb;
                GetPressureGas(pamb,rhobar,rho0,T_init[0]);
-               
+
                Real molmixT = 0.;
                Real molmixB = 0.;
                for (int l=0; l<nspecies; ++l) {
@@ -708,7 +708,7 @@ void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in)
 amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab, AMREX_SPACEDIM>& vel_in, const Real& dt, const Geometry& geom)
 {
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    
+
     std::array< MultiFab, AMREX_SPACEDIM > CFL;
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         CFL[d].define(convert(prim_in.boxArray(),nodal_flag_dir[d]), prim_in.DistributionMap(), 1, 0);
@@ -716,7 +716,7 @@ amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab
     }
 
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        
+
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);

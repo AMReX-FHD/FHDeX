@@ -1,0 +1,67 @@
+* this file:            README
+
+* slurm execution       run_3D.sh
+                        run_2D.sh
+
+* FHD inputs file       inputs_GF_reactivesurface_3D
+                        inputs_GF_reactivesurface_quasi2D
+    -> output               plt*
+
+### Input parameters for each Figure ###
+# The parameter set in the FHD input files is the baseline parameter set in Table I.
+# Listed below are the changes in the inputs files for each Figure.
+# Figure 2
+    inputs_GF_reactivesurface_3D
+
+# Figure 3
+    inputs_GF_reactivesurface_3D
+        Slip : default
+
+        No-slip : bc_vel_lo = -1 -1 2
+
+# Figure 4 - different adsorption rate constants under the same imposed concentration gradient
+    inputs_GF_reactivesurface_quasi2D
+        1 k_a   : default
+
+        0.5 k_a : surfcov0 = 0.246
+                  ads_rate_const = 1.466511e+01
+                  des_rate = 4.023663e+06
+
+        2 k_a   : surfcov0 = 0.814
+                  ads_rate_const = 5.866043e+01
+                  des_rate = 1.216287e+06
+        
+# Figure 5 - different system confinement lengths in the gradient direction
+    inputs_GF_reactivesurface_quasi2D
+        L      : default
+
+        0.75 L : prob_hi = 2.875392e-02 2.695680e-03 2.808000e-05
+                 n_cells = 1024 96 1
+                 bc_Yk_y_hi = 0.685301 0.314699
+
+        0.5 L  : prob_hi = 2.875392e-02 1.797120e-03 2.808000e-05 
+                 n_cells = 1024 64 1
+                 bc_Yk_y_hi = 0.470603 0.529397
+
+        0.25 L : prob_hi = 2.875392e-02 8.985600e-04 2.808000e-05
+                 n_cells = 1024 32 1
+                 bc_Yk_y_hi = 0.255905 0.744095
+
+# Figure 6 - different surface-reaction relaxation times
+    inputs_GF_reactivesurface_quasi2D
+        * Use
+              max_step = 14000000
+              n_steps_skip = 4000000
+              rhobar = 0.70 0.30
+          to compute structure factors after reaching steady state.
+
+        1 tau_theta    : default
+
+        1.33 tau_theta : ads_rate_const = 3.792397e+00
+                           des_rate = 1.187117e+06
+
+        2 tau_theta    : ads_rate_const = 1.382920e+00
+                           des_rate = 7.914115e+05
+
+        4 tau_theta    : ads_rate_const = 4.766160e-01
+                           des_rate = 3.957058e+05

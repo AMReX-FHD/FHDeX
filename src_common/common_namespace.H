@@ -6,7 +6,7 @@ namespace common {
 #define WRITE_BUFFER 1000
 #define MAX_BONDS 12
 //////////////
-    
+
     // misc global variables
     extern amrex::IntVect nodal_flag;
     extern amrex::Vector<amrex::IntVect> nodal_flag_dir;
@@ -91,6 +91,9 @@ namespace common {
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
+    // 0 = GMRES
+    // 1 = FFT-based
+    extern AMREX_GPU_MANAGED int      stokes_solver_type;
     // 0 = centered
     // 1 = unlimited bilinear bds
     // 2 = limited bilinear bds
@@ -122,6 +125,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real radius_cyl;
     extern AMREX_GPU_MANAGED amrex::Real radius_outer;
     extern AMREX_GPU_MANAGED amrex::Real film_thickness;
+    extern AMREX_GPU_MANAGED amrex::Real surf_thickness;
     extern amrex::Real                initial_variance_mom;
     extern amrex::Real                initial_variance_mass;
     extern amrex::Real                domega;
@@ -147,6 +151,7 @@ namespace common {
     //  1 = wall
     //  2 = concentration (for compressible codes), reservoir (for low Mach multispecies codes)
     //  3 = reservoir (for compressible codes)
+    //  4 = contact angle BC for Flory-Huggins
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 
@@ -156,14 +161,6 @@ namespace common {
     //  2 = isothermal
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_hi;
-    
-    // BC specifications:
-    // -1 = don't change species, else change species to number
-    //  1 = wall
-    //  2 = reservoir (Dirichlet values must be suppled by other means)
-    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_spec_lo;
-    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_spec_hi;
-    
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
@@ -174,7 +171,7 @@ namespace common {
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> rho_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> rho_hi;
-    
+
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_x_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_x_hi;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_y_lo;
@@ -184,7 +181,7 @@ namespace common {
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> n_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> n_hi;
-    
+
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_x_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_x_hi;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_y_lo;
@@ -228,7 +225,7 @@ namespace common {
     extern amrex::Real                tau_i;
     extern amrex::Real                tau_la;
     extern amrex::Real                tau_ta;
-    extern int                        toggleTimeFrac;    
+    extern int                        toggleTimeFrac;
 
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;
@@ -236,9 +233,9 @@ namespace common {
     extern int                        cartdist_int;
     extern int                        n_steps_skip;
     extern AMREX_GPU_MANAGED amrex::Real binSize;
-    extern AMREX_GPU_MANAGED amrex::Real searchDist;    
+    extern AMREX_GPU_MANAGED amrex::Real searchDist;
 
-    // projection 
+    // projection
     extern int                        project_dir;
     extern int                        slicepoint;
     extern amrex::Vector<int>         max_grid_projection;
@@ -249,7 +246,7 @@ namespace common {
     extern amrex::Vector<int>         shift_cc_to_boundary;
 
     extern int                        particle_placement;
-    extern int								  particle_input;
+    extern int                        particle_input;
     extern amrex::Vector<int>         particle_count;
     extern amrex::Vector<int>         p_move_tog;
     extern amrex::Vector<int>         p_force_tog;
@@ -266,14 +263,14 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> eepsilon;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> sigma;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
-    
+
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> alpha_pp;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> alpha_pw;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> friction_pp;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> friction_pw;
-    
+
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> phi_domain;
-    
+
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> Yk0;
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> offset_wall;
@@ -282,7 +279,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eepsilon_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> sigma_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> p_int_tog_wall;
-    
+
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_int;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_len;
 
@@ -314,14 +311,17 @@ namespace common {
     extern amrex::Vector<amrex::Real> eamp;
     extern amrex::Vector<amrex::Real> efreq;
     extern amrex::Vector<amrex::Real> ephase;
-    
+
     extern amrex::Vector<amrex::Real> body_force_density;
 
     extern int                        plot_ascii;
     extern int                        plot_means;
     extern int                        plot_vars;
+    extern AMREX_GPU_MANAGED int      plot_mom3;
+    extern AMREX_GPU_MANAGED int      plot_mom4;
     extern int                        plot_covars;
     extern int                        plot_cross;
+    extern int                        plot_deltaY_dir;
     extern int                        particle_motion;
 
     // parameters for turbulent forcing example

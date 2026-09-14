@@ -98,7 +98,7 @@
 
   # Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
   # Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
-  bc_Yk_y_lo = 0.2 0.09316672 0.70683296     # lo BC
-  bc_Yk_y_hi = 0.3 0.40683328 0.29316704     # hi BC
+  bc_Yk_y_lo = 0.2 0.09316672 0.70683328     # lo BC
+  bc_Yk_y_hi = 0.3 0.40683328 0.29316672     # hi BC
 
 

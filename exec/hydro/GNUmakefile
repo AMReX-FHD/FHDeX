@@ -22,9 +22,14 @@ include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
 
+include ../../src_multispec/Make.package
+VPATH_LOCATIONS   += ../../src_multispec/
+INCLUDE_LOCATIONS += ../../src_multispec/
+
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
+
 
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
@@ -38,7 +43,12 @@ include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
 
+VPATH_LOCATIONS   += ../../src_multispec/
+INCLUDE_LOCATIONS += ../../src_multispec/
+CEXE_SOURCES += multispec_namespace.H
+
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/FFT/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 
@@ -53,6 +63,9 @@ ifeq ($(USE_CUDA),TRUE)
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+MAXELEMENT := $(strip $(MAX_ELEM))
+DEFINES += -DMAX_ELEMENT=$(MAXELEMENT)
 
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)

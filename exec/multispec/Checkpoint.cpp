@@ -48,7 +48,7 @@ void WriteCheckPoint(int step,
     // ---- after all directories are built
     // ---- ParallelDescriptor::IOProcessor() creates the directories
     amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
-    
+
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
     // write Header file
@@ -104,7 +104,7 @@ void WriteCheckPoint(int step,
             // create filename, e.g. chk0000005/rng0000002
             const std::string& rngFileNameBase = (checkpointname + "/rng");
             const std::string& rngFileName = amrex::Concatenate(rngFileNameBase,comm_rank,7);
-        
+
             rngFile.open(rngFileName.c_str(), std::ofstream::out   |
                          std::ofstream::trunc |
                          std::ofstream::binary);
@@ -112,7 +112,7 @@ void WriteCheckPoint(int step,
             if( !rngFile.good()) {
                 amrex::FileOpenFailed(rngFileName);
             }
-    
+
             amrex::SaveRandomState(rngFile);
 
         }
@@ -140,7 +140,7 @@ void WriteCheckPoint(int step,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "grad_Epotz"));
 #endif
     }
-    
+
     VisMF::Write(rho,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho"));
     VisMF::Write(rhotot,
@@ -151,7 +151,7 @@ void WriteCheckPoint(int step,
     if (use_charged_fluid) {
         VisMF::Write(Epot,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Epot"));
-    }    
+    }
 }
 
 void ReadCheckPoint(int& step,
@@ -188,7 +188,7 @@ void ReadCheckPoint(int& step,
     else if (advection_type == 4) {
         ng_s = 4; // limited quad bds
     }
-    
+
     // Header
     {
         std::string File(checkpointname + "/Header");
@@ -234,7 +234,7 @@ void ReadCheckPoint(int& step,
             grad_Epot[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
         }
-        
+
         rho   .define(ba, dmap, nspecies, ng_s);
         rhotot.define(ba, dmap,        1, ng_s);
         pi    .define(ba, dmap,        1, 1);
@@ -257,14 +257,14 @@ void ReadCheckPoint(int& step,
 #ifdef AMREX_USE_CUDA
         Abort("Restart with negative seed not supported on GPU");
 #endif
-    
+
         // read in rng state from checkpoint
         // don't read in all the rng states at once (overload filesystem)
         // one at a time write out the rng states to different files, one for each MPI rank
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
-    
+
                 // create filename, e.g. chk0000005/rng0000002
                 std::string FileBase(checkpointname + "/rng");
                 std::string File = amrex::Concatenate(FileBase,comm_rank,7);
@@ -283,9 +283,9 @@ void ReadCheckPoint(int& step,
             ParallelDescriptor::Barrier();
 
         }
-        
+
     } else if (seed == 0) {
-                
+
         // initializes the seed for C++ random number calls based on the clock
         auto now = time_point_cast<nanoseconds>(system_clock::now());
         int randSeed = now.time_since_epoch().count();
@@ -322,7 +322,7 @@ void ReadCheckPoint(int& step,
                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "grad_Epotz"));
 #endif
     }
-    
+
     VisMF::Read(rho,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho"));
     VisMF::Read(rhotot,

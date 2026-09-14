@@ -36,58 +36,57 @@
 
 namespace mui {
 
-#define DECLARE_SAMPLER_1ARG(SAMPLER,SUFFIX,CONFIG)	\
-	template<typename T> using SAMPLER ## SUFFIX = SAMPLER<T,T,CONFIG>;
-#define DECLARE_SAMPLER_0ARG(SAMPLER,SUFFIX,CONFIG)	\
-	using SAMPLER ## SUFFIX = SAMPLER<CONFIG>;
+    #define DECLARE_SAMPLER_1ARG(SAMPLER,SUFFIX,CONFIG)    \
+        template<typename T> using SAMPLER ## SUFFIX = SAMPLER<T,T,CONFIG>;
+    #define DECLARE_SAMPLER_0ARG(SAMPLER,SUFFIX,CONFIG)    \
+        using SAMPLER ## SUFFIX = SAMPLER<CONFIG>;
 
-#define SPECIALIZE(SUFFIX,REALTYPE,INTTYPE,DIM) \
-		typedef struct config_##SUFFIX {\
-			static const int D = DIM;\
-			using REAL = REALTYPE;\
-			using INT  = INTTYPE;\
-			using point_type = point<REAL,D>;\
-			using time_type  = REAL;\
-			static const bool DEBUG = false;\
-			using data_types = type_list<int,double,float>;\
-			using EXCEPTION = exception_segv;\
-		} mui_config_##SUFFIX;\
-		using uniface##SUFFIX = uniface<config_##SUFFIX>;\
-		using point##SUFFIX = point<config_##SUFFIX::REAL,config_##SUFFIX::D>;\
-		DECLARE_SAMPLER_1ARG(sampler_nearest_neighbor,SUFFIX,config_##SUFFIX)\
-		DECLARE_SAMPLER_1ARG(sampler_pseudo_nearest_neighbor,SUFFIX,config_##SUFFIX)\
-		DECLARE_SAMPLER_1ARG(sampler_pseudo_nearest2_linear,SUFFIX,config_##SUFFIX)\
-		DECLARE_SAMPLER_1ARG(sampler_moving_average,SUFFIX,config_##SUFFIX)\
-		DECLARE_SAMPLER_1ARG(sampler_kmc_fhd,SUFFIX,config_##SUFFIX)\
-		DECLARE_SAMPLER_1ARG(sampler_exact,SUFFIX,config_##SUFFIX)\
-		DECLARE_SAMPLER_1ARG(sampler_gauss,SUFFIX,config_##SUFFIX)\
-		DECLARE_SAMPLER_0ARG(chrono_sampler_exact,SUFFIX,config_##SUFFIX);\
-		DECLARE_SAMPLER_0ARG(chrono_sampler_gauss,SUFFIX,config_##SUFFIX);\
-		DECLARE_SAMPLER_0ARG(chrono_sampler_sum,SUFFIX,config_##SUFFIX);\
-		DECLARE_SAMPLER_0ARG(chrono_sampler_mean,SUFFIX,config_##SUFFIX);\
-		namespace geometry {\
-			using point##SUFFIX = point<config_##SUFFIX>;\
-			using sphere##SUFFIX = sphere<config_##SUFFIX>;\
-			using box##SUFFIX = box<config_##SUFFIX>;\
-		}
+    #define SPECIALIZE(SUFFIX,REALTYPE,INTTYPE,DIM) \
+        typedef struct config_##SUFFIX {\
+            static const int D = DIM;\
+            using REAL = REALTYPE;\
+            using INT  = INTTYPE;\
+            using point_type = point<REAL,D>;\
+            using time_type  = REAL;\
+            static const bool DEBUG = false;\
+            using data_types = type_list<int,double,float>;\
+            using EXCEPTION = exception_segv;\
+        } mui_config_##SUFFIX;\
+        using uniface##SUFFIX = uniface<config_##SUFFIX>;\
+        using point##SUFFIX = point<config_##SUFFIX::REAL,config_##SUFFIX::D>;\
+        DECLARE_SAMPLER_1ARG(sampler_nearest_neighbor,SUFFIX,config_##SUFFIX)\
+        DECLARE_SAMPLER_1ARG(sampler_pseudo_nearest_neighbor,SUFFIX,config_##SUFFIX)\
+        DECLARE_SAMPLER_1ARG(sampler_pseudo_nearest2_linear,SUFFIX,config_##SUFFIX)\
+        DECLARE_SAMPLER_1ARG(sampler_moving_average,SUFFIX,config_##SUFFIX)\
+        DECLARE_SAMPLER_1ARG(sampler_kmc_fhd,SUFFIX,config_##SUFFIX)\
+        DECLARE_SAMPLER_1ARG(sampler_exact,SUFFIX,config_##SUFFIX)\
+        DECLARE_SAMPLER_1ARG(sampler_gauss,SUFFIX,config_##SUFFIX)\
+        DECLARE_SAMPLER_0ARG(chrono_sampler_exact,SUFFIX,config_##SUFFIX);\
+        DECLARE_SAMPLER_0ARG(chrono_sampler_gauss,SUFFIX,config_##SUFFIX);\
+        DECLARE_SAMPLER_0ARG(chrono_sampler_sum,SUFFIX,config_##SUFFIX);\
+        DECLARE_SAMPLER_0ARG(chrono_sampler_mean,SUFFIX,config_##SUFFIX);\
+        namespace geometry {\
+            using point##SUFFIX = point<config_##SUFFIX>;\
+            using sphere##SUFFIX = sphere<config_##SUFFIX>;\
+            using box##SUFFIX = box<config_##SUFFIX>;\
+        }
 
+    SPECIALIZE(1d,double,int,1);
+    SPECIALIZE(2d,double,int,2);
+    SPECIALIZE(3d,double,int,3);
+    SPECIALIZE(1dx,double,int64_t,1);
+    SPECIALIZE(2dx,double,int64_t,2);
+    SPECIALIZE(3dx,double,int64_t,3);
+    SPECIALIZE(1f,float,int,1);
+    SPECIALIZE(2f,float,int,2);
+    SPECIALIZE(3f,float,int,3);
+    SPECIALIZE(1fx,float,int64_t,1);
+    SPECIALIZE(2fx,float,int64_t,2);
+    SPECIALIZE(3fx,float,int64_t,3);
 
-SPECIALIZE(1d,double,int,1);
-SPECIALIZE(2d,double,int,2);
-SPECIALIZE(3d,double,int,3);
-SPECIALIZE(1dx,double,int64_t,1);
-SPECIALIZE(2dx,double,int64_t,2);
-SPECIALIZE(3dx,double,int64_t,3);
-SPECIALIZE(1f,float,int,1);
-SPECIALIZE(2f,float,int,2);
-SPECIALIZE(3f,float,int,3);
-SPECIALIZE(1fx,float,int64_t,1);
-SPECIALIZE(2fx,float,int64_t,2);
-SPECIALIZE(3fx,float,int64_t,3);
-
-#undef SPECIALIZE
-#undef DECLARE_SAMPLER_0ARG
-#undef DECLARE_SAMPLER_1ARG
+    #undef SPECIALIZE
+    #undef DECLARE_SAMPLER_0ARG
+    #undef DECLARE_SAMPLER_1ARG
 
 }
 

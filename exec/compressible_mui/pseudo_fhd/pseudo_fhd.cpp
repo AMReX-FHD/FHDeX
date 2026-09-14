@@ -40,14 +40,14 @@ int main(int argc, char **argv)
   for (int timestamp=1;timestamp<=ntimestamp;timestamp++)
   {
     // push
- 
+
     for (int i=0;i<nx;i++) {
       for (int j=0;j<ny;j++) {
         double x = i*dx+offset;
         double y = j*dx+offset;
         double density1 = 1.817055e+19;
         double density2 = 3.604090e+18;
-        double density3 = 1.820603e+18; 
+        double density3 = 1.820603e+18;
         double density4 = 8.678933e+17;
         double temp = 300.;
         uniface.push(channelp1,{x,y},density1);
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     FILE *fp;
 
     if (file_output)
-    { 
+    {
       char filename[100];
       sprintf(filename,"res.acdc_ts%d",timestamp);
       fp = fopen(filename,"w");

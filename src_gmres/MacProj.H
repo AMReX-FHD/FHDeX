@@ -15,11 +15,11 @@ using namespace amrex;
 class MacProj {
 
     MLABecLaplacian mlabec;
-    
+
 public:
 
     MacProj();
-    
+
     void Define(const BoxArray& ba,
                 const DistributionMapping& dmap,
                 const Geometry& geom);
@@ -29,7 +29,7 @@ public:
                MultiFab& phi,
                const Geometry& geom,
                bool full_solve=false);
-    
+
 };
 
 #endif

@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -44,7 +44,7 @@ class AppSurfchemtest : public AppLattice {
   int firsttime;
   // variables on each lattice site
   int *type,*element,*ac1,*ac2,*ac3,*ac4,*ac5,*dc1,*dc2,*dc3,*dc4,*dc5;
-  double *density1,*density2,*density3,*density4,*density5,*temp;      
+  double *density1,*density2,*density3,*density4,*density5,*temp;
 
   int *esites;
   int *echeck;

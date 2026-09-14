@@ -48,11 +48,11 @@ inline MPI_Comm mpi_split_by_app( int argc=0, char **argv=NULL )
     appnum = *(int*)v;
 #endif
 
-	MPI_Comm domain;
-	MPI_Comm_split(MPI_COMM_WORLD,appnum,rank,&domain);
+    MPI_Comm domain;
+    MPI_Comm_split(MPI_COMM_WORLD,appnum,rank,&domain);
 
     cout << rank << "/" << size << ": appnum " << appnum << " domain " << domain << "\n" << flush;
-	return domain;
+    return domain;
 }
 
 }

@@ -4,7 +4,7 @@ RUNDIR=RUN_1+1
 SPKSCR=in.kmc
 FHDSCR=inputs_fhd_coverage
 
-# check fhd executable 
+# check fhd executable
 exec1=../main3d.gnu.MPI.ex
 if [ ! -f $exec1 ]
 then

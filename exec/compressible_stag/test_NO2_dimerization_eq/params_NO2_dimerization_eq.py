@@ -9,8 +9,8 @@ Navo = 6.02214e23       # Avogadro constant
 ##########
 
 # molecular weights
-M1 = 46.0055    # NO2 
-M2 = 92.0110    # N2O4 
+M1 = 46.0055    # NO2
+M2 = 92.0110    # N2O4
 print("- molecular masses: [%.4f, %.4f]" % (M1,M2))
 
 # mass fractions
@@ -55,8 +55,8 @@ print("- number density of spec2 = %e\n" % n2)
 
 ##########
 
-dx = 8e-6 
-dy = 8e-6 
+dx = 8e-6
+dy = 8e-6
 dz = 8e-6
 dv = dx*dy*dz
 
@@ -103,7 +103,7 @@ dof2 = 18.049072
 e01 = 4.685624e+09
 e02 = -1.730782e+09
 
-cv1 = 0.5*dof1*Runiv/M1 
+cv1 = 0.5*dof1*Runiv/M1
 cv2 = 0.5*dof2*Runiv/M2
 cvmix = Y1*cv1+Y2*cv2
 

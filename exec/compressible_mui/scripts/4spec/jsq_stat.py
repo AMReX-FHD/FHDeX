@@ -27,6 +27,6 @@ for dim in ["x","y","z"]:
         res_stat.append(std)
 
     res_stat = np.transpose(res_stat)
-    
-    outfile = "res.havg_j%ssq_stat" % (dim) 
+
+    outfile = "res.havg_j%ssq_stat" % (dim)
     np.savetxt(outfile,res_stat)

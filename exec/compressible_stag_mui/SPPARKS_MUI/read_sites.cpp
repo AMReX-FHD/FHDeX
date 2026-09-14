@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -70,10 +70,10 @@ void ReadSites::command(int narg, char **arg)
 
   if (domain->dimension == 2 && domain->zperiodic == 0)
     error->all(FLERR,"Cannot run 2d simulation with nonperiodic Z dimension");
-  if (domain->dimension == 1 && 
+  if (domain->dimension == 1 &&
       (domain->yperiodic == 0 || domain->zperiodic == 0))
     error->all(FLERR,
-	       "Cannot run 1d simulation with nonperiodic Y or Z dimension");
+               "Cannot run 1d simulation with nonperiodic Y or Z dimension");
 
   if (app->appclass == App::LATTICE) {
     applattice = (AppLattice *) app;
@@ -118,17 +118,17 @@ void ReadSites::command(int narg, char **arg)
   while (strlen(keyword)) {
     if (strcmp(keyword,"Sites") == 0) {
       if (app->sites_exist)
-	error->all(FLERR,"Cannot read Sites after sites already exist");
+        error->all(FLERR,"Cannot read Sites after sites already exist");
       sites();
       sitesflag = 1;
 
     } else if (strcmp(keyword,"Neighbors") == 0) {
-      if (app->sites_exist) 
-	error->all(FLERR,"Cannot read Neighbors after sites already exist");
-      if (latticeflag == 0) 
-	error->all(FLERR,"Can only read Neighbors for on-lattice applications");
-      if (maxneigh <= 0) 
-	error->all(FLERR,"Cannot read Neighbors unless max neighbors is set");
+      if (app->sites_exist)
+        error->all(FLERR,"Cannot read Neighbors after sites already exist");
+      if (latticeflag == 0)
+        error->all(FLERR,"Can only read Neighbors for on-lattice applications");
+      if (maxneigh <= 0)
+        error->all(FLERR,"Cannot read Neighbors unless max neighbors is set");
       if (sitesflag == 0) error->all(FLERR,"Must read Sites before Neighbors");
 
       applattice->maxneigh = maxneigh;
@@ -137,8 +137,8 @@ void ReadSites::command(int narg, char **arg)
       neighflag = 1;
 
     } else if (strcmp(keyword,"Values") == 0) {
-      if (app->sites_exist == 0 && sitesflag == 0) 
-	error->all(FLERR,"Cannot read Values before sites exist or are read");
+      if (app->sites_exist == 0 && sitesflag == 0)
+        error->all(FLERR,"Cannot read Values before sites exist or are read");
       values();
       valueflag = 1;
 
@@ -158,7 +158,7 @@ void ReadSites::command(int narg, char **arg)
 
   if (app->sites_exist == 0) {
     if (sitesflag == 0) error->all(FLERR,"No Sites defined in site file");
-    if (latticeflag && neighflag == 0) 
+    if (latticeflag && neighflag == 0)
       error->all(FLERR,"No Neighbors defined in site file");
     app->sites_exist = 1;
   }
@@ -198,7 +198,7 @@ void ReadSites::header()
   char *ptr;
 
   const char *section_keywords[NSECTIONS] = {"Sites","Neighbors","Values"};
-  
+
   // skip 1st line of file
 
   if (me == 0) {
@@ -246,23 +246,23 @@ void ReadSites::header()
       int dimension;
       sscanf(line,"%d",&dimension);
       if (domain->box_exist && dimension != domain->dimension)
-	error->all(FLERR,"Data file dimension does not match existing box");
+        error->all(FLERR,"Data file dimension does not match existing box");
       domain->dimension = dimension;
     } else if (strstr(line,"sites")) {
       tagint nglobal;
       sscanf(line,TAGINT_FORMAT,&nglobal);
       if (app->sites_exist && nglobal != app->nglobal)
-	error->all(FLERR,"Data file number of sites "
-		   "does not match existing sites");
+        error->all(FLERR,"Data file number of sites "
+                   "does not match existing sites");
       app->nglobal = nglobal;
     } else if (strstr(line,"max neighbors")) {
       sscanf(line,"%d",&maxneigh);
-      if (!latticeflag) 
-	error->all(FLERR,"Off-lattice application data file "
-		   "cannot have maxneigh setting");
+      if (!latticeflag)
+        error->all(FLERR,"Off-lattice application data file "
+                   "cannot have maxneigh setting");
       if (app->sites_exist && maxneigh != applattice->maxneigh)
-	error->all(FLERR,
-		   "Data file maxneigh setting does not match existing sites");
+        error->all(FLERR,
+                   "Data file maxneigh setting does not match existing sites");
     } else if (strstr(line,"values")) {
       delete [] columns;
       ptr = strstr(line,"values");
@@ -274,21 +274,21 @@ void ReadSites::header()
     } else if (strstr(line,"xlo xhi")) {
       sscanf(line,"%lg %lg",&boxxlo,&boxxhi);
       if (domain->box_exist && (fabs(domain->boxxlo-boxxlo) > EPSILON ||
-				fabs(domain->boxxhi-boxxhi) > EPSILON))
-	  error->all(FLERR,
-		     "Data file simulation box different that current box");
+                               fabs(domain->boxxhi-boxxhi) > EPSILON))
+        error->all(FLERR,
+                   "Data file simulation box different that current box");
     } else if (strstr(line,"ylo yhi")) {
       sscanf(line,"%lg %lg",&boxylo,&boxyhi);
       if (domain->box_exist && (fabs(domain->boxylo-boxylo) > EPSILON ||
-				fabs(domain->boxyhi-boxyhi) > EPSILON))
-	  error->all(FLERR,
-		     "Data file simulation box different that current box");
+                               fabs(domain->boxyhi-boxyhi) > EPSILON))
+        error->all(FLERR,
+                   "Data file simulation box different that current box");
     } else if (strstr(line,"zlo zhi")) {
       sscanf(line,"%lg %lg",&boxzlo,&boxzhi);
       if (domain->box_exist && (fabs(domain->boxzlo-boxzlo) > EPSILON ||
-				fabs(domain->boxzhi-boxzhi) > EPSILON))
-	  error->all(FLERR,
-		     "Data file simulation box different that current box");
+                               fabs(domain->boxzhi-boxzhi) > EPSILON))
+        error->all(FLERR,
+                   "Data file simulation box different that current box");
     } else break;
   }
 
@@ -340,9 +340,9 @@ void ReadSites::sites()
       char *eof;
       m = 0;
       for (i = 0; i < nchunk; i++) {
-	eof = fgets(&buffer[m],MAXLINE,fp);
-	if (eof == NULL) error->one(FLERR,"Unexpected end of data file");
-	m += strlen(&buffer[m]);
+        eof = fgets(&buffer[m],MAXLINE,fp);
+        if (eof == NULL) error->one(FLERR,"Unexpected end of data file");
+        m += strlen(&buffer[m]);
       }
       m++;
     }
@@ -370,12 +370,12 @@ void ReadSites::sites()
       x = atof(values[1]);
       y = atof(values[2]);
       z = atof(values[3]);
-      
+
       if (x >= subxlo && x < subxhi &&
-	  y >= subylo && y < subyhi &&
-	  z >= subzlo && z < subzhi) {
-	if (latticeflag) applattice->add_site(id,x,y,z);
-	else appoff->add_site(id,x,y,z);
+          y >= subylo && y < subyhi &&
+          z >= subzlo && z < subzhi) {
+        if (latticeflag) applattice->add_site(id,x,y,z);
+        else appoff->add_site(id,x,y,z);
       }
 
       buf = next + 1;
@@ -394,12 +394,12 @@ void ReadSites::sites()
     if (logfile) fprintf(logfile,"  " TAGINT_FORMAT " sites\n",nglobal);
   }
 
-  if (nglobal != app->nglobal) 
+  if (nglobal != app->nglobal)
     error->all(FLERR,"Did not assign all sites correctly");
-  
+
   // check that sites IDs range from 1 to nglobal
   // not checking if site IDs are unique
-  
+
   int flag = 0;
   for (int i = 0; i < app->nlocal; i++)
     if (app->id[i] <= 0 || app->id[i] > nglobal) flag = 1;
@@ -411,7 +411,7 @@ void ReadSites::sites()
 
 /* ----------------------------------------------------------------------
    read all neighbors of sites
-   to find atoms, must build atom map if not a molecular system 
+   to find atoms, must build atom map if not a molecular system
 ------------------------------------------------------------------------- */
 
 void ReadSites::neighbors()
@@ -446,9 +446,9 @@ void ReadSites::neighbors()
       char *eof;
       m = 0;
       for (i = 0; i < nchunk; i++) {
-	eof = fgets(&buffer[m],MAXLINE,fp);
-	if (eof == NULL) error->one(FLERR,"Unexpected end of data file");
-	m += strlen(&buffer[m]);
+        eof = fgets(&buffer[m],MAXLINE,fp);
+        if (eof == NULL) error->one(FLERR,"Unexpected end of data file");
+        m += strlen(&buffer[m]);
       }
       m++;
     }
@@ -465,15 +465,15 @@ void ReadSites::neighbors()
       loc = hash.find(idone);
 
       if (loc != hash.end()) {
-	n = 0;
-	while (n <= maxneigh) {
-	  values[n] = strtok(NULL," \t\n\r\f");
-	  if (values[n] == NULL) break;
-	  n++;
-	}
+        n = 0;
+        while (n <= maxneigh) {
+          values[n] = strtok(NULL," \t\n\r\f");
+          if (values[n] == NULL) break;
+          n++;
+        }
 
-	if (n > maxneigh) error->one(FLERR,"Too many neighbors per site");
-	applattice->add_neighbors(loc->second,n,values);
+        if (n > maxneigh) error->one(FLERR,"Too many neighbors per site");
+        applattice->add_neighbors(loc->second,n,values);
       }
 
       buf = next + 1;
@@ -518,7 +518,7 @@ void ReadSites::values()
     hash.insert(std::pair<tagint,int> (id[i],i));
 
   // if values keyword not used in header:
-  //   nvalues = Ninteger + Ndouble 
+  //   nvalues = Ninteger + Ndouble
   // else:
   //   parse columns string to determine fields
   //   set nvalues, type[], which[]
@@ -531,7 +531,7 @@ void ReadSites::values()
   if (columns == NULL) nvalues = app->ninteger + app->ndouble;
   else {
     nvalues = count_words(columns) - 1;
-    if (nvalues < 1) 
+    if (nvalues < 1)
       error->all(FLERR,"Read sites Values section has no values per site");
     char *keyword = strtok(columns," \t\n\r\f");
     if (strcmp(keyword,"id") != 0)
@@ -553,7 +553,7 @@ void ReadSites::values()
         index[i] = atoi(&keyword[1]);
         if (index[i] < 1 || index[i] > app->ndouble)
           error->all(FLERR,"Invalid keyword in read sites values header");
-      } else 
+      } else
         error->all(FLERR,"Invalid keyword in read sites values header");
     }
   }
@@ -573,9 +573,9 @@ void ReadSites::values()
       char *eof;
       m = 0;
       for (i = 0; i < nchunk; i++) {
-	eof = fgets(&buffer[m],MAXLINE,fp);
-	if (eof == NULL) error->one(FLERR,"Unexpected end of data file");
-	m += strlen(&buffer[m]);
+        eof = fgets(&buffer[m],MAXLINE,fp);
+        if (eof == NULL) error->one(FLERR,"Unexpected end of data file");
+        m += strlen(&buffer[m]);
       }
       m++;
     }
@@ -589,7 +589,7 @@ void ReadSites::values()
     int nwords = count_words(buf);
     *next = '\n';
 
-    if (nwords != nvalues+1) 
+    if (nwords != nvalues+1)
       error->all(FLERR,"Incorrect value format in data file");
 
     for (int i = 0; i < nchunk; i++) {
@@ -609,9 +609,9 @@ void ReadSites::values()
           else appoff->add_values(loc->second,sitevalues);
         } else {
           for (m = 0; m < nvalues; m++) {
-            if (latticeflag) 
+            if (latticeflag)
               applattice->add_value(loc->second,type[m],index[m],sitevalues[m]);
-            else 
+            else
               appoff->add_value(loc->second,type[m],index[m],sitevalues[m]);
           }
         }
@@ -630,9 +630,9 @@ void ReadSites::values()
   bigint nbig = nglobal;
   if (me == 0) {
     if (screen) fprintf(screen,"  " BIGINT_FORMAT " values\n",
-			nbig*nvalues);
+                        nbig*nvalues);
     if (logfile) fprintf(logfile,"  " BIGINT_FORMAT " values\n",
-			 nbig*nvalues);
+                         nbig*nvalues);
   }
 }
 
@@ -709,8 +709,8 @@ void ReadSites::parse_keyword(int first)
 
   int start = strspn(line," \t\n\r");
   int stop = strlen(line) - 1;
-  while (line[stop] == ' ' || line[stop] == '\t' 
-	 || line[stop] == '\n' || line[stop] == '\r') stop--;
+  while (line[stop] == ' ' || line[stop] == '\t'
+         || line[stop] == '\n' || line[stop] == '\r') stop--;
   line[stop+1] = '\0';
   strcpy(keyword,&line[start]);
 }
@@ -732,8 +732,8 @@ void ReadSites::parse_coeffs(int addflag, char *line)
   while (word) {
     if (narg == maxarg) {
       maxarg += DELTA;
-      arg = (char **) 
-	memory->srealloc(arg,maxarg*sizeof(char *),"read_sites:arg");
+      arg = (char **)
+        memory->srealloc(arg,maxarg*sizeof(char *),"read_sites:arg");
     }
     arg[narg++] = word;
     if (addflag && narg == 1) continue;

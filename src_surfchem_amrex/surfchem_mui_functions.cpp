@@ -90,7 +90,7 @@ void amrex_fetch_surfcov(MultiFab const& Ntot, MultiFab& surfcov,
         iMultiFab occ(Ntot.boxArray(), Ntot.DistributionMap(), surfchem_mui::nspec_mui, 0);
         copier.recv(occ, 0, 1);
         copier.recv(occ, 1, 1);
-	copier.recv(occ, 2, 1);
+        copier.recv(occ, 2, 1);
 
         for (MFIter mfi(surfcov); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
@@ -135,8 +135,8 @@ void amrex_push(MultiFab const& cu, MultiFab const& prim, MPMD::Copier const& co
                 });
             }
         }
-    	copier.send(dens, 0, 1);
-    	copier.send(prim, 4, 1);
+        copier.send(dens, 0, 1);
+        copier.send(prim, 4, 1);
     }
     else if (surfchem_mui::nspec_mui == 2) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(surfchem_mui::nspec_mui == 2,
@@ -157,9 +157,9 @@ void amrex_push(MultiFab const& cu, MultiFab const& prim, MPMD::Copier const& co
                 });
             }
         }
-    	copier.send(dens, 0, 1);
-	copier.send(dens, 1, 1);
-    	copier.send(prim, 4, 1);
+        copier.send(dens, 0, 1);
+        copier.send(dens, 1, 1);
+        copier.send(prim, 4, 1);
     }
     else if (surfchem_mui::nspec_mui == 3) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(surfchem_mui::nspec_mui == 3,
@@ -180,10 +180,10 @@ void amrex_push(MultiFab const& cu, MultiFab const& prim, MPMD::Copier const& co
                 });
             }
         }
-    	copier.send(dens, 0, 1);
-	copier.send(dens, 1, 1);
-	copier.send(dens, 2, 1);
-    	copier.send(prim, 4, 1);  
+        copier.send(dens, 0, 1);
+        copier.send(dens, 1, 1);
+        copier.send(dens, 2, 1);
+        copier.send(prim, 4, 1);
     }
 }
 
@@ -286,7 +286,7 @@ void amrex_fetch(MultiFab& cu, MultiFab const& prim, GpuArray<Real,3> const& dx,
         copier.recv(acdc,1,1);
         copier.recv(acdc,2,1);
         copier.recv(acdc,3,1);
-	copier.recv(acdc,4,1);
+        copier.recv(acdc,4,1);
 
         for (MFIter mfi(cu); mfi.isValid(); ++mfi)
         {
@@ -304,10 +304,10 @@ void amrex_fetch(MultiFab& cu, MultiFab const& prim, GpuArray<Real,3> const& dx,
                     int dc1 = acdc_arr(i,j,k,1);
                     int ac2 = acdc_arr(i,j,k,2);
                     int dc2 = acdc_arr(i,j,k,3);
-		    int adc3 = acdc_arr(i,j,k,4);
+                    int adc3 = acdc_arr(i,j,k,4);
                     amrex::Real dN1 = static_cast<Real>(ac1-dc1);
                     amrex::Real dN2 = static_cast<Real>(ac2-dc2);
-		    amrex::Real dN3 = static_cast<Real>(-1*adc3);
+                    amrex::Real dN3 = static_cast<Real>(-1*adc3);
                     double dN[4] = {dN1, dN2, dN3, 0};
                     amrex::Real T_inst = prim_arr(i,j,k,4);
                     amrex::Real factor1 = common::molmass[n]/AVONUM/(dx[0]*dx[1]*dx[2]);

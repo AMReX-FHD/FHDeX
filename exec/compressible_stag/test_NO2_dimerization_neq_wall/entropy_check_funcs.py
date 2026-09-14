@@ -104,7 +104,7 @@ def D_GIO1(Dbin,Ykp,Xkp,D_tilde,kloc):
 
     jmax = 3
 
-    # Find Di matrix 
+    # Find Di matrix
     for i in range(ns):
         term2 = 0.
         for j in range(ns):
@@ -218,7 +218,7 @@ def IdealMixtureTransportGIO(kloc,density,temperature,pressure,Yk,diff_ij,chitil
     for n in range(ns):
         mbar += Yk[n]/molecular_mass[n]
     mbar = 1.0/mbar
-            
+
     # mole fracions
     Xksum = 0.0
     for n in range(ns):
@@ -316,7 +316,7 @@ def IdealMixtureTransportGIO(kloc,density,temperature,pressure,Yk,diff_ij,chitil
     for i in range(ns):
         kappa += rhs[i]*Bi[i]
     kappa *= pressure/temperature
-     
+
     # Thermal Diffusion Ratios
     for i in range(ns):
         chitil[kloc,i] = 0.0
@@ -324,7 +324,7 @@ def IdealMixtureTransportGIO(kloc,density,temperature,pressure,Yk,diff_ij,chitil
             if (i==j):
                 amat[i,i] = 0.0
                 for k in range(ns):
-                    if (k!=i): 
+                    if (k!=i):
                         amat[i,i] -= 0.5*Xkp[k]/Dbin[i,k]*molecular_mass[k]/(molecular_mass[i]+molecular_mass[k])*(6.0*CKL-5.0)
             else:
                 amat[i,j] = 0.5*Xkp[j]/Dbin[i,j]*molecular_mass[i]/(molecular_mass[i]+molecular_mass[j])*(6.0*CKL-5.0)
@@ -445,7 +445,7 @@ def ComputeQzFkz(dz,kappa,Dij,chi,prim4,prim5,prim6,prim7,prim8,prim9):
                 Fk[kk] -= Fks
 
         F1z[k] = Fk[0]
-        F2z[k] = Fk[1] 
+        F2z[k] = Fk[1]
 
         # compute Q (based on Eqn. 2.5.25, Giovangigli's book)
 

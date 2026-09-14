@@ -30,7 +30,7 @@ contains
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
 
-      totalmass = 0  
+      totalmass = 0
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -61,7 +61,7 @@ contains
 
       do kc=0,n_cells(3)-1
         do jc=1,n_cells(2)
-          
+
           delholder1( (n_cells(2))*(kc) + jc) = 0
           delholder2( (n_cells(2))*(kc) + jc) = 0
           delholder3( (n_cells(2))*(kc) + jc) = 0
@@ -70,29 +70,29 @@ contains
           delholder6( (n_cells(2))*(kc) + jc) = 0
 
         enddo
-      enddo     
+      enddo
 
       if((ti .ge. lo(1)) .and. (ti .le. hi(1))) then
 
         do k = lo(3), hi(3)
-         
+
           do j = lo(2), hi(2)
 
             !print *,  (n_cells(2))*(k) + (j+1)
-  
+
             delholder1((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
             delholder2((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
             delholder3((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,2)-cumeans(ti,j,k,2)
             delholder4((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,5)-primmeans(ti,j,k,5)
             delholder5((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,5)-primmeans(ti,j,k,5)
             delholder6((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,2)-primmeans(ti,j,k,2)
- 
+
           enddo
         enddo
       endif
 
       !print *, "del2 in: ", del2
-          
+
     end subroutine evaluate_means
 
   subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6) bind(c,name='evaluate_corrs')
@@ -157,7 +157,7 @@ contains
           primvars(i,j,k,3) = (primvars(i,j,k,3)*stepsminusone + delvely**2)*stepsinv
           primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + delvelz**2)*stepsinv
 
-      
+
           delg = primmeans(i,j,k,2)*delpx + primmeans(i,j,k,3)*delpy + primmeans(i,j,k,4)*delpz
 
           primvars(i,j,k,nprimvars+1) = (primvars(i,j,k,nprimvars+1)*stepsminusone + delg**2)*stepsinv  !gvar
@@ -185,7 +185,7 @@ contains
         enddo
       enddo
     enddo
-          
+
     end subroutine evaluate_corrs
 
   subroutine multifab_yzav(lo, hi, fabin, fabout, comps) bind(c,name='multifab_yzav')
@@ -203,7 +203,7 @@ contains
       do l = 1, comps
 
       do i = lo(1), hi(1)
- 
+
         holder = 0;
         counter = 0;
 
@@ -212,7 +212,7 @@ contains
 
            holder = holder + fabin(i,j,k,l)
            counter = counter + 1
-                         
+
           enddo
         enddo
 
@@ -222,13 +222,13 @@ contains
           do j = lo(2), hi(2)
 
            fabout(i,j,k,l) = holder
-                         
+
           enddo
         enddo
 
       enddo
       enddo
-          
+
     end subroutine multifab_yzav
 
 end module stats_module

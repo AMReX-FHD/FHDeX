@@ -1,9 +1,9 @@
 
 ! ::: -----------------------------------------------------------
 ! ::: This routine will tag high error cells based on the state
-! ::: 
+! :::
 ! ::: INPUTS/OUTPUTS:
-! ::: 
+! :::
 ! ::: tag        <=  integer tag array
 ! ::: tag_lo,hi   => index extent of tag array
 ! ::: state       => state array
@@ -24,7 +24,7 @@ subroutine state_error(tag,tag_lo,tag_hi, &
                        dx,problo,time,conerr) bind(C, name="state_error")
 
   implicit none
-  
+
   integer          :: lo(3),hi(3)
   integer          :: state_lo(3),state_hi(3)
   integer          :: tag_lo(3),tag_hi(3)

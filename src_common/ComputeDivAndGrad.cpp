@@ -15,9 +15,9 @@ void ComputeDiv(MultiFab& div,
     if (increment == 0) {
         div.setVal(0.,start_outcomp,ncomp,0);
     }
-    
+
     for ( MFIter mfi(div,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<Real> & div_fab = div.array(mfi);
@@ -41,10 +41,10 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                  int increment)
 {
     BL_PROFILE_VAR("ComputeGrad()",ComputeGrad);
-    
+
     // Physical Domain
     Box dom(geom.Domain());
-    
+
     Vector<int> bc_lo(AMREX_SPACEDIM);
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
@@ -59,7 +59,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
             gphi[dir].setVal(0.,start_outcomp,ncomp,0);
         }
     }
-    
+
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(phi_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
@@ -72,12 +72,13 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
         AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
                      const Box & bx_y = mfi.nodaltilebox(1);,
                      const Box & bx_z = mfi.nodaltilebox(2););
-        
+
         amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
-        },
-                           bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        }
+#if (AMREX_SPACEDIM >= 2)
+                         , bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
         }
@@ -87,12 +88,13 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
             gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
         }
 #endif
+#endif
         );
 
         // boundary conditions
         // note: at physical boundaries,
         // alter stencil at boundary since ghost value represents value at boundary
-        if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) {
+        if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) {
             if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
                 int lo = dom.smallEnd(0);
                 amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -105,8 +107,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 });
             }
         }
-            
-        if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) {
+        if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) {
             if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
                 int hi = dom.bigEnd(0)+1;
                 amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -119,8 +120,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 });
             }
         }
-        
-        if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
+
+#if (AMREX_SPACEDIM >= 2)
+        if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
                 amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -134,7 +136,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
             }
         }
 
-        if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) {
+        if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) {
             if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
                 int hi = dom.bigEnd(1)+1;
                 amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -147,9 +149,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 });
             }
         }
-        
+
 #if (AMREX_SPACEDIM == 3)
-        if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) {
+        if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) {
             if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
                 amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -162,8 +164,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 });
             }
         }
-            
-        if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) {
+        if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) {
             if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
                 int hi = dom.bigEnd(2)+1;
                 amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -176,6 +177,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 });
             }
         }
+#endif
 #endif
     } // end MFIter
 }
@@ -221,7 +223,7 @@ void ComputeCentredGradCompDir(const MultiFab & phi,
     int ioff = (dir == 0) ? 1 : 0;
     int joff = (dir == 1) ? 1 : 0;
     int koff = (dir == 2) ? 1 : 0;
-    
+
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -276,7 +278,7 @@ void ComputeLap(const MultiFab & phi_in,
                 const Geometry & geom)
 {
     BL_PROFILE_VAR("ComputeLap()",ComputeLap);
-    
+
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(phi_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -298,7 +300,7 @@ void ComputeLap(const MultiFab & phi_in,
         });
     }
 }
-    
+
 void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi_in,
                     std::array<MultiFab, AMREX_SPACEDIM> & Lphi_in,
                     const Geometry & geom)
@@ -321,21 +323,27 @@ void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi_in,
                      Array4<Real> const& Lphiy = Lphi_in[1].array(mfi);,
                      Array4<Real> const& Lphiz = Lphi_in[2].array(mfi););
 
-        amrex::ParallelFor(bx_x, bx_y,
+        amrex::ParallelFor(bx_x,
+#if (AMREX_SPACEDIM >= 2)
+                           bx_y,
 #if (AMREX_SPACEDIM == 3)
                            bx_z,
+#endif
 #endif
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Lphix(i,j,k) =    (phix(i+1,j,k) - 2.*phix(i,j,k) + phix(i-1,j,k)) / (dx[0]*dx[0])
+#if (AMREX_SPACEDIM >= 2)
                                 + (phix(i,j+1,k) - 2.*phix(i,j,k) + phix(i,j-1,k)) / (dx[1]*dx[1])
 #if (AMREX_SPACEDIM == 3)
                                 + (phix(i,j,k+1) - 2.*phix(i,j,k) + phix(i,j,k-1)) / (dx[2]*dx[2])
 #endif
+#endif
                     ;
-                    
-            },
-                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+
+            }
+#if (AMREX_SPACEDIM >= 2)
+                           , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Lphiy(i,j,k) =    (phiy(i+1,j,k) - 2.*phiy(i,j,k) + phiy(i-1,j,k)) / (dx[0]*dx[0])
                                 + (phiy(i,j+1,k) - 2.*phiy(i,j,k) + phiy(i,j-1,k)) / (dx[1]*dx[1])
@@ -353,9 +361,10 @@ void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi_in,
                                 + (phiz(i,j,k+1) - 2.*phiz(i,j,k) + phiz(i,j,k-1)) / (dx[2]*dx[2]);
             }
 #endif
+#endif
             );
-        
-    }    
+
+    }
 }
 
 void ComputeCurlFaceToEdge(std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
@@ -363,7 +372,7 @@ void ComputeCurlFaceToEdge(std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
                            const Geometry & geom)
 {
     BL_PROFILE_VAR("ComputeCurlFaceToEdge()",ComputeCurlFaceToEdge);
-    
+
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(umac_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -409,8 +418,8 @@ void ComputeCurlFaceToEdge(std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
                 curlxy(i,j,k) = (vmac(i,j,k) - vmac(i-1,j,k))/dx[0] - (umac(i,j,k)-umac(i,j-1,k))/dx[1];
             });
 #endif
-        
-    }    
+
+    }
 }
 
 void ComputeCurlCC(const MultiFab& vel_in,
@@ -420,13 +429,13 @@ void ComputeCurlCC(const MultiFab& vel_in,
                    const Geometry & geom)
 {
     BL_PROFILE_VAR("ComputeCurlCC()",ComputeCurlCC);
-    
+
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(vel_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         const Box& bx = mfi.tilebox();
-        
+
         Array4<Real const> const& vel  = vel_in.array(mfi);
         Array4<Real>       const& curl = curl_in.array(mfi);
 
@@ -437,7 +446,7 @@ void ComputeCurlCC(const MultiFab& vel_in,
                 (vel(i,j+1,k,incomp+2) - vel(i,j-1,k,incomp+2)) / (2.*dx[1]) -
                 (vel(i,j,k+1,incomp+1) - vel(i,j,k-1,incomp+1)) / (2.*dx[2]);
 
-            // du/dz - dw/dx                
+            // du/dz - dw/dx
             curl(i,j,k,outcomp+1) =
                 (vel(i,j,k+1,incomp+0) - vel(i,j,k-1,incomp+0)) / (2.*dx[2]) -
                 (vel(i+1,j,k,incomp+2) - vel(i-1,j,k,incomp+2)) / (2.*dx[0]);
@@ -447,7 +456,7 @@ void ComputeCurlCC(const MultiFab& vel_in,
                 (vel(i+1,j,k,incomp+1) - vel(i-1,j,k,incomp+1)) / (2.*dx[0]) -
                 (vel(i,j+1,k,incomp+0) - vel(i,j-1,k,incomp+0)) / (2.*dx[1]);
         });
-    }    
+    }
 }
 
 void ComputeDivCC(const MultiFab& vel_in,
@@ -457,13 +466,13 @@ void ComputeDivCC(const MultiFab& vel_in,
                    const Geometry & geom)
 {
     BL_PROFILE_VAR("ComputeDivCC()",ComputeCurlCC);
-    
+
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(vel_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         const Box& bx = mfi.tilebox();
-        
+
         Array4<Real const> const& vel  = vel_in.array(mfi);
         Array4<Real>       const& div  = div_in.array(mfi);
 
@@ -475,5 +484,5 @@ void ComputeDivCC(const MultiFab& vel_in,
                 (vel(i,j+1,k,incomp+1) - vel(i,j-1,k,incomp+1)) / (2.*dx[1]) +
                 (vel(i,j,k+1,incomp+2) - vel(i,j,k-1,incomp+2)) / (2.*dx[2]);
         });
-    }    
+    }
 }

@@ -10,7 +10,7 @@ void WritePlotFile(int step,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
                    const MultiFab& cellVols,
-                   FhdParticleContainer& particles) 
+                   FhdParticleContainer& particles)
 {
 
     std::string cplotfilename = Concatenate("cplt",step,9);
@@ -19,7 +19,7 @@ void WritePlotFile(int step,
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
 
- 
+
 //    int cnPlot = 40;
     int cnPlot = 47;
 

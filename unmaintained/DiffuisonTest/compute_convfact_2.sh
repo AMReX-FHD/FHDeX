@@ -34,10 +34,10 @@ do
 
     for grid in 0 1 2
     do
-	folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"
-	dir=$dir_top/$folder
-	filename=$plottype$zeros_plt${Nsteps[$grid]}
-	file[$grid]=$dir/$filename
+        folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"
+        dir=$dir_top/$folder
+        filename=$plottype$zeros_plt${Nsteps[$grid]}
+        file[$grid]=$dir/$filename
     done
 
     ## Run convergence computations

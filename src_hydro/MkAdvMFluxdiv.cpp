@@ -4,10 +4,10 @@
 
 
 void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
-		   const std::array<MultiFab, AMREX_SPACEDIM>& m,
-		   std::array<MultiFab, AMREX_SPACEDIM>& m_update,
-		   const amrex::Real* dx,
-		   const int& increment)
+    const std::array<MultiFab, AMREX_SPACEDIM>& m,
+    std::array<MultiFab, AMREX_SPACEDIM>& m_update,
+    const amrex::Real* dx,
+    const int& increment)
 {
 
     BL_PROFILE_VAR("MkAdvMFluxdiv()",MkAdvMFluxdiv);
@@ -20,7 +20,7 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
             m_update[dir].setVal(0.,0,1,0);
         }
     }
-    
+
     // Loop over boxes
     for (MFIter mfi(umac_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 

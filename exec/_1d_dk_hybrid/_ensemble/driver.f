@@ -23,6 +23,7 @@ c
        double precision u(0:ndim+1,2),unew(0:ndim+1,2)
       double precision x(1:ndim),xl(1:ndim+1)
       double precision mean(ndim),var(ndim),skew(ndim),kur(ndim)
+      double precision mom3(ndim),mom4(ndim)
       double precision sqr(ndim),cub(ndim),for(ndim)
       double precision mean_acc(ndim),sqr_acc(ndim),cub_acc(ndim),
      1                 for_acc(ndim)
@@ -30,6 +31,8 @@ c
       double precision pdf(-1:201),binlo,binhi,dbin
       double precision av_mean, av_var, av_skew, av_kur, meanloc
       double precision var_mean, var_var, var_skew, var_kur
+      double precision av_mom3,av_mom4,var_mom3,var_mom4
+      double precision maxn,maxntot
       integer nbins,ipdf,ibin,totpts
 
 
@@ -42,7 +45,8 @@ c
       character*28 skewfile
       character*28 kurfile
       character*27 pdffile
-
+      character*28 mom3file
+      character*28 mom4file
 
 
       integer seed,ntherm,nstep,i,j,k,l,iper,iprint,istat,jstart
@@ -58,14 +62,14 @@ c
 
       double precision  uleft, uright, pi, uinit
 
-      common /params/  uleft, uright, pi
+      common /params/  uleft, uright, pi, uinit
 
       namelist /input_param/ npts,xlen,iper,dorand,seed,ntherm,nstep,
      1   dt,nout,ires,nstat,icor,ires,uleft,uright, uinit, cfl,
      1   jmidl,jmidr,midfact,jpartl,jpartr,is_hybrid,ensemble,
      1   is_gaussian,irestart, ipdf, binlo, nbins, dbin, ensout
 
-       
+
        xlen = 1.d0
        iper = 1
        irestart = 0
@@ -87,8 +91,9 @@ c
        nbins = 150
        ipdf = 0
        ensout = 1
-    
- 
+       maxntot = 0.d0
+
+
        read(5,input_param)
        write(6,input_param)
 
@@ -103,11 +108,15 @@ c
           tag = "hy_"
           if(jpartl.eq.1 .and. jpartr.eq.npts)then
            is_pure_part = 1
-            tag = "pp_"
+            tag = "ph_"
             write(6,*)" pure particle simulation"
           elseif(jpartl.le.npghost .or. jpartr.gt.npts-npghost)then
-            write(6,*)" patch to close to boundary"
-            stop
+            write(6,*)" patch close to boundary"
+            if(iper.eq.1)then
+                write(6,*)" can't be periodic with particles",
+     1               " patch touching boundary"
+                stop
+            endif
           endif
        endif
 
@@ -117,8 +126,8 @@ c
        endif
 
        pi = 4.d0*atan2(1.d0,1.d0)
- 
- 	time =0.0
+
+     time =0.0
         dx = xlen/dfloat(npts)
 
         do j=1,npts
@@ -128,7 +137,7 @@ c
           xl(npts+1) = xlen
 
        if(cfl.gt.0.d0)then
- 
+
           dt = cfl*dx**2
 
        endif
@@ -147,8 +156,6 @@ c
 
       istat = 0
 
-      write(6,*)"delreg,delnreg",4.d0*dx**2, 4.d0*dx**2*uinit
-
 
         call blinitrand(seed)
 
@@ -162,8 +169,8 @@ c   set initial conditions
         do j=1,npts
 
            u(j,k) = uinit
-           
-           if(j.ge.jmidl .and. j.le.jmidr)then 
+
+           if(j.ge.jmidl .and. j.le.jmidr)then
               u(j,k) = u(j,k)*midfact
            endif
 
@@ -177,10 +184,9 @@ c   set initial conditions
                 totmass = totmass+u(j,1)
 
             enddo
- 
+
             totmass = totmass * dx
 
-c          write(6,*)"init totmass before = ",totmass
 
 
         if(is_hybrid.eq.1)then
@@ -198,7 +204,7 @@ c          write(6,*)"init totmass before = ",totmass
                 totmass = totmass+u(j,1)
 
             enddo
- 
+
             totmass = totmass * dx
 
 c          write(6,*)"init totmass after = ",totmass
@@ -209,7 +215,7 @@ c   set up stuff to gather statistics
 
 
 
-c     call output(x,xl,u,npts,0,0.d0,ens,ndim)
+      call output(x,xl,u,npts,0,0.d0,ens,ndim)
 
       do 200 n=1,nstep
 
@@ -224,6 +230,7 @@ c        if(is_hybrid.eq.0 .or .is_pure_part.eq.0)then
 
 c           call blinvnormdist(ranflux(j,l))
             call blinvnormdist(ranflux(j,1))
+
 
 c        enddo
          enddo
@@ -270,8 +277,12 @@ c        weight =(2.d0*sqrt(2.d0)+sqrt(3.d0))/5.d0
 
         num_part = num_part_new
 
+c       write(6,*)" before avg ",u(1,1)
+
         call  avg_down(u,part,xl,jpartl,jpartr,num_part,dx,
      1         ndim,pdim)
+
+c       write(6,*)" after avg ",u(1,1)
 
 c       totmass = 0.d0
 c       do j=jpartl,jpartr
@@ -281,6 +292,8 @@ c       write(6,*)" mass in particle region ",totmass*dx
 
         call reflux(u,fluxregl,fluxregr,crossl,crossr,
      1          jpartl,jpartr,npts,dx, ndim)
+
+c       write(6,*)" after rflux ",u(1,1)
 
       endif
 
@@ -317,6 +330,17 @@ c          con(j,1) = 1.d0/3.d0*(con(j,1)+2.d0*conpre2(j,1)
 c    1          -2.d0*dt*(fluxr(j+1)-fluxr(j))/dx)
 c      enddo
 
+            totmass = 0.d0
+            maxn = 0.d0
+            do j=1,npts
+
+                totmass = totmass+u(j,1)
+                maxn = max(maxn,u(j,1))
+
+            enddo
+           maxntot = max(maxn,maxntot)
+
+
          if(n.gt.ntherm .and. mod(n,nout).eq.0)then
 
             totmass = 0.d0
@@ -328,7 +352,7 @@ c      enddo
                 minmass = min(minmass,u(j,1))
 
             enddo
- 
+
             totmass = totmass * dx
 
 c          write(6,*)n, "time = ",time, " totmass = ",totmass,
@@ -373,7 +397,7 @@ c     gather statistics
         if(n.gt.ntherm .and. mod(n,nout).eq.0 .and.
      1     mod(ens,ensout).eq.0)then
 
-c          call output(x,xl,u,npts,n,time,ens,ndim)
+           call output(x,xl,u,npts,n,time,ens,ndim)
 
       do j=1,npts
 
@@ -390,10 +414,14 @@ c          call output(x,xl,u,npts,n,time,ens,ndim)
       av_var  = 0.d0
       av_skew = 0.d0
       av_kur  = 0.d0
+      av_mom3  = 0.d0
+      av_mom4  = 0.d0
       var_mean = 0.d0
       var_var  = 0.d0
       var_skew = 0.d0
       var_kur  = 0.d0
+      var_mom3  = 0.d0
+      var_mom4  = 0.d0
 
       do j=1,npts
 
@@ -401,6 +429,9 @@ c          call output(x,xl,u,npts,n,time,ens,ndim)
       skew(j) = cub(j) - 3.d0*sqr(j)*mean(j) + 2.d0*mean(j)**3
       kur(j) = for(j) - 4.d0*cub(j)*mean(j) +6.d0*sqr(j)*mean(j)**2
      1    - 3.d0*mean(j)**4
+
+      mom3(j) = skew(j)
+      mom4(j) = kur(j)
 
          if(var(j).gt.0.d0)then
 c           skew(j) = skew(j)/(dfloat(ensemble)*var(j)**1.5)
@@ -416,29 +447,40 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
       av_var  = av_var  + var(j)
       av_skew = av_skew + skew(j)
       av_kur  = av_kur  + kur(j)
+      av_mom3  = av_mom3  + mom3(j)
+      av_mom4  = av_mom4  + mom4(j)
       var_mean = var_mean + mean(j)**2
       var_var  = var_var  + var(j)**2
       var_skew = var_skew + skew(j)**2
       var_kur  = var_kur  + kur(j)**2
+      var_mom3  = var_mom3  + mom3(j)**2
+      var_mom4  = var_mom4  + mom4(j)**2
 
       enddo
 
-      write(6,*)"istats",istat,npts
 
       av_mean = av_mean / dfloat(npts)
       av_var  = av_var  / dfloat(npts)
       av_skew = av_skew / dfloat(npts)
       av_kur  = av_kur  / dfloat(npts)
+      av_mom3  = av_mom3  / dfloat(npts)
+      av_mom4  = av_mom4  / dfloat(npts)
       var_mean = var_mean / dfloat(npts) - av_mean**2
       var_var  = var_var  / dfloat(npts) - av_var**2
       var_skew = var_skew / dfloat(npts) - av_skew**2
       var_kur  = var_kur  / dfloat(npts) - av_kur**2
+      var_mom3  = var_mom3  / dfloat(npts) - av_mom3**2
+      var_mom4  = var_mom4  / dfloat(npts) - av_mom4**2
 
-      write(6,*)"aver stats ", av_mean, av_var, av_skew,av_kur
+      write(6,*)"aver stats ", av_mean, av_var, av_skew,av_kur,av_mom3,
+     1       av_mom4
       write(6,*)"error bars ",sqrt(var_mean/dfloat(npts)),
      1                        sqrt(var_var/dfloat(npts)),
      1                        sqrt(var_skew/dfloat(npts)),
-     1                        sqrt(var_kur/dfloat(npts))
+     1                        sqrt(var_kur/dfloat(npts)),
+     1                        sqrt(var_mom3/dfloat(npts)),
+     1                        sqrt(var_mom4/dfloat(npts))
+
 
       write(label,'(i6.6,"_",i9.9)')ens,n
 
@@ -446,11 +488,16 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
       varfile  =  "var_" // tag // label // ".dat"
       skewfile = "skew_" // tag // label // ".dat"
       kurfile = "kurt_" // tag // label // ".dat"
+      mom3file = "mom3_" // tag // label // ".dat"
+      mom4file = "mom4_" // tag // label // ".dat"
+
 
       open(20,file=meanfile,form='formatted')
       open(21,file=varfile,form='formatted')
       open(22,file=skewfile,form='formatted')
       open(23,file=kurfile,form='formatted')
+      open(24,file=mom3file,form='formatted')
+      open(25,file=mom4file,form='formatted')
 
       do j=1,npts
 
@@ -458,6 +505,8 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
       write(21,102)x(j),var(j)
       write(22,102)x(j),skew(j)
       write(23,102)x(j),kur(j)
+      write(24,102)x(j),mom3(j)
+      write(25,102)x(j),mom4(j)
 
       enddo
 
@@ -465,6 +514,8 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
       close(21)
       close(22)
       close(23)
+      close(24)
+      close(25)
 
          if(ipdf .eq.1)then
             pdffile = "pdf_" // tag // label // ".dat"
@@ -494,7 +545,7 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
 
 1000    format(1p37e17.7)
 
-        if(iprint.eq.0)then
+        if(iprint.eq.0 .and. mod(ens,ensout).eq.0)then
 
            time=nstep*dt
            call output(x,xl,u,npts,n,time,ens,ndim)
@@ -516,29 +567,29 @@ c           kur(j) = kur(j)/(dfloat(ensemble))
 
       integer jmax,j
 
-      character*15 ufile
-      character*5 step
-      character*7  ensemble
+      character*17 ufile
+      character*9 step
+      character*5  ensemble
 
-    
-      write(ensemble,'(i7.7)') ens
-      write(step,'(i5.5)') n
+
+      write(ensemble,'(i5.5)') ens
+      write(step,'(i9.9)') n
       ufile = "u_" // ensemble // "_" // step
 
-c     open(20,file=ufile,form='formatted')
+      open(20,file=ufile,form='formatted')
 
       write(6,100)n,time,ens
   100 format(//" step,time = ",i10,1e15.7/)
 
-c     do j=1,jmax
+      do j=1,jmax
 
-c     write(6,101)x(j),u(j)
-c     write(20,102)x(j),u(j)
+      write(6,101)x(j),u(j)
+      write(20,102)x(j),u(j)
 
-c     enddo
+      enddo
 
 c     close(20)
-     
+
   101 format(1p8e15.7)
   102 format(1p6e20.12)
       return

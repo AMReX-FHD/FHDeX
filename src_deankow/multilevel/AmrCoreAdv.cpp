@@ -21,10 +21,26 @@ using namespace std::chrono;
 
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
-//             - initializes BCRec boundary condition object
+//             - initializes BCRe boundary condition object
 AmrCoreAdv::AmrCoreAdv ()
 {
-    ReadParameters();
+
+    // periodic boundaries
+    //int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+    //int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+    amrex::Vector<int> bc_lo(AMREX_SPACEDIM,0);
+    amrex::Vector<int> bc_hi(AMREX_SPACEDIM,0);
+
+/*
+    // walls (Neumann)
+    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+*/
+    // walls Dirichlet
+    //int bc_lo[] = {amrex::BCType::ext_dir, amrex::BCType::ext_dir, amrex::BCType::ext_dir};
+    //int bc_hi[] = {amrex::BCType::ext_dir, amrex::BCType::ext_dir, amrex::BCType::ext_dir};
+
+    ReadParameters(bc_lo,bc_hi);
 
     /////////////////////////////////////////
     //Initialise rngs
@@ -73,16 +89,6 @@ AmrCoreAdv::AmrCoreAdv ()
 
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
-
-    // periodic boundaries
-    int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-    int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-
-/*
-    // walls (Neumann)
-    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
-    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
-*/
 
     bcs.resize(1);     // Setup 1-component
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -221,7 +227,8 @@ AmrCoreAdv::InitData ()
 
 void AmrCoreAdv::MakeFBA(const BoxArray& ba)
 {
-    Box domain(Geom(1).Domain());
+    int lev = 1;
+    Box domain(Geom(lev).Domain());
     BoxList valid_bl(ba);
     BoxList com_bl = GetBndryCells(ba,1);
 #if (AMREX_SPACEDIM == 2)
@@ -229,11 +236,59 @@ void AmrCoreAdv::MakeFBA(const BoxArray& ba)
 #else
     Vector<IntVect> pshifts(27);
 #endif
+
     BoxList com_bl_fixed;
+
+    //
+    // Loop over boxes created by GetBndryCells call -- note that if periodic
+    // some of these boxes may intersect the valid_bl so we remove those intersections
+    // by intersecting with the copmlement of the valid ba
+    //
     for (auto& b : com_bl) {
         Box bx(b);
-        com_bl_fixed.push_back(b);
+
+        //
+        // First intersect the existing box with the domain and keep that
+        // Note that GetBndryCells would not include any cells inside the domain
+        // that are part of the original ba
+        //
+        Box b1 = bx & domain;
+        if (!b1.isEmpty()) {
+            com_bl_fixed.push_back(b1);
+        }
+
+        //
+        // Next add the pieces that were outside the domain in a periodic direction
+        // Note that GetBndryCells DOES include cells outside the domain
+        // that are part of the original ba if shifted periodically
+        //
+        geom[lev].periodicShift(domain, bx, pshifts);
+        for (int n = 0; n < pshifts.size(); n++) {
+            Box bx_shift(b);
+            bx_shift.shift(pshifts[n]);
+            Box b2 = bx_shift & domain;
+            if (!b2.isEmpty()) {
+                // Now we have to make sure we don't include any intersection of this b2
+                // with the valid boxArray
+                BoxList bl_comp = complementIn(b2,valid_bl);
+                for (auto& b_comp : bl_comp) {
+                    Box bx_comp(b_comp);
+                    if (!bx_comp.isEmpty()) {
+                        com_bl_fixed.push_back(bx_comp);
+                    }
+                }
+            }
+        }
     }
+
+    //
+    // Remove any duplicated regions in the boundary cells
+    //
+    com_bl_fixed.simplify();
+
+    //
+    // Add the valid boxes
+    //
     com_bl_fixed.catenate(valid_bl);
     grown_fba.define(com_bl_fixed);
 }
@@ -335,7 +390,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     } else {
        ncomp = 2;
     }
- 
+
     if (lev == 1) {
         MakeFBA(ba);
     }
@@ -433,7 +488,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
 
 // read in some parameters from inputs file
 void
-AmrCoreAdv::ReadParameters ()
+AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi)
 {
     {
         ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
@@ -445,6 +500,11 @@ AmrCoreAdv::ReadParameters ()
 
         alg_type = 0;
         pp.queryAdd("alg_type", alg_type);
+
+
+        // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
+        pp.queryarr("bc_lo", bc_lo);
+        pp.queryarr("bc_hi", bc_hi);
 
         seed = 0;
         pp.queryAdd("seed", seed);
@@ -650,8 +710,8 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 
             Real sum_phi_reg_new = phi_new[0].sum();
             Real sum_phi_reg_old = phi_old[0].sum();
-            amrex::Print() << " Sum(Phi) new / old / diff / %diff  after regrid = " << std::setw(24) <<  std::setprecision(16) << std::scientific << 
-                   sum_phi_reg_new << " " << sum_phi_reg_old << " " << (sum_phi_reg_new-sum_phi_reg_old) << " " << 
+            amrex::Print() << " Sum(Phi) new / old / diff / %diff  after regrid = " << std::setw(24) <<  std::setprecision(16) << std::scientific <<
+                   sum_phi_reg_new << " " << sum_phi_reg_old << " " << (sum_phi_reg_new-sum_phi_reg_old) << " " <<
                    (sum_phi_reg_new-sum_phi_reg_old)/sum_phi_reg_old << std::endl;
         }
     }
@@ -770,47 +830,37 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
     return dt_est;
 }
 
-// get plotfile name
-std::string
-AmrCoreAdv::PlotFileName (int lev) const
-{
-    return amrex::Concatenate(plot_file, lev, 6);
-}
-
-// put together an array of multifabs for writing
-Vector<const MultiFab*>
-AmrCoreAdv::PlotFileMF () const
-{
-    Vector<const MultiFab*> r;
-    for (int i = 0; i <= finest_level; ++i) {
-        r.push_back(&phi_new[i]);
-    }
-    return r;
-}
-
-// set plotfile variable names
-Vector<std::string>
-AmrCoreAdv::PlotFileVarNames ()
-{
-    return {"phi"};
-}
-
 // write plotfile to disk
 void
 AmrCoreAdv::WritePlotFile () const
 {
-    const std::string& plotfilename = PlotFileName(istep[0]);
-    const auto& mf = PlotFileMF();
-    const auto& varnames = PlotFileVarNames();
+    const std::string& plotfilename = amrex::Concatenate(plot_file, istep[0], 6);
+
+    // Vector of MultiFabs
+    Vector<MultiFab> mf(finest_level+1);
+    int ncomp_mf = 2; int src_comp = 0;
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        mf[lev].define(grids[lev], dmap[lev], ncomp_mf, 0);
+        MultiFab::Copy(mf[lev],phi_new[lev],src_comp,0,1,0);
+        MultiFab::Copy(mf[lev],phi_new[lev],src_comp,1,1,0);
+
+        // Set the fine data in "phi0" to -1 so we can test on that value and plot particles over blank space
+        if (lev == 1) {
+            mf[lev].setVal(-1.0,1,1,0);
+        }
+    }
+
+
+    Vector<std::string> varnames = {"phi", "phi0"};
 
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
 
     if (finest_level == 0)
     {
         int fake_finest_level = 0;
-        WriteMultiLevelPlotfile(plotfilename, fake_finest_level+1, mf, varnames,
+        WriteMultiLevelPlotfile(plotfilename, fake_finest_level+1, GetVecOfConstPtrs(mf), varnames,
                                 Geom(), t_new[0], istep, refRatio());
-    } else { 
+    } else {
 
         PhysBCFunctNoOp null_bc_for_fill;
 
@@ -818,12 +868,10 @@ AmrCoreAdv::WritePlotFile () const
         Vector<Geometry>  g2(finest_level+1);
         Vector<MultiFab> mf2(finest_level+1);
 
-        int ncomp_mf = mf[0]->nComp();
-
         mf2[0].define(grids[0], dmap[0], ncomp_mf, 0);
 
         // Copy level 0 as is
-        MultiFab::Copy(mf2[0],*mf[0],0,0,ncomp_mf,0);
+        MultiFab::Copy(mf2[0],mf[0],0,0,ncomp_mf,0);
 
         // Define a new multi-level array of Geometry's so that we pass the new "domain" at lev > 0
         Array<int,AMREX_SPACEDIM> periodicity =
@@ -849,14 +897,25 @@ AmrCoreAdv::WritePlotFile () const
             g2[lev].define(d2,&(Geom()[lev].ProbDomain()),0,periodicity.data());
         }
 
+        amrex::Vector<amrex::BCRec> bcs_temp;
+        bcs_temp.resize(2);     // Setup for 2 components in mf
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            bcs_temp[0].setLo(idim, bcs[0].lo()[idim]);
+            bcs_temp[1].setLo(idim, bcs[0].lo()[idim]);
+
+            bcs_temp[0].setHi(idim, bcs[0].hi()[idim]);
+            bcs_temp[1].setHi(idim, bcs[0].hi()[idim]);
+        }
+
         // Do piecewise interpolation of mf into mf2
         for (int lev = 1; lev <= finest_level; ++lev) {
             Interpolater* mapper_c = &pc_interp;
-            InterpFromCoarseLevel(mf2[lev], t_new[lev], *mf[lev],
+            InterpFromCoarseLevel(mf2[lev], t_new[lev], mf[lev],
                                   0, 0, ncomp_mf,
                                   geom[lev], g2[lev],
                                   null_bc_for_fill, 0, null_bc_for_fill, 0,
-                                  r2[lev-1], mapper_c, bcs, 0);
+                                  r2[lev-1], mapper_c, bcs_temp, 0);
         }
 
         // Define an effective ref_ratio which is isotropic to be passed into WriteMultiLevelPlotfile
@@ -870,6 +929,10 @@ AmrCoreAdv::WritePlotFile () const
                                    g2, t_new[0], istep, rr);
 
     }
+
+#ifdef AMREX_PARTICLES
+   particleData.writePlotFile(plotfilename,phi_new[1]);
+#endif
 }
 
 void

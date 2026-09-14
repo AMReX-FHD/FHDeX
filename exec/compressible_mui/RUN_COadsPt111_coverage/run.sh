@@ -12,7 +12,7 @@ then
   exit
 fi
 
-# check fhd executable 
+# check fhd executable
 exec2=../main3d.gnu.MPI.ex
 if [ ! -f $exec2 ]
 then
@@ -28,7 +28,7 @@ then
   exit
 fi
 
-# copy main driver file 
+# copy main driver file
 cp ../main_driver.cpp .
 
 # copy spparks app file
@@ -44,7 +44,7 @@ then
   exit
 fi
 
-# check timestep size 
+# check timestep size
 N1=`grep Trun $SPKSCR | head -1 | awk '{print $4}'`
 N2=`grep fixed_dt $FHDSCR | awk '{print $3}'`
 if [ "$N1" != "$N2" ]

@@ -7,9 +7,9 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo,
   integer         , intent(in   ) :: lo(3), hi(3), vello(3), velhi(3), di
   real(amrex_real), intent(inout) :: vel(vello(1):velhi(1),vello(2):velhi(2),vello(3):velhi(3))
   real(amrex_real), intent(in   ) :: reallo(3), realhi(3)
-  real(amrex_real), intent(in   ) :: prob_lo(3) 
+  real(amrex_real), intent(in   ) :: prob_lo(3)
   real(amrex_real), intent(in   ) :: prob_hi(3)
-  real(amrex_real), intent(in   ) :: dx(3) 
+  real(amrex_real), intent(in   ) :: dx(3)
 
   integer          :: i,j,k
   double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad

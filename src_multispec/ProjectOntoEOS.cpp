@@ -8,7 +8,7 @@ void ProjectOntoEOS(MultiFab& rho_in)
             rho_in.setVal(rho0);
             return;
         }
-        
+
         for ( MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
             const Box& bx = mfi.tilebox();
@@ -20,7 +20,7 @@ void ProjectOntoEOS(MultiFab& rho_in)
                 for (int n=0; n<nspecies-1; ++n) {
                     sum += rho(i,j,k,n);
                 }
-                rho(i,j,k,nspecies-1) = rho0 - sum;                
+                rho(i,j,k,nspecies-1) = rho0 - sum;
             });
 
         }
@@ -28,7 +28,7 @@ void ProjectOntoEOS(MultiFab& rho_in)
     } else {
 
         Abort("ProjectOntoEOS algorithm_type = 0, 2, 3, 5 not written");
-        
+
     }
-    
+
 }

@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -32,7 +32,7 @@ enum{NOSWEEP,RANDOM,RASTER,COLOR,COLOR_STRICT};  // from app_lattice.cpp
 
 /* ---------------------------------------------------------------------- */
 
-AppDiffusion::AppDiffusion(SPPARKS *spk, int narg, char **arg) : 
+AppDiffusion::AppDiffusion(SPPARKS *spk, int narg, char **arg) :
   AppLattice(spk,narg,arg)
 {
   // these can be changed by model choice, see below
@@ -138,7 +138,7 @@ void AppDiffusion::input_app(char *command, int narg, char **arg)
   if (strcmp(command,"ecoord") == 0) {
     if (engstyle != NONLINEAR)
       error->all(FLERR,"Can only use ecoord command with "
-		 "app_style diffusion nonlinear");
+         "app_style diffusion nonlinear");
     if (narg != 2) error->all(FLERR,"Illegal ecoord command");
 
     int lo,hi;
@@ -201,16 +201,16 @@ void AppDiffusion::input_app(char *command, int narg, char **arg)
       double q = atof(arg[1]);
       int i,j;
       for (i = 0; i <= maxneigh; i++)
-	for (j = 0; j <= maxneigh; j++)
-	  barrier[i][j] = q;
+        for (j = 0; j <= maxneigh; j++)
+          barrier[i][j] = q;
 
     } else if (narg == 3) {
       int delta = atoi(arg[1]);
       double q = atof(arg[2]);
       int i,j;
       for (i = 0; i <= maxneigh; i++)
-	for (j = 0; j <= maxneigh; j++)
-	  if (j-i == delta) barrier[i][j] = q;
+        for (j = 0; j <= maxneigh; j++)
+          if (j-i == delta) barrier[i][j] = q;
 
     } else {
       int ilo,ihi,jlo,jhi;
@@ -219,8 +219,8 @@ void AppDiffusion::input_app(char *command, int narg, char **arg)
       double q = atof(arg[3]);
 
       for (int i = ilo; i <= ihi; i++)
-	for (int j = jlo; j <= jhi; j++)
-	  barrier[i][j] = q;
+        for (int j = jlo; j <= jhi; j++)
+          barrier[i][j] = q;
     }
 
   } else error->all(FLERR,"Unrecognized command");
@@ -338,7 +338,7 @@ void AppDiffusion::site_event_rejection(int i, RandomPark *random)
     if (!barrierflag) hop = 1;
     else if (temperature > 0.0) {
       if (random->uniform() < exp(-hbarrier[ncoord(i)-1][ncoord(j)]*t_inverse))
-	  hop = 1;
+          hop = 1;
     }
 
   } else {
@@ -347,16 +347,16 @@ void AppDiffusion::site_event_rejection(int i, RandomPark *random)
     if (!barrierflag) {
       if (edelta <= 0.0) hop = 1;
       else if (temperature > 0.0) {
-	if (random->uniform() < exp(-2.0*edelta*t_inverse)) hop = 1;
+        if (random->uniform() < exp(-2.0*edelta*t_inverse)) hop = 1;
       }
     } else if (temperature > 0.0) {
       if (edelta <= 0.0) {
-	if (random->uniform() < 
-	    exp(-hbarrier[ncoord(i)-1][ncoord(j)]*t_inverse)) hop = 1;
+        if (random->uniform() <
+            exp(-hbarrier[ncoord(i)-1][ncoord(j)]*t_inverse)) hop = 1;
       } else {
-	if (random->uniform() < 
-	    exp((-2.0*edelta-hbarrier[ncoord(i)-1][ncoord(j)]) * t_inverse))
-	  hop = 1;
+        if (random->uniform() <
+            exp((-2.0*edelta-hbarrier[ncoord(i)-1][ncoord(j)]) * t_inverse))
+          hop = 1;
       }
     }
   }
@@ -412,7 +412,7 @@ double AppDiffusion::site_propensity_no_energy(int i)
   for (j = 0; j < numneigh[i]; j++)
     if (lattice[neighbor[i][j]] == VACANT) hopsite[nhop1++] = neighbor[i][j];
   nhop2 = nhop1;
-  if (hopstyle == SCHWOEBEL) 
+  if (hopstyle == SCHWOEBEL)
     nhop2 += schwoebel_enumerate(i,&hopsite[nhop1]);
 
   // loop over all possible hops
@@ -435,13 +435,13 @@ double AppDiffusion::site_propensity_no_energy(int i)
     if (!barrierflag) probone = 1.0;
     else if (temperature > 0.0)
       probone = exp(-barrier[ncoord(i)-delta][ncoord(j)]*t_inverse);
-    
+
     if (probone > 0.0) {
       eflag = (ihop < nhop1) ? NNHOP : SCHWOEBEL;
       add_event(i,j,probone,eflag);
       proball += probone;
     }
-    
+
     lattice[i] = OCCUPIED;
     lattice[j] = VACANT;
   }
@@ -486,7 +486,7 @@ double AppDiffusion::site_propensity_linear(int i)
   for (j = 0; j < numneigh[i]; j++)
     if (lattice[neighbor[i][j]] == VACANT) hopsite[nhop1++] = neighbor[i][j];
   nhop2 = nhop1;
-  if (hopstyle == SCHWOEBEL) 
+  if (hopstyle == SCHWOEBEL)
     nhop2 += schwoebel_enumerate(i,&hopsite[nhop1]);
 
   // loop over all possible hops
@@ -509,25 +509,25 @@ double AppDiffusion::site_propensity_linear(int i)
     probone = 0.0;
 
     edelta = site_energy(j) - einitial;
-      
+
     if (!barrierflag) {
       if (edelta <= 0.0) probone = 1.0;
-      else if (temperature > 0.0) 
-	probone = exp(-2.0*edelta*t_inverse);
+      else if (temperature > 0.0)
+        probone = exp(-2.0*edelta*t_inverse);
     } else if (temperature > 0.0) {
       if (edelta <= 0.0)
-	probone = exp(-barrier[ncoord(i)-delta][ncoord(j)]*t_inverse);
+        probone = exp(-barrier[ncoord(i)-delta][ncoord(j)]*t_inverse);
       else
-	probone = exp((-2.0*edelta-barrier[ncoord(i)-delta][ncoord(j)]) * 
-		      t_inverse);
+        probone = exp((-2.0*edelta-barrier[ncoord(i)-delta][ncoord(j)]) *
+                  t_inverse);
     }
-    
+
     if (probone > 0.0) {
       eflag = (ihop < nhop1) ? NNHOP : SCHWOEBEL;
       add_event(i,j,probone,eflag);
       proball += probone;
     }
-    
+
     lattice[i] = OCCUPIED;
     lattice[j] = VACANT;
   }
@@ -572,7 +572,7 @@ double AppDiffusion::site_propensity_nonlinear(int i)
   for (j = 0; j < numneigh[i]; j++)
     if (lattice[neighbor[i][j]] == VACANT) hopsite[nhop1++] = neighbor[i][j];
   nhop2 = nhop1;
-  if (hopstyle == SCHWOEBEL) 
+  if (hopstyle == SCHWOEBEL)
     nhop2 += schwoebel_enumerate(i,&hopsite[nhop1]);
 
   // loop over all possible hops
@@ -598,7 +598,7 @@ double AppDiffusion::site_propensity_nonlinear(int i)
     psites[nsites++] = i;
     psites[nsites++] = j;
     pcheck[i] = pcheck[j] = 1;
-      
+
     for (k = 0; k < numneigh[i]; k++) {
       m = neighbor[i][k];
       if (pcheck[m]) continue;
@@ -613,21 +613,21 @@ double AppDiffusion::site_propensity_nonlinear(int i)
       psites[nsites++] = m;
       pcheck[m] = 1;
     }
-    
+
     for (m = 0; m < nsites; m++) pcheck[psites[m]] = 0;
-    
+
     lattice[i] = VACANT;
     lattice[j] = OCCUPIED;
-      
+
     // efinal = i,j and their neighbors
     // use pcheck[] to avoid recomputing energy of same site
-    
+
     efinal = site_energy(i) + site_energy(j);
     nsites = 0;
     psites[nsites++] = i;
     psites[nsites++] = j;
     pcheck[i] = pcheck[j] = 1;
-    
+
     for (k = 0; k < numneigh[i]; k++) {
       m = neighbor[i][k];
       if (pcheck[m]) continue;
@@ -642,29 +642,29 @@ double AppDiffusion::site_propensity_nonlinear(int i)
       psites[nsites++] = m;
       pcheck[m] = 1;
     }
-    
+
     for (m = 0; m < nsites; m++) pcheck[psites[m]] = 0;
-    
+
     edelta = efinal - einitial;
 
     if (!barrierflag) {
       if (edelta <= 0.0) probone = 1.0;
-      else if (temperature > 0.0) 
-	probone = exp(-edelta*t_inverse);
+      else if (temperature > 0.0)
+        probone = exp(-edelta*t_inverse);
     } else if (temperature > 0.0) {
       if (edelta <= 0.0)
-	probone = exp(-barrier[ncoord(i)-delta][ncoord(j)]*t_inverse);
+        probone = exp(-barrier[ncoord(i)-delta][ncoord(j)]*t_inverse);
       else
-	probone = exp((-edelta-barrier[ncoord(i)-delta][ncoord(j)]) * 
-		      t_inverse);
+        probone = exp((-edelta-barrier[ncoord(i)-delta][ncoord(j)]) *
+                  t_inverse);
     }
-    
+
     if (probone > 0.0) {
       eflag = (ihop < nhop1) ? NNHOP : SCHWOEBEL;
       add_event(i,j,probone,eflag);
       proball += probone;
     }
-    
+
     lattice[i] = OCCUPIED;
     lattice[j] = VACANT;
   }
@@ -766,7 +766,7 @@ void AppDiffusion::site_event_linear(int i, class RandomPark *random)
   for (m = 0; m < nlocal; m++) {
     if (fabs(propensity[m]-site_propensity(m)) > 1.0e-6) {
       printf("BAD PROP = %d %d %d %g %g\n",
-	     id[i],id[j],id[m],propensity[m],site_propensity(m));
+             id[i],id[j],id[m],propensity[m],site_propensity(m));
       error->one(FLERR,"BAD DONE");
     }
   }
@@ -796,7 +796,7 @@ void AppDiffusion::site_event_nonlinear(int i, class RandomPark *random)
     if (proball >= threshhold) break;
     ievent = events[ievent].next;
     if (ievent < 0) error->one(FLERR,
-			       "Did not reach event propensity threshhold");
+                               "Did not reach event propensity threshhold");
   }
 
   // deposition or hop event
@@ -853,7 +853,7 @@ void AppDiffusion::site_event_nonlinear(int i, class RandomPark *random)
   for (m = 0; m < nlocal; m++) {
     if (fabs(propensity[m]-site_propensity(m)) > 1.0e-6) {
       printf("BAD PROP = %d %d %d %g %g\n",
-	     id[i],id[j],id[m],propensity[m],site_propensity(m));
+             id[i],id[j],id[m],propensity[m],site_propensity(m));
       error->one(FLERR,"BAD DONE");
     }
   }
@@ -886,9 +886,9 @@ int AppDiffusion::neighbor2(int i, int *sites)
       mm = neighbor[m][kk];
       isite = i2site[mm];
       if (isite >= 0 && echeck[isite] == 0) {
-	propensity[isite] = site_propensity(mm);
-	sites[nsites++] = isite;
-	echeck[isite] = 1;
+        propensity[isite] = site_propensity(mm);
+        sites[nsites++] = isite;
+        echeck[isite] = 1;
       }
     }
   }
@@ -918,18 +918,18 @@ int AppDiffusion::neighbor3(int i, int *sites)
       mm = neighbor[m][kk];
       isite = i2site[mm];
       if (isite >= 0 && echeck[isite] == 0) {
-	propensity[isite] = site_propensity(mm);
-	sites[nsites++] = isite;
-	echeck[isite] = 1;
+        propensity[isite] = site_propensity(mm);
+        sites[nsites++] = isite;
+        echeck[isite] = 1;
       }
       for (kkk = 0; kkk < numneigh[mm]; kkk++) {
-	mmm = neighbor[mm][kkk];
-	isite = i2site[mmm];
-	if (isite >= 0 && echeck[isite] == 0) {
-	  propensity[isite] = site_propensity(mmm);
-	  sites[nsites++] = isite;
-	  echeck[isite] = 1;
-	}
+        mmm = neighbor[mm][kkk];
+        isite = i2site[mmm];
+        if (isite >= 0 && echeck[isite] == 0) {
+          propensity[isite] = site_propensity(mmm);
+          sites[nsites++] = isite;
+          echeck[isite] = 1;
+        }
       }
     }
   }
@@ -959,27 +959,27 @@ int AppDiffusion::neighbor4(int i, int *sites)
       mm = neighbor[m][kk];
       isite = i2site[mm];
       if (isite >= 0 && echeck[isite] == 0) {
-	propensity[isite] = site_propensity(mm);
-	sites[nsites++] = isite;
-	echeck[isite] = 1;
+        propensity[isite] = site_propensity(mm);
+        sites[nsites++] = isite;
+        echeck[isite] = 1;
       }
       for (kkk = 0; kkk < numneigh[mm]; kkk++) {
-	mmm = neighbor[mm][kkk];
-	isite = i2site[mmm];
-	if (isite >= 0 && echeck[isite] == 0) {
-	  propensity[isite] = site_propensity(mmm);
-	  sites[nsites++] = isite;
-	  echeck[isite] = 1;
-	}
-	for (kkkk = 0; kkkk < numneigh[mmm]; kkkk++) {
-	  mmmm = neighbor[mmm][kkkk];
-	  isite = i2site[mmmm];
-	  if (isite >= 0 && echeck[isite] == 0) {
-	    propensity[isite] = site_propensity(mmmm);
-	    sites[nsites++] = isite;
-	    echeck[isite] = 1;
-	  }
-	}
+        mmm = neighbor[mm][kkk];
+        isite = i2site[mmm];
+        if (isite >= 0 && echeck[isite] == 0) {
+          propensity[isite] = site_propensity(mmm);
+          sites[nsites++] = isite;
+          echeck[isite] = 1;
+        }
+        for (kkkk = 0; kkkk < numneigh[mmm]; kkkk++) {
+          mmmm = neighbor[mmm][kkkk];
+          isite = i2site[mmmm];
+          if (isite >= 0 && echeck[isite] == 0) {
+            propensity[isite] = site_propensity(mmmm);
+            sites[nsites++] = isite;
+            echeck[isite] = 1;
+          }
+        }
       }
     }
   }
@@ -1021,14 +1021,14 @@ void AppDiffusion::clear_events(int i)
    event = exchange with site J with probability = propensity
 ------------------------------------------------------------------------- */
 
-void AppDiffusion::add_event(int i, int destination, 
-			      double propensity, int eventflag)
+void AppDiffusion::add_event(int i, int destination,
+                             double propensity, int eventflag)
 {
   // grow event list and setup free list
 
   if (nevents == maxevent) {
     maxevent += DELTAEVENT;
-    events = 
+    events =
       (Event *) memory->srealloc(events,maxevent*sizeof(Event),"app:events");
     for (int m = nevents; m < maxevent; m++) events[m].next = m+1;
     freeevent = nevents;
@@ -1078,7 +1078,7 @@ int AppDiffusion::schwoebel_enumerate(int i, int *site)
   // mark(K) = 30, has both a vacant/occupied 1st neigh, so consider it
   // if coord(K) < Nmin, no hop possible
   // if all criteria met, then it is a candidate hop, add to site[]
-  
+
   int nlist = 0;
   for (jneigh = 0; jneigh < numneigh[i]; jneigh++) {
     j = neighbor[i][jneigh];
@@ -1094,7 +1094,7 @@ int AppDiffusion::schwoebel_enumerate(int i, int *site)
 
       count = 0;
       for (m = 0; m < numneigh[k]; m++)
-	if (lattice[neighbor[k][m]] == OCCUPIED) count++;
+        if (lattice[neighbor[k][m]] == OCCUPIED) count++;
       if (count < nsmin) continue;
 
       site[nhop++] = k;
@@ -1218,19 +1218,19 @@ int AppDiffusion::exceed_limit(int m, double *start, double &dist2start)
 ------------------------------------------------------------------------- */
 
 double AppDiffusion::distsq_to_line(int m, double *start,
-				    int iprd, int jprd, double &dist2start)
+                                    int iprd, int jprd, double &dist2start)
 {
   double delta[3],projection[3],offset[3];
 
   delta[0] = xyz[m][0] + iprd*domain->xprd - start[0];
   delta[1] = xyz[m][1] + jprd*domain->yprd - start[1];
   delta[2] = xyz[m][2] - start[2];
-    
+
   dist2start = dir[0]*delta[0] + dir[1]*delta[1] + dir[2]*delta[2];
   projection[0] = dist2start*dir[0];
   projection[1] = dist2start*dir[1];
   projection[2] = dist2start*dir[2];
-  
+
   offset[0] = delta[0] - projection[0];
   offset[1] = delta[1] - projection[1];
   offset[2] = delta[2] - projection[2];
@@ -1256,8 +1256,8 @@ void AppDiffusion::allocate_data()
     int emax = 1 + maxneigh + maxneigh*maxneigh;
     esites = new int[2*emax];
     psites = NULL;
-  } else if ((engstyle == NO_ENERGY || engstyle == LINEAR) && 
-	     hopstyle == SCHWOEBEL) {
+  } else if ((engstyle == NO_ENERGY || engstyle == LINEAR) &&
+             hopstyle == SCHWOEBEL) {
     int emax = 1 + maxneigh + maxneigh*maxneigh + maxneigh*maxneigh*maxneigh;
     esites = new int[2*emax];
     psites = NULL;
@@ -1267,7 +1267,7 @@ void AppDiffusion::allocate_data()
     esites = new int[2*emax];
     psites = new int[2*pmax];
   } else if (engstyle == NONLINEAR && hopstyle == SCHWOEBEL) {
-    int emax = 1 + maxneigh + maxneigh*maxneigh + 
+    int emax = 1 + maxneigh + maxneigh*maxneigh +
       maxneigh*maxneigh*maxneigh + maxneigh*maxneigh*maxneigh*maxneigh;
     int pmax = 1 + maxneigh;
     esites = new int[2*emax];

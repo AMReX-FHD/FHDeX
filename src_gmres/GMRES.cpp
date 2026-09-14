@@ -5,7 +5,7 @@ GMRES::GMRES (const BoxArray& ba_in,
               const Geometry& geom_in) {
 
     BL_PROFILE_VAR("GMRES::GMRES()", GMRES);
-    
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         r_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 1);
         w_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
@@ -73,8 +73,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
     // use r_u, tmp_u, r_p, tmp_p as temporary storage
 
     bool inhomogeneous_fix = false;
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (wallspeed_x_lo[i] != 0.) inhomogeneous_fix = true;
+    for (int i_local=0; i_local<AMREX_SPACEDIM; ++i_local) {
+        if (wallspeed_x_lo[i_local] != 0.) inhomogeneous_fix = true;
         if (wallspeed_x_hi[i] != 0.) inhomogeneous_fix = true;
         if (wallspeed_y_lo[i] != 0.) inhomogeneous_fix = true;
         if (wallspeed_y_hi[i] != 0.) inhomogeneous_fix = true;
@@ -92,26 +92,26 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         // subtract the result from the rhs
 
         int is_inhomogeneous = 1;
-        
+
         r_p.setVal(0.);
         MultiFabPhysBC(r_p, geom, 0, 1, PRES_BC_COMP);
 
-        for (int i=0; i<AMREX_SPACEDIM; ++i ) {
-            r_u[i].setVal(0.);
-            MultiFabPhysBCMacVel(r_u[i], geom, i, is_inhomogeneous);
+        for (int i_local=0; i_local<AMREX_SPACEDIM; ++i_local ) {
+            r_u[i_local].setVal(0.);
+            MultiFabPhysBCMacVel(r_u[i_local], geom, i_local, is_inhomogeneous);
         }
 
         ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom,
                     is_inhomogeneous);
 
         MultiFab::Subtract(b_p, tmp_p, 0, 0, 1, 0);
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            MultiFab::Subtract(b_u[i], tmp_u[i], 0, 0, 1, 0);
+        for (int i_local=0; i_local<AMREX_SPACEDIM; ++i_local) {
+            MultiFab::Subtract(b_u[i_local], tmp_u[i_local], 0, 0, 1, 0);
         }
 
     }
     //////////////////////////////////////
-    
+
     //////////////////////////////////////
 
     /****************************************************************************
@@ -384,7 +384,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
                 StagInnerProd(w_u, 0, V_u, k, scr_u, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, scr_p, inner_prod_pres);
-                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) 
+                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.)
                           + pow(p_norm_weight, 2.0)*inner_prod_pres;
 
 

@@ -16,7 +16,7 @@ class TurbForcing {
 public:
 
     TurbForcing();
-    
+
     void define(BoxArray ba_in, DistributionMapping dmap_in,
                 const Real& a_in, const Real& b_in);
 

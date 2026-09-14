@@ -50,17 +50,17 @@ print("- average molecular mass = %e\n" % mavg)
 
 temp = 700
 E_bind = -1.50
-pres = 1.01325e6            # 1atm 
+pres = 1.01325e6            # 1atm
 p1 = pres*X1
 p2 = pres*X2
 
 rho = pres*Mavg/Runiv/temp  # total mass density
-rho1 = rho*Y1 
-rho2 = rho*Y2 
+rho1 = rho*Y1
+rho2 = rho*Y2
 
 dens = pres/kB/temp         # total number density
 n1 = dens*X1
-n2 = dens*X2 
+n2 = dens*X2
 
 print("** gas state **")
 
@@ -152,7 +152,7 @@ rcol1 = math.sqrt(kB*temp/2/math.pi/m1)*n1*(lat_const**2)
 
 sprob = 1.
 rads1 = sprob*rcol1
-kads1 = rads1/n1
+kads1 = rads1/p1
 
 kdes1 = rads1*math.exp((-delta_mu1+E_bind)*eV_cgs/(kB*temp))
 
@@ -162,7 +162,7 @@ print("- collision rate rcol1 = %e" % rcol1)
 
 print("- sticking prob = %f" % sprob)
 print("- rads1 = %e (rate)" % rads1)
-print("- kads1 = rads1/n1 (rate const) = %e" % kads1)
+print("- kads1 = rads1/p1 (rate const) = %e" % kads1)
 
 print("- kdes1 = %e" % kdes1)
 
@@ -243,7 +243,7 @@ print("dTsq*dv    (+/-25%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.75*dTsq*d
 dt = 1.e-12
 
 # diameters
-d1 = 3.76e-8 
+d1 = 3.76e-8
 d2 = 3.40e-8
 d12 = (d1+d2)/2
 

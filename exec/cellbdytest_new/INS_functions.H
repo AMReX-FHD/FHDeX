@@ -51,8 +51,8 @@ void WriteCheckPoint(int step,
                      const MultiFab& chargeM,
                      const MultiFab& potential,
                      const MultiFab& potentialM,
-		     const MultiFab& struct_cc_numdens0_real,
-		     const MultiFab& struct_cc_numdens0_imag);
+                     const MultiFab& struct_cc_numdens0_real,
+                     const MultiFab& struct_cc_numdens0_imag);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
@@ -65,13 +65,13 @@ void ReadCheckPoint(int& step,
                     MultiFab& chargeM,
                     MultiFab& potential,
                     MultiFab& potentialM,
-		    MultiFab& struct_cc_numdens0_real,
-		    MultiFab& struct_cc_numdens0_imag);
+                    MultiFab& struct_cc_numdens0_real,
+                    MultiFab& struct_cc_numdens0_imag);
 
 void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp);
 
-void ReadFile(const std::string& filename, Vector<char>& charBuf, 
-	      bool bExitOnError=true);
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
+              bool bExitOnError=true);
 
 ///////////////////////////
 

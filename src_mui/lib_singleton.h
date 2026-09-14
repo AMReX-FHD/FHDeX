@@ -12,21 +12,21 @@
 
 namespace mui {
 
-template<class T>
-class singleton
-{
-public:
-	static T& instance() {
-		static T instance_;
-		return instance_;
-	}
-private:
-	// make all constructors etc. private to guarantee uniqueness
-	singleton();
-	singleton(const singleton&);
-	singleton& operator=(const singleton&);
-	~singleton();
-};
+    template<class T>
+    class singleton
+    {
+    public:
+        static T& instance() {
+            static T instance_;
+            return instance_;
+        }
+    private:
+        // make all constructors etc. private to guarantee uniqueness
+        singleton();
+        singleton(const singleton&);
+        singleton& operator=(const singleton&);
+        ~singleton();
+    };
 
 }
 

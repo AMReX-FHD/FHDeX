@@ -14,16 +14,16 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry& geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& pres)
+    const MultiFab& pres)
 {
-    
+
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
-    
+
     std::string plotfilename = Concatenate(plot_base_name,step,7);
 
 
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
-    
+
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
@@ -84,23 +84,23 @@ void WritePlotFile(int step,
     // write a plotfile
     // timer
     Real t1 = ParallelDescriptor::second();
-        
+
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
-    
+
     Real t2 = ParallelDescriptor::second() - t1;
     ParallelDescriptor::ReduceRealMax(t2);
     amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;
 
     // staggered velocity
     if (plot_stag == 1) {
-      const std::string plotfilenamex = Concatenate("stagx",step,7);
-      const std::string plotfilenamey = Concatenate("stagy",step,7);
-      const std::string plotfilenamez = Concatenate("stagz",step,7);
+        const std::string plotfilenamex = Concatenate("stagx",step,7);
+        const std::string plotfilenamey = Concatenate("stagy",step,7);
+        const std::string plotfilenamez = Concatenate("stagz",step,7);
 
-      WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
-      WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
+        WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
+        WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
 #if (AMREX_SPACEDIM == 3)
-      WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
+        WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
 #endif
     }
 

@@ -80,7 +80,7 @@ for k in range(1,nz-1):
     tmp1 = mu2face[k]*F2z[k]/Tface[k]
     term2[k] += (tmp2-tmp1)/dz
 
-# Q.gradT/T^2
+# (Q.gradT)/T^2
 gradTz = np.zeros(nz)
 for k in range(1,nz):
     gradTz[k] = (prim4[k]-prim4[k-1])/dz
@@ -107,7 +107,7 @@ for k in range(1,nz-1):
     tmp2 = F2z[k+1]*gradmu2Tz[k+1]
     term4[k] += 0.5*(tmp1+tmp2)
 
-# sum muk*Mk*Omegak
+# (sum muk*Mk*Omegak)/T
 M1 = 46.0055
 M2 = 92.0110
 term5 = np.zeros(nz)
@@ -136,7 +136,7 @@ term14 = np.zeros(nz)
 for k in range(1,nz-1):
     term14[k] = (Qz[k+1]-Qz[k])/dz/prim4[k]
 
-# sum muk*(div(Fk)-Mk*Omegak)/T
+# (sum muk*(div(Fk)-Mk*Omegak))/T
 term15 = np.zeros(nz)
 for k in range(1,nz-1):
     tmp = (F1z[k+1]-F1z[k])/dz
@@ -148,5 +148,5 @@ for k in range(1,nz-1):
 
 # output for final terms
 outfile3 = "res.entropy_check"
-np.savetxt(outfile3,np.column_stack((z_in,term1,term2,term3,term4,term5,term11,term12,term13,term14,term15)))
+np.savetxt(outfile3,np.column_stack((z_in,term1,term2,term3,term4,term5,term11,term12,term13,term14,term15,mu1,mu2,Omega1,Omega2)))
 print("** %s generated" % outfile3)

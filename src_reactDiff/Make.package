@@ -1,0 +1,13 @@
+CEXE_sources   += AdvanceReaction.cpp
+CEXE_sources   += AdvanceReactionDiffusion.cpp
+CEXE_sources   += AdvanceDiffusion.cpp
+CEXE_sources   += AdvanceTimestep.cpp
+CEXE_sources   += DiffusiveNFluxdiv.cpp
+CEXE_sources   += ImplicitDiffusion.cpp
+CEXE_sources   += InitN.cpp
+CEXE_sources   += MultinomialDiffusion.cpp
+CEXE_sources   += reactDiff_functions.cpp
+CEXE_sources   += StochasticNFluxdiv.cpp
+CEXE_sources   += WritePlotFile.cpp
+CEXE_headers   += reactDiff_functions.H
+CEXE_headers   += reactDiff_namespace.H

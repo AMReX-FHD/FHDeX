@@ -19,7 +19,7 @@ for i in range(a0+a1,a2+a1,a1):
     tmp1 = tmp1 + data
     tmp2 = tmp2 + np.power(data,2)
     cnt = cnt + 1
-    
+
 tmp1 = tmp1/cnt
 tmp2 = tmp2/cnt
 tmp2 = tmp2 - np.power(tmp1,2)

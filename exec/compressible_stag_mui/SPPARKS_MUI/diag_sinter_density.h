@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -33,15 +33,15 @@ class DiagSinterDensity : public Diag {
   void compute();
   void stats(char *);
   void stats_header(char *);
-  
+
  protected:
-  void initialize_parameters_density_calculation(); 
+  void initialize_parameters_density_calculation();
 
  private:
   class AppSinter *appsinter;
   int nlocal;
   double density;
-  
+
   int xstart_density, xend_density;
   int ystart_density, yend_density;
   int zstart_density, zend_density;

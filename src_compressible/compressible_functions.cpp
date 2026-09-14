@@ -8,6 +8,7 @@ AMREX_GPU_MANAGED int compressible::do_1D;
 AMREX_GPU_MANAGED int compressible::do_2D;
 AMREX_GPU_MANAGED int compressible::all_correl;
 AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
+AMREX_GPU_MANAGED int compressible::turbRestartRun = 1;
 AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
 
@@ -16,7 +17,7 @@ void InitializeCompressibleNamespace()
     // extract inputs parameters
     ParmParse pp;
 
-    int temp_max = std::max(3,MAX_SPECIES*MAX_SPECIES);    
+    int temp_max = std::max(3,MAX_SPECIES*MAX_SPECIES);
     amrex::Vector<amrex::Real> temp    (temp_max,0.);
     amrex::Vector<int>         temp_int(temp_max,0 );
 
@@ -35,7 +36,7 @@ void InitializeCompressibleNamespace()
             break;
     }
 
-    // get membrane cell 
+    // get membrane cell
     membrane_cell = -1; // location of membrane (default)
     pp.query("membrane_cell",membrane_cell);
     if (membrane_cell >= 0) amrex::Print() << "Membrane cell is: " << membrane_cell << "\n";
@@ -64,6 +65,13 @@ void InitializeCompressibleNamespace()
     all_correl = 0;
     pp.query("all_correl",all_correl);
 
+    // restart for turbulence
+    // if 1: will advance time, if 0: only stats no advance time
+    pp.query("turbRestartRun",turbRestartRun);
+    if (turbRestartRun == 0) {
+      if (restart <= 0) amrex::Abort("turbRestartRun requires restarting from a checkpoint, restart > 0");
+      if (max_step != restart+1) amrex::Abort("this is a single step run; max_step should be equal to restart+1");
+    }
 
     // do reservoir?
     if ((bc_mass_lo[0] == 4) or (bc_mass_lo[1] == 4) or (bc_mass_lo[2] == 4) or
@@ -109,7 +117,7 @@ void InitConsVar(MultiFab& cons,
         realhi[d] = realDomain.hi(d);
         center[d] = ( realhi[d] - reallo[d] ) / 2.;
     }
-    
+
     // from namelist
     Real t_lo_y = t_lo[1];
     Real t_hi_y = t_hi[1];
@@ -119,8 +127,8 @@ void InitConsVar(MultiFab& cons,
     Real Lf = realhi[0] - reallo[0];
 
     // compute some values and overwrite based on prob_type
- 
-    {   
+
+    {
         // compute internal energy
         Real intEnergy;
         GpuArray<Real,MAX_SPECIES> massvec;
@@ -156,16 +164,16 @@ void InitConsVar(MultiFab& cons,
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
                          itVec[1] = (j+0.5)*dx[1]; ,
                          itVec[2] = (k+0.5)*dx[2]);
-            
+
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
                 relpos[d] = pos[d] - center[d];
             }
 
             // Total density must be pre-set
-            
+
             if (prob_type == 2) { // Rayleigh-Taylor
-                
+
                 if (relpos[2] >= 0.) {
                     massvec[0] = 0.4;
                     massvec[1] = 0.4;
@@ -180,7 +188,7 @@ void InitConsVar(MultiFab& cons,
 
                 Real pamb;
                 GetPressureGas(pamb, massvec, cu(i,j,k,0), T_init[0]);
-                
+
                 Real molmix = 0.;
 
                 for (int l=0; l<nspecies; ++l) {
@@ -194,7 +202,7 @@ void InitConsVar(MultiFab& cons,
                 // must satisfy system: dP/dz = -rho*g & P = rhogasmix*rho*T
                 // Assumes temp=const
                 cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
-                
+
                 for (int l=0; l<nspecies; ++l) {
                     cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
                 }
@@ -236,7 +244,7 @@ void InitConsVar(MultiFab& cons,
 
                 // density
                 cu(i,j,k,0) = (molmass[0] / avogadro) * pres / (k_B * T_init[0]);
-               
+
                 // momentum
                 cu(i,j,k,1) =  velscale*cu(i,j,k,0)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
                 cu(i,j,k,2) = -velscale*cu(i,j,k,0)*cos(2.*pi*x/Lf)*sin(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
@@ -250,11 +258,11 @@ void InitConsVar(MultiFab& cons,
                 // mass densities (50/50 red/blue argon)
                 cu(i,j,k,5) = 0.5*cu(i,j,k,0);
                 cu(i,j,k,6) = 0.5*cu(i,j,k,0);
-                
+
             } else if (prob_type == 5) { // Taylor Green Vortex
 
                 Real intEnergy;
-                
+
                 cu(i,j,k,0) = rho0;
                 cu(i,j,k,1) = 0;
                 cu(i,j,k,2) = 0;
@@ -292,7 +300,7 @@ void InitConsVar(MultiFab& cons,
                    for (int l=0;l<nspecies;l++) {
                      cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
                    }
-            } 
+            }
 
             else if (prob_type == 101) { // sinusoidal temperature variation (constant pressure)
 
@@ -303,7 +311,7 @@ void InitConsVar(MultiFab& cons,
 
                    Real pressure;
                    GetPressureGas(pressure,massvec,rho0,T_init[0]);
-                    
+
                    Real temperature;
                    temperature = T_init[0] + 0.1*T_init[0]*sin(2.*pi*y/Ly);
 
@@ -315,11 +323,11 @@ void InitConsVar(MultiFab& cons,
                    Real intEnergy;
                    GetEnergy(intEnergy, massvec, temperature);
                    cu(i,j,k,4) = density*intEnergy;
-            } 
+            }
 
-            else if (prob_type == 104) { // temperature discontinuity 
-                
-                    if (i==15) 
+            else if (prob_type == 104) { // temperature discontinuity
+
+                    if (i==15)
                     {
                         for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
                         Real pamb;
@@ -334,11 +342,11 @@ void InitConsVar(MultiFab& cons,
                         GetEnergy(intEnergy, massvec, 400.0);
                         cu(i,j,k,4) = density*intEnergy;
                     }
-                    
+
             }
-            else if (prob_type == 105) { // pressure discontinuity 
-                
-                    if (i==15) 
+            else if (prob_type == 105) { // pressure discontinuity
+
+                    if (i==15)
                     {
                         for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
                         Real pamb;
@@ -354,9 +362,9 @@ void InitConsVar(MultiFab& cons,
                         cu(i,j,k,4) = density*intEnergy;
                     }
             }
-            else if (prob_type == 106) { // concentration discontinuity 
-                
-                    if (i==15) 
+            else if (prob_type == 106) { // concentration discontinuity
+
+                    if (i==15)
                     {
                         for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
                         Real pamb;
@@ -373,7 +381,7 @@ void InitConsVar(MultiFab& cons,
                         GetEnergy(intEnergy, massvec, T_init[0]);
                         cu(i,j,k,4) = density*intEnergy;
                     }
-                    
+
             } // prob type
 
            else if (prob_type == 111) { // pressure and density checkerboard pattern

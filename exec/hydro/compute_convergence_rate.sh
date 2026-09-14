@@ -25,7 +25,7 @@ conv_tool_exec="DiffSameDomainRefinedStag${dims}d.gnu.ex"
 # Loop over viscosity types
 for visc_ind in 1
 do
-    
+
     # Create directory name
     visctype=${Visctype[$visc_ind]}
     dir_top="${data_dir}/${dims}D/Data_visc_${visctype}"
@@ -33,11 +33,11 @@ do
     # Loop over grids
     for grid in 0 1 2
     do
-	# Collect filename
-	folder="plots_${Spacedim[$grid]}^${dims}x${Nsteps[$grid]}"
-	dir=$dir_top/$folder
-	filename=$plottype$zeros_plt${Nsteps[$grid]}
-	file[$grid]=$dir/$filename
+        # Collect filename
+        folder="plots_${Spacedim[$grid]}^${dims}x${Nsteps[$grid]}"
+        dir=$dir_top/$folder
+        filename=$plottype$zeros_plt${Nsteps[$grid]}
+        file[$grid]=$dir/$filename
     done
 
     ## Run convergence computations

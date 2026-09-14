@@ -11,14 +11,11 @@
 
 int main( int argc, char **argv )
 {
-	mui_uniface3d *uniface = mui_create_uniface3d( argv[1] );
+    mui_uniface3d *uniface = mui_create_uniface3d( argv[1] );
 
-	mui_push( uniface, "position", 0, 0, 0, 0 );
+    mui_push( uniface, "position", 0, 0, 0, 0 );
 
-	mui_destroy_uniface3d( uniface );
+    mui_destroy_uniface3d( uniface );
 
-	return 0;
+    return 0;
 }
-
-
-

@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -72,12 +72,12 @@ void Universe::add_world(char *str)
     nper = atoi(str);
   }
 
-  procs_per_world = 
+  procs_per_world =
     (int *) memory->srealloc(procs_per_world,(nworlds+n)*sizeof(int),
-				  "universe:procs_per_world");
-  root_proc = 
+                              "universe:procs_per_world");
+  root_proc =
     (int *) memory->srealloc(root_proc,(nworlds+n)*sizeof(int),
-				  "universe:root_proc");
+                              "universe:root_proc");
 
   for (int i = 0; i < n; i++) {
     procs_per_world[nworlds] = nper;

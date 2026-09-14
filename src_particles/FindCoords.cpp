@@ -4,7 +4,7 @@ void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
                     const Geometry & geom)
 {
     BL_PROFILE_VAR("FindFaceCoords()", FindFaceCoords);
-    
+
     const GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for (MFIter mfi(RealFaceCoords[0]); mfi.isValid(); ++mfi) {
@@ -29,7 +29,7 @@ void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
                                    yface(i,j,k,0) = (i+0.5)*dx[0]+prob_lo[0];
                                    yface(i,j,k,1) = (j)*dx[1]+prob_lo[1];
                                });
-       
+
 #elif (AMREX_SPACEDIM == 3)
             amrex::ParallelFor(bx_x,bx_y,bx_z,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -47,7 +47,7 @@ void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
                                    zface(i,j,k,1) = (j+0.5)*dx[1]+prob_lo[1];
                                    zface(i,j,k,2) = (k)*dx[2]+prob_lo[2];
                                });
-        
+
 #endif
     }
 }
@@ -68,7 +68,7 @@ void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom)
         {
             centers(i,j,k,0) = (i+0.5)*dx[0]+prob_lo[0];
             centers(i,j,k,1) = (j+0.5)*dx[1]+prob_lo[1];
-#if (AMREX_SPACEDIM == 3)            
+#if (AMREX_SPACEDIM == 3)
             centers(i,j,k,2) = (k+0.5)*dx[2]+prob_lo[2];
 #endif
         });

@@ -6,10 +6,10 @@
 
 
 
-void eulerStep(MultiFab& cu, std::array<MultiFab,AMREX_SPACEDIM>& flux, 
-               std::array<MultiFab, AMREX_SPACEDIM>& stochFlux, 
-               const amrex::Geometry geom, const amrex::Real* dx, 
-               const amrex::Real dt) 
+void eulerStep(MultiFab& cu, std::array<MultiFab,AMREX_SPACEDIM>& flux,
+               std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
+               const amrex::Geometry geom, const amrex::Real* dx,
+               const amrex::Real dt)
 {
     /////////////////////////////////////////////////////
     //fill ghost cells
@@ -34,21 +34,21 @@ void eulerStep(MultiFab& cu, std::array<MultiFab,AMREX_SPACEDIM>& flux,
         const Box& bx = mfi.validbox();
 
         euler_step(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),    
+                   cu[mfi].dataPtr(),
                    flux[0][mfi].dataPtr(),
                    flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
                    flux[2][mfi].dataPtr(),
 #endif
-                   ZFILL(dx), &dt);   
+                   ZFILL(dx), &dt);
     }
 
 
 }
 
-void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, 
-             std::array<MultiFab,AMREX_SPACEDIM>& flux, std::array<MultiFab, 
-             AMREX_SPACEDIM>& stochFlux, const amrex::Geometry geom, 
+void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
+             std::array<MultiFab,AMREX_SPACEDIM>& flux, std::array<MultiFab,
+             AMREX_SPACEDIM>& stochFlux, const amrex::Geometry geom,
              const amrex::Real* dx, const amrex::Real dt)
 {
     /////////////////////////////////////////////////////
@@ -82,14 +82,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
         const Box& bx = mfi.validbox();
 
         rk3_stage1(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
-                   cup[mfi].dataPtr(),  
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   cu[mfi].dataPtr(),
+                   cup[mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
-      	           ZFILL(dx), &dt);   
+                   ZFILL(dx), &dt);
     }
 
     cup.FillBoundary(geom.periodicity());
@@ -101,19 +101,19 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
         const Box& bx = mfi.validbox();
 
         rk3_stage2(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
-                   cup[mfi].dataPtr(),  
-                   cup2[mfi].dataPtr(), 
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   cu[mfi].dataPtr(),
+                   cup[mfi].dataPtr(),
+                   cup2[mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
-      	           ZFILL(dx), &dt);
+                   ZFILL(dx), &dt);
     }
-    
+
     cup2.FillBoundary(geom.periodicity());
-   
+
     calculateFlux(cup2, flux, stochFlux, dx, dt);
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
@@ -121,17 +121,16 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
         const Box& bx = mfi.validbox();
 
         rk3_stage3(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
+                   cu[mfi].dataPtr(),
                    cup[mfi].dataPtr(),
-                   cup2[mfi].dataPtr(), 
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   cup2[mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
-      	           ZFILL(dx), &dt);
-    
+                   ZFILL(dx), &dt);
+
     }
 
 }
-

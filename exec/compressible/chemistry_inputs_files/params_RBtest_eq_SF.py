@@ -9,13 +9,13 @@ Navo = 6.0221409e23         # Avogadro constant
 ##########
 
 # molecular weights
-M1 = 4.    # red 
+M1 = 4.    # red
 M2 = 4.    # blue
 print "- molecular masses: [%f, %f]" % (M1,M2)
 
 # mass fractions
 Y1 = 0.5
-Y2 = 1-Y1 
+Y2 = 1-Y1
 print "- mass fractions: [%f, %f]" % (Y1,Y2)
 
 # mole fractions
@@ -32,8 +32,8 @@ print "- average mass of a gas molecule = %e\n" % mavg
 
 ##########
 
-temp = 1000.                # high temp 
-pres = 1.e6                 # close to 1 atm 
+temp = 1000.                # high temp
+pres = 1.e6                 # close to 1 atm
 rho = pres*Mavg/Runiv/temp  # total mass density
 
 print "- temperature = %f" % temp
@@ -55,8 +55,8 @@ print "- number density of spec2 = %e\n" % n2
 
 ##########
 
-dx = 8.e-6 
-dy = dx 
+dx = 8.e-6
+dy = dx
 dz = dx
 dV = dx*dy*dz
 
@@ -98,7 +98,7 @@ drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dV
 
 dof1 = 3
-dof2 = 3 
+dof2 = 3
 
 dEsq = (kB*temp)**2/dV*((0.5*dof1)*(0.5*dof1+1)*rho1/m1+(0.5*dof2)*(0.5*dof2+1)*rho2/m2)
 dTsq = temp**2/dV/((0.5*dof1)*n1+(0.5*dof2)*n2)

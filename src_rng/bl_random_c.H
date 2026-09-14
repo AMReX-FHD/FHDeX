@@ -21,15 +21,15 @@ BLRng_restore (T& rng, const char* name)
 {
     std::ifstream ifs(name);
     if (ifs.good()) {
-	ifs >> rng;
+        ifs >> rng;
     } else {
-	std::cerr << "bl_rng: faied to open " << name << std::endl;
-//	backtrace_handler(6);
+        std::cerr << "bl_rng: faied to open " << name << std::endl;
+        //    backtrace_handler(6);
     }
 }
 
 template <typename Return_t, typename Distro_t, typename Engine_t>
-Return_t 
+Return_t
 BLRng_get (Distro_t& distro, Engine_t& eng)
 {
     return distro(eng);

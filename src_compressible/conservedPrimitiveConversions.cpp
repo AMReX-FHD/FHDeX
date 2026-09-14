@@ -6,7 +6,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
     BL_PROFILE_VAR("conservedToPrimitive()",conservedToPrimitive);
 
     // from namelist
-    /* 
+    /*
     // method 1 to create a thread shared array
     // must use if the size of the array is not known at compile time
     // note when passing this into a function, you need to use the type,
@@ -24,10 +24,10 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
 
     // method 2 to create a thread shared array
     // can use when the size of the array is known at compile-time
-    
+
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<const Real>& cons = cons_in.array(mfi);
@@ -52,7 +52,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             GpuArray<Real,MAX_SPECIES> Xk;
             GpuArray<Real,MAX_SPECIES> Yk;
             GpuArray<Real,MAX_SPECIES> Yk_fixed;
-            
+
 
             prim(i,j,k,0) = cons(i,j,k,0);
             prim(i,j,k,1) = cons(i,j,k,1)/cons(i,j,k,0);
@@ -68,7 +68,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,Yk[n]));
                 sumYk += Yk_fixed[n];
             }
-            
+
             for (int n=0; n<nspecies; ++n) {
                 Yk_fixed[n] /= sumYk;
             }
@@ -87,6 +87,6 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
 
             GetPressureGas(prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4));
         });
-        
+
     } // end MFIter
 }

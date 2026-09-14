@@ -12,7 +12,7 @@ class StagMGSolver {
 
     //////////////////////////////////
     // MultiFabs used in multigrid coarsening
-    
+
     // face-centered
     // outer vector will be over nlevs_mg; innter array is for face-centered
     Vector<std::array< MultiFab, AMREX_SPACEDIM > > alpha_fc_mg;
@@ -31,17 +31,17 @@ class StagMGSolver {
     Vector<std::array< Real, AMREX_SPACEDIM > > dx_mg;
 
     Vector<Geometry> geom_mg;
-    
+
     int nlevs_mg;
 
     Box pd_base;
     BoxArray ba_base;
     DistributionMapping dmap;
-    
+
 public:
 
     StagMGSolver();
-    
+
     void Define(const BoxArray& ba_in,
                 const DistributionMapping& dmap_in,
                 const Geometry& geom_in);
@@ -63,7 +63,7 @@ public:
                std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
                const std::array<MultiFab, AMREX_SPACEDIM> & phiorig_fc,
                const Real & theta);
-    
+
 
     // compute the number of multigrid levels assuming minwidth is the length of the
     // smallest dimension of the smallest grid at the coarsest multigrid level
@@ -77,7 +77,7 @@ public:
                          int simple_stencil=0);
 
     void NodalRestriction(MultiFab & phi_c, const MultiFab & phi_f);
-    
+
     void EdgeRestriction(std::array<MultiFab, NUM_EDGE> & phi_c,
                          const std::array<MultiFab, NUM_EDGE> & phi_f);
 
@@ -93,7 +93,7 @@ public:
                       const MultiFab & gamma_cc,
                       const Real * dx,
                       const int & color=0);
-    
+
 };
 
 #endif

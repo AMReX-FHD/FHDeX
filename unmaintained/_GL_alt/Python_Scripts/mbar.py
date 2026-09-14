@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-  
+
 import numpy as np
 import pymbar
 
@@ -19,16 +19,16 @@ phi_0_arr=[0]*N
 for index1 in range (0 ,N):
         phi_0_arr[index1]=phi_initial + index1*phi_increment
 for y in range (0,N):
-       place_holder =str(format(((y)*phi_increment+phi_initial), '.3f')) 
+       place_holder =str(format(((y)*phi_increment+phi_initial), '.3f'))
        files.append('data'+place_holder) #add names of files to be read to array. Assuing form is datax.xx
        print('data'+place_holder) #print out for verifying correct data file names have been chosen
 x_kn = [] #1D harmonic oscillator positions
 N_k = [] # Number of samples drawn from each state
 
 
-for filename in files: #for loop in entries of files array 
+for filename in files: #for loop in entries of files array
     with open('data/{}'.format(filename)) as f: # open a particular data file in loop
-         data = [float(x) for x in f.read().strip().split('\n')]  
+         data = [float(x) for x in f.read().strip().split('\n')]
     x_kn.append(data[::500]) #skipping every 500 frames. Set to get one position per umbrella state
     N_k.append(len(data[::500])) #append number of position from umbrella. ( set to 1 6/13/19)
 #    x_kn.append(data[::100])
@@ -43,7 +43,7 @@ for i in range(len(N_k)):
     for j in range(N_k[i]):
         y_kn[i, j] = x_kn[i][j]
 
-x_n = np.array(sum(x_kn, [])) 
+x_n = np.array(sum(x_kn, []))
 
 
 def U(k, x):
@@ -70,4 +70,4 @@ Final_Dimless_Energy=Delta_f[998,:] #This extracts the free energy difference be
 f= open("FE.txt","w+")
 for i in range(0,N-1):
      f.write("%+3.16E %+3.16E   \n"% (Final_Dimless_Energy[i],x_n[i] ))
-f.close() 
+f.close()

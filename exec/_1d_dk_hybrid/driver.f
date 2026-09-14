@@ -44,7 +44,7 @@ c
      1   dt,nout,ires,nstat,icor,ires,uleft,uright, uinit, cfl,
      1   jmidl,jmidr,midfact,jpartl,jpartr,is_hybrid
 
-       
+
        xlen = 1.d0
        iper = 1
        ntherm = 0
@@ -59,7 +59,7 @@ c
        is_hybrid = 0
        npghost = 1
        is_pure_part = 0
-    
+
 
        read(5,input_param)
        write(6,input_param)
@@ -75,8 +75,8 @@ c
        endif
 
        pi = 4.d0*atan2(1.d0,1.d0)
- 
- 	time =0.0
+
+       time =0.0
         dx = xlen/dfloat(npts)
 
         do j=1,npts
@@ -86,7 +86,7 @@ c
           xl(npts+1) = xlen
 
        if(cfl.gt.0.d0)then
- 
+
           dt = cfl*dx**2
 
        endif
@@ -100,8 +100,8 @@ c   set initial conditions
         do j=1,npts
 
            u(j) = uinit
-           
-           if(j.ge.jmidl .and. j.le.jmidr)then 
+
+           if(j.ge.jmidl .and. j.le.jmidr)then
               u(j) = u(j)*midfact
            endif
 
@@ -114,7 +114,7 @@ c   set initial conditions
                 totmass = totmass+u(j)
 
             enddo
- 
+
             totmass = totmass * dx
 
            write(6,*)"init totmass before = ",totmass
@@ -135,7 +135,7 @@ c   set initial conditions
                 totmass = totmass+u(j)
 
             enddo
- 
+
             totmass = totmass * dx
 
            write(6,*)"init totmass after = ",totmass
@@ -265,7 +265,7 @@ c      enddo
                 minmass = min(minmass,u(j))
 
             enddo
- 
+
             totmass = totmass * dx
 
            write(6,*)n, "time = ",time, " totmass = ",totmass,
@@ -338,7 +338,7 @@ c          write statistics
       character*12 ufile
       character*10 step
 
-    
+
       write(step,'(i10.10)') n
       ufile = "u_" // step
 
@@ -355,7 +355,7 @@ c          write statistics
       enddo
 
       close(20)
-     
+
   101 format(1p8e15.7)
   102 format(1p6e20.12)
       return

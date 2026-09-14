@@ -12,7 +12,7 @@ then
   exit
 fi
 
-# check fhd executable 
+# check fhd executable
 exec2=./main3d.gnu.MPI.ex
 if [ ! -f $exec2 ]
 then

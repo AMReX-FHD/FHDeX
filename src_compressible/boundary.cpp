@@ -55,7 +55,7 @@ void SetupCWall() {
             }
             molmix = 1./molmix;
             t_lo[0] = p_lo[0]*(molmix/Runiv)/rho_lo[0];
-        }     
+        }
     }
 
     if ((bc_mass_hi[0] == 2) or (bc_mass_hi[0] == 3)) {
@@ -95,7 +95,7 @@ void SetupCWall() {
             }
             molmix = 1./molmix;
             t_hi[0] = p_hi[0]*(molmix/Runiv)/rho_hi[0];
-        }     
+        }
     }
 
     // Y walls
@@ -165,9 +165,9 @@ void SetupCWall() {
     }
 }
 
-// in this routine for Dirichlet BC, we set the 
+// in this routine for Dirichlet BC, we set the
 // value in the ghost cell to be the value of the
-// Dirichlet boundary for temperature, species 
+// Dirichlet boundary for temperature, species
 // fraction and velocities
 void setBC(MultiFab& prim_in, MultiFab& cons_in)
 {
@@ -225,7 +225,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_x_lo[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_x_lo[n]; // set ghost cell equal to reservoir mole fraction
-                            
+
                             prim(i,j,k,0) = rho_lo[0]; // set ghost cell equal to reservoir density
                             cons(i,j,k,0) = rho_lo[0]; // set ghost cell equal to reservoir density
 
@@ -262,11 +262,11 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (i < 0) {
 
-                        cons(i,j,k,1) = 0.0; 
+                        cons(i,j,k,1) = 0.0;
                         cons(i,j,k,2) = 0.0;
                         cons(i,j,k,3) = 0.0;
 
-                        prim(i,j,k,1) = 0.0; 
+                        prim(i,j,k,1) = 0.0;
                         prim(i,j,k,2) = 0.0;
                         prim(i,j,k,3) = 0.0;
 
@@ -290,7 +290,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         }
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
@@ -332,7 +332,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         }
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
@@ -342,10 +342,10 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (i < 0) {
 
-                        prim(i,j,k,1) = 0.0; 
-                        prim(i,j,k,2) = 0.0; 
-                        prim(i,j,k,3) = 0.0; 
-                   
+                        prim(i,j,k,1) = 0.0;
+                        prim(i,j,k,2) = 0.0;
+                        prim(i,j,k,3) = 0.0;
+
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
                         for (int n=0; n<nspecies; ++n) {
@@ -372,20 +372,20 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         cons(i,j,k,3) = rho*prim(i,j,k,3);
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
             }
         } // end LO X
-        
+
 
         // HI X
         if (gbx.bigEnd(0) > n_cells[0]-1) {
 
             int hi = n_cells[0]-1;
-            
+
             // mass fractions, wall
             if ( bc_mass_hi[0] == 1 && algorithm_type == 2) {
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -458,11 +458,11 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                     if (i > n_cells[0]-1) {
 
 
-                        cons(i,j,k,1) = 0.0; 
+                        cons(i,j,k,1) = 0.0;
                         cons(i,j,k,2) = 0.0;
                         cons(i,j,k,3) = 0.0;
 
-                        prim(i,j,k,1) = 0.0; 
+                        prim(i,j,k,1) = 0.0;
                         prim(i,j,k,2) = 0.0;
                         prim(i,j,k,3) = 0.0;
 
@@ -486,7 +486,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         }
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
@@ -527,7 +527,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         }
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
@@ -540,7 +540,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         prim(i,j,k,1) = 0.0;
                         prim(i,j,k,2) = 0.0;
                         prim(i,j,k,3) = 0.0;
-                   
+
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
                         for (int n=0; n<nspecies; ++n) {
@@ -567,14 +567,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         cons(i,j,k,3) = rho*prim(i,j,k,3);
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
             }
         } // end HI X
-        
+
         // LO Y
         if (gbx.smallEnd(1) < 0) {
 
@@ -613,7 +613,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_y_lo[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_y_lo[n]; // set ghost cell equal to reservoir mole fraction
-                            
+
                             prim(i,j,k,0) = rho_lo[1]; // set ghost cell equal to reservoir density
                             cons(i,j,k,0) = rho_lo[1]; // set ghost cell equal to reservoir density
 
@@ -683,7 +683,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         }
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
@@ -696,7 +696,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         prim(i,j,k,1) = 0.0;
                         prim(i,j,k,2) = 0.0;
                         prim(i,j,k,3) = 0.0;
-                   
+
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
                         for (int n=0; n<nspecies; ++n) {
@@ -723,20 +723,20 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         cons(i,j,k,3) = rho*prim(i,j,k,3);
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
             }
         } // end LO Y
-        
+
 
         // HI Y
         if (gbx.bigEnd(1) > n_cells[1]-1) {
 
             int hi = n_cells[1]-1;
-            
+
             // mass fractions, wall
             if ( bc_mass_hi[1] == 1 && algorithm_type == 2) {
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -841,13 +841,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         }
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
             } else if (bc_vel_hi[1] == 2) { // no slip
-                
+
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > n_cells[1]-1) {
@@ -855,7 +855,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         prim(i,j,k,1) = 0.0;
                         prim(i,j,k,2) = 0.0;
                         prim(i,j,k,3) = 0.0;
-                   
+
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
                         for (int n=0; n<nspecies; ++n) {
@@ -882,14 +882,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         cons(i,j,k,3) = rho*prim(i,j,k,3);
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
             }
         } // end HI Y
-        
+
         // LO Z
         if (gbx.smallEnd(2) < 0) {
 
@@ -928,7 +928,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_z_lo[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_z_lo[n]; // set ghost cell equal to reservoir mole fraction
-                            
+
                             prim(i,j,k,0) = rho_lo[2]; // set ghost cell equal to reservoir density
                             cons(i,j,k,0) = rho_lo[2]; // set ghost cell equal to reservoir density
 
@@ -938,7 +938,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                     }
                 });
             }
-            
+
 
             // temperature and pressure, adiabatic
             if (bc_therm_lo[2] == 1) {
@@ -999,7 +999,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         }
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
@@ -1012,7 +1012,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         prim(i,j,k,1) = 0.0;
                         prim(i,j,k,2) = 0.0;
                         prim(i,j,k,3) = 0.0;
-                   
+
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
                         for (int n=0; n<nspecies; ++n) {
@@ -1039,20 +1039,20 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         cons(i,j,k,3) = rho*prim(i,j,k,3);
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
             }
         } // end LO Z
-        
+
 
         // HI Z
         if (gbx.bigEnd(2) > n_cells[2]-1) {
 
             int hi = n_cells[2]-1;
-            
+
             // mass fractions, wall
             if ( bc_mass_hi[2] == 1 && algorithm_type == 2) {
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -1157,13 +1157,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         }
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
             } else if (bc_vel_hi[2] == 2) { // no slip
-                
+
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > n_cells[2]-1) {
@@ -1171,7 +1171,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         prim(i,j,k,1) = 0.0;
                         prim(i,j,k,2) = 0.0;
                         prim(i,j,k,3) = 0.0;
-                   
+
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
                         for (int n=0; n<nspecies; ++n) {
@@ -1198,7 +1198,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         cons(i,j,k,3) = rho*prim(i,j,k,3);
 
                         // must be last BC enforced: depends on rho, vel, & temp
-                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) + 
+                        cons(i,j,k,4) = rho*intenergy + 0.5*rho*(prim(i,j,k,1)*prim(i,j,k,1) +
                                                                  prim(i,j,k,2)*prim(i,j,k,2) +
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
@@ -1300,7 +1300,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
             }
         }
     }
-    // HI Y 
+    // HI Y
     if (bc_mass_hi[1] == 1) {
 
         // domain grown nodally based on faceflux[1] nodality (y)
@@ -1394,7 +1394,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
 
 
     BL_PROFILE_VAR("StochFlux()",StochFlux);
-    
+
     // First we do mass boundary conditions (species fluxes reside on faces)
     // LO X
     if (bc_mass_lo[0] == 1 || bc_mass_lo[0] == 2) {
@@ -1993,9 +1993,9 @@ void MembraneFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                     xflux(i,j,k,3) = 0.;
                     xflux(i,j,k,4) = 0.;
                 }
-                    
+
              });
-            
+
         }
     }
 }

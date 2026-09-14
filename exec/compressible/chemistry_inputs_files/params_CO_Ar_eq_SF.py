@@ -56,8 +56,8 @@ print "- number density of spec2 = %e\n" % n2
 ##########
 
 dx = 8.4e-06
-dy = dx*math.sqrt(3.)/2 
-dz = dx 
+dy = dx*math.sqrt(3.)/2
+dz = dx
 dv = dx*dy*dz
 
 Nx = 8

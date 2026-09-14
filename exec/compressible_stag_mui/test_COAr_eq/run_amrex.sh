@@ -12,7 +12,7 @@ then
   exit
 fi
 
-# check fhd executable 
+# check fhd executable
 exec2=../fhd3d.gnu.MPI.ex
 if [ ! -f $exec2 ]
 then
@@ -29,7 +29,7 @@ then
   exit
 fi
 
-# check timestep size 
+# check timestep size
 N1=`grep Trun $SPKSCR | head -1 | awk '{print $4}'`
 N2=`grep fixed_dt $FHDSCR | awk '{print $3}'`
 if [ "$N1" != "$N2" ]
