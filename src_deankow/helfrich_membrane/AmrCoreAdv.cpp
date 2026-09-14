@@ -845,7 +845,7 @@ AmrCoreAdv::UpdateSurfaceFromFourier (const amrex::Geometry& geom, amrex::Real d
                       ky = ny-j;
                   }
                   amrex::Real kmag = std::sqrt(kx*kx+ky*ky);
- 
+
                   if(kmag < CAPK && (i*i + j*j != 0) ) {
 
                      amrex::Real Pik = 1./(kappastar * std::pow(twopi * kmag,4) + sigmastar * std::pow(twopi*kmag,2));
@@ -1266,13 +1266,13 @@ AmrCoreAdv::WritePlotFile () const
                    nparts = phi_arr(i,j,k,0);
                    measure = phi_arr(i,j,k,0)/(cell_vol*det_arr(i,j,k,1)*num_part);
                 }
-      
+
                 mf_arr(i,j,k,2) = det_arr(i,j,k,1);
                 mf_arr(i,j,k,3) = nparts;
 
                 amrex::Real twopi = 2.*3.14159265358979323846264338;
                 amrex::Real pi = 3.14159265358979323846264338;
-                
+
                 amrex::Real twopisq = twopi*twopi;
 
                 amrex::Real xloc = prob_lo[0] + (i+0.5) * dx[0];

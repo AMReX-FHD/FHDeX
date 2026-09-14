@@ -38,14 +38,14 @@ void advance_phi (MultiFab& phi_old,
     const auto problo = geom.ProbLoArray();
     const auto probhi = geom.ProbHiArray();
 
-    
+
 
     amrex::Real dom_vol = AMREX_D_TERM( (probhi[0]-problo[0]),
                                        *(probhi[1]-problo[1]),
                                        *(probhi[2]-problo[2]));
 
     variance /= dom_vol;
-   
+
 
   if(dorand != 0.){
     // Fill stochFlux with random numbers (can skip density component 0)

@@ -54,7 +54,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
           hack.setVal(0.);
           Real dx = geom[0].CellSize(0);
           Real dy = geom[0].CellSize(1);
-          
+
         for (MFIter mfi(hack); mfi.isValid(); ++mfi) {
               auto const& ub = hack[mfi].box();
               auto const& rho_arr = phi_old[lev][mfi].array();
@@ -85,7 +85,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
 
 
                      hack_arr(i,j,k) += utemp * rho_arr(i,j,k)*dx*dy;
-                     
+
                   }
                   }
                     // hack_arr(i,j,k) = 512.*std::sin(2.*PI*i*dx);
@@ -95,7 +95,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
 
 //                     amrex::Real ifact =(ip == 0) ? 1. : .5;
 //                     amrex::Real jfact =(jp == 0) ? 1. : .5;
-                     
+
                      Real r = std::sqrt(ip*ip*dx*dx+jp*jp*dy*dy);
                      amrex::Real eps, R, alpha;
                      eps = 0.0333;
@@ -107,7 +107,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
                           amrex::Print() << " ip jp " << ip << " " << jp << " " << utemp << std::endl;
                      }
                      hack_arr(i,j,k) += utemp*rho_arr(i+ip,j+jp,k)*dx*dy;
-                     
+
 //                     hack_arr(i,j,k) += ifact*jfact*rho_arr(i+ip,j+jp,k)*dx*dy;
                   }
                   }

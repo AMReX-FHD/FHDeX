@@ -54,7 +54,7 @@ void init_int_pot (int i, int j, int k,
 
 //    shiftinging definit of U by 1/2 for fft
     amrex::Real x,y,z,xlen,ylen,zlen;
-    
+
     x = (i) * dx[0] ;
     xlen = prob_hi[0]-prob_lo[0];
     if(x + .5*dx[0] > 0.5*xlen){
@@ -85,31 +85,31 @@ void init_int_pot (int i, int j, int k,
 
     if (i == 0 and j == 0 ){
        U(i,j,k) = 1.;
-    } 
+    }
     if (i == 1 and j == 0 ){
        U(i,j,k) = .5;
-    } 
+    }
     if (i == 31 and j == 0 ){
        U(i,j,k) = .5;
-    } 
+    }
     if (i == 0 and j == 1 ){
        U(i,j,k) = .5;
-    } 
+    }
     if (i == 1 and j == 1 ){
        U(i,j,k) = .25;
-    } 
+    }
     if (i == 31 and j == 1 ){
        U(i,j,k) = .25;
-    } 
+    }
     if (i == 0 and j == 31 ){
        U(i,j,k) = .5;
-    } 
+    }
     if (i == 1 and j == 31 ){
        U(i,j,k) = .25;
-    } 
+    }
     if (i == 31 and j == 31 ){
        U(i,j,k) = .25;
-    } 
+    }
 */
 
 
