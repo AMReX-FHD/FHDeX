@@ -117,8 +117,8 @@ void setupDirichletFace(const Real rhom, const Real Tm, const Real Pm,
         }
     }
     else { // type 2: boundary = 0.5*(Dirichlet + cell)
-        rho_wall = 0.5*(rhom+rhop); 
-        T_wall   = 0.5*(Tm+Tp); 
+        rho_wall = 0.5*(rhom+rhop);
+        T_wall   = 0.5*(Tm+Tp);
         P_wall   = 0.5*(Pm+Pp);
         for (int n=0; n<nspecies; ++n) {
             Yk_wall[n] = 0.5*(Ykm[n]+Ykp[n]);
@@ -665,8 +665,8 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
-                
-                // Temporary variables for Dirichlet 
+
+                // Temporary variables for Dirichlet
                 Real T_wall;
                 Real P_wall;
                 Real kappa_wall;
@@ -708,10 +708,10 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                        chiloc_wall, Dloc_wall);
                 }
 
-                Real kxp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + 
+                Real kxp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) +
                             kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4));
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i-1,j,k,4));
-                
+
                 if ((i == 0) and is_lo_x_dirichlet_mass) {
                     kxp = 2.0*kappa_wall*T_wall*T_wall;
                 }
@@ -879,8 +879,8 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
-                
-                // Temporary variables for Dirichlet 
+
+                // Temporary variables for Dirichlet
                 Real T_wall;
                 Real P_wall;
                 Real kappa_wall;
@@ -922,7 +922,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                        chiloc_wall, Dloc_wall);
                 }
 
-                Real kyp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + 
+                Real kyp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) +
                            kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4));
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j-1,k,4));
@@ -1105,8 +1105,8 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
-                
-                // Temporary variables for Dirichlet 
+
+                // Temporary variables for Dirichlet
                 Real T_wall;
                 Real P_wall;
                 Real kappa_wall;
@@ -1148,7 +1148,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                        chiloc_wall, Dloc_wall);
                 }
 
-                Real kzp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + 
+                Real kzp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) +
                             kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4));
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j,k-1,4));
@@ -1847,7 +1847,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GetMolfrac(Yk_wall, Xk_wall);
             }
 
-            // viscous heating 
+            // viscous heating
             // (automatically taken care of setting shear stress to zero above for 1D and 2D)
             // diagonal
             xflux(i,j,k,nvars+1) -= 0.5*velx(i,j,k)*(tauxx(i-1,j,k)+tauxx(i,j,k));

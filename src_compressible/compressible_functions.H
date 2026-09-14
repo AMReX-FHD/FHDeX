@@ -212,7 +212,7 @@ void GetDensity ( const Real pressure,
     molmix = 1./molmix;
 
     density = pressure/(Runiv/molmix)/temp;
-    
+
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1529,7 +1529,7 @@ void IdealMixtureTransportHCBBin ( /*int iloc, int jloc, int kloc,*/
 
     // Fil the thermal diffusion ratio vector
     thermal_diff = thermal_diff*mR*yytr[1]*yytr[1]/(xxtr[1]*xxtr[1]);
-    chitil[0] = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]); 
+    chitil[0] = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]);
     chitil[1] =  1.0*xxtr[1]*thermal_diff/(mR*yytr[1]*yytr[1]);
 }
 
@@ -1575,7 +1575,7 @@ void TransportCoeffs(const Real& rho, const Real& T, const Real& P,
                                     Yk_fixed, Xk_fixed, eta, kappa, zeta,
                                     Dloc, chi);
     }
-    
+
     // want this multiplied by rho for all times (rho*D_tilde = rho*Y*D)
     for (int kk=0; kk<nspecies; ++kk) {
         for (int ll=0; ll<nspecies; ++ll) {
