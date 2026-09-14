@@ -457,14 +457,14 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
                  amrex::Real xloc = p.pos(0);
                  amrex::Real yloc = p.pos(1);
-            
+
                  sinx = std::sin(xloc);
                  siny = std::sin(yloc);
                  cosx = std::cos(xloc);
                  cosy = std::cos(yloc);
 
                  det = 1 + amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy);
-                 
+
                  fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*sinx*cosx*siny*siny);
                  fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*siny*cosy*sinx*sinx);
 
@@ -491,7 +491,7 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                  updatey = std::max(-dx[1], std::min( dx[1], updatey));
 
                  // amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << std::endl;
-                
+
                  p.pos(0) += static_cast<ParticleReal> (updatex);
                  p.pos(1) += static_cast<ParticleReal> (updatey);
 

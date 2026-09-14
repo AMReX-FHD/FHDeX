@@ -1040,13 +1040,13 @@ AmrCoreAdv::WritePlotFile () const
                    nparts = phi_arr(i,j,k,0);
                    measure = phi_arr(i,j,k,0)/(cell_vol*det_arr(i,j,k,1)*num_part);
                 }
-      
+
                 mf_arr(i,j,k,2) = measure;
                 mf_arr(i,j,k,3) = nparts;
 
                 amrex::Real twopi = 2.*3.14159265358979323846264338;
                 amrex::Real pi = 3.14159265358979323846264338;
-                
+
                 amrex::Real twopisq = twopi*twopi;
 
                 amrex::Real divisor = std::max(statpts,1.);

@@ -23,12 +23,12 @@
       double precision  uleft, uright, pi, uinit
 
       common /params/ uleft, uright, pi, uinit
-       
+
       delreg = 4.d0*dx**2
       delnreg = uinit * delreg
-c      delnreg = 10.d0 
+c      delnreg = 10.d0
       usereg = 0
-      
+
 
       do k=1,ncoef
 
@@ -45,12 +45,12 @@ c      delnreg = 10.d0
            u(0,k)      = u(1,k)
            u(npts+1,k) = u(npts,k)
 
-             
+
 
          endif
 
          do j=1,npts+1
-              
+
             flux(j,k) = 0.5d0*(u(j,k)-u(j-1,k))/dx
 
          enddo
@@ -75,7 +75,7 @@ c      delnreg = 10.d0
 
       if(usereg .eq. 0)then
 
-        do j=0,npts +1 
+        do j=0,npts +1
 
            sqrtcoef(j) = sqrt(max(u(j,ncoef),0.d0))
 c          sqrtcoef(j) = u(j,ncoef)
@@ -84,7 +84,7 @@ c          sqrtcoef(j) = u(j,ncoef)
 
       else
 
-        do j=0,npts +1 
+        do j=0,npts +1
 
            sgnphi = sign(1.d0,u(j,ncoef))
            phiabs = abs(u(j,ncoef))
@@ -108,7 +108,7 @@ c          endif
       endif
 
 
-      do j=1,npts +1 
+      do j=1,npts +1
 
 
 c        umin =  max(u(j-1,ncoef),0.d0)
@@ -126,7 +126,7 @@ c        uplus = sqrt(max(u(j,ncoef),0.d0))
          if(ires.eq.1 .and. j.eq.npts+1)then
            uave = sqrt(uright)
          endif
-         
+
          factor = 1.d0
 
          if(j.eq.1.or.j.eq.npts+1)then
@@ -148,7 +148,7 @@ c        flux(j) = flux(j)+varflux*(ranflux(j,1)+weight*ranflux(j,2))
      1             *dorand/sqrt(dx*dt)
 
       enddo
- 
+
         if(iper.eq.1)then
 
            do k=1,ncoef

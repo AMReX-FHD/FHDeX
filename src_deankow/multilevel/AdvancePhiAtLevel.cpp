@@ -15,6 +15,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
         BoxArray ba = grids[lev];
         ba.surroundingNodes(i);
         fluxes[i].define(ba, dmap[lev], phi_new[lev].nComp(), 0);
+        fluxes[i].setVal(0.);
         stochFluxes[i].define(ba, dmap[lev], phi_new[lev].nComp(), 0);
         stochFluxes[i].setVal(0.);
     }

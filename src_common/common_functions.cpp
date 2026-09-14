@@ -71,6 +71,7 @@ AMREX_GPU_MANAGED amrex::Real common::Runiv;
 AMREX_GPU_MANAGED amrex::Real common::avogadro;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
+AMREX_GPU_MANAGED int      common::stokes_solver_type;
 int                        common::barodiffusion_type;
 int                        common::seed;
 AMREX_GPU_MANAGED amrex::Real common::visc_coef;
@@ -84,6 +85,7 @@ AMREX_GPU_MANAGED amrex::Real common::smoothing_width;
 AMREX_GPU_MANAGED amrex::Real common::radius_cyl;
 AMREX_GPU_MANAGED amrex::Real common::radius_outer;
 AMREX_GPU_MANAGED amrex::Real common::film_thickness;
+AMREX_GPU_MANAGED amrex::Real common::surf_thickness;
 amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
 amrex::Real                common::domega;
@@ -436,6 +438,9 @@ void InitializeCommonNamespace() {
 
     // Algorithm control / selection
     algorithm_type = 0;
+    // 0 = GMRES
+    // 1 = FFT-based
+    stokes_solver_type = 0;
     // 0 = centered
     // 1 = unlimited bilinear bds
     // 2 = limited bilinear bds
@@ -468,6 +473,7 @@ void InitializeCommonNamespace() {
     radius_cyl = 0.;
     radius_outer = 0.;
     film_thickness = 0.;
+    surf_thickness = 0.;
     initial_variance_mom = 0.;
     initial_variance_mass = 0.;
     domega = 0.;
@@ -781,6 +787,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("algorithm_type",algorithm_type);
+    pp.query("stokes_solver_type",stokes_solver_type);
     pp.query("barodiffusion_type",barodiffusion_type);
     pp.query("seed",seed);
     pp.query("visc_coef",visc_coef);
@@ -794,6 +801,7 @@ void InitializeCommonNamespace() {
     pp.query("radius_cyl",radius_cyl);
     pp.query("radius_outer",radius_outer);
     pp.query("film_thickness",film_thickness);
+    pp.query("surf_thickness",surf_thickness);
     pp.query("initial_variance_mom",initial_variance_mom);
     pp.query("initial_variance_mass",initial_variance_mass);
     pp.query("domega",domega);

@@ -14,6 +14,7 @@
 #define TRAN_BC_COMP 4
 #define SPEC_BC_COMP 10
 #define SPEC_END_BC_COMP 19
+#define SPEC_CONTACT_BC 10
 #define MOLFRAC_BC_COMP 20
 #define MOLFRAC_END_BC_COMP 29
 
