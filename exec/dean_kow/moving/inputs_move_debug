@@ -17,7 +17,7 @@ npts_scale = 1000000.
 alg_type = 0
 #num_part = 10240.
 num_part = 100000.
-dorand = 1.
+dorand = 0.
 
 # *****************************************************************
 # Are we restarting from an existing checkpoint file?
@@ -95,7 +95,7 @@ adv.phierr = -10.
 # *****************************************************************
 # Plotfile name and frequency
 # *****************************************************************
-amr.plot_file  = plt_stoch_
+amr.plot_file  = plt_
 # root name of plot file
 amr.plot_int   =  100 
 # number of timesteps between plot files

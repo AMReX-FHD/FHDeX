@@ -280,6 +280,7 @@ void StochMassFlux::StochMassFluxDiv(const MultiFab& rho,
         MultiFab::Copy(stoch_mass_flux[d], stoch_W_fc_weighted[d], 0, 0, nspecies, 0);
     }
 
+
     const Real* dx = geom.CellSize();
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
     Real variance = sqrt(2.*k_B*variance_coef_mass/(dVol*dt));

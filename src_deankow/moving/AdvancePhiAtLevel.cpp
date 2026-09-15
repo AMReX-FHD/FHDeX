@@ -19,6 +19,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
         stochFluxes[i].setVal(0.);
         ba.surroundingNodes(i);
         fluxes[i].define(ba, dmap[lev], num_flux*phi_new[lev].nComp(), 0);
+        fluxes[i].setVal(0.);
     }
 
     phi_old[lev].FillBoundary(Geom(lev).periodicity());
@@ -52,6 +53,9 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                 new_dk_metric(i,j,k,gmet_arr,gsqr_arr,detg_arr,newgmet_arr,newgsqr_arr,newdetg_arr,dx,problo,time);
             });
         }
+        gmetric.FillBoundary(geom[lev].periodicity());
+        sqrgmetric.FillBoundary(geom[lev].periodicity());
+        detg.FillBoundary(geom[lev].periodicity());
 
 
 //    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, dt_lev, npts_scale, geom[lev], bcs);

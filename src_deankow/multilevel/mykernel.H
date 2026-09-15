@@ -83,6 +83,7 @@ void init_phi (int i, int j, int k,
         phi(i,j,k,0) = 10.1/cellvol;
     }
 #endif
+        phi(i,j,k,0) = 20./cellvol;
 
 #if 0
     // 2D Test for multilevel
@@ -181,7 +182,7 @@ void compute_flux_x (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
+    int ext_pot = 0;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
@@ -245,8 +246,10 @@ void compute_flux_x (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i-1,j,k,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i-1,j,k,coeff_index));
+        //phipn = std::abs(phi(i,j,k,coeff_index));
+        //phimn = std::abs(phi(i-1,j,k,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i-1,j,k,coeff_index),0.);
         stofact = 1.;
         //amrex::Print() << " C " << std::endl;
 
@@ -303,7 +306,7 @@ void compute_flux_y (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
+    int ext_pot = 0;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
@@ -336,8 +339,10 @@ void compute_flux_y (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i,j-1,k,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i,j-1,k,coeff_index));
+        // phipn = std::abs(phi(i,j,k,coeff_index));
+        // phimn = std::abs(phi(i,j-1,k,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i,j-1,k,coeff_index),0.);
         stofact = 1.;
 
     }
@@ -386,31 +391,27 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
+    amrex::ignore_unused(lo, hi);
     int coeff_index = Ncomp-1;
-    if (lo == dom_lo &&
+    // Note: the test has to be on the face index k, not on the box bounds lo/hi,
+    // otherwise every face of a box that touches the domain boundary is treated
+    // as a boundary face.
+    if (k == dom_lo &&
         (bc_lo == amrex::BCType::foextrap ||
          bc_lo == amrex::BCType::ext_dir))
     {
-        if(k == lo)
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
-        }
-        else
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
+        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
+        if(Ncomp == 2){
+            fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv / 0.5;
         }
     }
-    else if (hi == dom_hi &&
+    else if (k == dom_hi+1 &&
              (bc_hi == amrex::BCType::foextrap ||
               bc_hi == amrex::BCType::ext_dir))
     {
-        if(k == hi+1)
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
-        }
-        else
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
+        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
+        if(Ncomp == 2){
+            fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv / 0.5;
         }
     }
     else
