@@ -1,3 +1,6 @@
+#ifndef _common_namespace_H_
+#define _common_namespace_H_
+
 namespace common {
 
 //////////////
@@ -333,3 +336,5 @@ namespace common {
     extern AMREX_GPU_MANAGED int         turbForcing;
 
 }
+
+#endif

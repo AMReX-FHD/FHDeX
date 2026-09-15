@@ -1,3 +1,6 @@
+#ifndef _InhomogeneousBCVal_H_
+#define _InhomogeneousBCVal_H_
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 
 Real InhomogeneousBCVal ( int comp,
@@ -127,3 +130,5 @@ Real InhomogeneousBCVal ( int comp,
 
     return 0.;
 }
+
+#endif
