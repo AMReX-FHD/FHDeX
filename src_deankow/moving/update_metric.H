@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Print.H>
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void new_dk_metric(int i, int j, int k,
                amrex::Array4<amrex::Real> const& gmet,
                amrex::Array4<amrex::Real> const& sqrmet,
@@ -16,7 +17,6 @@ void new_dk_metric(int i, int j, int k,
                amrex::Real time)
 {
 
-    constexpr double  TWOPI = 2.*3.14159265358979323846264338327950288;
     constexpr double  PI = 3.14159265358979323846264338327950288;
 
     amrex::Real xloc = prob_lo[0] + (i+0.5) * dx[0] ;
@@ -57,7 +57,7 @@ void new_dk_metric(int i, int j, int k,
 
     amrex::Real amp = 4.;
     amrex::Real tscale = 0.3;
-    amrex::Real sinx,siny,cosx,cosy,det,sig11,sig12,sig21,sig22;
+    amrex::Real sinx,siny,cosx,cosy,det;
 
     sinx = std::sin(xloc);
     siny = std::sin(yloc);

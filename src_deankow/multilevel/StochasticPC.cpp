@@ -19,7 +19,9 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
 {
     BL_PROFILE("StochasticPC::ColorParticlesWithPhi");
     const int lev = 1;
-    const auto dx = Geom(lev).CellSizeArray();
+    const auto dxi    = Geom(lev).InvCellSizeArray();
+    const auto plo    = Geom(lev).ProbLoArray();
+    const auto domain = Geom(lev).Domain();
 
     amrex::Print() << "PHIARR BOX " << phi.boxArray() << std::endl;
 
@@ -38,10 +40,13 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
         amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int n)
         {
             ParticleType& p = pstruct[n];
-            int i = static_cast<int>(p.pos(0) / dx[0]);
-            int j = static_cast<int>(p.pos(1) / dx[1]);
-            int k = 0;
-            p.rdata(RealIdx::zold) = phi_arr(i,j,k);
+            // Use the same helper getNewCell/getOldCell use: the raw divide
+            // omitted prob_lo and domain.smallEnd(), and static_cast truncates
+            // toward zero instead of flooring, so particles just outside the
+            // low side of the domain -- which AddParticles deliberately allows
+            // -- collapsed onto cell 0.
+            const amrex::IntVect iv = amrex::getParticleCell(p, plo, dxi, domain);
+            p.rdata(RealIdx::zold) = phi_arr(iv,0);
         });
     }
 }
@@ -482,10 +487,12 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                  amrex::Real updatex = fx*dt + sig11*incx + sig12*incy;
                  amrex::Real updatey = fy*dt + sig21*incx + sig22*incy;
 
+#ifndef AMREX_USE_GPU
                  if(std::abs(updatex) > dx[0] || std::abs(updatey) > dx[1])
                  {
                     amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << " mesh " << dx[0] << " " << dx[1] << std::endl;
                  }
+#endif
 
                  updatex = std::max(-dx[0], std::min( dx[0], updatex));
                  updatey = std::max(-dx[1], std::min( dx[1], updatey));
