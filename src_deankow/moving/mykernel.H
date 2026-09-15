@@ -596,13 +596,13 @@ elseif
              sqrphi = std::sqrt(std::max(phi_loc,0.));
              fluxx(i,j,k,1) +=  2.*std::sqrt(2./num_part)*det(i-1,j,k,2)*sqrphi*(sqrgmet(i-1,j,k,0)*stochfluxx(i-1,j,k,1)+sqrgmet(i-1,j,k,1)*stochfluxy(i-1,j,k,1));
 
-             phi_loc = phi(i-1,j,k,0);
-             sqrphi = std::sqrt(std::max(phi_loc,0.));
-             fluxx(i,j,k,2) += 2.* std::sqrt(2./num_part)*det(i-1,j,k,2)*sqrphi*(sqrgmet(i-1,j,k,0)*stochfluxx(i-1,j,k,2)+sqrgmet(i-1,j,k,1)*stochfluxy(i-1,j,k,2));
-
              phi_loc = phi(i,j,k,0);
              sqrphi = std::sqrt(std::max(phi_loc,0.));
-             fluxx(i,j,k,3) += 2.* std::sqrt(2./num_part)*det(i,j,k,2)*sqrphi*(sqrgmet(i,j,k,0)*stochfluxx(i,j,k,3)+sqrgmet(i,j,k,1)*stochfluxy(i,j,k,3));
+             fluxx(i,j,k,2) += 2.* std::sqrt(2./num_part)*det(i,j,k,2)*sqrphi*(sqrgmet(i,j,k,0)*stochfluxx(i,j,k,2)+sqrgmet(i,j,k,1)*stochfluxy(i,j,k,2));
+
+             phi_loc = phi(i-1,j,k,0);
+             sqrphi = std::sqrt(std::max(phi_loc,0.));
+             fluxx(i,j,k,3) += 2.* std::sqrt(2./num_part)*det(i-1,j,k,2)*sqrphi*(sqrgmet(i-1,j,k,0)*stochfluxx(i-1,j,k,3)+sqrgmet(i-1,j,k,1)*stochfluxy(i-1,j,k,3));
           }
 //          amrex::Print() << " x flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
 }
@@ -920,13 +920,13 @@ elseif
              sqrphi = std::sqrt(std::max(phi_loc,0.));
              fluxy(i,j,k,1) += 2.* std::sqrt(2./num_part)*det(i,j-1,k,2)*sqrphi*(sqrgmet(i,j-1,k,2)*stochfluxx(i,j-1,k,1)+sqrgmet(i,j-1,k,3)*stochfluxy(i,j-1,k,1));
 
-             phi_loc = phi(i,j,k,0);
-             sqrphi = std::sqrt(std::max(phi_loc,0.));
-             fluxy(i,j,k,2) += 2.* std::sqrt(2./num_part)*det(i,j,k,2)*sqrphi*(sqrgmet(i,j,k,2)*stochfluxx(i,j,k,2)+sqrgmet(i,j,k,3)*stochfluxy(i,j,k,2));
-
              phi_loc = phi(i,j-1,k,0);
              sqrphi = std::sqrt(std::max(phi_loc,0.));
-             fluxy(i,j,k,3) += 2.* std::sqrt(2./num_part)*det(i,j-1,k,2)*sqrphi*(sqrgmet(i,j-1,k,2)*stochfluxx(i,j-1,k,3)+sqrgmet(i,j-1,k,3)*stochfluxy(i,j-1,k,3));
+             fluxy(i,j,k,2) += 2.* std::sqrt(2./num_part)*det(i,j-1,k,2)*sqrphi*(sqrgmet(i,j-1,k,2)*stochfluxx(i,j-1,k,2)+sqrgmet(i,j-1,k,3)*stochfluxy(i,j-1,k,2));
+
+             phi_loc = phi(i,j,k,0);
+             sqrphi = std::sqrt(std::max(phi_loc,0.));
+             fluxy(i,j,k,3) += 2.* std::sqrt(2./num_part)*det(i,j,k,2)*sqrphi*(sqrgmet(i,j,k,2)*stochfluxx(i,j,k,3)+sqrgmet(i,j,k,3)*stochfluxy(i,j,k,3));
 
           }
 //          amrex::Print() << " x flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
@@ -1103,7 +1103,10 @@ void update_phi (int i, int j, int k,
        }
     } else if (num_flux == 4 ){
 
-       phinew(i,j,k,0) = phiold(i,j,k,0)
+       // The conserved quantity on the moving surface is phi*sqrt(g), so the
+       // update is phi^{n+1} sqrt(g^{n+1}) = phi^n sqrt(g^n) + dt*div(F), the
+       // same form the num_flux == 1 branch above uses.
+       phinew(i,j,k,0) = (det(i,j,k,1)*phiold(i,j,k,0)
            + 0.25* dt* (  dxinv * (fluxx(i+1,j  ,k,0  ) - fluxx(i,j,k,0))
                        +  dxinv * (fluxx(i+1,j  ,k,1  ) - fluxx(i,j,k,1))
                        +  dxinv * (fluxx(i+1,j  ,k,2  ) - fluxx(i,j,k,2))
@@ -1111,7 +1114,7 @@ void update_phi (int i, int j, int k,
                        +  dyinv * (fluxy(i  ,j+1,k,0  ) - fluxy(i,j,k,0))
                        +  dyinv * (fluxy(i  ,j+1,k,1  ) - fluxy(i,j,k,1))
                        +  dyinv * (fluxy(i  ,j+1,k,2  ) - fluxy(i,j,k,2))
-                       +  dyinv * (fluxy(i  ,j+1,k,3  ) - fluxy(i,j,k,3)))/det(i,j,k,1);
+                       +  dyinv * (fluxy(i  ,j+1,k,3  ) - fluxy(i,j,k,3))))/detn(i,j,k,1);
 
 
     }

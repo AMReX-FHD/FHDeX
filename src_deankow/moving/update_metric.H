@@ -96,19 +96,23 @@ void new_dk_metric(int i, int j, int k,
 
     newdetg(i,j,k,0) = det;
     newdetg(i,j,k,1) = std::sqrt(det);
-    newdetg(i,j,k,2) = std::sqrt(detg(i,j,k,1));
+    newdetg(i,j,k,2) = std::sqrt(newdetg(i,j,k,1));
 
     newgmet(i,j,k,0) = (1.+ q*q)/det;
     newgmet(i,j,k,1) = -p*q/det;
     newgmet(i,j,k,2) = -p*q/det;
     newgmet(i,j,k,3) = (1.+ p*p)/det;
 
-    amrex::Real factor = 1./(detg(i,j,k,1)*(1.+detg(i,j,k,1)));
+    // The inverse square root of g = I + v v^T (v = (p,q)) is
+    // I - v v^T/(s(s+1)) with s = sqrt(det).  s must be the one that belongs
+    // to the p,q used in the same expressions, i.e. the NEW metric -- detg
+    // holds the previous time level at this point.
+    amrex::Real factor = 1./(newdetg(i,j,k,1)*(1.+newdetg(i,j,k,1)));
 
-    newsqrmet(i,j,k,0) = (1.+q*q+detg(i,j,k,1))*factor;
+    newsqrmet(i,j,k,0) = (1.+q*q+newdetg(i,j,k,1))*factor;
     newsqrmet(i,j,k,1) =  - p*q*factor;
     newsqrmet(i,j,k,2) =  - p*q*factor;
-    newsqrmet(i,j,k,3) = (1.+p*p+detg(i,j,k,1))*factor;
+    newsqrmet(i,j,k,3) = (1.+p*p+newdetg(i,j,k,1))*factor;
 
 }
 
