@@ -19,6 +19,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
         stochFluxes[i].setVal(0.);
         ba.surroundingNodes(i);
         fluxes[i].define(ba, dmap[lev], num_flux*phi_new[lev].nComp(), 0);
+        fluxes[i].setVal(0.);
     }
 
     phi_old[lev].FillBoundary(Geom(lev).periodicity());
@@ -59,9 +60,14 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
             });
         }
 
+        // new_dk_metric writes both the old and the new metric, over validbox
+        // only, so both need their ghost cells refreshed here.
         gmetric.FillBoundary(Geom(lev).periodicity());
         sqrgmetric.FillBoundary(Geom(lev).periodicity());
         detg.FillBoundary(Geom(lev).periodicity());
+        newgmetric.FillBoundary(Geom(lev).periodicity());
+        newsqrgmetric.FillBoundary(Geom(lev).periodicity());
+        newdetg.FillBoundary(Geom(lev).periodicity());
 
 
 //    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, dt_lev, npts_scale, geom[lev], bcs);

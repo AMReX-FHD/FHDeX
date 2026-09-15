@@ -23,7 +23,9 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
 {
     BL_PROFILE("StochasticPC::ColorParticlesWithPhi");
     const int lev = 1;
-    const auto dx = Geom(lev).CellSizeArray();
+    const auto dxi    = Geom(lev).InvCellSizeArray();
+    const auto plo    = Geom(lev).ProbLoArray();
+    const auto domain = Geom(lev).Domain();
 
     amrex::Print() << "PHIARR BOX " << phi.boxArray() << std::endl;
 
@@ -42,10 +44,13 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
         amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int n)
         {
             ParticleType& p = pstruct[n];
-            int i = static_cast<int>(p.pos(0) / dx[0]);
-            int j = static_cast<int>(p.pos(1) / dx[1]);
-            int k = 0;
-            p.rdata(RealIdx::zold) = phi_arr(i,j,k);
+            // Use the same helper getNewCell/getOldCell use: the raw divide
+            // omitted prob_lo and domain.smallEnd(), and static_cast truncates
+            // toward zero instead of flooring, so particles just outside the
+            // low side of the domain -- which AddParticles deliberately allows
+            // -- collapsed onto cell 0.
+            const amrex::IntVect iv = amrex::getParticleCell(p, plo, dxi, domain);
+            p.rdata(RealIdx::zold) = phi_arr(iv,0);
         });
     }
 }
@@ -452,14 +457,18 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt, Real diff_coeff)
 
                  det = 1 + amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy);
 
-                 fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*sinx*cosx*siny*siny);
-                 fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*siny*cosy*sinx*sinx);
+                 // The geometric factor multiplies the whole amp*amp*(...) group; folding it
+                 // inside the sum left a spurious drift of amp*amp/(det*det) on sin(x) = 0,
+                 // where the Ito drift on the surface must vanish by symmetry.
+                 fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy))*sinx*cosx*siny*siny;
+                 fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy))*siny*cosy*sinx*sinx;
 
                  fx = fx / (2.*det*det);
                  fy = fy / (2.*det*det);
 
-                 amrex::Real detm1 = det - 1.;
-                 amrex::Real cfac = (1. - 1./std::sqrt(1+detm1))/detm1;
+                 // (1 - 1/sqrt(det))/(det-1) == 1/(det + sqrt(det)) exactly, but the first
+                 // form is 0/0 as det -> 1 (a flat patch of surface).
+                 amrex::Real cfac = 1./(det + std::sqrt(det));
 
                  sig11 = 1. - cfac * amp*amp * cosx*cosx*siny*siny;
                  sig22 = 1. - cfac * amp*amp * cosy*cosy*sinx*sinx;
@@ -469,10 +478,12 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt, Real diff_coeff)
                  amrex::Real updatex = fx*dt + sig11*incx + sig12*incy;
                  amrex::Real updatey = fy*dt + sig21*incx + sig22*incy;
 
+#ifndef AMREX_USE_GPU
                  if(std::abs(updatex) > dx[0] || std::abs(updatey) > dx[1])
                  {
                     amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << " mesh " << dx[0] << " " << dx[1] << std::endl;
                  }
+#endif
 
                  updatex = std::max(-dx[0], std::min( dx[0], updatex));
                  updatey = std::max(-dx[1], std::min( dx[1], updatey));
@@ -834,14 +845,18 @@ StochasticPC::AdvectParticles (int lev, Real dt,
 
                 det = 1 + amp*amp*(cosx*cosx*siny*siny+sinx*sinx*cosy*cosy);
 
-                fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*sinx*cosx*siny*siny);
-                fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy)*siny*cosy*sinx*sinx);
+                // The geometric factor multiplies the whole amp*amp*(...) group; folding it
+                // inside the sum left a spurious drift of amp*amp/(det*det) on sin(x) = 0,
+                // where the Ito drift on the surface must vanish by symmetry.
+                fx = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy))*sinx*cosx*siny*siny;
+                fy = amp*amp*(2. + amp*amp * (cosx*cosx + cosy*cosy))*siny*cosy*sinx*sinx;
 
                 fx = fx / (2.*det*det);
                 fy = fy / (2.*det*det);
 
-                amrex::Real detm1 = det - 1.;
-                amrex::Real cfac = (1. - 1./std::sqrt(1+detm1))/detm1;
+                // (1 - 1/sqrt(det))/(det-1) == 1/(det + sqrt(det)) exactly, but the first
+                // form is 0/0 as det -> 1 (a flat patch of surface).
+                amrex::Real cfac = 1./(det + std::sqrt(det));
 
                 sig11 = 1. - cfac * amp*amp * cosx*cosx*siny*siny;
                 sig22 = 1. - cfac * amp*amp * cosy*cosy*sinx*sinx;

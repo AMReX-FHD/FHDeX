@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Print.H>
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void init_dk_metric(int i, int j, int k,
                amrex::Array4<amrex::Real> const& gmet,
                amrex::Array4<amrex::Real> const& sqrmet,

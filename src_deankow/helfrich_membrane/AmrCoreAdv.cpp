@@ -185,16 +185,18 @@ AmrCoreAdv::Evolve ()
                auto const& phi_arr = phi_new[lev].array(mfi);
                auto const& stats_arr = stats.array(mfi);
                auto const& det_arr = detg.array(mfi);
+               const int        l_pure_part = pure_part;
+               const amrex::Real l_num_part  = num_part;
                amrex::ParallelFor(vbx,
                [=] AMREX_GPU_DEVICE(int i, int j, int k)
                {
                   amrex::Real measure, nparts;
-                  if(pure_part == 0) {
+                  if(l_pure_part == 0) {
                      measure = phi_arr(i,j,k,0);
-                     nparts = num_part*phi_arr(i,j,k,0)*cell_vol*det_arr(i,j,k,1);
+                     nparts = l_num_part*phi_arr(i,j,k,0)*cell_vol*det_arr(i,j,k,1);
                   } else {
                      nparts = phi_arr(i,j,k,0);
-                     measure = phi_arr(i,j,k)/(cell_vol*det_arr(i,j,k,1)*num_part);
+                     measure = phi_arr(i,j,k)/(cell_vol*det_arr(i,j,k,1)*l_num_part);
                   }
 
                   stats_arr(i,j,k,0) += measure;
@@ -271,7 +273,11 @@ AmrCoreAdv::InitData ()
 #endif
         phi_new[0].FillBoundary();
 
-        MultiFab::Copy(phi_old[0], phi_new[0],0,0,1,0);
+        // phi has 2 components when alg_type != 0; copying only component 0
+        // left component 1 of phi_old uninitialized until the first
+        // std::swap in timeStepNoSubcycling -- and WriteCheckpointFile
+        // right below writes both components.
+        MultiFab::Copy(phi_old[0], phi_new[0], 0, 0, phi_new[0].nComp(), 0);
         phi_old[0].FillBoundary();
 
         if (chk_int > 0) {
@@ -474,8 +480,6 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
        newsqrgmetric.define(ba,dm,4,ng);
        newdetg.define(ba,dm,3,ng);
 
-       surf_area = 0.;
-
        InitSurfaceFFT(ba, dm, Geom(lev));
        //UpdateSurfaceFromFourier(Geom(lev), time);
 
@@ -491,16 +495,33 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
                 init_dk_metric(i,j,k,gmet_arr,gsqr_arr,detg_arr,dhdx_arr,dhdy_arr,dx,problo);
-                surf_area += dx[0]*dx[1]*detg_arr(i,j,k,1);
             });
         }
 
-        ParallelDescriptor:: ReduceRealSum(surf_area);
+        // Component 1 of the determinant MultiFab is sqrt(det).  MultiFab::sum
+        // reduces over the valid region across all ranks, so the surface area
+        // needs no reduction inside the kernel -- accumulating into the member
+        // surf_area from a device lambda dereferenced a host `this` on GPU and
+        // raced between threads under OpenMP.
+        surf_area = newdetg.sum(1) * dx[0] * dx[1];
 
         amrex::Print() << "total surface area = " << surf_area <<std::endl;
+
+        // ---- #209 ----
+        // The loop above filled the NEW metric.  Seed the old metric from it so
+        // that all six MultiFabs are valid at t = 0, then fill the ghost cells of
+        // all six -- compute_flux_x/y read the old metric at (i-1,j)/(i,j-1),
+        // which lands in the ghost region on the low faces of every box.
+        MultiFab::Copy(gmetric   , newgmetric   , 0, 0, gmetric.nComp()   , 0);
+        MultiFab::Copy(sqrgmetric, newsqrgmetric, 0, 0, sqrgmetric.nComp(), 0);
+        MultiFab::Copy(detg      , newdetg      , 0, 0, detg.nComp()      , 0);
+
         gmetric.FillBoundary(Geom(lev).periodicity());
         sqrgmetric.FillBoundary(Geom(lev).periodicity());
         detg.FillBoundary(Geom(lev).periodicity());
+        newgmetric.FillBoundary(Geom(lev).periodicity());
+        newsqrgmetric.FillBoundary(Geom(lev).periodicity());
+        newdetg.FillBoundary(Geom(lev).periodicity());
 
     }
 
@@ -532,10 +553,13 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
             const Box& vbx = mfi.validbox();
             auto const& phi_arr = phi_new[lev].array(mfi);
             auto const& det_arr = newdetg.array(mfi);
+            const amrex::Real l_surf_area = surf_area;
+            const int         l_pure_part = pure_part;
+            const int         l_ext_pot   = ext_pot;
             amrex::ParallelFor(vbx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
-                init_phi(i,j,k,phi_arr,det_arr,dx,problo,surf_area,pure_part,Ncomp,ext_pot);
+                init_phi(i,j,k,phi_arr,det_arr,dx,problo,l_surf_area,l_pure_part,Ncomp,l_ext_pot);
             });
         }
 
@@ -1247,6 +1271,13 @@ AmrCoreAdv::WritePlotFile () const
 
     const auto prob_lo = Geom(lev).ProbLoArray();
 
+    // Copy the members this kernel reads into locals: a [=] lambda captures
+    // `this`, so reading them directly dereferences a host pointer on GPU.
+    const int         l_pure_part = pure_part;
+    const amrex::Real l_num_part  = num_part;
+    const amrex::Real l_statpts   = statpts;
+    const amrex::Real l_surf_area = surf_area;
+
     for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
     {
             const Box& vbx = mfi.validbox();
@@ -1259,12 +1290,12 @@ AmrCoreAdv::WritePlotFile () const
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
                 amrex::Real measure, nparts;
-                if(pure_part == 0) {
+                if(l_pure_part == 0) {
                    measure = phi_arr(i,j,k,0);
-                   nparts = num_part*phi_arr(i,j,k,0)*cell_vol*det_arr(i,j,k,1);
+                   nparts = l_num_part*phi_arr(i,j,k,0)*cell_vol*det_arr(i,j,k,1);
                 } else {
                    nparts = phi_arr(i,j,k,0);
-                   measure = phi_arr(i,j,k,0)/(cell_vol*det_arr(i,j,k,1)*num_part);
+                   measure = phi_arr(i,j,k,0)/(cell_vol*det_arr(i,j,k,1)*l_num_part);
                 }
 
                 mf_arr(i,j,k,2) = det_arr(i,j,k,1);
@@ -1278,13 +1309,13 @@ AmrCoreAdv::WritePlotFile () const
                 amrex::Real xloc = prob_lo[0] + (i+0.5) * dx[0];
                 amrex::Real yloc = prob_lo[1] + (j+0.5) * dx[1];
 
-                amrex::Real divisor = std::max(statpts,1.);
+                amrex::Real divisor = std::max(l_statpts,1.);
                 mf_arr(i,j,k,4) = stat_arr(i,j,k,0)/divisor;
                 mf_arr(i,j,k,5) = stat_arr(i,j,k,1)/divisor - mf_arr(i,j,k,4)*mf_arr(i,j,k,4);
-                mf_arr(i,j,k,6) = 1./(cell_vol*det_arr(i,j,k,1)*num_part*surf_area);
+                mf_arr(i,j,k,6) = 1./(cell_vol*det_arr(i,j,k,1)*l_num_part*l_surf_area);
                 mf_arr(i,j,k,7) = stat_arr(i,j,k,2)/divisor;
                 mf_arr(i,j,k,8) = stat_arr(i,j,k,3)/divisor - mf_arr(i,j,k,7)*mf_arr(i,j,k,7);
-                mf_arr(i,j,k,9) = cell_vol*det_arr(i,j,k,1)*num_part/surf_area;
+                mf_arr(i,j,k,9) = cell_vol*det_arr(i,j,k,1)*l_num_part/l_surf_area;
                 mf_arr(i,j,k,10) = height_arr(i,j,k,0);
 
 #if 0
