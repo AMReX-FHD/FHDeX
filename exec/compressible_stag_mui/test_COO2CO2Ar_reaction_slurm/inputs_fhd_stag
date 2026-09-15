@@ -77,8 +77,8 @@ bc_therm_lo = -1 -1 2
 bc_therm_hi = -1 -1 2
 
 # Temperature if thermal BC specified
-t_hi = 1000 1000 1000
-t_lo = 1000 1000 1000
+t_hi = 600 600 600
+t_lo = 600 600 600
 
 #Kinetic species info
 #--------------
