@@ -78,7 +78,7 @@ void init_int_pot (int i, int j, int k,
     amrex::Real r = std::sqrt(x*x+y*y);
 #endif
 
-    U(i,j,k) = eps * std::exp( - std::pow(r/R,alpha));
+    U(i,j,k) = - eps * std::exp( - std::pow(r/R,alpha));
 //    U(i,j,k) = std::cos(2*PI*i*dx[0]);
 /*
     U(i,j,k) = 0.;

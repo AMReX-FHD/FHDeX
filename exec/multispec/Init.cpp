@@ -468,11 +468,13 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
            thin film
             */
             //Real rad = L[0] / 8.;
+        Real router = 1.5*5.73e-6;
+        Real rad = radius_cyl;
         int nsub = 10;
         Real factor = nsub;
         Real dxsub = dx[0]/factor;
         Real dysub = dx[1]/factor;
-            Real x,y,z;
+        Real dzsub = dx[2]/factor;
         amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << " " << surf_thickness << std::endl;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -797,7 +799,6 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             ang_hit = 0.;
             ang_vel = 0.;
 
-            amrex::Real rad2 = .00212;
             GpuArray<Real,AMREX_SPACEDIM> droplet_center;
 
             AMREX_D_TERM(droplet_center[0] = center[0]-(rad+rad2 + 4*dx[1])*std::sin(ang_hit);,
