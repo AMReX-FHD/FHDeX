@@ -1,6 +1,13 @@
 #ifndef MY_KERNEL_H_
 #define MY_KERNEL_H_
 
+// In an ensemble direction the realisations stacked along that direction must
+// not exchange fluctuations, so the diffusive and stochastic fluxes are
+// suppressed there.  The deterministic external-potential drift is NOT: the
+// particle update (StochasticPC::AdvectWithRandomWalk) applies it
+// unconditionally and only zeroes the random increment, so suppressing it here
+// as well made the grid and particle solutions disagree along that direction.
+
 #include <AMReX_FArrayBox.H>
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -183,7 +190,7 @@ void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp,
                      int a_ext_pot, amrex::Real a_alpha, amrex::Real a_beta,
-                     amrex::Real a_gamma)
+                     amrex::Real a_gamma, int a_ensemble_dir)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
@@ -274,7 +281,8 @@ void compute_flux_x (int i, int j, int k,
           //amrex::Print() << "phi " << phi(i,j,k,0) << std::endl;
           //amrex::Print() << "phim " << phim << std::endl;
 
-          fluxx(i,j,k,0) = 0.5*(phip-phim) * dxinv;
+          // see the note at the top of this file on ensemble directions
+          fluxx(i,j,k,0) = (a_ensemble_dir == 1) ? 0. : 0.5*(phip-phim) * dxinv;
 
           if(ext_pot == 1) {
 
@@ -294,8 +302,10 @@ void compute_flux_x (int i, int j, int k,
            fluxx(i,j,k,1) = fluxx(i,j,k,0);
         }
 
-          amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
-          fluxx(i,j,k,0) += stofact * stochfluxx(i,j,k) * sqphiavg;
+          if (a_ensemble_dir == 0) {
+             amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+             fluxx(i,j,k,0) += stofact * stochfluxx(i,j,k) * sqphiavg;
+          }
 //          amrex::Print() << " x flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
 }
 
@@ -306,7 +316,7 @@ void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
                      int a_ext_pot, amrex::Real a_alpha, amrex::Real a_beta,
-                     amrex::Real a_gamma)
+                     amrex::Real a_gamma, int a_ensemble_dir)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
@@ -359,7 +369,8 @@ void compute_flux_y (int i, int j, int k,
         //fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
         //+ stochfluxy(i,j,k)* std::sqrt(phiavg);
 
-        fluxy(i,j,k,0) = 0.5*(phip-phim) * dyinv;
+        // see the note at the top of this file on ensemble directions
+        fluxy(i,j,k,0) = (a_ensemble_dir == 1) ? 0. : 0.5*(phip-phim) * dyinv;
 
           if(ext_pot == 1) {
 
@@ -379,9 +390,10 @@ void compute_flux_y (int i, int j, int k,
            fluxy(i,j,k,1) = fluxy(i,j,k,0);
         }
 
-        amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
-
-        fluxy(i,j,k,0) += stofact * stochfluxy(i,j,k)* sqphiavg;
+        if (a_ensemble_dir == 0) {
+           amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+           fluxy(i,j,k,0) += stofact * stochfluxy(i,j,k)* sqphiavg;
+        }
 //        amrex::Print() << " y flux " << i << " " << j << " " << fluxy(i,j,k,0) << std::endl;
 }
 

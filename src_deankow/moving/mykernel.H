@@ -1,6 +1,18 @@
 #ifndef MY_KERNEL_H_
 #define MY_KERNEL_H_
 
+// DK_EXT_POT_FORM selects which external potential the drift is built from:
+//   1 = product of caps(y) and capr(x)   (the form these runs use)
+//   2 = sin/cos of (x+y)/2 and (x-y)/2
+//   3 = sin^2(x) sin^2(y)
+// The three used to be an #if 1 / #else / "elseif" chain in which the third
+// alternative was introduced by a bare `elseif` -- not a preprocessor
+// directive -- so selecting anything but the first branch did not compile.
+#ifndef DK_EXT_POT_FORM
+#define DK_EXT_POT_FORM 1
+#endif
+
+
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Print.H>
 
@@ -464,12 +476,14 @@ void compute_flux_x (int i, int j, int k,
 
              amrex::Real Vsubx;
              amrex::Real Vsuby;
-#if 1
 
+             // caps/capsy/capr/caprx are used by the num_flux == 4 branch below
+             // as well, so they stay at this scope.
              amrex::Real caps, capsy, capr, caprx;
 
-
           if(num_flux == 1){
+
+#if (DK_EXT_POT_FORM == 1)
 
              caps = 0;
              capsy = 0;
@@ -490,7 +504,7 @@ void compute_flux_x (int i, int j, int k,
              Vsuby = capsy/gamma;
 
 
-#else
+#elif (DK_EXT_POT_FORM == 2)
              amrex::Real sinxpy = std::sin(0.5*(xloc+yloc));
              amrex::Real cosxpy = std::cos(0.5*(xloc+yloc));
              amrex::Real sinxmy = std::sin(0.5*(xloc-yloc));
@@ -498,7 +512,7 @@ void compute_flux_x (int i, int j, int k,
 
              Vsubx = (sinxpy*cosxpy*sinxmy*sinxmy + sinxpy*sinxpy*sinxmy*cosxmy)/gamma;
              Vsuby = (sinxpy*cosxpy*sinxmy*sinxmy - sinxpy*sinxpy*sinxmy*cosxmy)/gamma;
-elseif
+#else
              amrex::Real sinx,cosx,siny,cosy;
 
              sinx = std::sin(xloc);
@@ -791,14 +805,16 @@ void compute_flux_y (int i, int j, int k,
              amrex::Real Vsubx;
              amrex::Real Vsuby;
 
-#if 1
-
+             // caps/capsy/capr/caprx are used by the num_flux == 4 branch below
+             // as well, so they stay at this scope.
              amrex::Real caps, capsy, capr, caprx;
 
           if(num_flux == 1){
 
              xloc = (i+0.5) / dxinv;
              yloc = (j+0.5) / dyinv;
+
+#if (DK_EXT_POT_FORM == 1)
 
              caps = 0;
              capsy = 0;
@@ -818,7 +834,7 @@ void compute_flux_y (int i, int j, int k,
              Vsubx = caprx/gamma;
              Vsuby = capsy/gamma;
 
-#else
+#elif (DK_EXT_POT_FORM == 2)
 
              amrex::Real sinxpy = std::sin(0.5*(xloc+yloc));
              amrex::Real cosxpy = std::cos(0.5*(xloc+yloc));
@@ -827,7 +843,7 @@ void compute_flux_y (int i, int j, int k,
 
              Vsubx = (sinxpy*cosxpy*sinxmy*sinxmy + sinxpy*sinxpy*sinxmy*cosxmy)/gamma;
              Vsuby = (sinxpy*cosxpy*sinxmy*sinxmy - sinxpy*sinxpy*sinxmy*cosxmy)/gamma;
-elseif
+#else
              amrex::Real sinx,cosx,siny,cosy;
 
              sinx = std::sin(xloc);

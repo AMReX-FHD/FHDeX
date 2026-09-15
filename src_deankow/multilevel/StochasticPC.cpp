@@ -482,10 +482,12 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                  amrex::Real updatex = fx*dt + sig11*incx + sig12*incy;
                  amrex::Real updatey = fy*dt + sig21*incx + sig22*incy;
 
+#ifndef AMREX_USE_GPU
                  if(std::abs(updatex) > dx[0] || std::abs(updatey) > dx[1])
                  {
                     amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << " mesh " << dx[0] << " " << dx[1] << std::endl;
                  }
+#endif
 
                  updatex = std::max(-dx[0], std::min( dx[0], updatex));
                  updatey = std::max(-dx[1], std::min( dx[1], updatey));

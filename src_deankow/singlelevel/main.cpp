@@ -277,7 +277,9 @@ void main_main ()
             const int IOProc = ParallelDescriptor::IOProcessorNumber();
             ParallelDescriptor::ReduceRealSum(Ephi.dataPtr(),3);
             ParallelDescriptor::ReduceRealMin(Ephimin);
-            amrex::Real scale = n_cell*n_cell;
+            // Total number of valid cells: n_cell*n_cell is 2D-only, and the
+            // int*int product overflows for n_cell >= 46341.
+            amrex::Real scale = static_cast<amrex::Real>(geom.Domain().numPts());
             amrex::Real scale2 =  AMREX_D_TERM( dx[0],
                                * dx[1],
                                * dx[2] );

@@ -202,7 +202,9 @@ struct ParticleData {
 
             //phi_grown2.mult(1./cell_vol,0,1,1);
 
-            phi_crse_new.ParallelAdd(phi_grown2,0,0,1,amrex::IntVect(1,1),amrex::IntVect(1,1));
+            phi_crse_new.ParallelAdd(phi_grown2, 0, 0, 1,
+                                     amrex::IntVect::TheUnitVector(),
+                                     amrex::IntVect::TheUnitVector());
 
             // **********************************************************************
             // Put particles on the correct levels and in the right boxes
@@ -236,7 +238,6 @@ struct ParticleData {
             // above assumes.  Scaling it here broke conservation across the
             // coarse/fine interface by a factor of cell_vol.
             //phi_grown.mult(1./cell_vol);
-            print_state(phi_grown, amrex::IntVect(31,16));
 
             phi_crse_new.ParallelAdd(phi_grown,0,0,1);
 
