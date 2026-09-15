@@ -489,9 +489,21 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         ParallelDescriptor:: ReduceRealSum(surf_area);
 
         amrex::Print() << "total surface area = " << surf_area <<std::endl;
+
+        // The loop above filled the NEW metric.  Seed the old metric from it so
+        // that all six MultiFabs are valid at t = 0, then fill the ghost cells of
+        // all six -- compute_flux_x/y read the old metric at (i-1,j)/(i,j-1),
+        // which lands in the ghost region on the low faces of every box.
+        MultiFab::Copy(gmetric   , newgmetric   , 0, 0, gmetric.nComp()   , 0);
+        MultiFab::Copy(sqrgmetric, newsqrgmetric, 0, 0, sqrgmetric.nComp(), 0);
+        MultiFab::Copy(detg      , newdetg      , 0, 0, detg.nComp()      , 0);
+
         gmetric.FillBoundary(Geom(lev).periodicity());
         sqrgmetric.FillBoundary(Geom(lev).periodicity());
         detg.FillBoundary(Geom(lev).periodicity());
+        newgmetric.FillBoundary(Geom(lev).periodicity());
+        newsqrgmetric.FillBoundary(Geom(lev).periodicity());
+        newdetg.FillBoundary(Geom(lev).periodicity());
 
     }
 

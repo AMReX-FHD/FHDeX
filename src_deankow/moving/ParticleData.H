@@ -157,6 +157,10 @@ struct ParticleData {
                            amrex::MultiFab& phi_crse_new,
                            amrex::MultiFab& phi_fine)
     {
+        // phi is a particle count here, so no volume scaling is applied anywhere
+        // on the reflux path; cell_vol is kept only for signature compatibility.
+        amrex::ignore_unused(cell_vol);
+
         // Update stochastic particles
         amrex::Print()  << " C use particles " << use_particles << std::endl;
         if (use_particles) {
@@ -226,7 +230,12 @@ struct ParticleData {
 
             stochastic_particles->RefluxFineToCrse(phi_fine.boxArray(), phi_grown);
 
-            phi_grown.mult(1./cell_vol);
+            // phi is a raw particle count in this directory (see AddParticles),
+            // and RefluxFineToCrse deposits +1 per particle, so this contribution
+            // is already in the units of phi_crse_new -- as the crse->fine path
+            // above assumes.  Scaling it here broke conservation across the
+            // coarse/fine interface by a factor of cell_vol.
+            //phi_grown.mult(1./cell_vol);
             print_state(phi_grown, amrex::IntVect(31,16));
 
             phi_crse_new.ParallelAdd(phi_grown,0,0,1);
