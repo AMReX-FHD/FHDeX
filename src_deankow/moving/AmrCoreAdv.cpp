@@ -269,7 +269,11 @@ AmrCoreAdv::InitData ()
 #endif
         phi_new[0].FillBoundary();
 
-        MultiFab::Copy(phi_old[0], phi_new[0],0,0,1,0);
+        // phi has 2 components when alg_type != 0; copying only component 0
+        // left component 1 of phi_old uninitialized until the first
+        // std::swap in timeStepNoSubcycling -- and WriteCheckpointFile
+        // right below writes both components.
+        MultiFab::Copy(phi_old[0], phi_new[0], 0, 0, phi_new[0].nComp(), 0);
         phi_old[0].FillBoundary();
 
         if (chk_int > 0) {
