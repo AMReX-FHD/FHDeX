@@ -86,13 +86,13 @@ void compute_flux_x (int i, int j, int k,
         if(Ncomp == 2){
             fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phileft) * dxinv / 0.5 ;
         }
-    } else if ( i == dom_hi+1 && bc_lo == BCType::foextrap )
+    } else if ( i == dom_hi+1 && bc_hi == BCType::foextrap )
     {
         fluxx(i,j,k,0) = 0.;
         if(Ncomp == 2){
             fluxx(i,j,k,1) = 0.;
         }
-    } else if ( i == dom_hi+1 && bc_lo == BCType::ext_dir )
+    } else if ( i == dom_hi+1 && bc_hi == BCType::ext_dir )
     {
         fluxx(i,j,k,0) = 0.5*(phiright-phi(i-1,j,k,0)) * dxinv / 0.5 + std::sqrt(2.*phiright)*stochfluxx(i,j,k);
         if(Ncomp == 2){
