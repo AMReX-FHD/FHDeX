@@ -378,6 +378,8 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
     }
     m_reflux_particle_locator.setGeometry(Geom(lev));
 
+    const auto is_per = Geom(lev).isPeriodicArray();
+
     auto assign_grid = m_reflux_particle_locator.getGridAssignor();
 
     for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
@@ -398,7 +400,19 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
                 auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
 
                 if ( (assign_grid(old_pos).first < 0) && (assign_grid(new_pos).first >= 0)) {
-                   Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
+                   // The deposit belongs in the cell the particle came from.  That cell is
+                   // normally inside this FAB, but a particle that crossed a periodic
+                   // boundary this step has an old cell on the far side of the domain,
+                   // because AdvectWithRandomWalk wrapped its position.  Undo the wrap so
+                   // the deposit lands next to the new cell instead of out of bounds.
+                   if (Box(phi_arr).contains(old_pos)) {
+                      Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
+                   } else {
+                      auto shifted_pos = periodicCorrectOldCell(old_pos, new_pos,
+                                                                is_per, domain_lev);
+                      AMREX_ASSERT(Box(phi_arr).contains(shifted_pos));
+                      Gpu::Atomic::AddNoRet(&phi_arr(shifted_pos,0), -1.0);
+                   }
                 }
             });
         } // if not in ba_to_keep
