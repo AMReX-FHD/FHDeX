@@ -560,7 +560,13 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
 //                phi_rescale(i,j,k,phi_arr,phisum);
-                  phi_arr(i,j,k,0) /= phisum;
+                  // init_phi sets phi(i,j,k,1) = phi(i,j,k,0) before this rescale, so
+                  // component 1 has to be divided by the same factor to stay the equal
+                  // companion of component 0.  Rescaling only component 0 left the two
+                  // inconsistent whenever the initial integral was not already 1.
+                  for (int n = 0; n < phi_arr.nComp(); n++){
+                     phi_arr(i,j,k,n) /= phisum;
+                  }
             });
         }
 
@@ -662,6 +668,18 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
 
         num_flux = 1;
         pp.query("num_flux",num_flux);
+
+        // The flux MultiFabs are sized num_flux*ncomp and compute_flux_x/y only
+        // implement the 1- and 4-sub-flux stencils; compute_flux_z has no num_flux
+        // argument at all, so the 4-flux scheme is 2D only.
+        if (num_flux != 1 && num_flux != 4) {
+            Abort("num_flux must be 1 or 4");
+        }
+#if (AMREX_SPACEDIM > 2)
+        if (num_flux != 1) {
+            Abort("num_flux == 4 is only implemented in 2D");
+        }
+#endif
 
         ext_pot = 0;
         pp.query("ext_pot",ext_pot);

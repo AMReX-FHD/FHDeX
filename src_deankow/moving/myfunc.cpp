@@ -147,7 +147,9 @@ void advance_phi (MultiFab& phi_old,
                  dy = geom.CellSize(1);,
                  dz = geom.CellSize(2););
 
-    // Compute fluxes one grid at a time
+    // Collapse each component's num_flux sub-fluxes into the one conservative flux
+    // the registers expect, scaled by dt and face area.  Nothing downstream of
+    // update_phi reads the individual sub-fluxes, so this is done in place.
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
         const Box& xbx = mfi.nodaltilebox(0);
@@ -156,25 +158,25 @@ void advance_phi (MultiFab& phi_old,
         auto const& fluxx = flux[0].array(mfi);
         auto const& fluxy = flux[1].array(mfi);
 
-        amrex::ParallelFor(xbx, Ncomp,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+        amrex::ParallelFor(xbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                 fluxx(i,j,k,n) *= dt * dy * dz;
+                 collapse_flux_for_reflux(i,j,k,fluxx,Ncomp,num_flux,dt*dy*dz);
             });
 
-        amrex::ParallelFor(ybx, Ncomp,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+        amrex::ParallelFor(ybx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                 fluxy(i,j,k,n) *= dt * dx * dz;
+                 collapse_flux_for_reflux(i,j,k,fluxy,Ncomp,num_flux,dt*dx*dz);
             });
 
 #if (AMREX_SPACEDIM > 2)
         const Box& zbx = mfi.nodaltilebox(2);
         auto const& fluxz = flux[2].array(mfi);
-        amrex::ParallelFor(zbx, Ncomp,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+        amrex::ParallelFor(zbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                 fluxz(i,j,k,n) *= dt * dx * dy;
+                 collapse_flux_for_reflux(i,j,k,fluxz,Ncomp,num_flux,dt*dx*dy);
             });
 #endif
     }
