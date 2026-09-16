@@ -700,6 +700,18 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         num_flux = 1;
         pp.query("num_flux",num_flux);
 
+        // The flux MultiFabs are sized num_flux*ncomp and compute_flux_x/y only
+        // implement the 1- and 4-sub-flux stencils; compute_flux_z has no num_flux
+        // argument at all, so the 4-flux scheme is 2D only.
+        if (num_flux != 1 && num_flux != 4) {
+            Abort("num_flux must be 1 or 4");
+        }
+#if (AMREX_SPACEDIM > 2)
+        if (num_flux != 1) {
+            Abort("num_flux == 4 is only implemented in 2D");
+        }
+#endif
+
         ext_pot = 0;
         pp.query("ext_pot",ext_pot);
 
