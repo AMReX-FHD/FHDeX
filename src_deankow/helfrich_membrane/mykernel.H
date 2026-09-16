@@ -68,6 +68,7 @@ void init_phi (int i, int j, int k,
     }
 #else
       phi(i,j,k,0) = 10.1;
+      phi(i,j,k,0) = std::exp(-(x*x+y*y)/.2);
 #endif
 
 
