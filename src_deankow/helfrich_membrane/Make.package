@@ -10,6 +10,7 @@ CEXE_headers += Tagging.H
 CEXE_headers += mykernel.H
 CEXE_headers += myfunc.H
 CEXE_headers += init_metric.H
+CEXE_headers += update_metric.H
 
 ifeq ($(USE_PARTICLES),TRUE)
 CEXE_headers += ParticleData.H

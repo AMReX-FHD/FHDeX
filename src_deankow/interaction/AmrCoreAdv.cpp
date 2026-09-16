@@ -212,7 +212,11 @@ AmrCoreAdv::InitData ()
         AverageDown();
         phi_new[0].FillBoundary();
 
-        MultiFab::Copy(phi_old[0], phi_new[0],0,0,1,0);
+        // phi has 2 components when alg_type != 0; copying only component 0
+        // left component 1 of phi_old uninitialized until the first
+        // std::swap in timeStepNoSubcycling -- and WriteCheckpointFile
+        // right below writes both components.
+        MultiFab::Copy(phi_old[0], phi_new[0], 0, 0, phi_new[0].nComp(), 0);
         phi_old[0].FillBoundary();
 
         if (chk_int > 0) {
@@ -1030,11 +1034,14 @@ AmrCoreAdv::WritePlotFile () const
             const Box& vbx = mfi.validbox();
             auto const& mf_arr = mf[lev].array(mfi);
             auto const& phi_arr = phi_new[lev].array(mfi);
+            // Copy the member into a local: a [=] lambda captures `this`, so
+            // reading num_part directly dereferences a host pointer on GPU.
+            const amrex::Real l_num_part = num_part;
             amrex::ParallelFor(vbx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
                 // mf_arr(i,j,k,2) = phi_arr(i,j,k,0)*vol*num_part;
-                mf_arr(i,j,k,2) = phi_arr(i,j,k,0)*cellvol*num_part;
+                mf_arr(i,j,k,2) = phi_arr(i,j,k,0)*cellvol*l_num_part;
             });
         }
     }
