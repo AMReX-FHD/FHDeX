@@ -577,8 +577,14 @@ void compute_flux_x (int i, int j, int k,
 
           }
 
+        // Sub-fluxes [num_flux*n, num_flux*n+num_flux) are the group that drives
+        // phi(...,n).  The noise is added to group 0 below, so the copies taken here,
+        // ahead of it, carry the deterministic terms only.  For num_flux == 1 this is
+        // the original fluxx(i,j,k,1) = fluxx(i,j,k,0).
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = fluxx(i,j,k,0);
+           for (int m = 0; m < num_flux; m++){
+              fluxx(i,j,k,num_flux+m) = fluxx(i,j,k,m);
+           }
         }
 
 //          amrex::Print() << "computing flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
@@ -904,8 +910,14 @@ void compute_flux_y (int i, int j, int k,
 
           }
 
+        // Sub-fluxes [num_flux*n, num_flux*n+num_flux) are the group that drives
+        // phi(...,n).  The noise is added to group 0 below, so the copies taken here,
+        // ahead of it, carry the deterministic terms only.  For num_flux == 1 this is
+        // the original fluxy(i,j,k,1) = fluxy(i,j,k,0).
         if(Ncomp == 2){
-           fluxy(i,j,k,1) = fluxy(i,j,k,0);
+           for (int m = 0; m < num_flux; m++){
+              fluxy(i,j,k,num_flux+m) = fluxy(i,j,k,m);
+           }
         }
 
           if(num_flux == 1){
@@ -1086,6 +1098,28 @@ void compute_flux_z (int i, int j, int k,
 #endif
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void collapse_flux_for_reflux (int i, int j, int k,
+                               amrex::Array4<amrex::Real> const& flx,
+                               int Ncomp, int num_flux, amrex::Real scale)
+{
+    // update_phi advances phi(...,n) with the average of sub-fluxes
+    // [num_flux*n, num_flux*n+num_flux).  The flux registers want that same single
+    // conservative flux per component, multiplied by dt and face area, so collapse
+    // each group onto component n here.
+    //
+    // This is done in place.  Group n begins at num_flux*n >= n, and the groups are
+    // consumed in increasing n, so every component is read into its group's sum
+    // before anything is written over it.
+    for (int n = 0; n < Ncomp; n++){
+        amrex::Real sum = 0.;
+        for (int m = 0; m < num_flux; m++){
+            sum += flx(i,j,k,num_flux*n+m);
+        }
+        flx(i,j,k,n) = scale*sum/num_flux;
+    }
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void update_phi (int i, int j, int k,
                  amrex::Array4<amrex::Real const> const& phiold,
                  amrex::Array4<amrex::Real      > const& phinew,
@@ -1117,15 +1151,22 @@ void update_phi (int i, int j, int k,
        }
     } else if (num_flux == 4 ){
 
-       phinew(i,j,k,0) = phiold(i,j,k,0)
-           + 0.25* dt* (  dxinv * (fluxx(i+1,j  ,k,0  ) - fluxx(i,j,k,0))
-                       +  dxinv * (fluxx(i+1,j  ,k,1  ) - fluxx(i,j,k,1))
-                       +  dxinv * (fluxx(i+1,j  ,k,2  ) - fluxx(i,j,k,2))
-                       +  dxinv * (fluxx(i+1,j  ,k,3  ) - fluxx(i,j,k,3))
-                       +  dyinv * (fluxy(i  ,j+1,k,0  ) - fluxy(i,j,k,0))
-                       +  dyinv * (fluxy(i  ,j+1,k,1  ) - fluxy(i,j,k,1))
-                       +  dyinv * (fluxy(i  ,j+1,k,2  ) - fluxy(i,j,k,2))
-                       +  dyinv * (fluxy(i  ,j+1,k,3  ) - fluxy(i,j,k,3)))/det(i,j,k,1);
+       // Sub-fluxes [num_flux*n, num_flux*n+num_flux) are the four one-sided
+       // gradients whose 0.25-weighted average is the conservative flux for
+       // phi(...,n).  Group 0 carries the noise; group 1, when Ncomp == 2, is the
+       // same four gradients without it.
+       for (int n = 0; n < Ncomp; n++){
+          int m = num_flux*n;
+          phinew(i,j,k,n) = phiold(i,j,k,n)
+              + 0.25* dt* (  dxinv * (fluxx(i+1,j  ,k,m  ) - fluxx(i,j,k,m  ))
+                          +  dxinv * (fluxx(i+1,j  ,k,m+1) - fluxx(i,j,k,m+1))
+                          +  dxinv * (fluxx(i+1,j  ,k,m+2) - fluxx(i,j,k,m+2))
+                          +  dxinv * (fluxx(i+1,j  ,k,m+3) - fluxx(i,j,k,m+3))
+                          +  dyinv * (fluxy(i  ,j+1,k,m  ) - fluxy(i,j,k,m  ))
+                          +  dyinv * (fluxy(i  ,j+1,k,m+1) - fluxy(i,j,k,m+1))
+                          +  dyinv * (fluxy(i  ,j+1,k,m+2) - fluxy(i,j,k,m+2))
+                          +  dyinv * (fluxy(i  ,j+1,k,m+3) - fluxy(i,j,k,m+3)))/det(i,j,k,1);
+       }
 
 
     }
