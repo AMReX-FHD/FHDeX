@@ -12,7 +12,12 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
 
     BL_PROFILE_VAR("MkAdvMFluxdiv()",MkAdvMFluxdiv);
 
-    Real fourdxinv = 0.25/dx[0];
+    // per-direction spacing; dx is a host pointer, so build a value-captured
+    // array for the device lambdas below
+    GpuArray<Real,AMREX_SPACEDIM> fourdxinv;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        fourdxinv[d] = 0.25/dx[d];
+    }
 
     // if not incrementing, initialize data to zero
     if (increment == 0) {
@@ -50,7 +55,7 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                 fluxx_lo = (mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k));
                 fluxy_hi = (mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k));
                 fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k));
-                m_updatex(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
+                m_updatex(i,j,k) -= ( (fluxx_hi-fluxx_lo)*fourdxinv[0] + (fluxy_hi-fluxy_lo)*fourdxinv[1] );
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo;
@@ -58,7 +63,7 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                 fluxx_lo = (my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k));
                 fluxy_hi = (my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k));
                 fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k));
-                m_updatey(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
+                m_updatey(i,j,k) -= ( (fluxx_hi-fluxx_lo)*fourdxinv[0] + (fluxy_hi-fluxy_lo)*fourdxinv[1] );
         });
 
 #elif (AMREX_SPACEDIM == 3)
@@ -71,7 +76,8 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                 fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k));
                 fluxz_hi = (mx(i,j,k)+mx(i,j,k+1))*(wmac(i-1,j,k+1)+wmac(i,j,k+1));
                 fluxz_lo = (mx(i,j,k-1)+mx(i,j,k))*(wmac(i-1,j,k)+wmac(i,j,k));
-                m_updatex(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                m_updatex(i,j,k) -= ( (fluxx_hi-fluxx_lo)*fourdxinv[0] + (fluxy_hi-fluxy_lo)*fourdxinv[1]
+                                      + (fluxz_hi-fluxz_lo)*fourdxinv[2] );
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo;
@@ -81,7 +87,8 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                 fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k));
                 fluxz_hi = (my(i,j,k)+my(i,j,k+1))*(wmac(i,j-1,k+1)+wmac(i,j,k+1));
                 fluxz_lo = (my(i,j,k-1)+my(i,j,k))*(wmac(i,j-1,k)+wmac(i,j,k));
-                m_updatey(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                m_updatey(i,j,k) -= ( (fluxx_hi-fluxx_lo)*fourdxinv[0] + (fluxy_hi-fluxy_lo)*fourdxinv[1]
+                                      + (fluxz_hi-fluxz_lo)*fourdxinv[2] );
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo;
@@ -91,7 +98,8 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                 fluxy_lo = (mz(i,j-1,k)+mz(i,j,k))*(vmac(i,j,k-1)+vmac(i,j,k));
                 fluxz_hi = (mz(i,j,k)+mz(i,j,k+1))*(wmac(i,j,k)+wmac(i,j,k+1));
                 fluxz_lo = (mz(i,j,k-1)+mz(i,j,k))*(wmac(i,j,k-1)+wmac(i,j,k));
-                m_updatez(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                m_updatez(i,j,k) -= ( (fluxx_hi-fluxx_lo)*fourdxinv[0] + (fluxy_hi-fluxy_lo)*fourdxinv[1]
+                                      + (fluxz_hi-fluxz_lo)*fourdxinv[2] );
         });
 #endif
     }
