@@ -809,13 +809,6 @@ void main_driver(const char* argv)
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, mom4, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
-#if defined(TURB)
-            if (turbForcing > 0) {
-                EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
-                EvaluateWritePlotFileVelGradTiny(0, 0.0, geom, vel, vel_decomp);
-            }
-#endif
-
             if (plot_cross) {
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCrossMF, 0, geom, ncross);
@@ -853,6 +846,13 @@ void main_driver(const char* argv)
         MFTurbScalar.define(ba, dmap, 3, 0);
         vel_decomp.define(ba, dmap, 6, 0);
         vel_decomp.setVal(0.0);
+    }
+
+    // step-0 velocity-gradient plotfiles for a fresh start; must follow the
+    // vel_decomp.define() above
+    if ((restart <= 0) and (plot_int > 0) and (turbForcing > 0)) {
+        EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
+        EvaluateWritePlotFileVelGradTiny(0, 0.0, geom, vel, vel_decomp);
     }
 #endif
 
