@@ -44,21 +44,22 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
         }
     }
 
-    // Temporary storage for linear combinations of random number stages
-    mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, amrex::max(1,filtering_width));
+    // Temporary storage for linear combinations of random number stages.
+    // The wide-stencil and order-3 divergence variants reach two cells away in
+    // the cell-centered flux and two faces away in the edge flux, so these need
+    // one more ghost layer than the compact StochMomFluxDiv does.
+    mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, amrex::max(2,filtering_width));
     mflux_cc_weighted.setVal(0.);
 #if (AMREX_SPACEDIM == 2)
-    mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
+    mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
 #elif (AMREX_SPACEDIM == 3)
-    mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, filtering_width);
-    mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, filtering_width);
-    mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, filtering_width);
+    mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
+    mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
+    mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
+#endif
     for (int d=0; d<NUM_EDGE; ++d) {
         mflux_ed_weighted[d].setVal(0.);
     }
-    //filtering_width=0;
-
-#endif
 }
 
 // fill mflux_cc and mflux_ed with random numbers
