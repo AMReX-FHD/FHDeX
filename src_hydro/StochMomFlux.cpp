@@ -1127,7 +1127,6 @@ void StochMomFlux::StochMomFluxDivOrder3(std::array< MultiFab, AMREX_SPACEDIM >&
         Real oneOver24 = 1.0/24.0;
 
         Real preFac = sqrt(1.0/(nineOver8*nineOver8 + oneOver24*oneOver24));
-        preFac = 1;
 
 
 #if (AMREX_SPACEDIM == 2)
