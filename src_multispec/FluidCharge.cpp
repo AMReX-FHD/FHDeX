@@ -135,7 +135,7 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
 
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             Lorentz_force[i].mult(-1.,0,1);
-            MultiFab::Add(Lorentz_force[i],grad_Epot[i],0,0,1,0);
+            MultiFab::Multiply(Lorentz_force[i],grad_Epot[i],0,0,1,0);
         }
 
         return;
