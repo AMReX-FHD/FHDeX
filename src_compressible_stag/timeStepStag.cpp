@@ -195,14 +195,15 @@ void RK3stepStag(MultiFab& cu,
         MultiFabFillRandomNormal(stochedge_y_B[0], 0, 1, 0.0, 1.0, geom, true, true);
     }
     else { // 3D
+        // The stress tensor is symmetric, so only one independent random field per
+        // edge type is needed.  calculateFluxStag consumes exactly three:
+        // stochedge_x[0] (xy), stochedge_x[1] (xz) and stochedge_y[1] (yz).
         for (int i=0; i<2; i++) {
             MultiFabFillRandomNormal(stochedge_x_A[i], 0, 1, 0.0, 1.0, geom, true, true);
             MultiFabFillRandomNormal(stochedge_x_B[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_y_A[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_y_B[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_z_A[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_z_B[i], 0, 1, 0.0, 1.0, geom, true, true);
         }
+        MultiFabFillRandomNormal(stochedge_y_A[1], 0, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochedge_y_B[1], 0, 1, 0.0, 1.0, geom, true, true);
     }
 
     if (do_1D) { // 1D no v_x and w_z stochastic terms
@@ -288,15 +289,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
@@ -619,15 +616,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
@@ -952,15 +945,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
