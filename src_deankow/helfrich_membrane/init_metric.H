@@ -15,7 +15,7 @@ void init_dk_metric(int i, int j, int k,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo)
 {
 
-    amrex::Print() << " init metric i j " << i << " " <<  j << " " << dhdx(i,j,k,0) << " " << dhdy(i,j,k,0) << std::endl;
+//    amrex::Print() << " init metric i j " << i << " " <<  j << " " << dhdx(i,j,k,0) << " " << dhdy(i,j,k,0) << std::endl;
     amrex::Real p = dhdx(i,j,k,0);
     amrex::Real q = dhdy(i,j,k,0);
 

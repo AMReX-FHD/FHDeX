@@ -32,6 +32,7 @@ void init_phi (int i, int j, int k,
     cellvol *=dx[2];
 #endif
 
+
     if(pure_part == 0){
 
     //phi(i,j,k,0) = cellvol * det(i,j,k,1) /surf_area;
@@ -52,13 +53,16 @@ void init_phi (int i, int j, int k,
     } else {
 
        phi(i,j,k,0) = 1./surf_area;
+       x = prob_lo[0] + (i+Real(0.5)) * dx[0] -0.5 ;
+       y = prob_lo[1] + (j+Real(0.5)) * dx[1] -0.5 ;
+       phi(i,j,k,0) = std::exp(-(x*x+y*y)/.1);
 
     }
 
     } else {
 
-   Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] -0.5*TWOPI ;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] -0.5*TWOPI ;
+   Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] -0.5 ;
+    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] -0.5 ;
 //
 #if 0
     if(x*x+y*y < .01*TWOPI*TWOPI){
@@ -68,7 +72,6 @@ void init_phi (int i, int j, int k,
     }
 #else
       phi(i,j,k,0) = 10.1;
-      phi(i,j,k,0) = std::exp(-(x*x+y*y)/.2);
 #endif
 
 

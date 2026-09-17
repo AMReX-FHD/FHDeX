@@ -807,7 +807,7 @@ AmrCoreAdv::InitSurfaceFFT (const amrex::BoxArray& ba,
               auto const& dhdy = dhdy_hat[mfi].array();
               ParallelFor(hb, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
                   //c(i,j,k) = u(i,j,k) * p(i,j,k);
-                  amrex::Print() << " i j fft " << i << " " << j << " " << h(i,j,k) << " " << dhdx(i,j,k) << " " << dhdy(i,j,k) << std::endl;
+                  // amrex::Print() << " i j fft " << i << " " << j << " " << h(i,j,k) << " " << dhdx(i,j,k) << " " << dhdy(i,j,k) << std::endl;
                   //amrex::Print() << " i j fft " << i << " " << j << " " << p(i,j,k) << std::endl;
               });
           }
@@ -855,6 +855,8 @@ AmrCoreAdv::UpdateSurfaceFromFourier (const amrex::Geometry& geom, amrex::Real d
 
     amrex::Real kappastar = .1;
     amrex::Real sigmastar = 100.;
+    kappastar = .01;
+    sigmastar = 10.;
     amrex::Real CAPK = 8;
 
      using Complex = GpuComplex<Real>;

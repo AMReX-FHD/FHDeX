@@ -226,7 +226,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 amrex::Real c1pr = amrex::max(1.e-4,  data(i,hi,k,scomp+1)) ;
                 amrex::Real c2pr = amrex::max(1.e-4,  data(i,hi,k,scomp+2)) ;
                 data(i,j,k,scomp+1) = data(i,hi,k,scomp+1) -inc*c1pr/(c1pr+c2pr);
-                data(i,j,k,scomp+2) = data(i,hi,k,scomp+1) -inc*c2pr/(c1pr+c2pr);
+                data(i,j,k,scomp+2) = data(i,hi,k,scomp+2) -inc*c2pr/(c1pr+c2pr);
             }
 
 
@@ -303,7 +303,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
             else if (bc_mass_hi[2] == 4) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (k < hi) {
+                    if (k > hi) {
                         amrex::Real scratch = (data(i,j,hi,scomp+0)-ce)/(omce-ce);
                         data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + bc_frac*dx[2]*std::cos(contact_angle_hi[2])*scratch*(1.-scratch)*coeff;
                         //data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + dx[2]*std::cos(contact_angle_hi[2])*data(i,j,hi,scomp+0)*data(i,j,hi,scomp+1)*coeff;
