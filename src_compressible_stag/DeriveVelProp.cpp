@@ -672,7 +672,7 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u21_pp = (vely(i+1,j+1,k) - vely(i,j+1,k))/dx[0];
             Real w1_pp  = u21_pp - u12_pp;
             out(i,j,k,0) = w1_mm;
-            out(i,j,k,3) = 0.5*(w1_mm+w1_mp+w1_pm+w1_pp);
+            out(i,j,k,3) = 0.25*(w1_mm+w1_mp+w1_pm+w1_pp);
 
             // on edges: u_1,3 and u_3,1 and curl w2 = u_1,3 - u_3,1
             Real u13_mm = (velx(i,j,k) - velx(i,j,k-1))/dx[2];
@@ -688,7 +688,7 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u31_pp = (velz(i+1,j,k+1) - velz(i,j,k+1))/dx[0];
             Real w2_pp  = u13_pp - u31_pp;
             out(i,j,k,1) = w2_mm;
-            out(i,j,k,4) = 0.5*(w2_mm+w2_mp+w2_pm+w2_pp);
+            out(i,j,k,4) = 0.25*(w2_mm+w2_mp+w2_pm+w2_pp);
 
             // on edges: u_2,3 and u_3,2 and curl w2 = u_3,2 - u_2,3
             Real u23_mm = (vely(i,j,k) - vely(i,j,k-1))/dx[2];
@@ -704,7 +704,7 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u32_pp = (velz(i,j+1,k+1) - velz(i,j,k+1))/dx[1];
             Real w3_pp  = u32_pp - u23_pp;
             out(i,j,k,2) = w3_mm;
-            out(i,j,k,5) = 0.5*(w3_mm+w3_mp+w3_pm+w3_pp);
+            out(i,j,k,5) = 0.25*(w3_mm+w3_mp+w3_pm+w3_pp);
 
             // vorticity magnitude: sqrt(w1*w1 + w2*w2 + w3*w3)
             out(i,j,k,6) = sqrt(w1_mm*w1_mm + w2_mm*w2_mm + w3_mm*w3_mm);
