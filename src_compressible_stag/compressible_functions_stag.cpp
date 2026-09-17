@@ -17,7 +17,7 @@ void InitConsVarStag(MultiFab& cons,
         dx[d] = dx_host[d];
         reallo[d] = realDomain.lo(d);
         realhi[d] = realDomain.hi(d);
-        center[d] = ( realhi[d] - reallo[d] ) / 2.;
+        center[d] = ( realhi[d] + reallo[d] ) / 2.;
     }
 
     Real t_lo_y = t_lo[1];
@@ -288,14 +288,14 @@ void InitConsVarStag(MultiFab& cons,
                 cu(i,j,k,1) = 0;
                 cu(i,j,k,2) = 0;
                 cu(i,j,k,3) = 0;
-                if((prob_lo[1] + itVec[1]) < hy) {
+                if(itVec[1] < hy) {
                     massvec[0] = bc_Yk_x_lo[0];
                     massvec[1] = bc_Yk_x_lo[1];
                     GetEnergy(intEnergy, massvec, t_lo_y);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo[0];
                     cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo[1];
-                } else if ((prob_lo[1] + itVec[1]) < 2*hy) {
+                } else if (itVec[1] < 2*hy) {
                     massvec[0] = bc_Yk_x_hi[0];
                     massvec[1] = bc_Yk_x_hi[1];
                     GetEnergy(intEnergy, massvec, t_hi_y);
