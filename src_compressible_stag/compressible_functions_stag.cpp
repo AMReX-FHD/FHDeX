@@ -325,7 +325,7 @@ void InitConsVarStag(MultiFab& cons,
             else if (prob_type == 101) { // sinusoidal temperature variation (constant pressure)
 
                    Real y = itVec[1];
-                   Real Ly = realhi[1] - reallo[0];
+                   Real Ly = realhi[1] - reallo[1];
 
                    for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
 
