@@ -94,6 +94,15 @@ void InitializeMultispecNamespace() {
     fh_tension = 0.;
     fh_ce = 0.;
     hamaker_A = 0.;
+    monomer_mass = 1.;      // divisor in the Flory-Huggins scale factor; must be > 0
+
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        fh_monomers[i] = 1.;
+        for (int j=0; j<MAX_SPECIES; ++j) {
+            fh_kappa(i,j) = 0.;
+            fh_chi(i,j) = 0.;
+        }
+    }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         contact_angle_lo[i] = 90.;        // spacedim-vector specifying external E field
@@ -209,14 +218,14 @@ void InitializeMultispecNamespace() {
     pp.query("n_gex",n_gex);
     pp.query("chi_iterations",chi_iterations);
     pp.query("temp_type",temp_type);
-    if(pp.queryarr("fh_kappa",temp)) {
+    if(pp.queryarr("fh_kappa",temp,0,nspecies*nspecies)) {
         for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
             fh_kappa(i,j) = temp[i*nspecies+j];
         }
         }
     }
-    if(pp.queryarr("fh_chi",temp)) {
+    if(pp.queryarr("fh_chi",temp,0,nspecies*nspecies)) {
         for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
             fh_chi(i,j) = temp[i*nspecies+j];
@@ -240,6 +249,9 @@ void InitializeMultispecNamespace() {
         }
     }
     if(use_flory_huggins == 1) {
+        if (monomer_mass <= 0.) {
+            Abort("multispec: use_flory_huggins=1 requires monomer_mass > 0");
+        }
         for (int i=0; i<nspecies; ++i) {
             molmass[i] = fh_monomers[i]*monomer_mass;
         }

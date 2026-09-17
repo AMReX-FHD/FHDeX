@@ -305,7 +305,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    //BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi); // fix for mole fractions
+    BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi); // fix for mole fractions
 
     //Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
     // fill conc ghost cells
