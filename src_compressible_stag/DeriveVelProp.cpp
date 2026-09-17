@@ -708,8 +708,8 @@ void EvaluateWritePlotFileVelGradTiny(int step,
 
             // vorticity magnitude: sqrt(w1*w1 + w2*w2 + w3*w3)
             out(i,j,k,6) = sqrt(w1_mm*w1_mm + w2_mm*w2_mm + w3_mm*w3_mm);
-            out(i,j,k,7) = sqrt(out(i,j,k,4)*out(i,j,k,4) + out(i,j,k,5)*out(i,j,k,5)
-                                + out(i,j,k,6)*out(i,j,k,6));
+            out(i,j,k,7) = sqrt(out(i,j,k,3)*out(i,j,k,3) + out(i,j,k,4)*out(i,j,k,4)
+                                + out(i,j,k,5)*out(i,j,k,5));
             out(i,j,k,8) = std::sqrt(0.25*(w1_mm*w1_mm + w1_mp*w1_mp + w1_pm*w1_pm + w1_pp*w1_pp +
                                       w2_mm*w2_mm + w2_mp*w2_mp + w2_pm*w2_pm + w2_pp*w2_pp +
                                       w3_mm*w3_mm + w3_mp*w3_mp + w3_pm*w3_pm + w3_pp*w3_pp));
