@@ -554,7 +554,7 @@ void ReadCheckPoint(int& step,
             Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,nspec_surfcov*6,0);
         }
         if (plot_mom3) Read_Copy_MF_Checkpoint(mom3,"mom3",checkpointname,ba_old,dmap_old,nvars+1,0);
-        if (plot_mom4) Read_Copy_MF_Checkpoint(mom3,"mom4",checkpointname,ba_old,dmap_old,nvars+1,0);
+        if (plot_mom4) Read_Copy_MF_Checkpoint(mom4,"mom4",checkpointname,ba_old,dmap_old,nvars+1,0);
     }
 
     // FillBoundaries
