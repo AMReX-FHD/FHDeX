@@ -272,6 +272,19 @@ void main_driver(const char* argv)
         amrex::Print() << "Correlations will be done at four equi-distant x* because all_correl = 1" << "\n";
     }
 
+    // The membrane routines (doLangevin/applyEffusion and the membrane wall BCs)
+    // only fire on boxes that start at membrane_cell or end at membrane_cell-1, so
+    // the membrane face has to fall on a box boundary.  Otherwise it is silently
+    // inactive and the run looks normal but has no membrane at all.
+    if (membrane_cell >= 0) {
+        if ((membrane_cell <= 0) or (membrane_cell >= n_cells[0])) {
+            Abort("membrane_cell must satisfy 0 < membrane_cell < n_cells[0]");
+        }
+        if (membrane_cell % max_grid_size[0] != 0) {
+            Abort("membrane_cell must be a multiple of max_grid_size[0] so the membrane face lies on a box boundary");
+        }
+    }
+
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies
     Vector<Real> dataSliceMeans_xcross(2*nvars+8+2*nspecies, 0.0);
 
