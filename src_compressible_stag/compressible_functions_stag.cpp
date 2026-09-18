@@ -274,8 +274,8 @@ void InitConsVarStag(MultiFab& cons,
                 GetEnergy(intEnergy, rhobar, T_init[0]);
 
                 cu(i,j,k,1) = 0.5*(momx(i+1,j,k) + momx(i,j,k));
-                cu(i,j,k,2) = 0.5*(momy(i,j+1,k) + momx(i,j,k));
-                cu(i,j,k,3) = 0.5*(momz(i,j,k+1) + momx(i,j,k));
+                cu(i,j,k,2) = 0.5*(momy(i,j+1,k) + momy(i,j,k));
+                cu(i,j,k,3) = 0.5*(momz(i,j,k+1) + momz(i,j,k));
                 cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
