@@ -343,17 +343,15 @@ void ReadCheckPoint(int& step,
 
         // Read all the vectors associated with cross averages from the Header file
         if (plot_cross) {
-            if (reset_stats == 1) {
-                spatialCrossVec.assign(spatialCrossVec.size(), 0.0);
-            }
-            else {
-                Real val;
-                // spatialCrossVec
-                for (int i=0; i<n_cells[0]*ncross; i++) {
-                    is >> val;
-                    GotoNextLine(is);
-                    spatialCrossVec[i] = val;
-                }
+            // the block is always written when plot_cross is set, so it must always be
+            // consumed -- otherwise the turbulent forcing below is read from the wrong
+            // stream offset
+            Real val;
+            // spatialCrossVec
+            for (int i=0; i<n_cells[0]*ncross; i++) {
+                is >> val;
+                GotoNextLine(is);
+                spatialCrossVec[i] = (reset_stats == 1) ? 0.0 : val;
             }
         }
 
