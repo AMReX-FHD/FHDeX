@@ -78,38 +78,38 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //   StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
     {
         auto mask = cumom[0].OwnerMask(geom.periodicity());
-        rhouu[0] = MultiFab::Dot(cumom[0],0,vel[0],0,1,0);
+        rhouu[0] = MultiFab::Dot(*mask,cumom[0],0,vel[0],0,1,0);
     }
     {
         auto mask = cumom[1].OwnerMask(geom.periodicity());
-        rhouu[1] = MultiFab::Dot(cumom[1],0,vel[1],0,1,0);
+        rhouu[1] = MultiFab::Dot(*mask,cumom[1],0,vel[1],0,1,0);
     }
     {
         auto mask = cumom[2].OwnerMask(geom.periodicity());
-        rhouu[2] = MultiFab::Dot(cumom[2],0,vel[2],0,1,0);
+        rhouu[2] = MultiFab::Dot(*mask,cumom[2],0,vel[2],0,1,0);
     }
-    rhouu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
-    rhouu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
-    rhouu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
+    rhouu[0] *= dProb;
+    rhouu[1] *= dProb;
+    rhouu[2] *= dProb;
     turbKE = 0.5*( rhouu[0] + rhouu[1] + rhouu[2] );
 
     // RMS velocity
 //    StagInnerProd(vel,0,vel,0,macTemp,uu);
     {
         auto mask = vel[0].OwnerMask(geom.periodicity());
-        uu[0] = MultiFab::Dot(vel[0],0,vel[0],0,1,0);
+        uu[0] = MultiFab::Dot(*mask,vel[0],0,vel[0],0,1,0);
     }
     {
         auto mask = vel[1].OwnerMask(geom.periodicity());
-        uu[1] = MultiFab::Dot(vel[1],0,vel[1],0,1,0);
+        uu[1] = MultiFab::Dot(*mask,vel[1],0,vel[1],0,1,0);
     }
     {
         auto mask = vel[2].OwnerMask(geom.periodicity());
-        uu[2] = MultiFab::Dot(vel[2],0,vel[2],0,1,0);
+        uu[2] = MultiFab::Dot(*mask,vel[2],0,vel[2],0,1,0);
     }
-    uu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
-    uu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
-    uu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
+    uu[0] *= dProb;
+    uu[1] *= dProb;
+    uu[2] *= dProb;
     u_rms = sqrt((uu[0] + uu[1] + uu[2])/3.0);
 
     // Compute sound speed
@@ -185,19 +185,19 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //    EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
     {
         auto mask = curlUtemp[0].OwnerMask(geom.periodicity());
-        eps_s_vec[0] = MultiFab::Dot(curlUtemp[0],0,eta_edge[0],0,1,0);
+        eps_s_vec[0] = MultiFab::Dot(*mask,curlUtemp[0],0,eta_edge[0],0,1,0);
     }
     {
         auto mask = curlUtemp[1].OwnerMask(geom.periodicity());
-        eps_s_vec[1] = MultiFab::Dot(curlUtemp[1],0,eta_edge[1],0,1,0);
+        eps_s_vec[1] = MultiFab::Dot(*mask,curlUtemp[1],0,eta_edge[1],0,1,0);
     }
     {
         auto mask = curlUtemp[2].OwnerMask(geom.periodicity());
-        eps_s_vec[2] = MultiFab::Dot(curlUtemp[2],0,eta_edge[2],0,1,0);
+        eps_s_vec[2] = MultiFab::Dot(*mask,curlUtemp[2],0,eta_edge[2],0,1,0);
     }
-    eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
-    eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
-    eps_s_vec[2] /= (n_cells[1]+1)*(n_cells[2]+1)*n_cells[0];
+    eps_s_vec[0] *= dProb;
+    eps_s_vec[1] *= dProb;
+    eps_s_vec[2] *= dProb;
     eps_s = (eps_s_vec[0] + eps_s_vec[1] + eps_s_vec[2]);
 
     // Dilational dissipation (4/3)*<eta (\sum_i du_i/dx_i)^2>
