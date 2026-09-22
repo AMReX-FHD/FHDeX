@@ -326,18 +326,6 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
                             const MultiFab& theta, const MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                             const int steps);
 
-void GetSliceAverageCross(Vector<Real>& dataAvMeans_x,
-                         Vector<Real>& dataAvMeans_xcross,
-                         const MultiFab& consMean,
-                         const MultiFab& primMean,
-                         const MultiFab& prim_in,
-                         const MultiFab& cons,
-                         const std::array<MultiFab, AMREX_SPACEDIM>& vel,
-                         const std::array<MultiFab, AMREX_SPACEDIM>& velMean,
-                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
-                         const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
-                         const int nstats);
-
 void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross,
                     const MultiFab& consMean,
                     const MultiFab& primMean,
