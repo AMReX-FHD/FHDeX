@@ -289,6 +289,11 @@ void TurbForcingComp::setU(const int& i, Real fs, Real fc) {
 
     BL_PROFILE_VAR("TurbForcingComp::setU()",TurbForcingCompsetU);
 
-    ForcingS[i] = fs;
-    ForcingC[i] = fc;
+    ForcingS[i]    = fs;
+    ForcingC[i]    = fc;
+
+    // the OU update integrates from the *old* arrays, so a restart that leaves
+    // them at zero silently discards the restored state on the first update
+    ForcingSold[i] = fs;
+    ForcingCold[i] = fc;
 }
