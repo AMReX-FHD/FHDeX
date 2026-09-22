@@ -184,9 +184,10 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             x_star[3] = (int)amrex::Math::floor(3.0*n_cells[0]/4.0);
             x_star[4] = n_cells[0] - 1;
 
-            amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
             for (int i=0; i<5; ++i) {
+                amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
                 GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,x_star[i]);
+                ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
                 EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,i);
             }
         }
