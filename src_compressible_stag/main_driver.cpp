@@ -1560,12 +1560,12 @@ void main_driver(const char* argv)
                 for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
                     {
                         MultiFab pencil;
-                        ExtractXPencil(structFactPrimMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsPrim);
+                        ExtractXPencil(structFactPrimMF, pencil, i%n_cells[1], i/n_cells[1], 0, structVarsPrim);
                         structFactPrimArray[i].FortStructure(pencil);
                     }
                     {
                         MultiFab pencil;
-                        ExtractXPencil(structFactConsMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsCons);
+                        ExtractXPencil(structFactConsMF, pencil, i%n_cells[1], i/n_cells[1], 0, structVarsCons);
                         structFactConsArray[i].FortStructure(pencil);
                     }
                 }
