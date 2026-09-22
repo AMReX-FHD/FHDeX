@@ -417,6 +417,10 @@ void ReadCheckPoint(int& step,
         } else if (do_1D || do_2D) {
             spatialCrossMF.define(ba,dmap,ncross,0);
         }
+        // define() does not initialise; the reset_stats path below never writes this
+        if (do_1D || do_2D) {
+            spatialCrossMF.setVal(0.0);
+        }
 
     }
 
