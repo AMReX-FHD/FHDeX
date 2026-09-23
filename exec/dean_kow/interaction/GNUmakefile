@@ -5,7 +5,7 @@ PROFILE    = FALSE
 DEBUG      = TRUE
 DEBUG      = FALSE
 
-DIM        = 2
+DIM        = 3
 
 MAX_SPEC   = 8
 

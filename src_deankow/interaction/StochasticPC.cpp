@@ -18,6 +18,14 @@ StochasticPC::InitParticles (MultiFab& phi_fine, Real num_part)
     AddParticles(phi_fine, BoxArray{}, factor, num_part);
 }
 
+// TODO(3D): this aliases phi onto RealIdx::zold. In 2D zold is an unused spare
+// real, so that is harmless, but in 3D zold IS the particle's old z position --
+// the value getOldCell() reads to decide which cell a particle came from for the
+// crse<->fine reflux. Calling this in 3D corrupts every particle's old cell and
+// breaks RefluxCrseToFine/RefluxFineToCrse. Currently inert: the only caller is
+// ParticleData::writePlotFile, whose one call site (AmrCoreAdv.cpp, in
+// WritePlotFile) is commented out. Fix by adding a dedicated "color" real
+// component to RealIdx rather than reusing zold.
 void
 StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
 {
@@ -79,8 +87,9 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude,
     // We need to allow particles to be created outside the domain in cells next
     // to the particle region
     Box gdomain(Geom(lev).Domain());
-    if (Geom(lev).isPeriodic(0)) gdomain.grow(0,1);
-    if (Geom(lev).isPeriodic(1)) gdomain.grow(1,1);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geom(lev).isPeriodic(idim)) { gdomain.grow(idim,1); }
+    }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
@@ -456,6 +465,11 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt, Real diff_coeff)
             incz = amrex::RandomNormal(0.,stddev,engine);
 #endif
 
+             // TODO(3D): this branch is an intrinsically 2D surface model -- it
+             // updates pos(0) and pos(1) only, so incz is silently dropped and
+             // particles cannot move in z. Inert while on_surf is hard-coded to 0
+             // above; must be generalized (or explicitly rejected in 3D) before
+             // on_surf is ever turned on at AMREX_SPACEDIM == 3.
              if(on_surf == 1){
 
                  amrex::Real amp = 0.1;
@@ -704,6 +718,11 @@ StochasticPC::AdvectParticles (int lev, Real dt,
             Real dpy = 0.0;
             Real dpz = 0.0;
 
+            // TODO(3D): no z component. dpz is never incremented here, so with
+            // amr.use_ext_pot = 1 in 3D the particles feel no external force in z
+            // while compute_flux_z (mykernel.H) does apply one -- the mesh and
+            // particle halves of the hybrid then disagree. Needs a Vsubz to match
+            // whatever z potential mykernel.H ends up using.
             if (use_ext_pot == 1) {
                 amrex::Real xloc, yloc;
                 amrex::Real Vsubx, Vsuby;
@@ -799,6 +818,7 @@ StochasticPC::AdvectParticles (int lev, Real dt,
             Real dpy = 0.0;
             Real dpz = 0.0;
 
+            // TODO(3D): no z component -- same gap as the neighbor-list branch above.
             if (use_ext_pot == 1) {
                 Real xloc = p.pos(0);
                 Real yloc = p.pos(1);
@@ -845,6 +865,10 @@ StochasticPC::AdvectParticles (int lev, Real dt,
             Real incy = incyp[i];
             Real incz = inczp[i];
 
+            // TODO(3D): 2D-only surface model -- see AdvectWithRandomWalk. totalz
+            // is left at 0 in this branch (the "totalz = dpz + incz" line lives in
+            // the else branch), so both the interaction force and the random
+            // increment in z are discarded. Inert while on_surf is 0.
             if (on_surf == 1) {
                 amrex::Real amp = 0.1;
                 amrex::Real sinx,siny,cosx,cosy,det,fx,fy,sig11,sig12,sig21,sig22;
