@@ -1,6 +1,18 @@
 #ifndef MY_KERNEL_H_
 #define MY_KERNEL_H_
 
+// DK_EXT_POT_FORM selects which external potential the drift is built from:
+//   1 = product of caps(y) and capr(x)   (the form these runs use)
+//   2 = sin/cos of (x+y)/2 and (x-y)/2
+//   3 = sin^2(x) sin^2(y)
+// The three used to be an #if 1 / #else / "elseif" chain in which the third
+// alternative was introduced by a bare `elseif` -- not a preprocessor
+// directive -- so selecting anything but the first branch did not compile.
+#ifndef DK_EXT_POT_FORM
+#define DK_EXT_POT_FORM 1
+#endif
+
+
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Print.H>
 
@@ -464,12 +476,14 @@ void compute_flux_x (int i, int j, int k,
 
              amrex::Real Vsubx;
              amrex::Real Vsuby;
-#if 1
 
+             // caps/capsy/capr/caprx are used by the num_flux == 4 branch below
+             // as well, so they stay at this scope.
              amrex::Real caps, capsy, capr, caprx;
 
-
           if(num_flux == 1){
+
+#if (DK_EXT_POT_FORM == 1)
 
              caps = 0;
              capsy = 0;
@@ -490,7 +504,7 @@ void compute_flux_x (int i, int j, int k,
              Vsuby = capsy/gamma;
 
 
-#else
+#elif (DK_EXT_POT_FORM == 2)
              amrex::Real sinxpy = std::sin(0.5*(xloc+yloc));
              amrex::Real cosxpy = std::cos(0.5*(xloc+yloc));
              amrex::Real sinxmy = std::sin(0.5*(xloc-yloc));
@@ -498,7 +512,7 @@ void compute_flux_x (int i, int j, int k,
 
              Vsubx = (sinxpy*cosxpy*sinxmy*sinxmy + sinxpy*sinxpy*sinxmy*cosxmy)/gamma;
              Vsuby = (sinxpy*cosxpy*sinxmy*sinxmy - sinxpy*sinxpy*sinxmy*cosxmy)/gamma;
-elseif
+#else
              amrex::Real sinx,cosx,siny,cosy;
 
              sinx = std::sin(xloc);
@@ -563,8 +577,14 @@ elseif
 
           }
 
+        // Sub-fluxes [num_flux*n, num_flux*n+num_flux) are the group that drives
+        // phi(...,n).  The noise is added to group 0 below, so the copies taken here,
+        // ahead of it, carry the deterministic terms only.  For num_flux == 1 this is
+        // the original fluxx(i,j,k,1) = fluxx(i,j,k,0).
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = fluxx(i,j,k,0);
+           for (int m = 0; m < num_flux; m++){
+              fluxx(i,j,k,num_flux+m) = fluxx(i,j,k,m);
+           }
         }
 
 //          amrex::Print() << "computing flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
@@ -596,13 +616,13 @@ elseif
              sqrphi = std::sqrt(std::max(phi_loc,0.));
              fluxx(i,j,k,1) +=  2.*std::sqrt(2./num_part)*det(i-1,j,k,2)*sqrphi*(sqrgmet(i-1,j,k,0)*stochfluxx(i-1,j,k,1)+sqrgmet(i-1,j,k,1)*stochfluxy(i-1,j,k,1));
 
-             phi_loc = phi(i-1,j,k,0);
-             sqrphi = std::sqrt(std::max(phi_loc,0.));
-             fluxx(i,j,k,2) += 2.* std::sqrt(2./num_part)*det(i-1,j,k,2)*sqrphi*(sqrgmet(i-1,j,k,0)*stochfluxx(i-1,j,k,2)+sqrgmet(i-1,j,k,1)*stochfluxy(i-1,j,k,2));
-
              phi_loc = phi(i,j,k,0);
              sqrphi = std::sqrt(std::max(phi_loc,0.));
-             fluxx(i,j,k,3) += 2.* std::sqrt(2./num_part)*det(i,j,k,2)*sqrphi*(sqrgmet(i,j,k,0)*stochfluxx(i,j,k,3)+sqrgmet(i,j,k,1)*stochfluxy(i,j,k,3));
+             fluxx(i,j,k,2) += 2.* std::sqrt(2./num_part)*det(i,j,k,2)*sqrphi*(sqrgmet(i,j,k,0)*stochfluxx(i,j,k,2)+sqrgmet(i,j,k,1)*stochfluxy(i,j,k,2));
+
+             phi_loc = phi(i-1,j,k,0);
+             sqrphi = std::sqrt(std::max(phi_loc,0.));
+             fluxx(i,j,k,3) += 2.* std::sqrt(2./num_part)*det(i-1,j,k,2)*sqrphi*(sqrgmet(i-1,j,k,0)*stochfluxx(i-1,j,k,3)+sqrgmet(i-1,j,k,1)*stochfluxy(i-1,j,k,3));
           }
 //          amrex::Print() << " x flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
 }
@@ -791,14 +811,16 @@ void compute_flux_y (int i, int j, int k,
              amrex::Real Vsubx;
              amrex::Real Vsuby;
 
-#if 1
-
+             // caps/capsy/capr/caprx are used by the num_flux == 4 branch below
+             // as well, so they stay at this scope.
              amrex::Real caps, capsy, capr, caprx;
 
           if(num_flux == 1){
 
              xloc = (i+0.5) / dxinv;
              yloc = (j+0.5) / dyinv;
+
+#if (DK_EXT_POT_FORM == 1)
 
              caps = 0;
              capsy = 0;
@@ -818,7 +840,7 @@ void compute_flux_y (int i, int j, int k,
              Vsubx = caprx/gamma;
              Vsuby = capsy/gamma;
 
-#else
+#elif (DK_EXT_POT_FORM == 2)
 
              amrex::Real sinxpy = std::sin(0.5*(xloc+yloc));
              amrex::Real cosxpy = std::cos(0.5*(xloc+yloc));
@@ -827,7 +849,7 @@ void compute_flux_y (int i, int j, int k,
 
              Vsubx = (sinxpy*cosxpy*sinxmy*sinxmy + sinxpy*sinxpy*sinxmy*cosxmy)/gamma;
              Vsuby = (sinxpy*cosxpy*sinxmy*sinxmy - sinxpy*sinxpy*sinxmy*cosxmy)/gamma;
-elseif
+#else
              amrex::Real sinx,cosx,siny,cosy;
 
              sinx = std::sin(xloc);
@@ -888,8 +910,14 @@ elseif
 
           }
 
+        // Sub-fluxes [num_flux*n, num_flux*n+num_flux) are the group that drives
+        // phi(...,n).  The noise is added to group 0 below, so the copies taken here,
+        // ahead of it, carry the deterministic terms only.  For num_flux == 1 this is
+        // the original fluxy(i,j,k,1) = fluxy(i,j,k,0).
         if(Ncomp == 2){
-           fluxy(i,j,k,1) = fluxy(i,j,k,0);
+           for (int m = 0; m < num_flux; m++){
+              fluxy(i,j,k,num_flux+m) = fluxy(i,j,k,m);
+           }
         }
 
           if(num_flux == 1){
@@ -920,13 +948,13 @@ elseif
              sqrphi = std::sqrt(std::max(phi_loc,0.));
              fluxy(i,j,k,1) += 2.* std::sqrt(2./num_part)*det(i,j-1,k,2)*sqrphi*(sqrgmet(i,j-1,k,2)*stochfluxx(i,j-1,k,1)+sqrgmet(i,j-1,k,3)*stochfluxy(i,j-1,k,1));
 
-             phi_loc = phi(i,j,k,0);
-             sqrphi = std::sqrt(std::max(phi_loc,0.));
-             fluxy(i,j,k,2) += 2.* std::sqrt(2./num_part)*det(i,j,k,2)*sqrphi*(sqrgmet(i,j,k,2)*stochfluxx(i,j,k,2)+sqrgmet(i,j,k,3)*stochfluxy(i,j,k,2));
-
              phi_loc = phi(i,j-1,k,0);
              sqrphi = std::sqrt(std::max(phi_loc,0.));
-             fluxy(i,j,k,3) += 2.* std::sqrt(2./num_part)*det(i,j-1,k,2)*sqrphi*(sqrgmet(i,j-1,k,2)*stochfluxx(i,j-1,k,3)+sqrgmet(i,j-1,k,3)*stochfluxy(i,j-1,k,3));
+             fluxy(i,j,k,2) += 2.* std::sqrt(2./num_part)*det(i,j-1,k,2)*sqrphi*(sqrgmet(i,j-1,k,2)*stochfluxx(i,j-1,k,2)+sqrgmet(i,j-1,k,3)*stochfluxy(i,j-1,k,2));
+
+             phi_loc = phi(i,j,k,0);
+             sqrphi = std::sqrt(std::max(phi_loc,0.));
+             fluxy(i,j,k,3) += 2.* std::sqrt(2./num_part)*det(i,j,k,2)*sqrphi*(sqrgmet(i,j,k,2)*stochfluxx(i,j,k,3)+sqrgmet(i,j,k,3)*stochfluxy(i,j,k,3));
 
           }
 //          amrex::Print() << " x flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
@@ -1028,31 +1056,27 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
+    amrex::ignore_unused(lo, hi);
     int coeff_index = Ncomp-1;
-    if (lo == dom_lo &&
+    // Note: the test has to be on the face index k, not on the box bounds lo/hi,
+    // otherwise every face of a box that touches the domain boundary is treated
+    // as a boundary face.
+    if (k == dom_lo &&
         (bc_lo == amrex::BCType::foextrap ||
          bc_lo == amrex::BCType::ext_dir))
     {
-        if(k == lo)
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
-        }
-        else
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
+        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
+        if(Ncomp == 2){
+            fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv / 0.5;
         }
     }
-    else if (hi == dom_hi &&
+    else if (k == dom_hi+1 &&
              (bc_hi == amrex::BCType::foextrap ||
               bc_hi == amrex::BCType::ext_dir))
     {
-        if(k == hi+1)
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
-        }
-        else
-        {
-            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
+        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
+        if(Ncomp == 2){
+            fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv / 0.5;
         }
     }
     else
@@ -1072,6 +1096,28 @@ void compute_flux_z (int i, int j, int k,
     }
 }
 #endif
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void collapse_flux_for_reflux (int i, int j, int k,
+                               amrex::Array4<amrex::Real> const& flx,
+                               int Ncomp, int num_flux, amrex::Real scale)
+{
+    // update_phi advances phi(...,n) with the average of sub-fluxes
+    // [num_flux*n, num_flux*n+num_flux).  The flux registers want that same single
+    // conservative flux per component, multiplied by dt and face area, so collapse
+    // each group onto component n here.
+    //
+    // This is done in place.  Group n begins at num_flux*n >= n, and the groups are
+    // consumed in increasing n, so every component is read into its group's sum
+    // before anything is written over it.
+    for (int n = 0; n < Ncomp; n++){
+        amrex::Real sum = 0.;
+        for (int m = 0; m < num_flux; m++){
+            sum += flx(i,j,k,num_flux*n+m);
+        }
+        flx(i,j,k,n) = scale*sum/num_flux;
+    }
+}
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void update_phi (int i, int j, int k,
@@ -1107,15 +1153,25 @@ void update_phi (int i, int j, int k,
        }
     } else if (num_flux == 4 ){
 
-       phinew(i,j,k,0) = phiold(i,j,k,0)
-           + 0.25* dt* (  dxinv * (fluxx(i+1,j  ,k,0  ) - fluxx(i,j,k,0))
-                       +  dxinv * (fluxx(i+1,j  ,k,1  ) - fluxx(i,j,k,1))
-                       +  dxinv * (fluxx(i+1,j  ,k,2  ) - fluxx(i,j,k,2))
-                       +  dxinv * (fluxx(i+1,j  ,k,3  ) - fluxx(i,j,k,3))
-                       +  dyinv * (fluxy(i  ,j+1,k,0  ) - fluxy(i,j,k,0))
-                       +  dyinv * (fluxy(i  ,j+1,k,1  ) - fluxy(i,j,k,1))
-                       +  dyinv * (fluxy(i  ,j+1,k,2  ) - fluxy(i,j,k,2))
-                       +  dyinv * (fluxy(i  ,j+1,k,3  ) - fluxy(i,j,k,3)))/det(i,j,k,1);
+       // The conserved quantity on the moving surface is phi*sqrt(g), so the
+       // update is phi^{n+1} sqrt(g^{n+1}) = phi^n sqrt(g^n) + dt*div(F), the
+       // same form the num_flux == 1 branch above uses.
+       // Sub-fluxes [num_flux*n, num_flux*n+num_flux) are the four one-sided
+       // gradients whose 0.25-weighted average is the conservative flux for
+       // phi(...,n).  Group 0 carries the noise; group 1, when Ncomp == 2, is the
+       // same four gradients without it.
+       for (int n = 0; n < Ncomp; n++){
+          int m = num_flux*n;
+          phinew(i,j,k,n) = (det(i,j,k,1)*phiold(i,j,k,n)
+              + 0.25* dt* (  dxinv * (fluxx(i+1,j  ,k,m  ) - fluxx(i,j,k,m  ))
+                          +  dxinv * (fluxx(i+1,j  ,k,m+1) - fluxx(i,j,k,m+1))
+                          +  dxinv * (fluxx(i+1,j  ,k,m+2) - fluxx(i,j,k,m+2))
+                          +  dxinv * (fluxx(i+1,j  ,k,m+3) - fluxx(i,j,k,m+3))
+                          +  dyinv * (fluxy(i  ,j+1,k,m  ) - fluxy(i,j,k,m  ))
+                          +  dyinv * (fluxy(i  ,j+1,k,m+1) - fluxy(i,j,k,m+1))
+                          +  dyinv * (fluxy(i  ,j+1,k,m+2) - fluxy(i,j,k,m+2))
+                          +  dyinv * (fluxy(i  ,j+1,k,m+3) - fluxy(i,j,k,m+3))))/detn(i,j,k,1);
+       }
 
 
     }

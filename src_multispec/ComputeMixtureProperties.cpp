@@ -82,11 +82,18 @@ void ComputeEta(const MultiFab& rho_in,
         // 100:1 viscosity ratio
         if (mixture_type == 3) {
 
+//            amrex::Real ce = fh_ce;
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real c = rho(i,j,k,1) / rhotot(i,j,k);
-                c = (c-.034815)/(.9651885-.034815);
-                eta(i,j,k) = (.1+.9*c)*visc_coef;
+                // Real c = rho(i,j,k,1) / rhotot(i,j,k);
+                //c = (c-ce)/(1.-2.*ce);
+                //eta(i,j,k) = (.1+.9*c)*visc_coef;
+                //Real c = rho(i,j,k,2) / rhotot(i,j,k);
+                //eta(i,j,k) = (.1+.9*c)*visc_coef;
+                Real c = rho(i,j,k,2) / rhotot(i,j,k);
+                eta(i,j,k) = (1.-.9*c)*visc_coef;
+
 
                 // eta(i,j,k) = -0.99*visc_coef*c + visc_coef;
                 eta(i,j,k) = std::max(0.1*visc_coef,eta(i,j,k));

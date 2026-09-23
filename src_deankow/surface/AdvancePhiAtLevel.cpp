@@ -17,6 +17,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
         stochFluxes[i].setVal(0.);
         ba.surroundingNodes(i);
         fluxes[i].define(ba, dmap[lev], num_flux*phi_new[lev].nComp(), 0);
+        fluxes[i].setVal(0.);
     }
 
     phi_old[lev].FillBoundary(Geom(lev).periodicity());
@@ -34,7 +35,9 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
     advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, gmetric, sqrgmetric, detg, dt_lev, num_part, dorand, num_flux, ext_pot, geom[lev], bcs);
 
     // Increment or decrement the flux registers by area and time-weighted fluxes
-    // Note that the fluxes have already been scaled by dt and area
+    // Note that advance_phi has already collapsed each component's num_flux
+    // sub-fluxes onto components 0..nComp-1 and scaled them by dt and area, so the
+    // registers -- which hold phi_new[lev].nComp() components -- take that many
     // In this example we are solving phi_t = -div(+F)
     // The fluxes contain, e.g., F_{i+1/2,j} = (phi*u)_{i+1/2,j}
     // Keep this in mind when considering the different sign convention for updating
@@ -45,13 +48,13 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
         if (flux_reg[lev+1]) {
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 // update the lev+1/lev flux register (index lev+1)
-                flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(),1.0);
+                flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,phi_new[lev].nComp(),1.0);
             }
         }
         if (flux_reg[lev]) {
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 // update the lev/lev-1 flux register (index lev)
-                flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(),-1.0);
+                flux_reg[lev]->FineAdd(fluxes[i],i,0,0,phi_new[lev].nComp(),-1.0);
             }
         }
     }

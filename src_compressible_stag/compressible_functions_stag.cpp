@@ -17,7 +17,7 @@ void InitConsVarStag(MultiFab& cons,
         dx[d] = dx_host[d];
         reallo[d] = realDomain.lo(d);
         realhi[d] = realDomain.hi(d);
-        center[d] = ( realhi[d] - reallo[d] ) / 2.;
+        center[d] = ( realhi[d] + reallo[d] ) / 2.;
     }
 
     Real t_lo_y = t_lo[1];
@@ -274,8 +274,8 @@ void InitConsVarStag(MultiFab& cons,
                 GetEnergy(intEnergy, rhobar, T_init[0]);
 
                 cu(i,j,k,1) = 0.5*(momx(i+1,j,k) + momx(i,j,k));
-                cu(i,j,k,2) = 0.5*(momy(i,j+1,k) + momx(i,j,k));
-                cu(i,j,k,3) = 0.5*(momz(i,j,k+1) + momx(i,j,k));
+                cu(i,j,k,2) = 0.5*(momy(i,j+1,k) + momy(i,j,k));
+                cu(i,j,k,3) = 0.5*(momz(i,j,k+1) + momz(i,j,k));
                 cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
@@ -288,14 +288,14 @@ void InitConsVarStag(MultiFab& cons,
                 cu(i,j,k,1) = 0;
                 cu(i,j,k,2) = 0;
                 cu(i,j,k,3) = 0;
-                if((prob_lo[1] + itVec[1]) < hy) {
+                if(itVec[1] < hy) {
                     massvec[0] = bc_Yk_x_lo[0];
                     massvec[1] = bc_Yk_x_lo[1];
                     GetEnergy(intEnergy, massvec, t_lo_y);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo[0];
                     cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo[1];
-                } else if ((prob_lo[1] + itVec[1]) < 2*hy) {
+                } else if (itVec[1] < 2*hy) {
                     massvec[0] = bc_Yk_x_hi[0];
                     massvec[1] = bc_Yk_x_hi[1];
                     GetEnergy(intEnergy, massvec, t_hi_y);
@@ -325,7 +325,7 @@ void InitConsVarStag(MultiFab& cons,
             else if (prob_type == 101) { // sinusoidal temperature variation (constant pressure)
 
                    Real y = itVec[1];
-                   Real Ly = realhi[1] - reallo[0];
+                   Real Ly = realhi[1] - reallo[1];
 
                    for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
 

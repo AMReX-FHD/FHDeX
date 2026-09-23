@@ -184,9 +184,10 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             x_star[3] = (int)amrex::Math::floor(3.0*n_cells[0]/4.0);
             x_star[4] = n_cells[0] - 1;
 
-            amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
             for (int i=0; i<5; ++i) {
+                amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
                 GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,x_star[i]);
+                ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
                 EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,i);
             }
         }
@@ -688,121 +689,6 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
 }
 
 
-///////////////////////////////////////////
-// Get Slice Average at x and x* //////////
-/// ///////////////////////////////////////
-void GetSliceAverageCross(Vector<Real>& dataAvMeans_x,
-                         Vector<Real>& dataAvMeans_xcross,
-                         const MultiFab& consMean,
-                         const MultiFab& primMean,
-                         const MultiFab& prim_in,
-                         const MultiFab& cons,
-                         const std::array<MultiFab, AMREX_SPACEDIM>& vel,
-                         const std::array<MultiFab, AMREX_SPACEDIM>& velMean,
-                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
-                         const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
-                         const int nstats)
-{
-    BL_PROFILE_VAR("GetSliceAverageCross()",GetSliceAverageCross);
-
-    for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
-
-        const Box& bx = mfi.validbox();
-
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-
-        const Array4<const Real> cumeans   = consMean.array(mfi);
-        const Array4<const Real> primmeans = primMean.array(mfi);
-        const Array4<const Real> prim      = prim_in.array(mfi);
-        const Array4<const Real> cu        = cons.array(mfi);
-
-        const Array4<const Real> velx      = vel[0].array(mfi);
-        const Array4<const Real> vely      = vel[1].array(mfi);
-        const Array4<const Real> velz      = vel[2].array(mfi);
-        const Array4<const Real> velxmeans = velMean[0].array(mfi);
-        const Array4<const Real> velymeans = velMean[1].array(mfi);
-        const Array4<const Real> velzmeans = velMean[2].array(mfi);
-
-        const Array4<const Real> momx      = cumom[0].array(mfi);
-        const Array4<const Real> momy      = cumom[1].array(mfi);
-        const Array4<const Real> momz      = cumom[2].array(mfi);
-        const Array4<const Real> momxmeans = cumomMean[0].array(mfi);
-        const Array4<const Real> momymeans = cumomMean[1].array(mfi);
-        const Array4<const Real> momzmeans = cumomMean[2].array(mfi);
-
-        for (int i=0; i<nstats; ++i) {
-            dataAvMeans_xcross[i] = 0.;
-        }
-
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
-        for (auto i = lo.x; i <= hi.x; ++i) {
-            if (i==cross_cell) {
-                dataAvMeans_xcross[0]  += cu(i,j,k,0);                                 // rho-instant
-                dataAvMeans_xcross[1]  += cumeans(i,j,k,0);                            // rho-mean
-                dataAvMeans_xcross[2]  += cu(i,j,k,4);                                 // energy-instant
-                dataAvMeans_xcross[3]  += cumeans(i,j,k,4);                            // energy-mean
-                dataAvMeans_xcross[4]  += 0.5*(momx(i,j,k) + momx(i+1,j,k));           // jx-instant
-                dataAvMeans_xcross[5]  += 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // jx-mean
-                dataAvMeans_xcross[6]  += 0.5*(momy(i,j,k) + momy(i,j+1,k));           // jy-instant
-                dataAvMeans_xcross[7]  += 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // jy-mean
-                dataAvMeans_xcross[8]  += 0.5*(momz(i,j,k) + momz(i,j,k+1));           // jz-instant
-                dataAvMeans_xcross[9]  += 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // jz-mean
-                dataAvMeans_xcross[10] += 0.5*(velx(i,j,k) + velx(i+1,j,k));           // velx-instant
-                dataAvMeans_xcross[11] += 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k)); // velx-mean
-                dataAvMeans_xcross[12] += 0.5*(vely(i,j,k) + vely(i,j+1,k));           // vely-instant
-                dataAvMeans_xcross[13] += 0.5*(velymeans(i,j,k) + velymeans(i,j+1,k)); // vely-mean
-                dataAvMeans_xcross[14] += 0.5*(velz(i,j,k) + velz(i,j,k+1));           // velz-instant
-                dataAvMeans_xcross[15] += 0.5*(velzmeans(i,j,k) + velzmeans(i,j,k+1)); // velz-mean
-                dataAvMeans_xcross[16] += prim(i,j,k,4);                               // T-instant
-                dataAvMeans_xcross[17] += primmeans(i,j,k,4);                          // T-mean
-                for (int ns=0; ns<nspecies; ++ns) {
-                    dataAvMeans_xcross[18+4*ns+0]   += cu(i,j,k,5+ns);                 // rhoYk-instant
-                    dataAvMeans_xcross[18+4*ns+1]   += cumeans(i,j,k,5+ns);            // rhoYk-mean
-                    dataAvMeans_xcross[18+4*ns+2]   += prim(i,j,k,6+ns);               // Yk-instant
-                    dataAvMeans_xcross[18+4*ns+3]   += primmeans(i,j,k,6+ns);          // Yk-mean
-                }
-            }
-            dataAvMeans_x[i*nstats+0]  += cu(i,j,k,0);                                 // rho-instant
-            dataAvMeans_x[i*nstats+1]  += cumeans(i,j,k,0);                            // rho-mean
-            dataAvMeans_x[i*nstats+2]  += cu(i,j,k,4);                                 // energy-instant
-            dataAvMeans_x[i*nstats+3]  += cumeans(i,j,k,4);                            // energy-mean
-            dataAvMeans_x[i*nstats+4]  += 0.5*(momx(i,j,k) + momx(i+1,j,k));           // jx-instant
-            dataAvMeans_x[i*nstats+5]  += 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // jx-mean
-            dataAvMeans_x[i*nstats+6]  += 0.5*(momy(i,j,k) + momy(i,j+1,k));           // jy-instant
-            dataAvMeans_x[i*nstats+7]  += 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // jy-mean
-            dataAvMeans_x[i*nstats+8]  += 0.5*(momz(i,j,k) + momz(i,j,k+1));           // jz-instant
-            dataAvMeans_x[i*nstats+9]  += 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // jz-mean
-            dataAvMeans_x[i*nstats+10] += 0.5*(velx(i,j,k) + velx(i+1,j,k));           // velx-instant
-            dataAvMeans_x[i*nstats+11] += 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k)); // velx-mean
-            dataAvMeans_x[i*nstats+12] += 0.5*(vely(i,j,k) + vely(i,j+1,k));           // vely-instant
-            dataAvMeans_x[i*nstats+13] += 0.5*(velymeans(i,j,k) + velymeans(i,j+1,k)); // vely-mean
-            dataAvMeans_x[i*nstats+14] += 0.5*(velz(i,j,k) + velz(i,j,k+1));           // velz-instant
-            dataAvMeans_x[i*nstats+15] += 0.5*(velzmeans(i,j,k) + velzmeans(i,j,k+1)); // velz-mean
-            dataAvMeans_x[i*nstats+16] += prim(i,j,k,4);                               // T-instant
-            dataAvMeans_x[i*nstats+17] += primmeans(i,j,k,4);                          // T-mean
-            for (int ns=0; ns<nspecies; ++ns) {
-                dataAvMeans_x[i*nstats+18+4*ns+0]   += cu(i,j,k,5+ns);                 // rhoYk-instant
-                dataAvMeans_x[i*nstats+18+4*ns+1]   += cumeans(i,j,k,5+ns);            // rhoYk-mean
-                dataAvMeans_x[i*nstats+18+4*ns+2]   += prim(i,j,k,6+ns);               // Yk-instant
-                dataAvMeans_x[i*nstats+18+4*ns+3]   += primmeans(i,j,k,6+ns);          // Yk-mean
-            }
-        }
-        }
-        }
-
-        for (int i=0; i<n_cells[0]*nstats; ++i) {
-            dataAvMeans_x[i] /= (n_cells[1]*n_cells[2]);
-        }
-        for (int i=0; i<nstats; ++i) {
-            dataAvMeans_xcross[i] /= (n_cells[1]*n_cells[2]);
-        }
-
-    } // end MFITer
-}
-
-
 //////////////////////////////////////////
 // Get Pencil values at x* ///////////////
 // for all j and k ///////////////////////
@@ -1063,16 +949,16 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
         // Direct -- <delu(x*)delrho>
         spatialCross[i*ncross+29] = (spatialCross[i*ncross+29]*stepsminusone + delvxcross*delrho)*stepsinv;
 
-        // Direct -- <delu(x*)del(rhoYkL)
+        // Direct -- <delu(x*) delYkL(x)>
         spatialCross[i*ncross+30] = (spatialCross[i*ncross+30]*stepsminusone + delvxcross*delYk[0])*stepsinv;
 
-        // Direct -- <delu(x*)del(rhoYkH)
+        // Direct -- <delu(x*) delYkH(x)>
         spatialCross[i*ncross+31] = (spatialCross[i*ncross+31]*stepsminusone + delvxcross*delYk[nspecies-1])*stepsinv;
 
-        // Direct -- <delu(x*)del(rhoYkL)
+        // Direct -- <delu(x*) delrhoYkL(x)>
         spatialCross[i*ncross+32] = (spatialCross[i*ncross+32]*stepsminusone + delvxcross*delrhoYk[0])*stepsinv;
 
-        // Direct -- <delu(x*)del(rhoYkH)
+        // Direct -- <delu(x*) delrhoYkH(x)>
         spatialCross[i*ncross+33] = (spatialCross[i*ncross+33]*stepsminusone + delvxcross*delrhoYk[nspecies-1])*stepsinv;
 
         // Direct <delYkL(x*)delYkL(x)>
@@ -1098,7 +984,7 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
         spatialCross[i*ncross+37+nspecies+1] = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross[i*ncross+8]
                                                                     - meanYk[0]*spatialCross[i*ncross+10] + meanYkcross[0]*meanYk[0]*spatialCross[i*ncross+0]);
 
-        // <delYkL(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
+        // <delYkH(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
         //                                                 - <YkH(x)><delrhoYkH(x*)delrho(x) + <YkH(x*)><YkH(x)><delrho(x*)delrho(x)>)
         delrhoYkdelrhoYk = (spatialCross[i*ncross+37+nspecies-1]*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
         spatialCross[i*ncross+37+nspecies+2] = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross[i*ncross+9]
@@ -1507,16 +1393,16 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             // Direct -- <delu(x*)delrho>
             spatialCross(i,j,k,MFindex+29) = (spatialCross(i,j,k,MFindex+29)*stepsminusone + delvxcross*delrho)*stepsinv;
 
-            // Direct -- <delu(x*)del(rhoYkL)
+            // Direct -- <delu(x*) delYkL(x)>
             spatialCross(i,j,k,MFindex+30) = (spatialCross(i,j,k,MFindex+30)*stepsminusone + delvxcross*delYk[0])*stepsinv;
 
-            // Direct -- <delu(x*)del(rhoYkH)
+            // Direct -- <delu(x*) delYkH(x)>
             spatialCross(i,j,k,MFindex+31) = (spatialCross(i,j,k,MFindex+31)*stepsminusone + delvxcross*delYk[nspecies-1])*stepsinv;
 
-            // Direct -- <delu(x*)del(rhoYkL)
+            // Direct -- <delu(x*) delrhoYkL(x)>
             spatialCross(i,j,k,MFindex+32) = (spatialCross(i,j,k,MFindex+32)*stepsminusone + delvxcross*delrhoYk[0])*stepsinv;
 
-            // Direct -- <delu(x*)del(rhoYkH)
+            // Direct -- <delu(x*) delrhoYkH(x)>
             spatialCross(i,j,k,MFindex+33) = (spatialCross(i,j,k,MFindex+33)*stepsminusone + delvxcross*delrhoYk[nspecies-1])*stepsinv;
 
             // Direct <delYkL(x*)delYkL(x)>

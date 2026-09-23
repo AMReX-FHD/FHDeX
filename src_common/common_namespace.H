@@ -1,3 +1,6 @@
+#ifndef _common_namespace_H_
+#define _common_namespace_H_
+
 namespace common {
 
 //////////////
@@ -125,6 +128,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real radius_cyl;
     extern AMREX_GPU_MANAGED amrex::Real radius_outer;
     extern AMREX_GPU_MANAGED amrex::Real film_thickness;
+    extern AMREX_GPU_MANAGED amrex::Real surf_thickness;
     extern amrex::Real                initial_variance_mom;
     extern amrex::Real                initial_variance_mass;
     extern amrex::Real                domega;
@@ -150,6 +154,7 @@ namespace common {
     //  1 = wall
     //  2 = concentration (for compressible codes), reservoir (for low Mach multispecies codes)
     //  3 = reservoir (for compressible codes)
+    //  4 = contact angle BC for Flory-Huggins
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 
@@ -331,3 +336,5 @@ namespace common {
     extern AMREX_GPU_MANAGED int         turbForcing;
 
 }
+
+#endif

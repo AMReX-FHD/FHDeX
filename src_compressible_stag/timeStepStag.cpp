@@ -195,14 +195,15 @@ void RK3stepStag(MultiFab& cu,
         MultiFabFillRandomNormal(stochedge_y_B[0], 0, 1, 0.0, 1.0, geom, true, true);
     }
     else { // 3D
+        // The stress tensor is symmetric, so only one independent random field per
+        // edge type is needed.  calculateFluxStag consumes exactly three:
+        // stochedge_x[0] (xy), stochedge_x[1] (xz) and stochedge_y[1] (yz).
         for (int i=0; i<2; i++) {
             MultiFabFillRandomNormal(stochedge_x_A[i], 0, 1, 0.0, 1.0, geom, true, true);
             MultiFabFillRandomNormal(stochedge_x_B[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_y_A[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_y_B[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_z_A[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_z_B[i], 0, 1, 0.0, 1.0, geom, true, true);
         }
+        MultiFabFillRandomNormal(stochedge_y_A[1], 0, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochedge_y_B[1], 0, 1, 0.0, 1.0, geom, true, true);
     }
 
     if (do_1D) { // 1D no v_x and w_z stochastic terms
@@ -288,15 +289,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
@@ -619,15 +616,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
@@ -789,7 +782,7 @@ void RK3stepStag(MultiFab& cu,
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_x = turbvf_x(i,j,k);
-                momp2x(i,j,k) += dt*0.5*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0))*aF_x;
+                momp2x(i,j,k) += 0.25*dt*0.5*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0))*aF_x;
             }
 #endif
         },
@@ -802,7 +795,7 @@ void RK3stepStag(MultiFab& cu,
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_y = turbvf_y(i,j,k);
-                momp2y(i,j,k) += dt*0.5*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0))*aF_y;
+                momp2y(i,j,k) += 0.25*dt*0.5*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0))*aF_y;
             }
 #endif
         },
@@ -815,7 +808,7 @@ void RK3stepStag(MultiFab& cu,
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_z = turbvf_z(i,j,k);
-                momp2z(i,j,k) += dt*0.5*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0))*aF_z;
+                momp2z(i,j,k) += 0.25*dt*0.5*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0))*aF_z;
             }
 #endif
         });
@@ -952,15 +945,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
@@ -1125,7 +1114,7 @@ void RK3stepStag(MultiFab& cu,
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_x = 0.5*(turbvf_x_o(i,j,k)   + turbvf_x(i,j,k)  );
-                momx(i,j,k) += dt*0.5*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0))*aF_x;
+                momx(i,j,k) += (2./3.)*dt*0.5*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0))*aF_x;
             }
 #endif
         },
@@ -1138,7 +1127,7 @@ void RK3stepStag(MultiFab& cu,
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_y = 0.5*(turbvf_y_o(i,j,k)   + turbvf_y(i,j,k)  );
-                momy(i,j,k) += dt*0.5*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0))*aF_y;
+                momy(i,j,k) += (2./3.)*dt*0.5*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0))*aF_y;
             }
 #endif
         },
@@ -1151,7 +1140,7 @@ void RK3stepStag(MultiFab& cu,
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_z = 0.5*(turbvf_z_o(i,j,k)   + turbvf_z(i,j,k)  );
-                momz(i,j,k) += dt*0.5*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0))*aF_z;
+                momz(i,j,k) += (2./3.)*dt*0.5*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0))*aF_z;
             }
 #endif
         });

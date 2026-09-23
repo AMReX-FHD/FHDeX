@@ -9,6 +9,8 @@ USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
 MAX_SPEC  = 2
+# MAX_ELEM needs to be MAX_SPEC*(MAX_SPEC-1)/2
+MAX_ELEM  = 1
 USE_FFT   = TRUE
 
 TINY_PROFILE = FALSE
@@ -23,9 +25,14 @@ include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
 
+include ../../src_multispec/Make.package
+VPATH_LOCATIONS   += ../../src_multispec/
+INCLUDE_LOCATIONS += ../../src_multispec/
+
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
+
 
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
@@ -55,6 +62,9 @@ ifeq ($(USE_CUDA),TRUE)
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+MAXELEMENT := $(strip $(MAX_ELEM))
+DEFINES += -DMAX_ELEMENT=$(MAXELEMENT)
 
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)

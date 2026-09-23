@@ -78,38 +78,38 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //   StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
     {
         auto mask = cumom[0].OwnerMask(geom.periodicity());
-        rhouu[0] = MultiFab::Dot(cumom[0],0,vel[0],0,1,0);
+        rhouu[0] = MultiFab::Dot(*mask,cumom[0],0,vel[0],0,1,0);
     }
     {
         auto mask = cumom[1].OwnerMask(geom.periodicity());
-        rhouu[1] = MultiFab::Dot(cumom[1],0,vel[1],0,1,0);
+        rhouu[1] = MultiFab::Dot(*mask,cumom[1],0,vel[1],0,1,0);
     }
     {
         auto mask = cumom[2].OwnerMask(geom.periodicity());
-        rhouu[2] = MultiFab::Dot(cumom[2],0,vel[2],0,1,0);
+        rhouu[2] = MultiFab::Dot(*mask,cumom[2],0,vel[2],0,1,0);
     }
-    rhouu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
-    rhouu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
-    rhouu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
+    rhouu[0] *= dProb;
+    rhouu[1] *= dProb;
+    rhouu[2] *= dProb;
     turbKE = 0.5*( rhouu[0] + rhouu[1] + rhouu[2] );
 
     // RMS velocity
 //    StagInnerProd(vel,0,vel,0,macTemp,uu);
     {
         auto mask = vel[0].OwnerMask(geom.periodicity());
-        uu[0] = MultiFab::Dot(vel[0],0,vel[0],0,1,0);
+        uu[0] = MultiFab::Dot(*mask,vel[0],0,vel[0],0,1,0);
     }
     {
         auto mask = vel[1].OwnerMask(geom.periodicity());
-        uu[1] = MultiFab::Dot(vel[1],0,vel[1],0,1,0);
+        uu[1] = MultiFab::Dot(*mask,vel[1],0,vel[1],0,1,0);
     }
     {
         auto mask = vel[2].OwnerMask(geom.periodicity());
-        uu[2] = MultiFab::Dot(vel[2],0,vel[2],0,1,0);
+        uu[2] = MultiFab::Dot(*mask,vel[2],0,vel[2],0,1,0);
     }
-    uu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
-    uu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
-    uu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
+    uu[0] *= dProb;
+    uu[1] *= dProb;
+    uu[2] *= dProb;
     u_rms = sqrt((uu[0] + uu[1] + uu[2])/3.0);
 
     // Compute sound speed
@@ -185,19 +185,19 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //    EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
     {
         auto mask = curlUtemp[0].OwnerMask(geom.periodicity());
-        eps_s_vec[0] = MultiFab::Dot(curlUtemp[0],0,eta_edge[0],0,1,0);
+        eps_s_vec[0] = MultiFab::Dot(*mask,curlUtemp[0],0,eta_edge[0],0,1,0);
     }
     {
         auto mask = curlUtemp[1].OwnerMask(geom.periodicity());
-        eps_s_vec[1] = MultiFab::Dot(curlUtemp[1],0,eta_edge[1],0,1,0);
+        eps_s_vec[1] = MultiFab::Dot(*mask,curlUtemp[1],0,eta_edge[1],0,1,0);
     }
     {
         auto mask = curlUtemp[2].OwnerMask(geom.periodicity());
-        eps_s_vec[2] = MultiFab::Dot(curlUtemp[2],0,eta_edge[2],0,1,0);
+        eps_s_vec[2] = MultiFab::Dot(*mask,curlUtemp[2],0,eta_edge[2],0,1,0);
     }
-    eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
-    eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
-    eps_s_vec[2] /= (n_cells[1]+1)*(n_cells[2]+1)*n_cells[0];
+    eps_s_vec[0] *= dProb;
+    eps_s_vec[1] *= dProb;
+    eps_s_vec[2] *= dProb;
     eps_s = (eps_s_vec[0] + eps_s_vec[1] + eps_s_vec[2]);
 
     // Dilational dissipation (4/3)*<eta (\sum_i du_i/dx_i)^2>
@@ -672,7 +672,7 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u21_pp = (vely(i+1,j+1,k) - vely(i,j+1,k))/dx[0];
             Real w1_pp  = u21_pp - u12_pp;
             out(i,j,k,0) = w1_mm;
-            out(i,j,k,3) = 0.5*(w1_mm+w1_mp+w1_pm+w1_pp);
+            out(i,j,k,3) = 0.25*(w1_mm+w1_mp+w1_pm+w1_pp);
 
             // on edges: u_1,3 and u_3,1 and curl w2 = u_1,3 - u_3,1
             Real u13_mm = (velx(i,j,k) - velx(i,j,k-1))/dx[2];
@@ -688,7 +688,7 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u31_pp = (velz(i+1,j,k+1) - velz(i,j,k+1))/dx[0];
             Real w2_pp  = u13_pp - u31_pp;
             out(i,j,k,1) = w2_mm;
-            out(i,j,k,4) = 0.5*(w2_mm+w2_mp+w2_pm+w2_pp);
+            out(i,j,k,4) = 0.25*(w2_mm+w2_mp+w2_pm+w2_pp);
 
             // on edges: u_2,3 and u_3,2 and curl w2 = u_3,2 - u_2,3
             Real u23_mm = (vely(i,j,k) - vely(i,j,k-1))/dx[2];
@@ -704,12 +704,12 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u32_pp = (velz(i,j+1,k+1) - velz(i,j,k+1))/dx[1];
             Real w3_pp  = u32_pp - u23_pp;
             out(i,j,k,2) = w3_mm;
-            out(i,j,k,5) = 0.5*(w3_mm+w3_mp+w3_pm+w3_pp);
+            out(i,j,k,5) = 0.25*(w3_mm+w3_mp+w3_pm+w3_pp);
 
             // vorticity magnitude: sqrt(w1*w1 + w2*w2 + w3*w3)
             out(i,j,k,6) = sqrt(w1_mm*w1_mm + w2_mm*w2_mm + w3_mm*w3_mm);
-            out(i,j,k,7) = sqrt(out(i,j,k,4)*out(i,j,k,4) + out(i,j,k,5)*out(i,j,k,5)
-                                + out(i,j,k,6)*out(i,j,k,6));
+            out(i,j,k,7) = sqrt(out(i,j,k,3)*out(i,j,k,3) + out(i,j,k,4)*out(i,j,k,4)
+                                + out(i,j,k,5)*out(i,j,k,5));
             out(i,j,k,8) = std::sqrt(0.25*(w1_mm*w1_mm + w1_mp*w1_mp + w1_pm*w1_pm + w1_pp*w1_pp +
                                       w2_mm*w2_mm + w2_mp*w2_mp + w2_pm*w2_pm + w2_pp*w2_pp +
                                       w3_mm*w3_mm + w3_mp*w3_mp + w3_pm*w3_pm + w3_pp*w3_pp));

@@ -1,3 +1,6 @@
+#ifndef _gmres_namespace_H_
+#define _gmres_namespace_H_
+
 namespace gmres {
 
     // preconditioner type
@@ -61,3 +64,4 @@ namespace gmres {
     extern int         gmres_spatial_order;   // spatial order of viscous and gradient operators in matrix "A"
 }
 
+#endif
