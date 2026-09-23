@@ -48,7 +48,13 @@ void init_int_pot (int i, int j, int k,
 {
     constexpr double  PI = 3.14159265358979323846264338327950288;
     amrex::Real eps, R, alpha;
-    eps = 0.0333*20000.;
+    // TODO(3D): eps is calibrated for 2D. The convolution C = U*phi is scaled by
+    // the cell volume in AdvancePhiAtLevel.cpp, so the integrated strength of
+    // U = eps*exp(-(r/R)^alpha) changes by roughly a factor of R going 2D -> 3D.
+    // eps needs recalibrating for 3D runs. NOTE: this literal is duplicated in
+    // AmrCoreAdv.cpp (the adv.test_int_pot check) -- change both together.
+    eps = 0.0333*20000.*20.;
+    eps = 0.0333*20000.*6.77;
     R = 0.1;
     alpha = 3.;
 
@@ -78,7 +84,7 @@ void init_int_pot (int i, int j, int k,
     amrex::Real r = std::sqrt(x*x+y*y);
 #endif
 
-    U(i,j,k) = - eps * std::exp( - std::pow(r/R,alpha));
+    U(i,j,k) =  eps * std::exp( - std::pow(r/R,alpha));
 //    U(i,j,k) = std::cos(2*PI*i*dx[0]);
 /*
     U(i,j,k) = 0.;
@@ -396,8 +402,8 @@ void compute_flux_z (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i,j,k-1,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i,j,k-1,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i,j,k-1,coeff_index),0.);
         stofact = 1.;
 
     }
@@ -419,11 +425,16 @@ void compute_flux_z (int i, int j, int k,
              zloc = k / dzinv;
              amrex::Real phiavg = 0.5*(phip+phim);
 
+             // TODO(3D): Vsubz is a verbatim copy of the y-direction cubic well
+             // in compute_flux_y -- there is no physically defined z potential.
+             // Inert while ext_pot is 0 above, but wrong if it is ever enabled.
+             // Whatever is chosen here must be mirrored in the particle drift in
+             // StochasticPC::AdvectParticles (use_ext_pot branches).
              amrex::Real Vsubz;
 
              Vsubz =0.5* 4.*(zloc - .5)*(zloc - .5)*(zloc - .5) / gamma;
 
-             fluxz(i,j,k,0) += phiavg * Vsuby;
+             fluxz(i,j,k,0) += phiavg * Vsubz;
 
           }
 
@@ -431,7 +442,7 @@ void compute_flux_z (int i, int j, int k,
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
-             fluxz(i,j,k,0) += phiavg * (C(,j,k) - C(i,j,k-1)) * dzinv;
+             fluxz(i,j,k,0) += phiavg * (C(i,j,k) - C(i,j,k-1)) * dzinv;
 
           }
 
@@ -443,7 +454,6 @@ void compute_flux_z (int i, int j, int k,
 
         fluxz(i,j,k,0) += stofact * stochfluxz(i,j,k)* sqphiavg;
 
-    }
 }
 #endif
 

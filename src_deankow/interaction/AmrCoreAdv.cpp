@@ -1295,8 +1295,15 @@ AmrCoreAdv::ReadCheckpointFile ()
         SetDistributionMap(lev, dm);
 
         // build MultiFab and FluxRegister data
-        int ncomp = 1;
-        int ng = 0;
+        // These MUST match what MakeNewLevelFromScratch uses, or a restarted run
+        // does not reproduce an uninterrupted one: ncomp follows alg_type, and the
+        // flux kernels in mykernel.H read one ghost cell (phi(i-1,j,k) etc.), so
+        // ng = 1. With ng = 0 the FillBoundary calls in AdvancePhiAtLevel became
+        // no-ops and compute_flux_* read uninitialized memory past the end of each
+        // FAB -- which traps under amrex.fpe_trap_invalid, or silently poisons the
+        // solution without it.
+        int ncomp = (alg_type == 0) ? 1 : 2;
+        int ng = 1;
         phi_old[lev].define(grids[lev], dmap[lev], ncomp, ng);
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, ng);
 
