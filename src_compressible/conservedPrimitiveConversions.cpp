@@ -60,7 +60,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             prim(i,j,k,3) = cons(i,j,k,3)/cons(i,j,k,0);
 
             Real vsqr = prim(i,j,k,1)*prim(i,j,k,1) + prim(i,j,k,2)*prim(i,j,k,2) + prim(i,j,k,3)*prim(i,j,k,3);
-            Real intenergy = cons(i,j,k,4)/cons(i,j,k,0) - 0.5*vsqr;
+            Real intenergy = cons(i,j,k,4)/cons(i,j,k,0) - Real(0.5)*vsqr;
 
             Real sumYk = 0.;
             for (int n=0; n<nspecies; ++n) {

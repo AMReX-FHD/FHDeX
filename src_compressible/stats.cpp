@@ -10,8 +10,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     BL_PROFILE_VAR("evaluateStats()",evaluateStats);
 
     Real totalMass = 0.;
-    Real stepsminusone = steps - 1.;
-    Real stepsinv = 1./steps;
+    Real stepsminusone = steps - Real(1.);
+    Real stepsinv = Real(1.)/steps;
 
     GpuArray<Real,MAX_SPECIES> fracvec;
 
@@ -62,7 +62,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                 cumeans(i,j,k,l) = (cumeans(i,j,k,l)*stepsminusone + cu(i,j,k,l))*stepsinv;
             }
 
-            Real densitymeaninv = 1.0/cumeans(i,j,k,0);
+            Real densitymeaninv = Real(1.0)/cumeans(i,j,k,0);
 
             for (int l=5; l<nvars; ++l) {
                 fracvec[l-5] = cumeans(i,j,k,l) * densitymeaninv;
@@ -77,7 +77,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                         primmeans(i,j,k,2)*primmeans(i,j,k,2) +
                         primmeans(i,j,k,3)*primmeans(i,j,k,3);
 
-            Real intenergy = cumeans(i,j,k,4)/cumeans(i,j,k,0) - 0.5*vsqr;
+            Real intenergy = cumeans(i,j,k,4)/cumeans(i,j,k,0) - Real(0.5)*vsqr;
 
             GetTemperature(intenergy, fracvec, primmeans(i,j,k,4));
             GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), primmeans(i,j,k,4));
@@ -265,7 +265,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                                                                           + miscVals[15]*miscVals[15]);
 #endif
 
-            Real densitymeaninv = 1.0/cumeans(i,j,k,0);
+            Real densitymeaninv = Real(1.0)/cumeans(i,j,k,0);
 //            Real densitymeaninvS = 1.0/yzAvMeans[i*nstats+1];
 //            Real densitymeaninvSstar = 1.0/miscVals[3];
 
@@ -348,7 +348,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             spatialcross(i,j,k,3) = miscstats(i,j,k,2) - yzAvMeans[i*nstats+18]*miscVals[13];
             spatialcross(i,j,k,4) = miscstats(i,j,k,3) - yzAvMeans[i*nstats+1]*miscVals[13];
 
-            if (miscVals[3] == 0.) {
+            if (miscVals[3] == Real(0.)) {
                 spatialcross(i,j,k,5) = 0.;
             } else {
                 spatialcross(i,j,k,5) = (delpdelrho - miscVals[2]*miscstats(i,j,k,1))/miscVals[3];

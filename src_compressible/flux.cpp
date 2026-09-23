@@ -39,8 +39,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
     if (stoch_stress_form == 1) {
 
-        Real volinv = 1./(dx[0]*dx[1]*dx[2]);
-        Real dtinv = 1./dt;
+        Real volinv = Real(1.)/(dx[0]*dx[1]*dx[2]);
+        Real dtinv = Real(1.)/dt;
 
         // Loop over boxes
         for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
@@ -84,161 +84,161 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real muxp = (eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
                 Real kxp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4));
 
-                Real meanT = 0.5*(prim(i,j,k,4)+prim(i-1,j,k,4));
+                Real meanT = Real(0.5)*(prim(i,j,k,4)+prim(i-1,j,k,4));
 
                 if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    muxp = 2.0*eta(i-1,j,k)*prim(i-1,j,k,4);
-                    kxp  = 2.0*kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4);
+                    muxp = Real(2.0)*eta(i-1,j,k)*prim(i-1,j,k,4);
+                    kxp  = Real(2.0)*kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4);
                     meanT = prim(i-1,j,k,4);
                 }
                 if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    muxp = 2.0*eta(i,j,k)*prim(i,j,k,4);
-                    kxp  = 2.0*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
+                    muxp = Real(2.0)*eta(i,j,k)*prim(i,j,k,4);
+                    kxp  = Real(2.0)*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
                     meanT = prim(i,j,k,4);
                 }
 
                 // Weights for facial fluxes:
                 fweights[0] = 0; // No mass flux;
-                fweights[1]=sqrt(k_B*muxp*volinv*dtinv);
+                fweights[1]=std::sqrt(k_B*muxp*volinv*dtinv);
                 fweights[2]=fweights[1];
                 fweights[3]=fweights[1];
-                fweights[4]=sqrt(k_B*kxp*volinv*dtinv);
+                fweights[4]=std::sqrt(k_B*kxp*volinv*dtinv);
 
                 // Construct the random increments
                 for (int n=0; n<5; ++n) {
                     wiener[n] = fweights[n]*ranfluxx(i,j,k,n);
                 }
 
-                Real nweight=sqrt(k_B*volinv*dtinv);
+                Real nweight=std::sqrt(k_B*volinv*dtinv);
 
                 if (n_cells_z > 1) {
 
                     // Corner viscosity coefficients in 3D
-                    Real muzepp = 0.25*(eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
+                    Real muzepp = Real(0.25)*(eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
                                         eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                         eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
-                                        eta(i,j+1,k+1)*prim(i,j+1,k+1,4) + eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/3.;
+                                        eta(i,j+1,k+1)*prim(i,j+1,k+1,4) + eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/Real(3.);
 
-                    Real muzemp = 0.25*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                    Real muzemp = Real(0.25)*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                         eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
                                         eta(i,j-1,k+1)*prim(i,j-1,k+1,4) + eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
-                                        eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/3.;
+                                        eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/Real(3.);
 
-                    Real muzepm = 0.25*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                    Real muzepm = Real(0.25)*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                         eta(i,j+1,k-1)*prim(i,j+1,k-1,4) + eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                         eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
-                                        eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/3.;
+                                        eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/Real(3.);
 
-                    Real muzemm = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                    Real muzemm = Real(0.25)*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                         eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                         eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                        eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
+                                        eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) )/Real(3.);
 
                     if ((i == 0) and is_lo_x_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) +
+                        muzepp = Real(0.5)*(eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                       eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
-                                      eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/3.;
+                                      eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/Real(3.);
 
-                        muzemp = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                        muzemp = Real(0.5)*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                       eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
-                                      eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/3.;
+                                      eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/Real(3.);
 
-                        muzepm = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                        muzepm = Real(0.5)*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                       eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                       eta(i-1,j,k)*prim(i-1,j,k,4) +
-                                      eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/3.;
+                                      eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/Real(3.);
 
-                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                        muzemm = Real(0.5)*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                       eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                       eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                      eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
+                                      eta(i-1,j,k)*prim(i-1,j,k,4) )/Real(3.);
                     }
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i,j,k)*prim(i,j,k,4) +
+                        muzepp = Real(0.5)*(eta(i,j,k)*prim(i,j,k,4) +
                                       eta(i,j+1,k)*prim(i,j+1,k,4) +
                                       eta(i,j,k+1)*prim(i,j,k+1,4) +
-                                      eta(i,j+1,k+1)*prim(i,j+1,k+1,4) )/3.;
+                                      eta(i,j+1,k+1)*prim(i,j+1,k+1,4) )/Real(3.);
 
-                        muzemp = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) +
+                        muzemp = Real(0.5)*(eta(i,j-1,k)*prim(i,j-1,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) +
                                       eta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
-                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/Real(3.);
 
-                        muzepm = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) +
+                        muzepm = Real(0.5)*(eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                       eta(i,j,k)*prim(i,j,k,4) +
-                                      eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
+                                      eta(i,j+1,k)*prim(i,j+1,k,4) )/Real(3.);
 
-                        muzemm = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                        muzemm = Real(0.5)*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                      eta(i,j,k)*prim(i,j,k,4) )/3.;
+                                      eta(i,j,k)*prim(i,j,k,4) )/Real(3.);
                     }
 
 
 
                     if (amrex::Math::abs(visc_type) == 3) {
                         if ((i == 0) and is_lo_x_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                            muzepp += Real(0.5)*(zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                           zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
                                           zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) );
 
-                            muzemp += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                            muzemp += Real(0.5)*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                           zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
                                           zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) );
 
-                            muzepm += 0.5*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                            muzepm += Real(0.5)*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                           zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) );
 
-                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                            muzemm += Real(0.5)*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                           zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                           zeta(i-1,j,k)*prim(i-1,j,k,4) );
                         }
                         else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i,j,k)*prim(i,j,k,4) +
+                            muzepp += Real(0.5)*(zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i,j+1,k)*prim(i,j+1,k,4) +
                                           zeta(i,j,k+1)*prim(i,j,k+1,4) +
                                           zeta(i,j+1,k+1)*prim(i,j+1,k+1,4) );
 
-                            muzemp += 0.5*(zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                            muzemp += Real(0.5)*(zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
                                           zeta(i,j,k+1)*prim(i,j,k+1,4) );
 
-                            muzepm += 0.5*(zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                            muzepm += Real(0.5)*(zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i,j+1,k)*prim(i,j+1,k,4) );
 
-                            muzemm += 0.5*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                            muzemm += Real(0.5)*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) );
                         }
                         else {
-                            muzepp += 0.25*(zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                            muzepp += Real(0.25)*(zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                            zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                            zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
                                            zeta(i,j+1,k+1)*prim(i,j+1,k+1,4) + zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) );
 
-                            muzemp += 0.25*(zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                            muzemp += Real(0.25)*(zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                            zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) + zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
                                            zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) );
 
-                            muzepm += 0.25*(zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                            muzepm += Real(0.25)*(zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                            zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) + zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                            zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) );
 
-                            muzemm += 0.25*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) + zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                            muzemm += Real(0.25)*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) + zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                             zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                             zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                             zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) );
@@ -254,30 +254,30 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     // 2 = no-slip
                     if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
                         if (j == 0) {
-                            factor_lo_y = (bc_vel_lo[1] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_lo_y = (bc_vel_lo[1] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
                         if (k == 0) {
-                            factor_lo_z = (bc_vel_lo[2] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_lo_z = (bc_vel_lo[2] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
                         if (j == n_cells[1]-1) {
-                            factor_hi_y = (bc_vel_hi[1] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_hi_y = (bc_vel_hi[1] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
                         if (k == n_cells[2]-1) {
-                            factor_hi_z = (bc_vel_hi[2] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_hi_z = (bc_vel_hi[2] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
 
                     // Random "divergence" stress
-                    wiener[1] = wiener[1] + 0.25*nweight*(factor_hi_y*factor_hi_z*sqrt(muzepp)*rancorn(i,j+1,k+1) +
-                                                          factor_lo_y*factor_hi_z*sqrt(muzemp)*rancorn(i,j,k+1) +
-                                                          factor_hi_y*factor_lo_z*sqrt(muzepm)*rancorn(i,j+1,k) +
-                                                          factor_lo_y*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
+                    wiener[1] = wiener[1] + Real(0.25)*nweight*(factor_hi_y*factor_hi_z*std::sqrt(muzepp)*rancorn(i,j+1,k+1) +
+                                                          factor_lo_y*factor_hi_z*std::sqrt(muzemp)*rancorn(i,j,k+1) +
+                                                          factor_hi_y*factor_lo_z*std::sqrt(muzepm)*rancorn(i,j+1,k) +
+                                                          factor_lo_y*factor_lo_z*std::sqrt(muzemm)*rancorn(i,j,k));
 
                 } else if (n_cells_z == 1) {
 
@@ -318,18 +318,18 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                    wiener[3]*(prim(i-1,j,k,3)+prim(i,j,k,3));
 
                 if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    phiflxdiag =  2.0*wiener[1]*prim(i-1,j,k,1);
-                    phiflxshear = 2.0*wiener[2]*prim(i-1,j,k,2) +
-                                  2.0*wiener[3]*prim(i-1,j,k,3);
+                    phiflxdiag =  Real(2.0)*wiener[1]*prim(i-1,j,k,1);
+                    phiflxshear = Real(2.0)*wiener[2]*prim(i-1,j,k,2) +
+                                  Real(2.0)*wiener[3]*prim(i-1,j,k,3);
                 }
                 if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    phiflxdiag =  2.0*wiener[1]*prim(i,j,k,1);
-                    phiflxshear = 2.0*wiener[2]*prim(i,j,k,2) +
-                                  2.0*wiener[3]*prim(i,j,k,3);
+                    phiflxdiag =  Real(2.0)*wiener[1]*prim(i,j,k,1);
+                    phiflxshear = Real(2.0)*wiener[2]*prim(i,j,k,2) +
+                                  Real(2.0)*wiener[3]*prim(i,j,k,3);
                 }
 
-                phiflxdiag = -0.5*phiflxdiag;
-                phiflxshear = -0.5*phiflxshear;
+                phiflxdiag = -Real(0.5)*phiflxdiag;
+                phiflxshear = -Real(0.5)*phiflxshear;
 
                 fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1) - phiflxdiag;
                 fluxx(i,j,k,nvars+2) = fluxx(i,j,k,nvars+2) - phiflxshear;
@@ -368,21 +368,21 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     for (int ns=0; ns<nspecies; ++ns) {
 
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+                        MWmix = MWmix + Real(0.5)*(yy[ns]+yyp[ns])/molmass[ns];
 
                         for (int ll=0; ll<nspecies; ++ll) {
-                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
+                            DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
                                                                  Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                 (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
                             if ((i == 0) and is_lo_x_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
+                                DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i-1,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i-1,j,k,ns*nspecies+ll)*yyp[ns] ));
                             }
                             if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
@@ -392,7 +392,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
 
                     for (int ns=0; ns<nspecies; ++ns) {
-                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= Real(1.e-12)) {
                             for (int n=0; n<nspecies; ++n) {
                                 DijY_edge[ns*nspecies+n]=0.;
                                 DijY_edge[n*nspecies+ns]=0.;
@@ -400,13 +400,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         }
                     }
 
-                    MWmix = 1. / MWmix;
+                    MWmix = Real(1.) / MWmix;
 
                     CholeskyDecomp(DijY_edge,nspecies,sqD);
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
+                            fweights[5+ll]=std::sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                             wiener[5+ns] = wiener[5+ns] + fweights[5+ll]*ranfluxx(i,j,k,5+ll);
                         }
                         fluxx(i,j,k,5+ns) = wiener[5+ns];
@@ -418,7 +418,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         Real soret_s;
-                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*Real(0.5)*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
                         if ((i == 0) and is_lo_x_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i-1,j,k,ns))*wiener[5+ns];
                         }
@@ -448,164 +448,164 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real muyp = eta(i,j,k)*prim(i,j,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4);
                 Real kyp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4);
 
-                Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j-1,k,4));
+                Real meanT = Real(0.5)*(prim(i,j,k,4)+prim(i,j-1,k,4));
 
                 if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    muyp = 2.0*eta(i,j-1,k)*prim(i,j-1,k,4);
-                    kyp  = 2.0*kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4);
+                    muyp = Real(2.0)*eta(i,j-1,k)*prim(i,j-1,k,4);
+                    kyp  = Real(2.0)*kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4);
                     meanT = prim(i,j-1,k,4);
                 }
                 if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    muyp = 2.0*eta(i,j,k)*prim(i,j,k,4);
-                    kyp  = 2.0*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
+                    muyp = Real(2.0)*eta(i,j,k)*prim(i,j,k,4);
+                    kyp  = Real(2.0)*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
                     meanT = prim(i,j,k,4);
                 }
 
                 // Weights for facial fluxes:
                 fweights[0] = 0; // No mass flux
-                fweights[1] = sqrt(k_B*muyp*volinv*dtinv);
-                fweights[2] = sqrt(k_B*muyp*volinv*dtinv);
-                fweights[3] = sqrt(k_B*muyp*volinv*dtinv);
-                fweights[4] = sqrt(k_B*kyp*volinv*dtinv);
+                fweights[1] = std::sqrt(k_B*muyp*volinv*dtinv);
+                fweights[2] = std::sqrt(k_B*muyp*volinv*dtinv);
+                fweights[3] = std::sqrt(k_B*muyp*volinv*dtinv);
+                fweights[4] = std::sqrt(k_B*kyp*volinv*dtinv);
 
                 // Construct the random increments
                 for (int n=0; n<5; ++n) {
                     wiener[n] = fweights[n]*ranfluxy(i,j,k,n);
                 }
 
-                Real nweight=sqrt(k_B*volinv*dtinv);
+                Real nweight=std::sqrt(k_B*volinv*dtinv);
 
                 if (n_cells_z > 1) {
 
                     // Corner viscosity coefficients 3D
-                    Real muzepp = 0.25*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
+                    Real muzepp = Real(0.25)*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
                                         eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
                                         eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + eta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
-                                        eta(i+1,j,k+1)*prim(i+1,j,k+1,4) + eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+                                        eta(i+1,j,k+1)*prim(i+1,j,k+1,4) + eta(i,j,k+1)*prim(i,j,k+1,4) )/Real(3.);
 
-                    Real muzemp = 0.25*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
+                    Real muzemp = Real(0.25)*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
                                         eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
                                         eta(i-1,j,k+1)*prim(i-1,j,k+1,4) + eta(i,j,k+1)*prim(i,j,k+1,4) +
-                                        eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
+                                        eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/Real(3.);
 
-                    Real muzepm = 0.25*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                    Real muzepm = Real(0.25)*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                         eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
                                         eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                        eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) )/3.;
+                                        eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
-                    Real muzemm = 0.25*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
+                    Real muzemm = Real(0.25)*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
                                         eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                         eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
-                                        eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+                                        eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
 
                     if ((j == 0) and is_lo_y_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
+                        muzepp = Real(0.5)*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) +
                                       eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) +
-                                      eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
+                                      eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/Real(3.);
 
-                        muzemp = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                        muzemp = Real(0.5)*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                       eta(i,j-1,k)*prim(i,j-1,k,4) +
                                       eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
-                                      eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
+                                      eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/Real(3.);
 
-                        muzepm = 0.5*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
+                        muzepm = Real(0.5)*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
                                       eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                       eta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
-                                      eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+                                      eta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
 
-                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                        muzemm = Real(0.5)*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                       eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                       eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                      eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+                                      eta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
 
                     }
                     if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
+                        muzepp = Real(0.5)*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) +
                                       eta(i+1,j,k+1)*prim(i+1,j,k+1,4) +
-                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/Real(3.);
 
-                        muzemp = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) +
+                        muzemp = Real(0.5)*(eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i,j,k)*prim(i,j,k,4) +
                                       eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
-                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/Real(3.);
 
-                        muzepm = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
+                        muzepm = Real(0.5)*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i+1,j,k)*prim(i+1,j,k,4) +
-                                      eta(i,j,k)*prim(i,j,k,4) )/3.;
+                                      eta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
-                        muzemm = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                        muzemm = Real(0.5)*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i-1,j,k)*prim(i-1,j,k,4) +
-                                      eta(i,j,k)*prim(i,j,k,4) )/3.;
+                                      eta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
                     }
 
                     if (amrex::Math::abs(visc_type) == 3) {
 
                         if ((j == 0) and is_lo_y_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
+                            muzepp += Real(0.5)*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                           zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) +
-                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
+                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/Real(3.);
 
-                            muzemp += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                            muzemp += Real(0.5)*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                           zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
-                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
+                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/Real(3.);
 
-                            muzepm += 0.5*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
+                            muzepm += Real(0.5)*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                           zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
-                                          zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
 
-                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                            muzemm += Real(0.5)*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                           zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                          zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
 
                         }
                         else  if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
+                            muzepp += Real(0.5)*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) +
-                                          zeta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+                                          zeta(i,j,k+1)*prim(i,j,k+1,4) )/Real(3.);
 
-                            muzemp += 0.5*(zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                            muzemp += Real(0.5)*(zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
-                                          zeta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+                                          zeta(i,j,k+1)*prim(i,j,k+1,4) )/Real(3.);
 
-                            muzepm += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
+                            muzepm += Real(0.5)*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i+1,j,k)*prim(i+1,j,k,4) +
-                                          zeta(i,j,k)*prim(i,j,k,4) )/3.;
+                                          zeta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
-                            muzemm += 0.5*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                            muzemm += Real(0.5)*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                          zeta(i,j,k)*prim(i,j,k,4) )/3.;
+                                          zeta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
                         }
                         else {
-                            muzepp += 0.25*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                            muzepp += Real(0.25)*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                            zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
                                            zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) + zeta(i,j,k+1)*prim(i,j,k+1,4) );
 
-                            muzemp += 0.25*(zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
+                            muzemp += Real(0.25)*(zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                            zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) + zeta(i,j,k+1)*prim(i,j,k+1,4) +
                                            zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) );
 
-                            muzepm += 0.25*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                            muzepm += Real(0.25)*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                            zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                            zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
 
-                            muzemm += 0.25*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                            muzemm += Real(0.25)*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                                     zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                                     zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
                                                     zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) );
@@ -621,30 +621,30 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     // 2 = no-slip
                     if (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) {
                         if (i == 0) {
-                            factor_lo_x = (bc_vel_lo[0] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_lo_x = (bc_vel_lo[0] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
                         if (k == 0) {
-                            factor_lo_z = (bc_vel_lo[2] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_lo_z = (bc_vel_lo[2] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
                         if (i == n_cells[0]-1) {
-                            factor_hi_x = (bc_vel_hi[0] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_hi_x = (bc_vel_hi[0] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
                         if (k == n_cells[2]-1) {
-                            factor_hi_z = (bc_vel_hi[2] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_hi_z = (bc_vel_hi[2] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
 
                     // Random "divergence" stress
-                    wiener[2] = wiener[2] + 0.25*nweight*(factor_hi_x*factor_hi_z*sqrt(muzepp)*rancorn(i+1,j,k+1) +
-                                                          factor_lo_x*factor_hi_z*sqrt(muzemp)*rancorn(i,j,k+1) +
-                                                          factor_hi_x*factor_lo_z*sqrt(muzepm)*rancorn(i+1,j,k) +
-                                                          factor_lo_x*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
+                    wiener[2] = wiener[2] + Real(0.25)*nweight*(factor_hi_x*factor_hi_z*std::sqrt(muzepp)*rancorn(i+1,j,k+1) +
+                                                          factor_lo_x*factor_hi_z*std::sqrt(muzemp)*rancorn(i,j,k+1) +
+                                                          factor_hi_x*factor_lo_z*std::sqrt(muzepm)*rancorn(i+1,j,k) +
+                                                          factor_lo_x*factor_lo_z*std::sqrt(muzemm)*rancorn(i,j,k));
 
                 } else if (n_cells_z == 1) {
 
@@ -686,18 +686,18 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                    wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
 
                 if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    phiflxdiag =  2.0*wiener[2]*prim(i,j-1,k,2);
-                    phiflxshear = 2.0*wiener[1]*prim(i,j-1,k,1) +
-                                  2.0*wiener[3]*prim(i,j-1,k,3);
+                    phiflxdiag =  Real(2.0)*wiener[2]*prim(i,j-1,k,2);
+                    phiflxshear = Real(2.0)*wiener[1]*prim(i,j-1,k,1) +
+                                  Real(2.0)*wiener[3]*prim(i,j-1,k,3);
                 }
                 if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    phiflxdiag =  2.0*wiener[2]*prim(i,j,k,2);
-                    phiflxshear = 2.0*wiener[1]*prim(i,j,k,1) +
-                                  2.0*wiener[3]*prim(i,j,k,3);
+                    phiflxdiag =  Real(2.0)*wiener[2]*prim(i,j,k,2);
+                    phiflxshear = Real(2.0)*wiener[1]*prim(i,j,k,1) +
+                                  Real(2.0)*wiener[3]*prim(i,j,k,3);
                 }
 
-                phiflxdiag = -0.5*phiflxdiag;
-                phiflxshear = -0.5*phiflxshear;
+                phiflxdiag = -Real(0.5)*phiflxdiag;
+                phiflxshear = -Real(0.5)*phiflxshear;
 
                 fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1) - phiflxdiag;
                 fluxy(i,j,k,nvars+2) = fluxy(i,j,k,nvars+2) - phiflxshear;
@@ -736,22 +736,22 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     for (int ns=0; ns<nspecies; ++ns) {
 
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+                        MWmix = MWmix + Real(0.5)*(yy[ns]+yyp[ns])/molmass[ns];
 
                         for (int ll=0; ll<nspecies; ++ll) {
-                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
+                            DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
                                                                  Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                 (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
 
                             if ((j == 0) and is_lo_y_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
+                                DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j-1,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i,j-1,k,ns*nspecies+ll)*yyp[ns] ));
                             }
                             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
@@ -760,7 +760,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
 
                     for (int ns=0; ns<nspecies; ++ns) {
-                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= Real(1.e-12)) {
                             for (int n=0; n<nspecies; ++n) {
                                 DijY_edge[ns*nspecies+n]=0.;
                                 DijY_edge[n*nspecies+ns]=0.;
@@ -768,13 +768,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         }
                     }
 
-                    MWmix = 1. / MWmix;
+                    MWmix = Real(1.) / MWmix;
 
                     CholeskyDecomp(DijY_edge,nspecies,sqD);
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
+                            fweights[5+ll]=std::sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                             wiener[5+ns] = wiener[5+ns] + fweights[5+ll]*ranfluxy(i,j,k,5+ll);
                         }
                         fluxy(i,j,k,5+ns) = wiener[5+ns];
@@ -786,7 +786,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         Real soret_s;
-                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*Real(0.5)*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
                         if ((j == 0) and is_lo_y_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j-1,k,ns))*wiener[5+ns];
                         }
@@ -816,162 +816,162 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real muzp = eta(i,j,k)*prim(i,j,k,4) + eta(i,j,k-1)*prim(i,j,k-1,4);
                     Real kzp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4);
 
-                    Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j,k-1,4));
+                    Real meanT = Real(0.5)*(prim(i,j,k,4)+prim(i,j,k-1,4));
 
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        muzp = 2.0*eta(i,j,k-1)*prim(i,j,k-1,4);
-                        kzp  = 2.0*kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4);
+                        muzp = Real(2.0)*eta(i,j,k-1)*prim(i,j,k-1,4);
+                        kzp  = Real(2.0)*kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4);
                         meanT = prim(i,j,k-1,4);
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        muzp = 2.0*eta(i,j,k)*prim(i,j,k,4);
-                        kzp  = 2.0*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
+                        muzp = Real(2.0)*eta(i,j,k)*prim(i,j,k,4);
+                        kzp  = Real(2.0)*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
                         meanT = prim(i,j,k,4);
                     }
 
                     // Weights for facial fluxes:
                     fweights[0] = 0; // No mass flux
-                    fweights[1] = sqrt(k_B*muzp*volinv*dtinv);
-                    fweights[2] = sqrt(k_B*muzp*volinv*dtinv);
-                    fweights[3] = sqrt(k_B*muzp*volinv*dtinv);
-                    fweights[4] = sqrt(k_B*kzp*volinv*dtinv);
+                    fweights[1] = std::sqrt(k_B*muzp*volinv*dtinv);
+                    fweights[2] = std::sqrt(k_B*muzp*volinv*dtinv);
+                    fweights[3] = std::sqrt(k_B*muzp*volinv*dtinv);
+                    fweights[4] = std::sqrt(k_B*kzp*volinv*dtinv);
 
                     // Construct the random increments
                     for (int n=0; n<5; ++n) {
                         wiener[n] = fweights[n]*ranfluxz(i,j,k,n);
                     }
 
-                    Real nweight=sqrt(k_B*volinv*dtinv);
+                    Real nweight=std::sqrt(k_B*volinv*dtinv);
 
                     // Corner viscosity coefficients
-                    Real muzepp = 0.25*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
+                    Real muzepp = Real(0.25)*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
                                         eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                         eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
-                                        eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
+                                        eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + eta(i,j+1,k)*prim(i,j+1,k,4) )/Real(3.);
 
-                    Real muzemp = 0.25*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
+                    Real muzemp = Real(0.25)*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                         eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
                                         eta(i-1,j+1,k)*prim(i-1,j+1,k,4) + eta(i,j+1,k)*prim(i,j+1,k,4) +
-                                        eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) )/3.;
+                                        eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
-                    Real muzepm = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k-2)*prim(i,j,k,4) +
+                    Real muzepm = Real(0.25)*(eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k-2)*prim(i,j,k,4) +
                                         eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k-2)*prim(i,j-1,k,4) +
                                         eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                        eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/3.;
+                                        eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/Real(3.);
 
-                    Real muzemm = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
+                    Real muzemm = Real(0.25)*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
                                         eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
                                         eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                        eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+                                        eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) )/Real(3.);
 
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
+                        muzepp = Real(0.5)*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) +
-                                      eta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/3.;
+                                      eta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/Real(3.);
 
-                        muzemp = 0.5*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
+                        muzemp = Real(0.5)*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                       eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                       eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                      eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) )/Real(3.);
 
-                        muzepm = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
+                        muzepm = Real(0.5)*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
-                                      eta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/3.;
+                                      eta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/Real(3.);
 
-                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                        muzemm = Real(0.5)*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                       eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                       eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                      eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) )/Real(3.);
 
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
+                        muzepp = Real(0.5)*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j+1,k)*prim(i+1,j+1,k,4) +
-                                       eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
+                                       eta(i,j+1,k)*prim(i,j+1,k,4) )/Real(3.);
 
-                        muzemp = 0.5*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
+                        muzemp = Real(0.5)*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                        eta(i,j+1,k)*prim(i,j+1,k,4) +
                                        eta(i-1,j,k)*prim(i-1,j,k,4) +
-                                       eta(i,j,k)*prim(i,j,k,4) )/3.;
+                                       eta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
-                        muzepm = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
+                        muzepm = Real(0.5)*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
-                                       eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+                                       eta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
 
-                        muzemm = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                        muzemm = Real(0.5)*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                        eta(i,j-1,k)*prim(i,j-1,k,4) +
                                        eta(i-1,j,k)*prim(i-1,j,k,4) +
-                                       eta(i,j,k)*prim(i,j,k,4) )/3.;
+                                       eta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
                     }
 
                     if (amrex::Math::abs(visc_type) == 3) {
 
                         if ((k == 0) and is_lo_z_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
+                            muzepp += Real(0.5)*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) +
-                                          zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/3.;
+                                          zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/Real(3.);
 
-                            muzemp += 0.5*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
+                            muzemp += Real(0.5)*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                           zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                           zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                          zeta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) )/Real(3.);
 
-                            muzepm += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
+                            muzepm += Real(0.5)*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
-                                          zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/3.;
+                                          zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/Real(3.);
 
-                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                            muzemm += Real(0.5)*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                           zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                          zeta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) )/Real(3.);
 
                         }
                         if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                            muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
+                            muzepp += Real(0.5)*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) +
-                                           zeta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
+                                           zeta(i,j+1,k)*prim(i,j+1,k,4) )/Real(3.);
 
-                            muzemp += 0.5*(zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
+                            muzemp += Real(0.5)*(zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                            zeta(i,j+1,k)*prim(i,j+1,k,4) +
                                            zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                           zeta(i,j,k)*prim(i,j,k,4) )/3.;
+                                           zeta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
-                            muzepm += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
+                            muzepm += Real(0.5)*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
-                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
 
-                            muzemm += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                            muzemm += Real(0.5)*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                            zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                            zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                           zeta(i,j,k)*prim(i,j,k,4) )/3.;
+                                           zeta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
                         }
                         else {
-                            muzepp += 0.25*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                            muzepp += Real(0.25)*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                            zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                            zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) );
 
-                            muzemp += 0.25*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
+                            muzemp += Real(0.25)*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                             zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                             zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) +
                                             zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
 
-                            muzepm += 0.25*(zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k-2)*prim(i,j,k,4) +
+                            muzepm += Real(0.25)*(zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k-2)*prim(i,j,k,4) +
                                             zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k-2)*prim(i,j-1,k,4) +
                                             zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                             zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) );
 
-                            muzemm += 0.25*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                            muzemm += Real(0.25)*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                                     zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
                                                     zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                                     zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) );
@@ -988,30 +988,30 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     // 2 = no-slip
                     if (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) {
                         if (i == 0) {
-                            factor_lo_x = (bc_vel_lo[0] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_lo_x = (bc_vel_lo[0] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
                         if (j == 0) {
-                            factor_lo_y = (bc_vel_lo[1] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_lo_y = (bc_vel_lo[1] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
                         if (i == n_cells[0]-1) {
-                            factor_hi_x = (bc_vel_hi[0] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_hi_x = (bc_vel_hi[0] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
                     if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
                         if (j == n_cells[1]-1) {
-                            factor_hi_y = (bc_vel_hi[1] == 1) ? std::sqrt(2.0) : 0.;
+                            factor_hi_y = (bc_vel_hi[1] == 1) ? std::sqrt(Real(2.0)) : Real(0.);
                         }
                     }
 
                     // Random "divergence" stress
-                    wiener[3] = wiener[3] + 0.25*nweight*(factor_hi_x*factor_hi_y*sqrt(muzepp)*rancorn(i+1,j+1,k) +
-                                                          factor_lo_x*factor_hi_y*sqrt(muzemp)*rancorn(i,j+1,k) +
-                                                          factor_hi_x*factor_lo_y*sqrt(muzepm)*rancorn(i+1,j,k) +
-                                                          factor_lo_x*factor_lo_y*sqrt(muzemm)*rancorn(i,j,k));
+                    wiener[3] = wiener[3] + Real(0.25)*nweight*(factor_hi_x*factor_hi_y*std::sqrt(muzepp)*rancorn(i+1,j+1,k) +
+                                                          factor_lo_x*factor_hi_y*std::sqrt(muzemp)*rancorn(i,j+1,k) +
+                                                          factor_hi_x*factor_lo_y*std::sqrt(muzepm)*rancorn(i+1,j,k) +
+                                                          factor_lo_x*factor_lo_y*std::sqrt(muzemm)*rancorn(i,j,k));
 
                     for (int n=1; n<4; ++n) {
                         fluxz(i,j,k,n) = fluxz(i,j,k,n) + wiener[n];
@@ -1027,18 +1027,18 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                        wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2));
 
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        phiflxdiag =  2.0*wiener[3]*prim(i,j,k-1,3);
-                        phiflxshear = 2.0*wiener[1]*prim(i,j,k-1,1) +
-                                      2.0*wiener[2]*prim(i,j,k-1,2);
+                        phiflxdiag =  Real(2.0)*wiener[3]*prim(i,j,k-1,3);
+                        phiflxshear = Real(2.0)*wiener[1]*prim(i,j,k-1,1) +
+                                      Real(2.0)*wiener[2]*prim(i,j,k-1,2);
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        phiflxdiag =  2.0*wiener[3]*prim(i,j,k,3);
-                        phiflxshear = 2.0*wiener[1]*prim(i,j,k,1) +
-                                      2.0*wiener[2]*prim(i,j,k,2);
+                        phiflxdiag =  Real(2.0)*wiener[3]*prim(i,j,k,3);
+                        phiflxshear = Real(2.0)*wiener[1]*prim(i,j,k,1) +
+                                      Real(2.0)*wiener[2]*prim(i,j,k,2);
                     }
 
-                    phiflxdiag = -0.5*phiflxdiag;
-                    phiflxshear = -0.5*phiflxshear;
+                    phiflxdiag = -Real(0.5)*phiflxdiag;
+                    phiflxshear = -Real(0.5)*phiflxshear;
 
                     fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1) - phiflxdiag;
                     fluxz(i,j,k,nvars+2) = fluxz(i,j,k,nvars+2) - phiflxshear;
@@ -1077,21 +1077,21 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     for (int ns=0; ns<nspecies; ++ns) {
 
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+                        MWmix = MWmix + Real(0.5)*(yy[ns]+yyp[ns])/molmass[ns];
 
                         for (int ll=0; ll<nspecies; ++ll) {
-                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
+                            DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
                                                                  Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                 (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
                             if ((k == 0) and is_lo_z_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
+                                DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k-1,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i,j,k-1,ns*nspecies+ll)*yyp[ns] ));
                             }
                             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                DijY_edge[ns*nspecies+ll] = Real(0.5)*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
@@ -1102,7 +1102,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
 
                     for (int ns=0; ns<nspecies; ++ns) {
-                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= Real(1.e-12)) {
                             for (int n=0; n<nspecies; ++n) {
                                 DijY_edge[ns*nspecies+n]=0.;
                                 DijY_edge[n*nspecies+ns]=0.;
@@ -1110,13 +1110,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         }
                     }
 
-                    MWmix = 1. / MWmix;
+                    MWmix = Real(1.) / MWmix;
 
                     CholeskyDecomp(DijY_edge,nspecies,sqD);
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
+                            fweights[5+ll]=std::sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                             wiener[5+ns] = wiener[5+ns] + fweights[5+ll]*ranfluxz(i,j,k,5+ll);
                         }
                         fluxz(i,j,k,5+ns) = wiener[5+ns];
@@ -1128,7 +1128,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         Real soret_s;
-                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*Real(0.5)*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[5+ns];
                         if ((k == 0) and is_lo_z_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k-1,ns))*wiener[5+ns];
                         }
@@ -1219,26 +1219,26 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if ((i == 0) and is_lo_x_dirichlet_mass) {
                 muxp = eta(i-1,j,k);
                 kxp  = kappa(i-1,j,k);
-                tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
-                tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/(0.5*dx[0]);
-                tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/(0.5*dx[0]);
-                phiflx = 2.0*(tauxxp*(prim(i-1,j,k,1))
+                tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(Real(0.5)*dx[0]);
+                tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/(Real(0.5)*dx[0]);
+                tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/(Real(0.5)*dx[0]);
+                phiflx = Real(2.0)*(tauxxp*(prim(i-1,j,k,1))
                           +  divxp*(prim(i-1,j,k,1))
                           +  tauyxp*(prim(i-1,j,k,2))
                           +  tauzxp*(prim(i-1,j,k,3)));
-                Qflux = kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0]);
+                Qflux = kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/(Real(0.5)*dx[0]);
             }
             if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                 muxp = eta(i,j,k);
                 kxp  = kappa(i,j,k);
-                tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
-                tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/(0.5*dx[0]);
-                tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/(0.5*dx[0]);
-                phiflx = 2.0*(tauxxp*(prim(i,j,k,1))
+                tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(Real(0.5)*dx[0]);
+                tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/(Real(0.5)*dx[0]);
+                tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/(Real(0.5)*dx[0]);
+                phiflx = Real(2.0)*(tauxxp*(prim(i,j,k,1))
                           +  divxp*(prim(i,j,k,1))
                           +  tauyxp*(prim(i,j,k,2))
                           +  tauzxp*(prim(i,j,k,3)));
-                Qflux = kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0]);
+                Qflux = kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/(Real(0.5)*dx[0]);
             }
 
             fluxx(i,j,k,1) = fluxx(i,j,k,1) - (tauxxp+divxp);
@@ -1251,8 +1251,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             // viscous heating
             fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1) - (half*phiflx);
 
-            Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
-            Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
+            Real meanT = Real(0.5)*(prim(i-1,j,k,4)+prim(i,j,k,4));
+            Real meanP = Real(0.5)*(prim(i-1,j,k,5)+prim(i,j,k,5));
             if ((i == 0) and is_lo_x_dirichlet_mass) {
                 meanT = prim(i-1,j,k,4);
                 meanP = prim(i-1,j,k,5);
@@ -1267,30 +1267,30 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // compute dk
                 for (int ns=0; ns<nspecies; ++ns) {
                     Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/dx[0];
-                    meanXk[ns] = 0.5*(prim(i-1,j,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
-                    meanYk[ns] = 0.5*(prim(i-1,j,k,6+ns)+prim(i,j,k,6+ns));
+                    meanXk[ns] = Real(0.5)*(prim(i-1,j,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
+                    meanYk[ns] = Real(0.5)*(prim(i-1,j,k,6+ns)+prim(i,j,k,6+ns));
                     Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/dx[0]/meanP;
                     dk[ns] = term1 + term2;
-                    Real ChiX = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns));
+                    Real ChiX = Real(0.5)*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns));
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
 
                     if ((i == 0) and is_lo_x_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
+                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(Real(0.5)*dx[0]);
                         meanXk[ns] = prim(i-1,j,k,6+nspecies+ns);
                         meanYk[ns] = prim(i-1,j,k,6+ns);
-                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/(0.5*dx[0])/meanP;
+                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/(Real(0.5)*dx[0])/meanP;
                         dk[ns] = term1 + term2;
                         ChiX = chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns);
-                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0])/meanT;
+                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(Real(0.5)*dx[0])/meanT;
                     }
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
+                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(Real(0.5)*dx[0]);
                         meanXk[ns] = prim(i,j,k,6+nspecies+ns);
                         meanYk[ns] = prim(i,j,k,6+ns);
-                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/(0.5*dx[0])/meanP;
+                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/(Real(0.5)*dx[0])/meanP;
                         dk[ns] = term1 + term2;
                         ChiX = chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns);
-                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0])/meanT;
+                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(Real(0.5)*dx[0])/meanT;
                     }
                 }
 
@@ -1314,7 +1314,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real Q5 = 0.;
                 for (int ns=0; ns<nspecies; ++ns) {
-                    Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i-1,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
+                    Real Q5s = (hk[ns] + Real(0.5) * Runiv*meanT*(chi(i-1,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                     if ((i == 0) and is_lo_x_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i-1,j,k,ns)/molmass[ns])*Fk[ns];
                     }
@@ -1361,26 +1361,26 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if ((j == 0) and is_lo_y_dirichlet_mass) {
                 muyp = eta(i,j-1,k);
                 kyp  = kappa(i,j-1,k);
-                tauxyp = muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/(0.5*dx[1]);
-                tauyyp = muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/(0.5*dx[1]);
-                tauzyp = muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/(0.5*dx[1]);
-                phiflx = 2.0*(tauxyp*(prim(i,j-1,k,1))
+                tauxyp = muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/(Real(0.5)*dx[1]);
+                tauyyp = muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/(Real(0.5)*dx[1]);
+                tauzyp = muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/(Real(0.5)*dx[1]);
+                phiflx = Real(2.0)*(tauxyp*(prim(i,j-1,k,1))
                           +  tauyyp*(prim(i,j-1,k,2))
                           +  divyp*(prim(i,j-1,k,2))
                           +  tauzyp*(prim(i,j-1,k,3)));
-                Qflux = kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1]);
+                Qflux = kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/(Real(0.5)*dx[1]);
             }
             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                 muyp = eta(i,j,k);
                 kyp  = kappa(i,j,k);
-                tauxyp = muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/(0.5*dx[1]);
-                tauyyp = muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/(0.5*dx[1]);
-                tauzyp = muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/(0.5*dx[1]);
-                phiflx = 2.0*(tauxyp*(prim(i,j,k,1))
+                tauxyp = muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/(Real(0.5)*dx[1]);
+                tauyyp = muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/(Real(0.5)*dx[1]);
+                tauzyp = muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/(Real(0.5)*dx[1]);
+                phiflx = Real(2.0)*(tauxyp*(prim(i,j,k,1))
                           +  tauyyp*(prim(i,j,k,2))
                           +  divyp*(prim(i,j,k,2))
                           +  tauzyp*(prim(i,j,k,3)));
-                Qflux = kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1]);
+                Qflux = kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/(Real(0.5)*dx[1]);
             }
 
             fluxy(i,j,k,1) = fluxy(i,j,k,1) - tauxyp;
@@ -1393,8 +1393,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             // viscous heating
             fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1) - (half*phiflx);
 
-            Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-            Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
+            Real meanT = Real(0.5)*(prim(i,j-1,k,4)+prim(i,j,k,4));
+            Real meanP = Real(0.5)*(prim(i,j-1,k,5)+prim(i,j,k,5));
             if ((j == 0) and is_lo_y_dirichlet_mass) {
                 meanT = prim(i,j-1,k,4);
                 meanP = prim(i,j-1,k,5);
@@ -1408,30 +1408,30 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // compute dk
                 for (int ns=0; ns<nspecies; ++ns) {
                     Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/dx[1];
-                    meanXk[ns] = 0.5*(prim(i,j-1,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
-                    meanYk[ns] = 0.5*(prim(i,j-1,k,6+ns)+prim(i,j,k,6+ns));
+                    meanXk[ns] = Real(0.5)*(prim(i,j-1,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
+                    meanYk[ns] = Real(0.5)*(prim(i,j-1,k,6+ns)+prim(i,j,k,6+ns));
                     Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/dx[1]/meanP;
                     dk[ns] = term1 + term2;
-                    Real ChiX = 0.5*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns));
+                    Real ChiX = Real(0.5)*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns));
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]/meanT;
 
                     if ((j == 0) and is_lo_y_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
+                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(Real(0.5)*dx[1]);
                         meanXk[ns] = prim(i,j-1,k,6+nspecies+ns);
                         meanYk[ns] = prim(i,j-1,k,6+ns);
-                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/(0.5*dx[1])/meanP;
+                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/(Real(0.5)*dx[1])/meanP;
                         dk[ns] = term1 + term2;
                         ChiX = chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns);
-                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1])/meanT;
+                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(Real(0.5)*dx[1])/meanT;
                     }
                     if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
+                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(Real(0.5)*dx[1]);
                         meanXk[ns] = prim(i,j,k,6+nspecies+ns);
                         meanYk[ns] = prim(i,j,k,6+ns);
-                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/(0.5*dx[1])/meanP;
+                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/(Real(0.5)*dx[1])/meanP;
                         dk[ns] = term1 + term2;
                         ChiX = chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns);
-                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1])/meanT;
+                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(Real(0.5)*dx[1])/meanT;
                     }
 
                 }
@@ -1456,7 +1456,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real Q5 = 0.0;
                 for (int ns=0; ns<nspecies; ++ns) {
-                    Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
+                    Real Q5s = (hk[ns] + Real(0.5) * Runiv*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                     if ((j == 0) and is_lo_y_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j-1,k,ns)/molmass[ns])*Fk[ns];
                     }
@@ -1506,26 +1506,26 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if ((k == 0) and is_lo_z_dirichlet_mass) {
                 muzp = eta(i,j,k-1);
                 kzp  = kappa(i,j,k-1);
-                tauxzp = muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/(0.5*dx[2]);
-                tauyzp = muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/(0.5*dx[2]);
-                tauzzp = muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/(0.5*dx[2]);
-                phiflx = 2.0*(tauxzp*(prim(i,j,k-1,1))
+                tauxzp = muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/(Real(0.5)*dx[2]);
+                tauyzp = muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/(Real(0.5)*dx[2]);
+                tauzzp = muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/(Real(0.5)*dx[2]);
+                phiflx = Real(2.0)*(tauxzp*(prim(i,j,k-1,1))
                           +  tauyzp*(prim(i,j,k-1,2))
                           +  tauzzp*(prim(i,j,k-1,3))
                           +  divzp*(prim(i,j,k-1,3)));
-                Qflux = kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
+                Qflux = kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(Real(0.5)*dx[2]);
             }
             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                 muzp = eta(i,j,k);
                 kzp  = kappa(i,j,k);
-                tauxzp = muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/(0.5*dx[2]);
-                tauyzp = muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/(0.5*dx[2]);
-                tauzzp = muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/(0.5*dx[2]);
-                phiflx = 2.0*(tauxzp*(prim(i,j,k,1))
+                tauxzp = muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/(Real(0.5)*dx[2]);
+                tauyzp = muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/(Real(0.5)*dx[2]);
+                tauzzp = muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/(Real(0.5)*dx[2]);
+                phiflx = Real(2.0)*(tauxzp*(prim(i,j,k,1))
                           +  tauyzp*(prim(i,j,k,2))
                           +  tauzzp*(prim(i,j,k,3))
                           +  divzp*(prim(i,j,k,3)));
-                Qflux = kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
+                Qflux = kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(Real(0.5)*dx[2]);
             }
 
             fluxz(i,j,k,1) = fluxz(i,j,k,1) - tauxzp;
@@ -1538,8 +1538,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             // viscous heating
             fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1) - (half*phiflx);
 
-            Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-            Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
+            Real meanT = Real(0.5)*(prim(i,j,k-1,4)+prim(i,j,k,4));
+            Real meanP = Real(0.5)*(prim(i,j,k-1,5)+prim(i,j,k,5));
             if ((k == 0) and is_lo_z_dirichlet_mass) {
                 meanT = prim(i,j,k-1,4);
                 meanP = prim(i,j,k-1,5);
@@ -1554,30 +1554,30 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // compute dk
                 for (int ns=0; ns<nspecies; ++ns) {
                     Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/dx[2];
-                    meanXk[ns] = 0.5*(prim(i,j,k-1,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
-                    meanYk[ns] = 0.5*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns));
+                    meanXk[ns] = Real(0.5)*(prim(i,j,k-1,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
+                    meanYk[ns] = Real(0.5)*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns));
                     Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx[2]/meanP;
                     dk[ns] = term1 + term2;
-                    Real ChiX = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns));
+                    Real ChiX = Real(0.5)*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns));
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
 
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
+                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(Real(0.5)*dx[2]);
                         meanXk[ns] = prim(i,j,k-1,6+nspecies+ns);
                         meanYk[ns] = prim(i,j,k-1,6+ns);
-                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/(0.5*dx[2])/meanP;
+                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/(Real(0.5)*dx[2])/meanP;
                         dk[ns] = term1 + term2;
                         ChiX = chi(i,j,k-1,ns)*prim(i,j,k-1,6+nspecies+ns);
-                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2])/meanT;
+                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(Real(0.5)*dx[2])/meanT;
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
+                        term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(Real(0.5)*dx[2]);
                         meanXk[ns] = prim(i,j,k,6+nspecies+ns);
                         meanYk[ns] = prim(i,j,k,6+ns);
-                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/(0.5*dx[2])/meanP;
+                        term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/(Real(0.5)*dx[2])/meanP;
                         dk[ns] = term1 + term2;
                         ChiX = chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns);
-                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2])/meanT;
+                        soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(Real(0.5)*dx[2])/meanT;
                     }
                 }
 
@@ -1601,7 +1601,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real Q5 = 0.0;
                 for (int ns=0; ns<nspecies; ++ns) {
-                    Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
+                    Real Q5s = (hk[ns] + Real(0.5) * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k-1,ns)/molmass[ns])*Fk[ns];
                     }
@@ -1628,12 +1628,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
             // Corner viscosity
-            Real muxp = 0.125*(eta(i,j-1,k-1) + eta(i-1,j-1,k-1) + eta(i,j,k-1) + eta(i-1,j,k-1)
+            Real muxp = Real(0.125)*(eta(i,j-1,k-1) + eta(i-1,j-1,k-1) + eta(i,j,k-1) + eta(i-1,j,k-1)
                                + eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k));
 
             Real zetaxp;
             if (amrex::Math::abs(visc_type) == 3) {
-                zetaxp = 0.125*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+
+                zetaxp = Real(0.125)*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+
                                 zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k));
             } else {
                 zetaxp = 0.;
@@ -1645,64 +1645,64 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             DX[2] = dx[2];
 
             if ((i == 0) and is_lo_x_dirichlet_mass) {
-                DX[0] = 0.5*dx[0];
-                muxp = 0.25*(eta(i-1,j-1,k-1) + eta(i-1,j-1,k) + eta(i-1,j,k-1) + eta(i-1,j,k));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j-1,k) + zeta(i-1,j,k-1) + zeta(i-1,j,k));
+                DX[0] = Real(0.5)*dx[0];
+                muxp = Real(0.25)*(eta(i-1,j-1,k-1) + eta(i-1,j-1,k) + eta(i-1,j,k-1) + eta(i-1,j,k));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = Real(0.25)*(zeta(i-1,j-1,k-1) + zeta(i-1,j-1,k) + zeta(i-1,j,k-1) + zeta(i-1,j,k));
                 else zetaxp = 0.;
             }
             if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                DX[0] = 0.5*dx[0];
-                muxp = 0.25*(eta(i,j-1,k-1) + eta(i,j-1,k) + eta(i,j,k-1) + eta(i,j,k));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i,j-1,k-1) + zeta(i,j-1,k) + zeta(i,j,k-1) + zeta(i,j,k));
+                DX[0] = Real(0.5)*dx[0];
+                muxp = Real(0.25)*(eta(i,j-1,k-1) + eta(i,j-1,k) + eta(i,j,k-1) + eta(i,j,k));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = Real(0.25)*(zeta(i,j-1,k-1) + zeta(i,j-1,k) + zeta(i,j,k-1) + zeta(i,j,k));
                 else zetaxp = 0.;
             }
             if ((j == 0) and is_lo_y_dirichlet_mass) {
-                DX[1] = 0.5*dx[1];
-                muxp = 0.25*(eta(i-1,j-1,k-1) + eta(i-1,j-1,k) + eta(i,j-1,k-1) + eta(i,j-1,k));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j-1,k) + zeta(i,j-1,k-1) + zeta(i,j-1,k));
+                DX[1] = Real(0.5)*dx[1];
+                muxp = Real(0.25)*(eta(i-1,j-1,k-1) + eta(i-1,j-1,k) + eta(i,j-1,k-1) + eta(i,j-1,k));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = Real(0.25)*(zeta(i-1,j-1,k-1) + zeta(i-1,j-1,k) + zeta(i,j-1,k-1) + zeta(i,j-1,k));
                 else zetaxp = 0.;
             }
             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                DX[1] = 0.5*dx[1];
-                muxp = 0.25*(eta(i-1,j,k-1) + eta(i-1,j,k) + eta(i,j,k-1) + eta(i,j,k));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j,k-1) + zeta(i-1,j,k) + zeta(i,j,k-1) + zeta(i,j,k));
+                DX[1] = Real(0.5)*dx[1];
+                muxp = Real(0.25)*(eta(i-1,j,k-1) + eta(i-1,j,k) + eta(i,j,k-1) + eta(i,j,k));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = Real(0.25)*(zeta(i-1,j,k-1) + zeta(i-1,j,k) + zeta(i,j,k-1) + zeta(i,j,k));
                 else zetaxp = 0.;
             }
             if ((k == 0) and is_lo_z_dirichlet_mass) {
-                DX[2] = 0.5*dx[2];
-                muxp = 0.25*(eta(i-1,j-1,k-1) + eta(i-1,j,k-1) + eta(i,j-1,k-1) + eta(i,j,k-1));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j,k-1) + zeta(i,j-1,k-1) + zeta(i,j,k-1));
+                DX[2] = Real(0.5)*dx[2];
+                muxp = Real(0.25)*(eta(i-1,j-1,k-1) + eta(i-1,j,k-1) + eta(i,j-1,k-1) + eta(i,j,k-1));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = Real(0.25)*(zeta(i-1,j-1,k-1) + zeta(i-1,j,k-1) + zeta(i,j-1,k-1) + zeta(i,j,k-1));
                 else zetaxp = 0.;
             }
             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                DX[2] = 0.5*dx[2];
-                muxp = 0.25*(eta(i-1,j-1,k) + eta(i-1,j,k) + eta(i,j-1,k) + eta(i,j,k));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k) + zeta(i-1,j,k) + zeta(i,j-1,k) + zeta(i,j,k));
+                DX[2] = Real(0.5)*dx[2];
+                muxp = Real(0.25)*(eta(i-1,j-1,k) + eta(i-1,j,k) + eta(i,j-1,k) + eta(i,j,k));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = Real(0.25)*(zeta(i-1,j-1,k) + zeta(i-1,j,k) + zeta(i,j-1,k) + zeta(i,j,k));
                 else zetaxp = 0.;
             }
 
-            cornux(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,1)-prim(i-1,j-1,k-1,1) + prim(i,j,k-1,1)-prim(i-1,j,k-1,1)+
+            cornux(i,j,k) = Real(0.25)*muxp*(prim(i,j-1,k-1,1)-prim(i-1,j-1,k-1,1) + prim(i,j,k-1,1)-prim(i-1,j,k-1,1)+
                                          prim(i,j-1,k,1)-prim(i-1,j-1,k,1) + prim(i,j,k,1)-prim(i-1,j,k,1))/DX[0];
-            cornvx(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i-1,j,k-1,2)+
+            cornvx(i,j,k) = Real(0.25)*muxp*(prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i-1,j,k-1,2)+
                                          prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/DX[0];
-            cornwx(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i-1,j,k-1,3)+
+            cornwx(i,j,k) = Real(0.25)*muxp*(prim(i,j-1,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i-1,j,k-1,3)+
                                          prim(i,j-1,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i-1,j,k,3))/DX[0];
 
-            cornuy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,1)-prim(i-1,j-1,k-1,1) + prim(i,j,k-1,1)-prim(i,j-1,k-1,1) +
+            cornuy(i,j,k) = Real(0.25)*muxp* (prim(i-1,j,k-1,1)-prim(i-1,j-1,k-1,1) + prim(i,j,k-1,1)-prim(i,j-1,k-1,1) +
                                           prim(i-1,j,k,1)-prim(i-1,j-1,k,1) + prim(i,j,k,1)-prim(i,j-1,k,1))/DX[1];
-            cornvy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i,j-1,k-1,2) +
+            cornvy(i,j,k) = Real(0.25)*muxp* (prim(i-1,j,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i,j-1,k-1,2) +
                                           prim(i-1,j,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i,j-1,k,2))/DX[1];
-            cornwy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i,j-1,k-1,3) +
+            cornwy(i,j,k) = Real(0.25)*muxp* (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i,j-1,k-1,3) +
                                           prim(i-1,j,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i,j-1,k,3))/DX[1];
 
-            cornuz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,1)-prim(i-1,j-1,k-1,1) + prim(i,j-1,k,1)-prim(i,j-1,k-1,1) +
+            cornuz(i,j,k) = Real(0.25)*muxp*(prim(i-1,j-1,k,1)-prim(i-1,j-1,k-1,1) + prim(i,j-1,k,1)-prim(i,j-1,k-1,1) +
                                          prim(i-1,j,k,1)-prim(i-1,j,k-1,1) + prim(i,j,k,1)-prim(i,j,k-1,1))/DX[2];
-            cornvz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,2)-prim(i-1,j-1,k-1,2) + prim(i,j-1,k,2)-prim(i,j-1,k-1,2) +
+            cornvz(i,j,k) = Real(0.25)*muxp*(prim(i-1,j-1,k,2)-prim(i-1,j-1,k-1,2) + prim(i,j-1,k,2)-prim(i,j-1,k-1,2) +
                                          prim(i-1,j,k,2)-prim(i-1,j,k-1,2) + prim(i,j,k,2)-prim(i,j,k-1,2))/DX[2];
-            cornwz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,3)-prim(i-1,j-1,k-1,3) + prim(i,j-1,k,3)-prim(i,j-1,k-1,3) +
+            cornwz(i,j,k) = Real(0.25)*muxp*(prim(i-1,j-1,k,3)-prim(i-1,j-1,k-1,3) + prim(i,j-1,k,3)-prim(i,j-1,k-1,3) +
                                          prim(i-1,j,k,3)-prim(i-1,j,k-1,3) + prim(i,j,k,3)-prim(i,j,k-1,3))/DX[2];
 
-            visccorn(i,j,k) =  (muxp/12.+zetaxp/4.)*( // Divergence stress
+            visccorn(i,j,k) =  (muxp/Real(12.)+zetaxp/Real(4.))*( // Divergence stress
                 (prim(i,  j-1,k-1,1)-prim(i-1,j-1,k-1,1))/DX[0] + (prim(i,j,  k-1,1)-prim(i-1,j  ,k-1,1))/DX[0] +
                 (prim(i,  j-1,k  ,1)-prim(i-1,j-1,k,  1))/DX[0] + (prim(i,j,  k,  1)-prim(i-1,j  ,k,  1))/DX[0] +
                 (prim(i-1,j  ,k-1,2)-prim(i-1,j-1,k-1,2))/DX[1] + (prim(i,j,  k-1,2)-prim(i  ,j-1,k-1,2))/DX[1] +
@@ -1770,139 +1770,139 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-            fluxx(i,j,k,1) = fluxx(i,j,k,1) - 0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+            fluxx(i,j,k,1) = fluxx(i,j,k,1) - Real(0.25)*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
                                                       visccorn(i,j+1,k)+visccorn(i,j,k)); // Viscous "divergence" stress
 
-            fluxx(i,j,k,1) = fluxx(i,j,k,1) + .25*
+            fluxx(i,j,k,1) = fluxx(i,j,k,1) + Real(.25)*
                 (cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                  cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k));
 
-            fluxx(i,j,k,2) = fluxx(i,j,k,2) - .25*
+            fluxx(i,j,k,2) = fluxx(i,j,k,2) - Real(.25)*
                 (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k));
 
-            fluxx(i,j,k,3) = fluxx(i,j,k,3) - .25*
+            fluxx(i,j,k,3) = fluxx(i,j,k,3) - Real(.25)*
                 (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k));
 
             Real phiflx;
 
             if ((i == 0) and is_lo_x_dirichlet_mass) {
-                phiflx =  0.5*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                phiflx =  Real(0.5)*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
                             visccorn(i,j+1,k)+visccorn(i,j,k)
                             -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                               cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
                             (prim(i-1,j,k,1));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
                             (prim(i-1,j,k,2));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
                             (prim(i-1,j,k,3));
 
             }
             else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                phiflx =  0.5*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                phiflx =  Real(0.5)*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
                             visccorn(i,j+1,k)+visccorn(i,j,k)
                             -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                               cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
                             (prim(i,j,k,1));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
                             (prim(i,j,k,2));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
                             (prim(i,j,k,3));
 
             }
             else {
-                phiflx =  0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                phiflx =  Real(0.25)*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
                             visccorn(i,j+1,k)+visccorn(i,j,k)
                             -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                               cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
                             (prim(i-1,j,k,1)+prim(i,j,k,1));
 
-                phiflx = phiflx + .25*
+                phiflx = phiflx + Real(.25)*
                             (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
                             (prim(i-1,j,k,2)+prim(i,j,k,2));
 
-                phiflx = phiflx + .25*
+                phiflx = phiflx + Real(.25)*
                             (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
                             (prim(i-1,j,k,3)+prim(i,j,k,3));
 
             }
 
-            fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1)-0.5*phiflx;
+            fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1)-Real(0.5)*phiflx;
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
             fluxy(i,j,k,2) = fluxy(i,j,k,2) -
-                0.25*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k));
+                Real(0.25)*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k));
 
-            fluxy(i,j,k,2) = fluxy(i,j,k,2) + .25*
+            fluxy(i,j,k,2) = fluxy(i,j,k,2) + Real(.25)*
                 (cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
                  cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k));
 
-            fluxy(i,j,k,1) = fluxy(i,j,k,1) - .25*
+            fluxy(i,j,k,1) = fluxy(i,j,k,1) - Real(.25)*
                 (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k));
 
-            fluxy(i,j,k,3) = fluxy(i,j,k,3) - .25*
+            fluxy(i,j,k,3) = fluxy(i,j,k,3) - Real(.25)*
                 (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k));
 
             Real phiflx;
 
             if ((j == 0) and is_lo_y_dirichlet_mass) {
 
-                phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                phiflx = Real(0.5)*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
                                  cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
                               (prim(i,j-1,k,2));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
                             (prim(i,j-1,k,1));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
                             (prim(i,j-1,k,3));
 
             }
             else if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
 
-                phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                phiflx = Real(0.5)*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
                                  cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
                               (prim(i,j,k,2));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
                             (prim(i,j,k,1));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
                             (prim(i,j,k,3));
 
             }
             else {
-                phiflx = 0.25*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                phiflx = Real(0.25)*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
                                  cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
                               (prim(i,j-1,k,2)+prim(i,j,k,2));
 
-                phiflx = phiflx + .25*
+                phiflx = phiflx + Real(.25)*
                             (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
                             (prim(i,j-1,k,1)+prim(i,j,k,1));
 
-                phiflx = phiflx + .25*
+                phiflx = phiflx + Real(.25)*
                             (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
                             (prim(i,j-1,k,3)+prim(i,j,k,3));
 
             }
 
-            fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1)-0.5*phiflx;
+            fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1)-Real(0.5)*phiflx;
 
         },
 
@@ -1911,69 +1911,69 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if (n_cells_z > 1) {
 
             fluxz(i,j,k,3) = fluxz(i,j,k,3) -
-                0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k));
+                Real(0.25)*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k));
 
-            fluxz(i,j,k,3) = fluxz(i,j,k,3) + .25*
+            fluxz(i,j,k,3) = fluxz(i,j,k,3) + Real(.25)*
                 (cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                  cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k));
 
-            fluxz(i,j,k,1) = fluxz(i,j,k,1) - .25*
+            fluxz(i,j,k,1) = fluxz(i,j,k,1) - Real(.25)*
                 (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k));
 
-            fluxz(i,j,k,2) = fluxz(i,j,k,2) - .25*
+            fluxz(i,j,k,2) = fluxz(i,j,k,2) - Real(.25)*
                 (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k));
 
             Real phiflx;
 
             if ((k == 0) and is_lo_z_dirichlet_mass) {
 
-                phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                phiflx = Real(0.5)*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                                  cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) *
                                 (prim(i,j,k-1,3));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
                             (prim(i,j,k-1,1));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
                             (prim(i,j,k-1,2));
 
             }
             else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
 
-                phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                phiflx = Real(0.5)*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                                  cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) *
                                 (prim(i,j,k,3));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
                             (prim(i,j,k,1));
 
-                phiflx = phiflx + .5*
+                phiflx = phiflx + Real(.5)*
                             (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
                             (prim(i,j,k,2));
 
             }
             else {
-                phiflx = 0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                phiflx = Real(0.25)*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
                                  cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) *
                                 (prim(i,j,k-1,3)+prim(i,j,k,3));
 
-                phiflx = phiflx + .25*
+                phiflx = phiflx + Real(.25)*
                             (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
                             (prim(i,j,k-1,1)+prim(i,j,k,1));
 
-                phiflx = phiflx + .25*
+                phiflx = phiflx + Real(.25)*
                             (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
                             (prim(i,j,k-1,2)+prim(i,j,k,2));
 
             }
 
-            fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1)-0.5*phiflx;
+            fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1)-Real(0.5)*phiflx;
 
             }
 
@@ -1988,13 +1988,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     // hyperbolic fluxes
     ////////////////////
 
-    Real wgt2 = 1./12.;
-    Real wgt1 = 0.5 + wgt2;
+    Real wgt2 = Real(1.)/Real(12.);
+    Real wgt1 = Real(0.5) + wgt2;
 
-    Real wgta = -0.2;
+    Real wgta = -Real(0.2);
     Real wgtb = 0.75;
     Real wgtc = 0.5;
-    Real wgtd = -0.05;
+    Real wgtd = -Real(0.05);
 
     // Loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
@@ -2048,7 +2048,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
-                conserved[4] = rho*intenergy + 0.5*rho*vsqr;
+                conserved[4] = rho*intenergy + Real(0.5)*rho*vsqr;
 
                 xflux(i,j,k,0) += conserved[0]*primitive[1];
                 xflux(i,j,k,1) += conserved[0]*(primitive[1]*primitive[1])+primitive[5];
@@ -2101,7 +2101,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
-                conserved[4] = rho*intenergy + 0.5*rho*vsqr;
+                conserved[4] = rho*intenergy + Real(0.5)*rho*vsqr;
 
                 yflux(i,j,k,0) += conserved[0]*primitive[2];
                 yflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[2];
@@ -2154,7 +2154,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
-                conserved[4] = rho*intenergy + 0.5*rho*vsqr;
+                conserved[4] = rho*intenergy + Real(0.5)*rho*vsqr;
 
                 zflux(i,j,k,0) += conserved[0]*primitive[3];
                 zflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[3];
@@ -2219,7 +2219,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // compute temperature
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
-                Real intenergy = conserved[4]/conserved[0] - 0.5*vsqr;
+                Real intenergy = conserved[4]/conserved[0] - Real(0.5)*vsqr;
                 GetTemperature(intenergy, Yk, primitive[4]);
 
                 // compute pressure
@@ -2283,7 +2283,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // compute temperature
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
-                Real intenergy = conserved[4]/conserved[0] - 0.5*vsqr;
+                Real intenergy = conserved[4]/conserved[0] - Real(0.5)*vsqr;
                 GetTemperature(intenergy, Yk, primitive[4]);
 
                 // compute pressure
@@ -2347,7 +2347,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // compute temperature
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
-                Real intenergy = conserved[4]/conserved[0] - 0.5*vsqr;
+                Real intenergy = conserved[4]/conserved[0] - Real(0.5)*vsqr;
                 GetTemperature(intenergy, Yk, primitive[4]);
 
                 // compute pressure

@@ -104,10 +104,10 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
                                               mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vy,Vz,engine);
                     }
-                    xflux(i,j,k,0) += (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
-                    xflux(i,j,k,4) += (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
+                    xflux(i,j,k,0) += (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) += (Real(1.0) + (Real(1.0)/( Real(4.0)*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        xflux(i,j,k,5+n) += (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
+                        xflux(i,j,k,5+n) += (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
 
                     if (do_1D) {
@@ -128,9 +128,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     ////////////////// to reservoir ////////////////////
 
                     T = prim0(i,j,k,4);
-                    Vx = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
-                    Vy =  0.5*(yvel0(i,j,k)+yvel0(i,j+1,k));
-                    Vz =  0.5*(zvel0(i,j,k)+zvel0(i,j,k+1));
+                    Vx = -Real(0.5)*(xvel0(i,j,k)+xvel0(i+1,j,k));
+                    Vy =  Real(0.5)*(yvel0(i,j,k)+yvel0(i,j+1,k));
+                    Vz =  Real(0.5)*(zvel0(i,j,k)+zvel0(i,j,k+1));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j,k,5+n);
                     }
@@ -242,10 +242,10 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
                                               mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vy,Vz,engine);
                     }
-                    xflux(i,j,k,0) -= (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
-                    xflux(i,j,k,4) -= (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
+                    xflux(i,j,k,0) -= (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) -= (Real(1.0) + (Real(1.0)/( Real(4.0)*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        xflux(i,j,k,5+n) -= (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
+                        xflux(i,j,k,5+n) -= (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
 
                     if (do_1D) {
@@ -266,9 +266,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     ////////////////// to reservoir ////////////////////
 
                     T = prim0(i-1,j,k,4);
-                    Vx = 0.5*(xvel0(i-1,j,k)+xvel0(i,j,k));
-                    Vy = 0.5*(yvel0(i-1,j,k)+yvel0(i-1,j+1,k));
-                    Vz = 0.5*(zvel0(i-1,j,k)+zvel0(i-1,j,k+1));
+                    Vx = Real(0.5)*(xvel0(i-1,j,k)+xvel0(i,j,k));
+                    Vy = Real(0.5)*(yvel0(i-1,j,k)+yvel0(i-1,j+1,k));
+                    Vz = Real(0.5)*(zvel0(i-1,j,k)+zvel0(i-1,j,k+1));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i-1,j,k,5+n);
                     }
@@ -381,10 +381,10 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         poisson_process_reservoir(mass,rhoYk,T,Vy,nspecies,area,k_B,dt,
                                               mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vx,Vz,engine);
                     }
-                    yflux(i,j,k,0) += (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
-                    yflux(i,j,k,4) += (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
+                    yflux(i,j,k,0) += (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*mass_cross/(dt*area); // update mass flux
+                    yflux(i,j,k,4) += (Real(1.0) + (Real(1.0)/( Real(4.0)*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        yflux(i,j,k,5+n) += (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
+                        yflux(i,j,k,5+n) += (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
 
                     if (do_1D) {
@@ -405,9 +405,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     ////////////////// to reservoir ////////////////////
 
                     T = prim0(i,j,k,4);
-                    Vx =  0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
-                    Vy =  -0.5*(yvel0(i,j,k)+yvel0(i,j+1,k));
-                    Vz =  0.5*(zvel0(i,j,k)+zvel0(i,j,k+1));
+                    Vx =  Real(0.5)*(xvel0(i,j,k)+xvel0(i+1,j,k));
+                    Vy =  -Real(0.5)*(yvel0(i,j,k)+yvel0(i,j+1,k));
+                    Vz =  Real(0.5)*(zvel0(i,j,k)+zvel0(i,j,k+1));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j,k,5+n);
                     }
@@ -519,10 +519,10 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         poisson_process_reservoir(mass,rhoYk,T,Vy,nspecies,area,k_B,dt,
                                               mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vx,Vz,engine);
                     }
-                    yflux(i,j,k,0) -= (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
-                    yflux(i,j,k,4) -= (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
+                    yflux(i,j,k,0) -= (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*mass_cross/(dt*area); // update mass flux
+                    yflux(i,j,k,4) -= (Real(1.0) + (Real(1.0)/( Real(4.0)*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        yflux(i,j,k,5+n) -= (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
+                        yflux(i,j,k,5+n) -= (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
 
                     if (do_1D) {
@@ -543,9 +543,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     ////////////////// to reservoir ////////////////////
 
                     T = prim0(i,j-1,k,4);
-                    Vx = 0.5*(xvel0(i,j-1,k)+xvel0(i+1,j-1,k));
-                    Vy = 0.5*(yvel0(i,j-1,k)+yvel0(i,j,k));
-                    Vz = 0.5*(zvel0(i,j-1,k)+zvel0(i,j-1,k+1));
+                    Vx = Real(0.5)*(xvel0(i,j-1,k)+xvel0(i+1,j-1,k));
+                    Vy = Real(0.5)*(yvel0(i,j-1,k)+yvel0(i,j,k));
+                    Vz = Real(0.5)*(zvel0(i,j-1,k)+zvel0(i,j-1,k+1));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j-1,k,5+n);
                     }
@@ -658,10 +658,10 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         poisson_process_reservoir(mass,rhoYk,T,Vz,nspecies,area,k_B,dt,
                                               mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vx,Vy,engine);
                     }
-                    zflux(i,j,k,0) += (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
-                    zflux(i,j,k,4) += (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
+                    zflux(i,j,k,0) += (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*mass_cross/(dt*area); // update mass flux
+                    zflux(i,j,k,4) += (Real(1.0) + (Real(1.0)/( Real(4.0)*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        zflux(i,j,k,5+n) += (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
+                        zflux(i,j,k,5+n) += (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
 
                     if (do_1D) {
@@ -682,9 +682,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     ////////////////// to reservoir ////////////////////
 
                     T = prim0(i,j,k,4);
-                    Vx =  0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
-                    Vy =  0.5*(yvel0(i,j,k)+yvel0(i,j+1,k));
-                    Vz =  -0.5*(zvel0(i,j,k)+zvel0(i,j,k+1));
+                    Vx =  Real(0.5)*(xvel0(i,j,k)+xvel0(i+1,j,k));
+                    Vy =  Real(0.5)*(yvel0(i,j,k)+yvel0(i,j+1,k));
+                    Vz =  -Real(0.5)*(zvel0(i,j,k)+zvel0(i,j,k+1));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j,k,5+n);
                     }
@@ -796,10 +796,10 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         poisson_process_reservoir(mass,rhoYk,T,Vz,nspecies,area,k_B,dt,
                                               mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vx,Vy,engine);
                     }
-                    zflux(i,j,k,0) -= (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
-                    zflux(i,j,k,4) -= (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
+                    zflux(i,j,k,0) -= (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*mass_cross/(dt*area); // update mass flux
+                    zflux(i,j,k,4) -= (Real(1.0) + (Real(1.0)/( Real(4.0)*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        zflux(i,j,k,5+n) -= (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
+                        zflux(i,j,k,5+n) -= (Real(1.0) - (Real(1.0)/(Real(12.0)*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
 
                     if (do_1D) {
@@ -820,9 +820,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     ////////////////// to reservoir ////////////////////
 
                     T = prim0(i,j,k-1,4);
-                    Vx = 0.5*(xvel0(i,j,k-1)+xvel0(i+1,j,k-1));
-                    Vy = 0.5*(yvel0(i,j,k-1)+yvel0(i,j+1,k-1));
-                    Vz = 0.5*(zvel0(i,j,k-1)+zvel0(i,j,k));
+                    Vx = Real(0.5)*(xvel0(i,j,k-1)+xvel0(i+1,j,k-1));
+                    Vy = Real(0.5)*(yvel0(i,j,k-1)+yvel0(i,j+1,k-1));
+                    Vz = Real(0.5)*(zvel0(i,j,k-1)+zvel0(i,j,k));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j,k-1,5+n);
                     }
@@ -932,7 +932,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                 if (b.ok()) {
                     amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        edgex_v(i,j,k) = 0.5*(xflux_res(i,j,k,1) + xflux_res(i,j-1,k,1));
+                        edgex_v(i,j,k) = Real(0.5)*(xflux_res(i,j,k,1) + xflux_res(i,j-1,k,1));
                     });
                 }
             }
@@ -954,7 +954,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                     if (b.ok()) {
                         amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
-                            edgex_w(i,j,k) = 0.5*(xflux_res(i,j,k,2) + xflux_res(i,j,k-1,2));
+                            edgex_w(i,j,k) = Real(0.5)*(xflux_res(i,j,k,2) + xflux_res(i,j,k-1,2));
                         });
                     }
                 }
@@ -1019,7 +1019,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                 if (b.ok()) {
                     amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        edgex_v(i,j,k) = 0.5*(xflux_res(i,j,k,1) + xflux_res(i,j-1,k,1));
+                        edgex_v(i,j,k) = Real(0.5)*(xflux_res(i,j,k,1) + xflux_res(i,j-1,k,1));
                     });
                 }
             }
@@ -1041,7 +1041,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                     if (b.ok()) {
                         amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
-                            edgex_w(i,j,k) = 0.5*(xflux_res(i,j,k,2) + xflux_res(i,j,k-1,2));
+                            edgex_w(i,j,k) = Real(0.5)*(xflux_res(i,j,k,2) + xflux_res(i,j,k-1,2));
                         });
                     }
                 }
@@ -1103,7 +1103,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                 if (b.ok()) {
                     amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        edgey_u(i,j,k) = 0.5*(yflux_res(i,j,k,1) + yflux_res(i-1,j,k,1));
+                        edgey_u(i,j,k) = Real(0.5)*(yflux_res(i,j,k,1) + yflux_res(i-1,j,k,1));
                     });
                 }
             }
@@ -1125,7 +1125,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                     if (b.ok()) {
                         amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
-                            edgey_w(i,j,k) = 0.5*(yflux_res(i,j,k,2) + yflux_res(i,j,k-1,2));
+                            edgey_w(i,j,k) = Real(0.5)*(yflux_res(i,j,k,2) + yflux_res(i,j,k-1,2));
                         });
                     }
                 }
@@ -1188,7 +1188,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                 if (b.ok()) {
                     amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        edgey_u(i,j,k) = 0.5*(yflux_res(i,j,k,1) + yflux_res(i-1,j,k,1));
+                        edgey_u(i,j,k) = Real(0.5)*(yflux_res(i,j,k,1) + yflux_res(i-1,j,k,1));
                     });
                 }
             }
@@ -1210,7 +1210,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                     if (b.ok()) {
                         amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
-                            edgey_w(i,j,k) = 0.5*(yflux_res(i,j,k,2) + yflux_res(i,j,k-1,2));
+                            edgey_w(i,j,k) = Real(0.5)*(yflux_res(i,j,k,2) + yflux_res(i,j,k-1,2));
                         });
                     }
                 }
@@ -1272,7 +1272,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                 if (b.ok()) {
                     amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        edgez_u(i,j,k) = 0.5*(zflux_res(i,j,k,1) + zflux_res(i-1,j,k,1));
+                        edgez_u(i,j,k) = Real(0.5)*(zflux_res(i,j,k,1) + zflux_res(i-1,j,k,1));
                     });
                 }
             }
@@ -1294,7 +1294,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                     if (b.ok()) {
                         amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
-                            edgez_v(i,j,k) = 0.5*(zflux_res(i,j,k,2) + zflux_res(i,j-1,k,2));
+                            edgez_v(i,j,k) = Real(0.5)*(zflux_res(i,j,k,2) + zflux_res(i,j-1,k,2));
                         });
                     }
                 }
@@ -1356,7 +1356,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                 if (b.ok()) {
                     amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        edgez_u(i,j,k) = 0.5*(zflux_res(i,j,k,1) + zflux_res(i-1,j,k,1));
+                        edgez_u(i,j,k) = Real(0.5)*(zflux_res(i,j,k,1) + zflux_res(i-1,j,k,1));
                     });
                 }
             }
@@ -1378,7 +1378,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                     if (b.ok()) {
                         amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
-                            edgez_v(i,j,k) = 0.5*(zflux_res(i,j,k,2) + zflux_res(i,j-1,k,2));
+                            edgez_v(i,j,k) = Real(0.5)*(zflux_res(i,j,k,2) + zflux_res(i,j-1,k,2));
                         });
                     }
                 }

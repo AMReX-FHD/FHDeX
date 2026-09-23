@@ -96,19 +96,19 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
 
             prim(i,j,k,0) = cons(i,j,k,0);
 
-            prim(i,j,k,1) = 0.5*(velx(i,j,k) + velx(i+1,j,k));
-            prim(i,j,k,2) = 0.5*(vely(i,j,k) + vely(i,j+1,k));
-            prim(i,j,k,3) = 0.5*(velz(i,j,k) + velz(i,j,k+1));
+            prim(i,j,k,1) = Real(0.5)*(velx(i,j,k) + velx(i+1,j,k));
+            prim(i,j,k,2) = Real(0.5)*(vely(i,j,k) + vely(i,j+1,k));
+            prim(i,j,k,3) = Real(0.5)*(velz(i,j,k) + velz(i,j,k+1));
 
-            cons(i,j,k,1) = 0.5*(momx(i,j,k) + momx(i+1,j,k));
-            cons(i,j,k,2) = 0.5*(momy(i,j,k) + momy(i,j+1,k));
-            cons(i,j,k,3) = 0.5*(momz(i,j,k) + momz(i,j,k+1));
+            cons(i,j,k,1) = Real(0.5)*(momx(i,j,k) + momx(i+1,j,k));
+            cons(i,j,k,2) = Real(0.5)*(momy(i,j,k) + momy(i,j+1,k));
+            cons(i,j,k,3) = Real(0.5)*(momz(i,j,k) + momz(i,j,k+1));
 
             Real kinenergy = 0.;
             kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
             kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
             kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-            kinenergy *= (0.125/cons(i,j,k,0));
+            kinenergy *= (Real(0.125)/cons(i,j,k,0));
 
             // Do we need to calculate staggered velocities here as well? (from rho averaged to all faces) -- Ishan
 

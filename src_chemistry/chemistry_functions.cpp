@@ -158,13 +158,13 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
             {
                 // rate constants
                 avg_react_rate[m] = rate_const[m];
-                avg_react_rate[m] *= exp(-alpha_param[m]/Runiv*(1/T-1/T0));
-                avg_react_rate[m] *= pow(T/T0,beta_param[m]);
+                avg_react_rate[m] *= std::exp(-alpha_param[m]/Runiv*(1/T-1/T0));
+                avg_react_rate[m] *= std::pow(T/T0,beta_param[m]);
 
                 for (int n=0; n<nspecies; n++)
                 {
                     // rate in terms of molar concentrations
-                    avg_react_rate[m] *= pow(ck[n],stoich_coeffs_R(m,n));
+                    avg_react_rate[m] *= std::pow(ck[n],Real(stoich_coeffs_R(m,n)));
                 }
             }
 
@@ -175,7 +175,7 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
             {
                 avg_react_rate[m] = amrex::max(Real(0.0),avg_react_rate[m]);
 
-                amrex::Real W = ranchem_arr(i,j,k,m)/sqrt(dt*dV);
+                amrex::Real W = ranchem_arr(i,j,k,m)/std::sqrt(dt*dV);
 
                 for (int n=0; n<nspecies; n++)
                 {
@@ -183,7 +183,7 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
                     sourceArr[n] += molmass[n]*stoich_coeffs_PR(m,n)*avg_react_rate[m];
 
                     // fluctuation
-                    if (reaction_type==1) sourceArr[n] += molmass[n]*stoich_coeffs_PR(m,n)*sqrt(avg_react_rate[m]/Navo)*W;
+                    if (reaction_type==1) sourceArr[n] += molmass[n]*stoich_coeffs_PR(m,n)*std::sqrt(avg_react_rate[m]/Navo)*W;
                 }
             }
 
@@ -254,7 +254,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                     if (rTotal==Real(0.)) break;
 
                     Real u1 = amrex::Random(engine);
-                    Real tau = -log(1-u1)/rTotal;
+                    Real tau = -std::log(1-u1)/rTotal;
                     t_local += tau; // update t_local
 
                     if (t_local > dt) break;
@@ -396,7 +396,7 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
         for (int r=0; r<nreaction; ++r) {
             reaction_rates[r] = rate_multiplier*rate_const[r];
             for (int n=0; n<nspecies; ++n) {
-                reaction_rates[r] *= std::pow(n_nonneg[n],stoich_coeffs_R(r,n));
+                reaction_rates[r] *= std::pow(n_nonneg[n],Real(stoich_coeffs_R(r,n)));
             }
         }
 
@@ -426,7 +426,7 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
                     }
 
                 } else {
-                    reaction_rates[r] *= std::pow(n_nonneg[n],stoich_coeffs_R(r,n));
+                    reaction_rates[r] *= std::pow(n_nonneg[n],Real(stoich_coeffs_R(r,n)));
                 }
             } // end loop over species
         } // end loop over reaction
