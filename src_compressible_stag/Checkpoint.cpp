@@ -351,7 +351,7 @@ void ReadCheckPoint(int& step,
             for (int i=0; i<n_cells[0]*ncross; i++) {
                 is >> val;
                 GotoNextLine(is);
-                spatialCrossVec[i] = (reset_stats == 1) ? 0.0 : val;
+                spatialCrossVec[i] = (reset_stats == 1) ? Real(0.0) : val;
             }
         }
 

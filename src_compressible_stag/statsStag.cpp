@@ -209,8 +209,8 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
 {
     BL_PROFILE_VAR("EvaluateStatsMeans()",EvaluateStatsMeans);
 
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real stepsminusone = steps - Real(1.);
+    Real stepsinv = Real(1.)/steps;
 
     // Loop over boxes
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -276,9 +276,9 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             GpuArray<Real,MAX_SPECIES> fracvec;
-            cumeans(i,j,k,1) = 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // jxmeans on CC
-            cumeans(i,j,k,2) = 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // jymeans on CC
-            cumeans(i,j,k,3) = 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // jzmeans on CC
+            cumeans(i,j,k,1) = Real(0.5)*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // jxmeans on CC
+            cumeans(i,j,k,2) = Real(0.5)*(momymeans(i,j,k) + momymeans(i,j+1,k)); // jymeans on CC
+            cumeans(i,j,k,3) = Real(0.5)*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // jzmeans on CC
 
             cumeans(i,j,k,4) = (cumeans(i,j,k,4)*stepsminusone + cu(i,j,k,4))*stepsinv; //rhoEmeans
 
@@ -291,10 +291,10 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                 primmeans(i,j,k,6+nspecies+l) = (primmeans(i,j,k,6+nspecies+l)*stepsminusone + prim(i,j,k,6+nspecies+l))*stepsinv; // Xkmeans
             }
 
-            Real densitymeaninv = 1.0/cumeans(i,j,k,0);
-            primmeans(i,j,k,1) = densitymeaninv*0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // velxmeans on CC
-            primmeans(i,j,k,2) = densitymeaninv*0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // velymeans on CC
-            primmeans(i,j,k,3) = densitymeaninv*0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // velzmeans on CC
+            Real densitymeaninv = Real(1.0)/cumeans(i,j,k,0);
+            primmeans(i,j,k,1) = densitymeaninv*Real(0.5)*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // velxmeans on CC
+            primmeans(i,j,k,2) = densitymeaninv*Real(0.5)*(momymeans(i,j,k) + momymeans(i,j+1,k)); // velymeans on CC
+            primmeans(i,j,k,3) = densitymeaninv*Real(0.5)*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // velzmeans on CC
 
             // mean COM velocity
             primmeans(i,j,k,nprimvars+0) = (primmeans(i,j,k,nprimvars+0)*stepsminusone + prim(i,j,k,1))*stepsinv;
@@ -307,7 +307,7 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
             kinenergy += (momxmeans(i+1,j,k) + momxmeans(i,j,k))*(momxmeans(i+1,j,k) + momxmeans(i,j,k));
             kinenergy += (momymeans(i,j+1,k) + momymeans(i,j,k))*(momymeans(i,j+1,k) + momymeans(i,j,k));
             kinenergy += (momzmeans(i,j,k+1) + momzmeans(i,j,k))*(momzmeans(i,j,k+1) + momzmeans(i,j,k));
-            kinenergy *= (0.125/cumeans(i,j,k,0));
+            kinenergy *= (Real(0.125)/cumeans(i,j,k,0));
 
             Real intenergy = (cumeans(i,j,k,4)-kinenergy)/cumeans(i,j,k,0);
 
@@ -344,17 +344,17 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            Real densitymeaninv = 2.0/(cumeans(i-1,j,k,0)+cumeans(i,j,k,0));
+            Real densitymeaninv = Real(2.0)/(cumeans(i-1,j,k,0)+cumeans(i,j,k,0));
             velxmeans(i,j,k) = momxmeans(i,j,k)*densitymeaninv;
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            Real densitymeaninv = 2.0/(cumeans(i,j-1,k,0)+cumeans(i,j,k,0));
+            Real densitymeaninv = Real(2.0)/(cumeans(i,j-1,k,0)+cumeans(i,j,k,0));
             velymeans(i,j,k) = momymeans(i,j,k)*densitymeaninv;
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            Real densitymeaninv = 2.0/(cumeans(i,j,k-1,0)+cumeans(i,j,k,0));
+            Real densitymeaninv = Real(2.0)/(cumeans(i,j,k-1,0)+cumeans(i,j,k,0));
             velzmeans(i,j,k) = momzmeans(i,j,k)*densitymeaninv;
         });
 
@@ -381,8 +381,8 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
 {
     BL_PROFILE_VAR("EvaluateVarsCoVarsMom3()",EvaluateVarsCoVarsMom3);
 
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real stepsminusone = steps - Real(1.);
+    Real stepsinv = Real(1.)/steps;
 
     // Loop over boxes
     for ( MFIter mfi(cons,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -423,8 +423,8 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
             Real deljx = momx(i,j,k) - momxmeans(i,j,k);
             momxvars(i,j,k) = (momxvars(i,j,k)*stepsminusone + deljx*deljx)*stepsinv; // <jx jx>
 
-            Real densitymeaninv = 2.0/(cumeans(i-1,j,k,0)+cumeans(i,j,k,0));
-            Real delrho = 0.5*(cu(i-1,j,k,0) + cu(i,j,k,0)) - 0.5*(cumeans(i-1,j,k,0) + cumeans(i,j,k,0));
+            Real densitymeaninv = Real(2.0)/(cumeans(i-1,j,k,0)+cumeans(i,j,k,0));
+            Real delrho = Real(0.5)*(cu(i-1,j,k,0) + cu(i,j,k,0)) - Real(0.5)*(cumeans(i-1,j,k,0) + cumeans(i,j,k,0));
             Real delvelx = (deljx - velxmeans(i,j,k)*delrho)*densitymeaninv;
             velxvars(i,j,k) = (velxvars(i,j,k)*stepsminusone + delvelx*delvelx)*stepsinv; // <vx vx>
         },
@@ -433,8 +433,8 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
             Real deljy = momy(i,j,k) - momymeans(i,j,k);
             momyvars(i,j,k) = (momyvars(i,j,k)*stepsminusone + deljy*deljy)*stepsinv; // <jy jy>
 
-            Real densitymeaninv = 2.0/(cumeans(i,j-1,k,0)+cumeans(i,j,k,0));
-            Real delrho = 0.5*(cu(i,j-1,k,0) + cu(i,j,k,0)) - 0.5*(cumeans(i,j-1,k,0) + cumeans(i,j,k,0));
+            Real densitymeaninv = Real(2.0)/(cumeans(i,j-1,k,0)+cumeans(i,j,k,0));
+            Real delrho = Real(0.5)*(cu(i,j-1,k,0) + cu(i,j,k,0)) - Real(0.5)*(cumeans(i,j-1,k,0) + cumeans(i,j,k,0));
             Real delvely = (deljy - velymeans(i,j,k)*delrho)*densitymeaninv;
             velyvars(i,j,k) = (velyvars(i,j,k)*stepsminusone + delvely*delvely)*stepsinv; // <vx vx>
         },
@@ -443,8 +443,8 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
             Real deljz = momz(i,j,k) - momzmeans(i,j,k);
             momzvars(i,j,k) = (momzvars(i,j,k)*stepsminusone + deljz*deljz)*stepsinv; // <jz jz>
 
-            Real densitymeaninv = 2.0/(cumeans(i,j,k-1,0)+cumeans(i,j,k,0));
-            Real delrho = 0.5*(cu(i,j,k-1,0) + cu(i,j,k,0)) - 0.5*(cumeans(i,j,k-1,0) + cumeans(i,j,k,0));
+            Real densitymeaninv = Real(2.0)/(cumeans(i,j,k-1,0)+cumeans(i,j,k,0));
+            Real delrho = Real(0.5)*(cu(i,j,k-1,0) + cu(i,j,k,0)) - Real(0.5)*(cumeans(i,j,k-1,0) + cumeans(i,j,k,0));
             Real delvelz = (deljz - velzmeans(i,j,k)*delrho)*densitymeaninv;
             velzvars(i,j,k) = (velzvars(i,j,k)*stepsminusone + delvelz*delvelz)*stepsinv; // <vz vz>
         });
@@ -511,23 +511,23 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
             // primitive variable variances (rho)
             primvars(i,j,k,0) = cuvars(i,j,k,0);
 
-            Real vx = 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
-            Real vy = 0.5*(velymeans(i,j,k) + velymeans(i,j+1,k));
-            Real vz = 0.5*(velzmeans(i,j,k) + velzmeans(i,j,k+1));
+            Real vx = Real(0.5)*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
+            Real vy = Real(0.5)*(velymeans(i,j,k) + velymeans(i,j+1,k));
+            Real vz = Real(0.5)*(velzmeans(i,j,k) + velzmeans(i,j,k+1));
             Real T = primmeans(i,j,k,4);
-            Real densitymeaninv = 1.0/cumeans(i,j,k,0);
+            Real densitymeaninv = Real(1.0)/cumeans(i,j,k,0);
 
             Real cv = 0.;
             for (int l=0; l<nspecies; ++l) {
                 cv = cv + hcv[l]*cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
             }
-            Real cvinv = 1.0/cv;
+            Real cvinv = Real(1.0)/cv;
 
-            Real qmean = cv*T-0.5*(vx*vx + vy*vy + vz*vz);
+            Real qmean = cv*T-Real(0.5)*(vx*vx + vy*vy + vz*vz);
 
-            Real deljx = 0.5*(momx(i,j,k) + momx(i+1,j,k)) - 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k));
-            Real deljy = 0.5*(momy(i,j,k) + momy(i,j+1,k)) - 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k));
-            Real deljz = 0.5*(momz(i,j,k) + momz(i,j,k+1)) - 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1));
+            Real deljx = Real(0.5)*(momx(i,j,k) + momx(i+1,j,k)) - Real(0.5)*(momxmeans(i,j,k) + momxmeans(i+1,j,k));
+            Real deljy = Real(0.5)*(momy(i,j,k) + momy(i,j+1,k)) - Real(0.5)*(momymeans(i,j,k) + momymeans(i,j+1,k));
+            Real deljz = Real(0.5)*(momz(i,j,k) + momz(i,j,k+1)) - Real(0.5)*(momzmeans(i,j,k) + momzmeans(i,j,k+1));
 
             cuvars(i,j,k,1) = (cuvars(i,j,k,1)*stepsminusone + deljx*deljx)*stepsinv; // <jx jx> on CC
             cuvars(i,j,k,2) = (cuvars(i,j,k,2)*stepsminusone + deljy*deljy)*stepsinv; // <jy jy>  on CC
@@ -653,15 +653,15 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
                     if (plot_mom4) m4(i,j,k,5+ns) = (m4(i,j,k,5+ns)*stepsminusone + delYk[ns]*delYk[ns]*delYk[ns]*delYk[ns])*stepsinv;
                 }
 
-                Real vx = 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
-                Real vy = 0.5*(velymeans(i,j,k) + velymeans(i,j+1,k));
-                Real vz = 0.5*(velzmeans(i,j,k) + velzmeans(i,j,k+1));
+                Real vx = Real(0.5)*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
+                Real vy = Real(0.5)*(velymeans(i,j,k) + velymeans(i,j+1,k));
+                Real vz = Real(0.5)*(velzmeans(i,j,k) + velzmeans(i,j,k+1));
                 Real T = primmeans(i,j,k,4);
-                Real densitymeaninv = 1.0/cumeans(i,j,k,0);
+                Real densitymeaninv = Real(1.0)/cumeans(i,j,k,0);
 
-                Real deljx = 0.5*(momx(i,j,k) + momx(i+1,j,k)) - 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k));
-                Real deljy = 0.5*(momy(i,j,k) + momy(i,j+1,k)) - 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k));
-                Real deljz = 0.5*(momz(i,j,k) + momz(i,j,k+1)) - 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1));
+                Real deljx = Real(0.5)*(momx(i,j,k) + momx(i+1,j,k)) - Real(0.5)*(momxmeans(i,j,k) + momxmeans(i+1,j,k));
+                Real deljy = Real(0.5)*(momy(i,j,k) + momy(i,j+1,k)) - Real(0.5)*(momymeans(i,j,k) + momymeans(i,j+1,k));
+                Real deljz = Real(0.5)*(momz(i,j,k) + momz(i,j,k+1)) - Real(0.5)*(momzmeans(i,j,k) + momzmeans(i,j,k+1));
 
                 Real delvelx = (deljx - vx*delrho)*densitymeaninv;
                 Real delvely = (deljy - vy*delrho)*densitymeaninv;
@@ -764,8 +764,8 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
 
     BL_PROFILE_VAR("EvaluateSpatialCorrelations3D()",EvaluateSpatialCorrelations3D);
 
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real stepsminusone = steps - Real(1.);
+    Real stepsinv = Real(1.)/steps;
 
     int nprims = nspecies + 4;
 
@@ -827,9 +827,9 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
     for (int l=0; l<nspecies; ++l) {
         cvcross = cvcross + hcv[l]*data_xcross[18+4*l+1]/data_xcross[1];
     }
-    Real cvinvcross = 1.0/cvcross;
+    Real cvinvcross = Real(1.0)/cvcross;
     Real qmeancross = cvcross*data_xcross[17] -
-                     0.5*(data_xcross[11]*data_xcross[11] + data_xcross[13]*data_xcross[13] + data_xcross[15]*data_xcross[15]);
+                     Real(0.5)*(data_xcross[11]*data_xcross[11] + data_xcross[13]*data_xcross[13] + data_xcross[15]*data_xcross[15]);
 
     // Get fluctuations of derived hydrodynamic quantities at the cross cell
     // delG = \vec{v}\cdot\vec{\deltaj}
@@ -873,9 +873,9 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
         for (int l=0; l<nspecies; ++l) {
             cv = cv + hcv[l]*cumeans_avg[5+l+nvars*i]/cumeans_avg[0+nvars*i];
         }
-        Real cvinv = 1.0/cv;
+        Real cvinv = Real(1.0)/cv;
         Real qmean = cv*primmeans_avg[3+nprims*i] -
-                         0.5*(primmeans_avg[0+nprims*i]*primmeans_avg[0+nprims*i] +
+                         Real(0.5)*(primmeans_avg[0+nprims*i]*primmeans_avg[0+nprims*i] +
                               primmeans_avg[1+nprims*i]*primmeans_avg[1+nprims*i] +
                               primmeans_avg[2+nprims*i]*primmeans_avg[2+nprims*i]);
 
@@ -919,22 +919,22 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
         spatialCross[i*ncross+20] = (cvinvcross/meanrhocross)*(spatialCross[i*ncross+16] - spatialCross[i*ncross+18] - qmeancross*spatialCross[i*ncross+0]);
 
         // <delu(x*)delrho> = (1/<rho(x*)>)*(<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*)delrho(x)>)
-        spatialCross[i*ncross+21] = (1.0/meanrhocross)*(spatialCross[i*ncross+5] - meanuxcross*spatialCross[i*ncross+0]);
+        spatialCross[i*ncross+21] = (Real(1.0)/meanrhocross)*(spatialCross[i*ncross+5] - meanuxcross*spatialCross[i*ncross+0]);
 
         // <delu(x*)del(rhoYkL)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkL)> - <u(x*)><delrho(x*)del(rhoYkL)>)
-        spatialCross[i*ncross+22] = (1.0/meanrhocross)*(spatialCross[i*ncross+6] - meanuxcross*spatialCross[i*ncross+8]);
+        spatialCross[i*ncross+22] = (Real(1.0)/meanrhocross)*(spatialCross[i*ncross+6] - meanuxcross*spatialCross[i*ncross+8]);
 
         // <delu(x*)del(rhoYkH)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkH)> - <u(x*)><delrho(x*)del(rhoYkH)>)
-        spatialCross[i*ncross+23] = (1.0/meanrhocross)*(spatialCross[i*ncross+7] - meanuxcross*spatialCross[i*ncross+9]);
+        spatialCross[i*ncross+23] = (Real(1.0)/meanrhocross)*(spatialCross[i*ncross+7] - meanuxcross*spatialCross[i*ncross+9]);
 
         // <delu(x*)del(YkL)> = (1/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkL) - <u(x*)><delrho(x*)del(rhoYkL)>
         //                      - <YkL(x)><deljx(x*)delrho(x)> + <u(x*)><YkL(x)><delrho(x*)delrho(x)>)
-        spatialCross[i*ncross+24] = (1.0/(meanrho*meanrhocross))*(spatialCross[i*ncross+6] - meanuxcross*spatialCross[i*ncross+8]
+        spatialCross[i*ncross+24] = (Real(1.0)/(meanrho*meanrhocross))*(spatialCross[i*ncross+6] - meanuxcross*spatialCross[i*ncross+8]
                                                                      - meanYk[0]*spatialCross[i*ncross+5] + meanuxcross*meanYk[0]*spatialCross[i*ncross+0]);
 
         // <delu(x*)del(YkH)> = (1/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkH) - <u(x*)><delrho(x*)del(rhoYkH)>
         //                      - <YkH(x)><deljx(x*)delrho(x)> + <u(x*)><YkH(x)><delrho(x*)delrho(x)>)
-        spatialCross[i*ncross+25] = (1.0/(meanrho*meanrhocross))*(spatialCross[i*ncross+7] - meanuxcross*spatialCross[i*ncross+9]
+        spatialCross[i*ncross+25] = (Real(1.0)/(meanrho*meanrhocross))*(spatialCross[i*ncross+7] - meanuxcross*spatialCross[i*ncross+9]
                                                                      - meanYk[nspecies-1]*spatialCross[i*ncross+5] + meanuxcross*meanYk[nspecies-1]*spatialCross[i*ncross+0]);
 
         // Direct -- <delT(x*)delT(x)>
@@ -981,13 +981,13 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
         // <delYkL(x*)delYkL(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkL(x*)delrhoYkL> - <YkL(x*)><delrho(x*)delrhoYkL(x)>
         //                                                 - <YkL(x)><delrhoYkL(x*)delrho(x) + <YkL(x*)><YkL(x)><delrho(x*)delrho(x)>)
         Real delrhoYkdelrhoYk = (spatialCross[i*ncross+37]*stepsminusone + delrhoYkcross[0]*delrhoYk[0])*stepsinv;
-        spatialCross[i*ncross+37+nspecies+1] = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross[i*ncross+8]
+        spatialCross[i*ncross+37+nspecies+1] = (Real(1.0)/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross[i*ncross+8]
                                                                     - meanYk[0]*spatialCross[i*ncross+10] + meanYkcross[0]*meanYk[0]*spatialCross[i*ncross+0]);
 
         // <delYkH(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
         //                                                 - <YkH(x)><delrhoYkH(x*)delrho(x) + <YkH(x*)><YkH(x)><delrho(x*)delrho(x)>)
         delrhoYkdelrhoYk = (spatialCross[i*ncross+37+nspecies-1]*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
-        spatialCross[i*ncross+37+nspecies+2] = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross[i*ncross+9]
+        spatialCross[i*ncross+37+nspecies+2] = (Real(1.0)/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross[i*ncross+9]
                                                     - meanYk[nspecies-1]*spatialCross[i*ncross+11] + meanYkcross[nspecies-1]*meanYk[nspecies-1]*spatialCross[i*ncross+0]);
     }
 }
@@ -995,8 +995,8 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
 //    OLDER VERSION
 //    BL_PROFILE_VAR("EvaluateSpatialCorrelations3D()",EvaluateSpatialCorrelations3D);
 //
-//    double stepsminusone = steps - 1.;
-//    double stepsinv = 1./steps;
+//    Real stepsminusone = steps - 1.;
+//    Real stepsinv = 1./steps;
 //
 //    // Get mean values
 //    Real meanrhocross = data_xcross[1];
@@ -1212,8 +1212,8 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
     BL_PROFILE_VAR("EvaluateSpatialCorrelations1D()",EvaluateSpatialCorrelations1D);
 
-    double stepsminusone = steps - 1.;
-    double stepsinv = 1./steps;
+    Real stepsminusone = steps - Real(1.);
+    Real stepsinv = Real(1.)/steps;
 
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
@@ -1277,12 +1277,12 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             for (int l=0; l<nspecies; ++l) {
                 cvcross = cvcross + hcv[l]*data_xcross[index + 18+4*l+1]/data_xcross[index + 1];
             }
-            Real cvinvcross = 1.0/cvcross;
+            Real cvinvcross = Real(1.0)/cvcross;
             Real vxmeancross = data_xcross[index + 11];
             Real vymeancross = data_xcross[index + 13];
             Real vzmeancross = data_xcross[index + 15];
             Real qmeancross = cvcross*data_xcross[index + 17] -
-                             0.5*(vxmeancross*vxmeancross + vymeancross*vymeancross + vzmeancross*vzmeancross);
+                             Real(0.5)*(vxmeancross*vxmeancross + vymeancross*vymeancross + vzmeancross*vzmeancross);
 
             // delG = \vec{v}\cdot\vec{\deltaj}
             Real delGcross = vxmeancross*deljxcross + vymeancross*deljycross + vzmeancross*deljzcross;
@@ -1305,23 +1305,23 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
             Real delrho = cu(i,j,k,0) - cumeans(i,j,k,0);
             Real delK   = cu(i,j,k,4) - cumeans(i,j,k,4);
-            Real deljx  = 0.5*(momx(i,j,k) + momx(i+1,j,k)) - 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k));
-            Real deljy  = 0.5*(momy(i,j,k) + momy(i,j+1,k)) - 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k));
-            Real deljz  = 0.5*(momz(i,j,k) + momz(i,j,k+1)) - 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1));
+            Real deljx  = Real(0.5)*(momx(i,j,k) + momx(i+1,j,k)) - Real(0.5)*(momxmeans(i,j,k) + momxmeans(i+1,j,k));
+            Real deljy  = Real(0.5)*(momy(i,j,k) + momy(i,j+1,k)) - Real(0.5)*(momymeans(i,j,k) + momymeans(i,j+1,k));
+            Real deljz  = Real(0.5)*(momz(i,j,k) + momz(i,j,k+1)) - Real(0.5)*(momzmeans(i,j,k) + momzmeans(i,j,k+1));
 
             Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
-            Real delvx = 0.5*(velx(i,j,k) + velx(i+1,j,k)) - 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
+            Real delvx = Real(0.5)*(velx(i,j,k) + velx(i+1,j,k)) - Real(0.5)*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
 
             Real cv = 0.;
             for (int l=0; l<nspecies; ++l) {
                 cv = cv + hcv[l]*cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
             }
-            Real cvinv = 1.0/cv;
-            Real vxmean = 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
-            Real vymean = 0.5*(velymeans(i,j,k) + velymeans(i,j+1,k));
-            Real vzmean = 0.5*(velzmeans(i,j,k) + velzmeans(i,j,k+1));
+            Real cvinv = Real(1.0)/cv;
+            Real vxmean = Real(0.5)*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
+            Real vymean = Real(0.5)*(velymeans(i,j,k) + velymeans(i,j+1,k));
+            Real vzmean = Real(0.5)*(velzmeans(i,j,k) + velzmeans(i,j,k+1));
 
-            Real qmean = cv*primmeans(i,j,k,4) - 0.5*(vxmean*vxmean + vymean*vymean + vzmean*vzmean);
+            Real qmean = cv*primmeans(i,j,k,4) - Real(0.5)*(vxmean*vxmean + vymean*vymean + vzmean*vzmean);
 
             // delG = \vec{v}\cdot\vec{\deltaj}
             Real delG = vxmean*deljx + vymean*deljy + vzmean*deljz;
@@ -1362,22 +1362,22 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             spatialCross(i,j,k,MFindex+20) = (cvinvcross/meanrhocross)*(spatialCross(i,j,k,MFindex+16) - spatialCross(i,j,k,MFindex+18) - qmeancross*spatialCross(i,j,k,MFindex+0));
 
             // <delu(x*)delrho> = (1/<rho(x*)>)*(<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*)delrho(x)>)
-            spatialCross(i,j,k,MFindex+21) = (1.0/meanrhocross)*(spatialCross(i,j,k,MFindex+5) - meanuxcross*spatialCross(i,j,k,MFindex+0));
+            spatialCross(i,j,k,MFindex+21) = (Real(1.0)/meanrhocross)*(spatialCross(i,j,k,MFindex+5) - meanuxcross*spatialCross(i,j,k,MFindex+0));
 
             // <delu(x*)del(rhoYkL)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkL)> - <u(x*)><delrho(x*)del(rhoYkL)>)
-            spatialCross(i,j,k,MFindex+22) = (1.0/meanrhocross)*(spatialCross(i,j,k,MFindex+6) - meanuxcross*spatialCross(i,j,k,MFindex+8));
+            spatialCross(i,j,k,MFindex+22) = (Real(1.0)/meanrhocross)*(spatialCross(i,j,k,MFindex+6) - meanuxcross*spatialCross(i,j,k,MFindex+8));
 
             // <delu(x*)del(rhoYkH)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkH)> - <u(x*)><delrho(x*)del(rhoYkH)>)
-            spatialCross(i,j,k,MFindex+23) = (1.0/meanrhocross)*(spatialCross(i,j,k,MFindex+7) - meanuxcross*spatialCross(i,j,k,MFindex+9));
+            spatialCross(i,j,k,MFindex+23) = (Real(1.0)/meanrhocross)*(spatialCross(i,j,k,MFindex+7) - meanuxcross*spatialCross(i,j,k,MFindex+9));
 
             // <delu(x*)del(YkL)> = (1/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkL) - <u(x*)><delrho(x*)del(rhoYkL)>
             //                      - <YkL(x)><deljx(x*)delrho(x)> + <u(x*)><YkL(x)><delrho(x*)delrho(x)>)
-            spatialCross(i,j,k,MFindex+24) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,MFindex+6) - meanuxcross*spatialCross(i,j,k,MFindex+8)
+            spatialCross(i,j,k,MFindex+24) = (Real(1.0)/(meanrho*meanrhocross))*(spatialCross(i,j,k,MFindex+6) - meanuxcross*spatialCross(i,j,k,MFindex+8)
                                                                      - meanYk[0]*spatialCross(i,j,k,MFindex+5) + meanuxcross*meanYk[0]*spatialCross(i,j,k,MFindex+0));
 
             // <delu(x*)del(YkH)> = (1/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkH) - <u(x*)><delrho(x*)del(rhoYkH)>
             //                      - <YkH(x)><deljx(x*)delrho(x)> + <u(x*)><YkH(x)><delrho(x*)delrho(x)>)
-            spatialCross(i,j,k,MFindex+25) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,MFindex+7) - meanuxcross*spatialCross(i,j,k,MFindex+9)
+            spatialCross(i,j,k,MFindex+25) = (Real(1.0)/(meanrho*meanrhocross))*(spatialCross(i,j,k,MFindex+7) - meanuxcross*spatialCross(i,j,k,MFindex+9)
                                                                      - meanYk[nspecies-1]*spatialCross(i,j,k,MFindex+5) +
                                                                      meanuxcross*meanYk[nspecies-1]*spatialCross(i,j,k,MFindex+0));
 
@@ -1425,13 +1425,13 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             // <delYkL(x*)delYkL(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkL(x*)delrhoYkL> - <YkL(x*)><delrho(x*)delrhoYkL(x)>
             //                                                 - <YkL(x)><delrhoYkL(x*)delrho(x) + <YkL(x*)><YkL(x)><delrho(x*)delrho(x)>)
             Real delrhoYkdelrhoYk = (spatialCross(i,j,k,MFindex+37)*stepsminusone + delrhoYkcross[0]*delrhoYk[0])*stepsinv;
-            spatialCross(i,j,k,MFindex+37+nspecies+1) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross(i,j,k,MFindex+8)
+            spatialCross(i,j,k,MFindex+37+nspecies+1) = (Real(1.0)/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross(i,j,k,MFindex+8)
                                                                     - meanYk[0]*spatialCross(i,j,k,MFindex+10) + meanYkcross[0]*meanYk[0]*spatialCross(i,j,k,MFindex+0));
 
             // <delYkH(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
             //                                                 - <YkH(x)><delrhoYkH(x*)delrho(x) + <YkH(x*)><YkH(x)><delrho(x*)delrho(x)>)
             delrhoYkdelrhoYk = (spatialCross(i,j,k,MFindex+37+nspecies-1)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
-            spatialCross(i,j,k,MFindex+37+nspecies+2) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross(i,j,k,MFindex+9)
+            spatialCross(i,j,k,MFindex+37+nspecies+2) = (Real(1.0)/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross(i,j,k,MFindex+9)
                                                     - meanYk[nspecies-1]*spatialCross(i,j,k,MFindex+11) + meanYkcross[nspecies-1]*meanYk[nspecies-1]*spatialCross(i,j,k,MFindex+0));
 
         });

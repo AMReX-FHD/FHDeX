@@ -48,10 +48,10 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
     GpuArray<Real,MAX_SPECIES> fac3;
     GpuArray<Real,MAX_SPECIES> fac5;
     for (int l=0;l<nspecies;++l) {
-        mass[l] = molmass[l]/(6.02e23);
-        fac5[l] = transmission[l]*std::pow(k_B,2.5)*6.0/sqrt(2*mass[l]*3.142);
-        fac3[l] = transmission[l]*std::pow(k_B,1.5)*2.0/sqrt(2*mass[l]*3.142);
-        fac1[l] = transmission[l]*sqrt(k_B)*1.0/sqrt(2*mass[l]*3.142);
+        mass[l] = molmass[l]/(Real(6.02e23));
+        fac5[l] = transmission[l]*std::pow(k_B,Real(2.5))*Real(6.0)/std::sqrt(2*mass[l]*Real(3.142));
+        fac3[l] = transmission[l]*std::pow(k_B,Real(1.5))*Real(2.0)/std::sqrt(2*mass[l]*Real(3.142));
+        fac1[l] = transmission[l]*std::sqrt(k_B)*Real(1.0)/std::sqrt(2*mass[l]*Real(3.142));
     }
 
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
@@ -72,8 +72,8 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
 
                 Real TL = prim(membrane_cell-1,j,k,4);
                 Real TR = prim(membrane_cell,j,k,4);
-                Real sqrtTL = sqrt(TL);
-                Real sqrtTR = sqrt(TR);
+                Real sqrtTL = std::sqrt(TL);
+                Real sqrtTR = std::sqrt(TR);
 
                 GpuArray<Real,MAX_SPECIES> rhoL;
                 GpuArray<Real,MAX_SPECIES> rhoR;
@@ -96,15 +96,15 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     delNvar[l] = fac1[l]*(sqrtTL*rhoL[l] + sqrtTR*rhoR[l]);
 
                     cross[l] = fac3[l]*(sqrtTL*TL*rhoL[l] + sqrtTR*TR*rhoR[l]);
-                    corr[l] = cross[l]/(sqrt(delUvar[l])*sqrt(delNvar[l]));
+                    corr[l] = cross[l]/(std::sqrt(delUvar[l])*std::sqrt(delNvar[l]));
 
-                    double rn1, rn2, rn3;
+                    Real rn1, rn2, rn3;
                     if (stoch_stress_form == 1) {
                         //rn1 = get_fhd_normal_func();
                         //rn2 = get_fhd_normal_func();
                         rn1 = amrex::RandomNormal(0.,1.);
                         rn2 = amrex::RandomNormal(0.,1.);
-                        rn3 = rn1*corr[l] + sqrt(1-(corr[l]*corr[l]))*rn2;
+                        rn3 = rn1*corr[l] + std::sqrt(1-(corr[l]*corr[l]))*rn2;
                     }
                     else {
                         rn1 = 0.;
@@ -112,9 +112,9 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                         rn3 = 0.;
                     }
 
-                    xflux(membrane_cell,j,k,5+l) = (dt*area*delNmean[l] + sqrt(dt*area*mass[l]*delNvar[l])*rn1)/vol;
+                    xflux(membrane_cell,j,k,5+l) = (dt*area*delNmean[l] + std::sqrt(dt*area*mass[l]*delNvar[l])*rn1)/vol;
                     xflux(membrane_cell,j,k,0) +=  xflux(membrane_cell,j,k,5+l);
-                    xflux(membrane_cell,j,k,4) +=  (dt*area*delUmean[l] + sqrt(dt*area*mass[l]*delUvar[l])*rn3)/(vol*mass[l]);
+                    xflux(membrane_cell,j,k,4) +=  (dt*area*delUmean[l] + std::sqrt(dt*area*mass[l]*delUvar[l])*rn3)/(vol*mass[l]);
 
                 }
 

@@ -17,18 +17,18 @@ void InitConsVarStag(MultiFab& cons,
         dx[d] = dx_host[d];
         reallo[d] = realDomain.lo(d);
         realhi[d] = realDomain.hi(d);
-        center[d] = ( realhi[d] + reallo[d] ) / 2.;
+        center[d] = ( realhi[d] + reallo[d] ) / Real(2.);
     }
 
     Real t_lo_y = t_lo[1];
     Real t_hi_y = t_hi[1];
 
     // local variables
-    Real mach = 0.3;
-    Real velscale = 30565.2*mach;
+    Real mach = Real(0.3);
+    Real velscale = Real(30565.2)*mach;
 
-    Real hy = ( prob_hi[1] - prob_lo[1] ) / 3.;
-    Real pi = acos(-1.);
+    Real hy = ( prob_hi[1] - prob_lo[1] ) / Real(3.);
+    Real pi = std::acos(-Real(1.));
     Real Lf = realhi[0] - reallo[0];
 
     // compute some values and overwrite based on prob_type
@@ -74,9 +74,9 @@ void InitConsVarStag(MultiFab& cons,
             GpuArray<Real,AMREX_SPACEDIM> pos;
             GpuArray<Real,AMREX_SPACEDIM> relpos;
 
-            AMREX_D_TERM(itVec[0] = (i+0.0)*dx[0]; ,
-                         itVec[1] = (j+0.5)*dx[1]; ,
-                         itVec[2] = (k+0.5)*dx[2]);
+            AMREX_D_TERM(itVec[0] = (i+Real(0.0))*dx[0]; ,
+                         itVec[1] = (j+Real(0.5))*dx[1]; ,
+                         itVec[2] = (k+Real(0.5))*dx[2]);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
@@ -85,7 +85,7 @@ void InitConsVarStag(MultiFab& cons,
 
             if (prob_type == 4) { // Taylor-Green Vortex
 
-                if (mach0 < 0.0) amrex::Abort("need an initial mach number via mach0 parameter in inputs file");
+                if (mach0 < Real(0.0)) amrex::Abort("need an initial mach number via mach0 parameter in inputs file");
                 Real x=itVec[0];
                 Real y=itVec[1];
                 Real z=itVec[2];
@@ -97,9 +97,9 @@ void InitConsVarStag(MultiFab& cons,
                 Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
                 Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
-                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real press = press_scale + (rho0*vel_scale*vel_scale/Real(16.0)) * (std::cos(Real(4.)*pi*x/Lx) + std::cos(Real(4.)*pi*y/Ly)) * (std::cos(Real(4.)*pi*z/Lz) + Real(2.0)); // cell pressure
                 Real rho = rho0; // GetDensity(press, rho, T_init[0], rhobar); // cell density
-                Real ux = vel_scale * sin(2.*pi*x/Lx) * cos(2.*pi*y/Ly) * cos(2.*pi*z/Lz); // x-face velocity
+                Real ux = vel_scale * std::sin(Real(2.)*pi*x/Lx) * std::cos(Real(2.)*pi*y/Ly) * std::cos(Real(2.)*pi*z/Lz); // x-face velocity
                 momx(i,j,k) = rho*ux; // x-face momentum
             }
 
@@ -111,9 +111,9 @@ void InitConsVarStag(MultiFab& cons,
             GpuArray<Real,AMREX_SPACEDIM> pos;
             GpuArray<Real,AMREX_SPACEDIM> relpos;
 
-            AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
-                         itVec[1] = (j+0.0)*dx[1]; ,
-                         itVec[2] = (k+0.5)*dx[2]);
+            AMREX_D_TERM(itVec[0] = (i+Real(0.5))*dx[0]; ,
+                         itVec[1] = (j+Real(0.0))*dx[1]; ,
+                         itVec[2] = (k+Real(0.5))*dx[2]);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
@@ -133,9 +133,9 @@ void InitConsVarStag(MultiFab& cons,
                 Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
                 Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
-                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real press = press_scale + (rho0*vel_scale*vel_scale/Real(16.0)) * (std::cos(Real(4.)*pi*x/Lx) + std::cos(Real(4.)*pi*y/Ly)) * (std::cos(Real(4.)*pi*z/Lz) + Real(2.0)); // cell pressure
                 Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
-                Real uy = -vel_scale * cos(2.*pi*x/Lx) * sin(2.*pi*y/Ly) * cos(2.*pi*z/Lz); // y-face velocity
+                Real uy = -vel_scale * std::cos(Real(2.)*pi*x/Lx) * std::sin(Real(2.)*pi*y/Ly) * std::cos(Real(2.)*pi*z/Lz); // y-face velocity
                 momy(i,j,k) = rho*uy; // y-face momentum
             }
 
@@ -147,9 +147,9 @@ void InitConsVarStag(MultiFab& cons,
             GpuArray<Real,AMREX_SPACEDIM> pos;
             GpuArray<Real,AMREX_SPACEDIM> relpos;
 
-            AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
-                         itVec[1] = (j+0.5)*dx[1]; ,
-                         itVec[2] = (k+0.0)*dx[2]);
+            AMREX_D_TERM(itVec[0] = (i+Real(0.5))*dx[0]; ,
+                         itVec[1] = (j+Real(0.5))*dx[1]; ,
+                         itVec[2] = (k+Real(0.0))*dx[2]);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
@@ -169,7 +169,7 @@ void InitConsVarStag(MultiFab& cons,
                 Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
                 Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
-                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real press = press_scale + (rho0*vel_scale*vel_scale/Real(16.0)) * (std::cos(Real(4.)*pi*x/Lx) + std::cos(Real(4.)*pi*y/Ly)) * (std::cos(Real(4.)*pi*z/Lz) + Real(2.0)); // cell pressure
                 Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
                 Real uz = 0.0; // z-face velocity
                 momz(i,j,k) = rho*uz; // z-face momentum
@@ -187,9 +187,9 @@ void InitConsVarStag(MultiFab& cons,
             GpuArray<Real,MAX_SPECIES> massvec;
             GpuArray<Real,MAX_SPECIES> Yk;
 
-            AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
-                         itVec[1] = (j+0.5)*dx[1]; ,
-                         itVec[2] = (k+0.5)*dx[2]);
+            AMREX_D_TERM(itVec[0] = (i+Real(0.5))*dx[0]; ,
+                         itVec[1] = (j+Real(0.5))*dx[1]; ,
+                         itVec[2] = (k+Real(0.5))*dx[2]);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
@@ -200,16 +200,16 @@ void InitConsVarStag(MultiFab& cons,
 
             if (prob_type == 2) { // Rayleigh-Taylor
 
-                if (relpos[2] >= 0.) {
-                    massvec[0] = 0.4;
-                    massvec[1] = 0.4;
-                    massvec[2] = 0.1;
-                    massvec[3] = 0.1;
+                if (relpos[2] >= Real(0.)) {
+                    massvec[0] = Real(0.4);
+                    massvec[1] = Real(0.4);
+                    massvec[2] = Real(0.1);
+                    massvec[3] = Real(0.1);
                 } else {
-                    massvec[0] = 0.1;
-                    massvec[1] = 0.1;
-                    massvec[2] = 0.4;
-                    massvec[3] = 0.4;
+                    massvec[0] = Real(0.1);
+                    massvec[1] = Real(0.1);
+                    massvec[2] = Real(0.4);
+                    massvec[3] = Real(0.4);
                 }
 
                 Real pamb;
@@ -220,14 +220,14 @@ void InitConsVarStag(MultiFab& cons,
                 for (int l=0; l<nspecies; ++l) {
                     molmix = molmix + massvec[l]/molmass[l];
                 }
-                molmix = 1.0/molmix;
+                molmix = Real(1.0)/molmix;
                 Real rgasmix = Runiv/molmix;
                 Real alpha = grav[2]/(rgasmix*T_init[0]);
 
                 // rho = exponential in z-dir to init @ hydrostatic eqm.
                 // must satisfy system: dP/dz = -rho*g & P = rhogasmix*rho*T
                 // Assumes temp=const
-                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
+                cu(i,j,k,0) = pamb*std::exp(alpha*pos[2])/(rgasmix*T_init[0]);
 
                 for (int l=0; l<nspecies; ++l) {
                     cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
@@ -236,7 +236,7 @@ void InitConsVarStag(MultiFab& cons,
                 Real intEnergy;
                 GetEnergy(intEnergy, massvec, T_init[0]);
 
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
                                                            cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 3) { // diffusion barrier
@@ -249,7 +249,7 @@ void InitConsVarStag(MultiFab& cons,
 
                 Real intEnergy;
                 GetEnergy(intEnergy, massvec, T_init[0]);
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
                                                            cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
@@ -265,7 +265,7 @@ void InitConsVarStag(MultiFab& cons,
                 Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
                 Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
-                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real press = press_scale + (rho0*vel_scale*vel_scale/Real(16.0)) * (std::cos(Real(4.)*pi*x/Lx) + std::cos(Real(4.)*pi*y/Ly)) * (std::cos(Real(4.)*pi*z/Lz) + Real(2.0)); // cell pressure
                 Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
 
                 cu(i,j,k,0) = rho;
@@ -273,10 +273,10 @@ void InitConsVarStag(MultiFab& cons,
                 Real intEnergy;
                 GetEnergy(intEnergy, rhobar, T_init[0]);
 
-                cu(i,j,k,1) = 0.5*(momx(i+1,j,k) + momx(i,j,k));
-                cu(i,j,k,2) = 0.5*(momy(i,j+1,k) + momy(i,j,k));
-                cu(i,j,k,3) = 0.5*(momz(i,j,k+1) + momz(i,j,k));
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                cu(i,j,k,1) = Real(0.5)*(momx(i+1,j,k) + momx(i,j,k));
+                cu(i,j,k,2) = Real(0.5)*(momy(i,j+1,k) + momy(i,j,k));
+                cu(i,j,k,3) = Real(0.5)*(momz(i,j,k+1) + momz(i,j,k));
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
 
@@ -317,7 +317,7 @@ void InitConsVarStag(MultiFab& cons,
                     for (int l=0;l<nspecies;l++) {
                         Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
                     }
-                    cu(i,j,k,0) = rho0 + 0.1*rho0*sin(2.*pi*y/Ly);
+                    cu(i,j,k,0) = rho0 + Real(0.1)*rho0*std::sin(Real(2.)*pi*y/Ly);
                     for (int l=0;l<nspecies;l++) {
                         cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
                     }
@@ -333,7 +333,7 @@ void InitConsVarStag(MultiFab& cons,
                    GetPressureGas(pressure,massvec,rho0,T_init[0]);
 
                    Real temperature;
-                   temperature = T_init[0] + 0.1*T_init[0]*sin(2.*pi*y/Ly);
+                   temperature = T_init[0] + Real(0.1)*T_init[0]*std::sin(Real(2.)*pi*y/Ly);
 
                    Real density;
                    GetDensity(pressure,density,temperature,massvec);
@@ -364,8 +364,8 @@ void InitConsVarStag(MultiFab& cons,
                     Real pressure;
                     GetPressureGas(pressure,massvec,rho0,T_init[0]);
 
-                    if (relpos[0] > 0.0) {
-                        Real pressure_new = 2.0*pressure;
+                    if (relpos[0] > Real(0.0)) {
+                        Real pressure_new = Real(2.0)*pressure;
                         Real temperature;
                         temperature = T_init[0];
 
@@ -408,7 +408,7 @@ void InitConsVarStag(MultiFab& cons,
                         GetPressureGas(pamb,massvec,rho0,T_init[0]);
 
                         Real density;
-                        GetDensity(pamb*1.5,density,T_init[0],massvec);
+                        GetDensity(pamb*Real(1.5),density,T_init[0],massvec);
                         cu(i,j,k,0) = density;
                         for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
 
@@ -425,8 +425,8 @@ void InitConsVarStag(MultiFab& cons,
                         Real pamb;
                         GetPressureGas(pamb,massvec,rho0,T_init[0]);
 
-                        massvec[0] = 0.4;
-                        massvec[1] = 0.6;
+                        massvec[0] = Real(0.4);
+                        massvec[1] = Real(0.6);
                         Real density;
                         GetDensity(pamb,density,T_init[0],massvec);
                         cu(i,j,k,0) = density;
@@ -449,10 +449,10 @@ void InitConsVarStag(MultiFab& cons,
                 Real rhoYk0B = rhobar[0]*rho0;
                 Real rhoYk1B = rhobar[1]*rho0;
 
-                if (relpos[2] < 0.0) { // bottom half
+                if (relpos[2] < Real(0.0)) { // bottom half
 
-                    cu(i,j,k,5+0) = rhoYk0B*exp(molmass[0]*grav[2]*pos[2]/Runiv/T_init[0]);
-                    cu(i,j,k,5+1) = rhoYk1B*exp(molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]);
+                    cu(i,j,k,5+0) = rhoYk0B*std::exp(molmass[0]*grav[2]*pos[2]/Runiv/T_init[0]);
+                    cu(i,j,k,5+1) = rhoYk1B*std::exp(molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]);
                     cu(i,j,k,0) = cu(i,j,k,5+0) + cu(i,j,k,5+1);
 
                     massvec[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
@@ -460,7 +460,7 @@ void InitConsVarStag(MultiFab& cons,
 
                     Real intEnergy;
                     GetEnergy(intEnergy, massvec, T_init[0]);
-                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                                cu(i,j,k,2)*cu(i,j,k,2) +
                                                                cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
 
@@ -470,8 +470,8 @@ void InitConsVarStag(MultiFab& cons,
 
                     Real Lz = realhi[2] - reallo[2];
 
-                    cu(i,j,k,5+0) = rhoYk1B*(molmass[0]/molmass[1])*exp( (molmass[0]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[1]-molmass[0])*Lz*grav[2]/2.0/Runiv/T_init[0]) );
-                    cu(i,j,k,5+1) = rhoYk0B*(molmass[1]/molmass[0])*exp( (molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[0]-molmass[1])*Lz*grav[2]/2.0/Runiv/T_init[0]) );
+                    cu(i,j,k,5+0) = rhoYk1B*(molmass[0]/molmass[1])*std::exp( (molmass[0]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[1]-molmass[0])*Lz*grav[2]/Real(2.0)/Runiv/T_init[0]) );
+                    cu(i,j,k,5+1) = rhoYk0B*(molmass[1]/molmass[0])*std::exp( (molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[0]-molmass[1])*Lz*grav[2]/Real(2.0)/Runiv/T_init[0]) );
                     cu(i,j,k,0) = cu(i,j,k,5+0) + cu(i,j,k,5+1);
 
                     massvec[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
@@ -479,7 +479,7 @@ void InitConsVarStag(MultiFab& cons,
 
                     Real intEnergy;
                     GetEnergy(intEnergy, massvec, T_init[0]);
-                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                                cu(i,j,k,2)*cu(i,j,k,2) +
                                                                cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
 
@@ -499,24 +499,24 @@ void InitConsVarStag(MultiFab& cons,
                    molmixB = molmixB + bc_Yk_z_lo[l]/molmass[l];
                    molmixT = molmixT + bc_Yk_z_hi[l]/molmass[l];
                }
-               molmixB = 1.0/molmixB;
-               molmixT = 1.0/molmixT;
+               molmixB = Real(1.0)/molmixB;
+               molmixT = Real(1.0)/molmixT;
                Real rgasmixB = Runiv/molmixB;
                Real rgasmixT = Runiv/molmixT;
 
                Real Lz = realhi[2] - reallo[2];
-               Real Lz2 = Lz/2.0;
+               Real Lz2 = Lz/Real(2.0);
 
                // To set p = pamb at the top: solve for p_int, such that: pamb = p_int*exp(grav*Lz/2.0/rgasmixT/T)
                // This comes from the ODE: dp/dz = p*g/(rgas*T)
                // p_int is the interface pressure
                // Also solve for p_bot, such that p_int = p_bot*exp(grav*Lz/2.0/rgasmixB/T)
-               Real p_int = pamb*exp(-1.0*grav[2]*Lz2/rgasmixT/T_init[0]);
+               Real p_int = pamb*std::exp(-Real(1.0)*grav[2]*Lz2/rgasmixT/T_init[0]);
 
-               Real p_bot = p_int*exp(-1.0*grav[2]*Lz2/rgasmixB/T_init[0]);
+               Real p_bot = p_int*std::exp(-Real(1.0)*grav[2]*Lz2/rgasmixB/T_init[0]);
 
-               if (relpos[2] >= 0.0) { // top half
-                   Real press = p_int*exp(grav[2]*(pos[2]-Lz2)/rgasmixT/T_init[0]);
+               if (relpos[2] >= Real(0.0)) { // top half
+                   Real press = p_int*std::exp(grav[2]*(pos[2]-Lz2)/rgasmixT/T_init[0]);
                    Real density;
                    GetDensity(press,density,T_init[0],bc_Yk_z_hi);
                    cu(i,j,k,0) = density;
@@ -525,13 +525,13 @@ void InitConsVarStag(MultiFab& cons,
                    }
                    Real intEnergy;
                    GetEnergy(intEnergy, bc_Yk_z_hi, T_init[0]);
-                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
                }
 
                else { // bottom half
-                   Real press = p_bot*exp(grav[2]*pos[2]/rgasmixB/T_init[0]);
+                   Real press = p_bot*std::exp(grav[2]*pos[2]/rgasmixB/T_init[0]);
                    Real density;
                    GetDensity(press,density,T_init[0],bc_Yk_z_lo);
                    cu(i,j,k,0) = density;
@@ -540,7 +540,7 @@ void InitConsVarStag(MultiFab& cons,
                    }
                    Real intEnergy;
                    GetEnergy(intEnergy, bc_Yk_z_lo, T_init[0]);
-                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
                }
@@ -559,20 +559,20 @@ void InitConsVarStag(MultiFab& cons,
                    molmixB = molmixB + bc_Yk_z_lo[l]/molmass[l];
                    molmixT = molmixT + bc_Yk_z_hi[l]/molmass[l];
                }
-               molmixB = 1.0/molmixB;
-               molmixT = 1.0/molmixT;
+               molmixB = Real(1.0)/molmixB;
+               molmixT = Real(1.0)/molmixT;
                //Real rgasmixB = Runiv/molmixB;
                //Real rgasmixT = Runiv/molmixT;
 
                Real Lz = realhi[2] - reallo[2];
-               Real Lz2 = Lz/2.0;
+               Real Lz2 = Lz/Real(2.0);
 
                // solve dp/dz = rho*g for a constant rho_top and rho_bottom
                // given p = pamb at the top, get interface p_int and bottom p_bot
                Real p_int = pamb - rho_hi[2]*grav[2]*Lz2;
                Real p_bot = pamb - (rho_lo[2] + rho_hi[2])*grav[2]*Lz2;
 
-               if (relpos[2] >= 0.0) { // top half
+               if (relpos[2] >= Real(0.0)) { // top half
                    Real press = p_int + rho_hi[2]*grav[2]*(pos[2]-Lz2);
                    cu(i,j,k,0) = rho_hi[2];
                    for (int l=0;l<nspecies;l++) {
@@ -581,7 +581,7 @@ void InitConsVarStag(MultiFab& cons,
                    Real temp = press/(rho_hi[2]*(Runiv/molmixT));
                    Real intEnergy;
                    GetEnergy(intEnergy, bc_Yk_z_hi, temp);
-                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
                }
@@ -594,7 +594,7 @@ void InitConsVarStag(MultiFab& cons,
                    Real temp = press/(rho_lo[2]*(Runiv/molmixB));
                    Real intEnergy;
                    GetEnergy(intEnergy, bc_Yk_z_lo, temp);
-                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                               cu(i,j,k,2)*cu(i,j,k,2) +
                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
                }
@@ -630,8 +630,8 @@ void InitConsVarStag(MultiFab& cons,
                GetEnergy(intEnergy, massvec, T_init[0]);
 
                // Set checkerboarded density -- will automatically set checkerboarded pressure for same T, Y
-               Real rhomin = rho0*0.5;
-               Real rhomax = rho0*1.5;
+               Real rhomin = rho0*Real(0.5);
+               Real rhomax = rho0*Real(1.5);
 
                if ((i+j+k) % 2 == 0) {
                    cu(i,j,k,0) = rhomin;
@@ -734,30 +734,30 @@ amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab
 
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            Real temp = 0.5*(prim(i-1,j,k,4) + prim(i,j,k,4));
+            Real temp = Real(0.5)*(prim(i-1,j,k,4) + prim(i,j,k,4));
             GpuArray<Real,MAX_SPECIES> Yk;
             for (int ns=0; ns<nspecies; ++ns) {
-                Yk[ns] = 0.5*(prim(i-1,j,k,6+ns) + prim(i,j,k,6+ns));
+                Yk[ns] = Real(0.5)*(prim(i-1,j,k,6+ns) + prim(i,j,k,6+ns));
             }
             Real sound_speed;
             GetSoundSpeed(sound_speed,Yk,temp);
             cflx(i,j,k) = (sound_speed + std::abs(velx(i,j,k)))*dt/dx[0];
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            Real temp = 0.5*(prim(i,j-1,k,4) + prim(i,j,k,4));
+            Real temp = Real(0.5)*(prim(i,j-1,k,4) + prim(i,j,k,4));
             GpuArray<Real,MAX_SPECIES> Yk;
             for (int ns=0; ns<nspecies; ++ns) {
-                Yk[ns] = 0.5*(prim(i,j-1,k,6+ns) + prim(i,j,k,6+ns));
+                Yk[ns] = Real(0.5)*(prim(i,j-1,k,6+ns) + prim(i,j,k,6+ns));
             }
             Real sound_speed;
             GetSoundSpeed(sound_speed,Yk,temp);
             cfly(i,j,k) = (sound_speed + std::abs(vely(i,j,k)))*dt/dx[1];
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            Real temp = 0.5*(prim(i,j,k-1,4) + prim(i,j,k,4));
+            Real temp = Real(0.5)*(prim(i,j,k-1,4) + prim(i,j,k,4));
             GpuArray<Real,MAX_SPECIES> Yk;
             for (int ns=0; ns<nspecies; ++ns) {
-                Yk[ns] = 0.5*(prim(i,j,k-1,6+ns) + prim(i,j,k,6+ns));
+                Yk[ns] = Real(0.5)*(prim(i,j,k-1,6+ns) + prim(i,j,k,6+ns));
             }
             Real sound_speed;
             GetSoundSpeed(sound_speed,Yk,temp);

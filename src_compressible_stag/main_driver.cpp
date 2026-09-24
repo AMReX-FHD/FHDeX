@@ -522,13 +522,13 @@ void main_driver(const char* argv)
     Vector<Real> var_scaling_prim;
     var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
     for (int d=0; d<var_scaling_prim.size(); ++d) {
-        var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
+        var_scaling_prim[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
     }
     Vector<Real> var_scaling_cons;
     // scale SF results by inverse cell volume
     var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
     for (int d=0; d<var_scaling_cons.size(); ++d) {
-        var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
+        var_scaling_cons[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
     }
 
     Vector<Real> surfcov_var_scaling;
@@ -820,6 +820,7 @@ void main_driver(const char* argv)
         setBCStag(prim, cu, cumom, vel, geom);
 
         if (plot_int > 0) {
+            calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, mom4, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
             if (plot_cross) {
@@ -1104,7 +1105,7 @@ void main_driver(const char* argv)
             if (splitting_MFsurfchem == 0) {
                 sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt);
             } else if (splitting_MFsurfchem == 1) {
-                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/Real(2.0));
                 update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
                 for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -1135,7 +1136,7 @@ void main_driver(const char* argv)
         }
 
         if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
-            sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+            sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/Real(2.0));
         }
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
@@ -1634,7 +1635,7 @@ void main_driver(const char* argv)
                     structFactConsVec[i].AddToExternal(cons_mag,cons_realimag);
                 }
 
-                Real ncellsinv = 1.0/n_cells[2];
+                Real ncellsinv = Real(1.0)/n_cells[2];
                 prim_mag.mult(ncellsinv);
                 cons_mag.mult(ncellsinv);
                 prim_realimag.mult(ncellsinv);
@@ -1665,7 +1666,7 @@ void main_driver(const char* argv)
                     structFactPrimFlattenedVec[i].AddToExternal(prim_mag,prim_realimag);
                     structFactConsFlattenedVec[i].AddToExternal(cons_mag,cons_realimag);
                 }
-                Real ncellsinv = 1.0/n_cells[2];
+                Real ncellsinv = Real(1.0)/n_cells[2];
                 prim_mag.mult(ncellsinv);
                 prim_realimag.mult(ncellsinv);
                 cons_mag.mult(ncellsinv);
@@ -1697,7 +1698,7 @@ void main_driver(const char* argv)
                 for (int i=0; i<n_cells[2]; ++i) {
                     structFactSurfCovVec[i].AddToExternal(surfcov_mag,surfcov_realimag);
                 }
-                Real ncellsinv = 1.0/n_cells[2];
+                Real ncellsinv = Real(1.0)/n_cells[2];
                 surfcov_mag.mult(ncellsinv);
                 surfcov_realimag.mult(ncellsinv);
 
@@ -1725,7 +1726,7 @@ void main_driver(const char* argv)
                     structFactConsArray[i].AddToExternal(cons_mag,cons_realimag);
                 }
 
-                Real ncellsinv = 1.0/(n_cells[1]*n_cells[2]);
+                Real ncellsinv = Real(1.0)/(n_cells[1]*n_cells[2]);
                 prim_mag.mult(ncellsinv);
                 cons_mag.mult(ncellsinv);
                 prim_realimag.mult(ncellsinv);

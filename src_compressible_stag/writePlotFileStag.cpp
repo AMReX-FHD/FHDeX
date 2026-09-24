@@ -538,7 +538,7 @@ void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geome
         Real h = geom.CellSize(0);
 
         for (auto i=0; i<n_cells[0]; ++i) {
-            outfile << prob_lo[0] + (i+0.5)*h << " ";
+            outfile << prob_lo[0] + (i+Real(0.5))*h << " ";
             for (auto n=0; n<ncross; ++n) {
                 outfile << std::setprecision(16) << spatialCross[i*ncross+n] << " ";
             }
@@ -580,8 +580,8 @@ void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& real
     Vector<Real> projected_hi(AMREX_SPACEDIM);
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        projected_lo[d] = -domain_flat.length(d)/2 - 0.5;
-        projected_hi[d] = domain_flat.length(d)/2 - 1 + 0.5;
+        projected_lo[d] = -domain_flat.length(d)/2 - Real(0.5);
+        projected_hi[d] = domain_flat.length(d)/2 - 1 + Real(0.5);
     }
     projected_lo[project_dir] = -0.5;
     projected_hi[project_dir] =  0.5;
@@ -640,8 +640,8 @@ void WritePlotFilesSF_1D(const amrex::MultiFab& mag, const amrex::MultiFab& real
     Vector<Real> projected_lo(AMREX_SPACEDIM);
     Vector<Real> projected_hi(AMREX_SPACEDIM);
 
-    projected_lo[0] = -domain_pencil.length(0)/2 - 0.5;
-    projected_hi[0] = domain_pencil.length(0)/2 - 1 + 0.5;
+    projected_lo[0] = -domain_pencil.length(0)/2 - Real(0.5);
+    projected_hi[0] = domain_pencil.length(0)/2 - 1 + Real(0.5);
 
     projected_lo[1] = projected_lo[2] = -0.5;
     projected_hi[1] = projected_hi[2] =  0.5;
