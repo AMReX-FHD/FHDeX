@@ -181,7 +181,7 @@ void main_driver(const char* argv)
     //
 
     // get grid spacing
-    const Real* dx = geom.CellSize();
+    const auto dx = geom.CellSizeArray();
 
     // build layouts for staggered multigrid solver and macproject within preconditioner
     //
@@ -529,6 +529,27 @@ void main_driver(const char* argv)
 
     }
 
+#if 1
+
+    int tstat_int = 10;
+    int hstat_int = 100;
+    int icnt = 0;
+
+    BoxArray ba_onegrid;
+    Vector<int> pmap(1);
+    const int ioproc = ParallelDescriptor::IOProcessorNumber();
+    if(ioproc != 0){
+         amrex::Print() << "IO processor is " << ioproc << std::endl;
+    }
+    pmap[0] = ioproc;
+    ba_onegrid.define(domain);
+     //DistributionMapping dmap_onegrid(ba_onegrid,pmap);
+    DistributionMapping dmap_onegrid(pmap);
+    MultiFab data_onegrid;
+    data_onegrid.define(ba_onegrid,dmap_onegrid,nspecies,0);
+
+
+#endif
 
     // Time stepping loop
     for(int istep=init_step; istep<=max_step; ++istep) {
@@ -579,6 +600,148 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF);
         }
+
+#if 0
+    Real h_val = 0.5;
+
+    if (istep > n_steps_skip && (istep-n_steps_skip)%hstat_int == 0) {
+        icnt +=1;
+     //   amrex::Print() << "icnt " << icnt << std::endl;
+         //   if (ParallelDescriptor::IOProcessor()) {
+        data_onegrid.ParallelCopy(rho_new,0,0,2);
+                   std::ofstream height_str;
+                      std::string heightBaseName = "height";
+                      std::string heightName = Concatenate(heightBaseName,istep,9);
+                      heightName += ".dat";
+                      height_str.open(heightName);
+              height_str.precision(17);
+                      height_str << time+dt << std::endl;
+
+               for (MFIter mfi(data_onegrid); mfi.isValid(); ++mfi ) {
+
+                   const Array4<Real>& height = data_onegrid.array(mfi);
+           Real hloc,hloct;
+                   int jsw,jrev;
+           Real hcor_loc;
+
+           for (int i=0; i < n_cells[0]; i++){
+
+               hloc = 0.;
+                       if (height(i,0,0,1) >=h_val) {
+              for (int j=0; j<n_cells[1]; j++){
+                      jsw = j;
+                  if(height(i,j,0,1) < h_val)break;
+              }
+               Real hp = height(i,jsw,0,1);
+               Real hm = height(i,jsw-1,0,1);
+               Real xp = (jsw+0.5)*dx[1];
+               Real xm = (jsw-0.5)*dx[1];
+               Real slope = (hp-hm)/(xp-xm);
+               hloc = xm + (h_val-hm)/slope;
+               }
+
+               hloct = 0.;
+                       if (height(i,0,0,0) <= 1. - h_val) {
+              for (int j=0; j<n_cells[1]; j++){
+                      jsw = j;
+                  if(height(i,j,0,0) > 1.-h_val)break;
+              }
+               Real hp = height(i,jsw,0,0);
+               Real hm = height(i,jsw-1,0,0);
+               Real xp = (jsw+0.5)*dx[1];
+               Real xm = (jsw-0.5)*dx[1];
+               Real slope = (hp-hm)/(xp-xm);
+               hloct = xm + (1.-h_val-hm)/slope;
+               }
+                      height_str << std::setw(20) <<  (i+0.5)*dx[0]  << "     " << std::setw(20) << hloc <<  "    " << std::setw(20) << hloct << std::endl;
+             // "   " << std::setw(20) << hloct <<
+            //                            "     " << std::setw(20) << 0.5*(hloct+hloc) << std::endl;
+                   }
+                   }
+
+           // }
+         }
+#endif
+#if 0
+        if ((istep-n_steps_skip)%tstat_int == 0) {
+
+            GpuArray<Real,AMREX_SPACEDIM> offset
+                {AMREX_D_DECL(0.5*(prob_lo[0]-prob_hi[0]),
+                                   prob_lo[1],
+                              0.5*(prob_lo[2]-prob_hi[2]))};
+
+            auto const& data_ma = rho_new.const_arrays();
+            constexpr int nreduce = 3*AMREX_SPACEDIM + 3;
+            auto r = ParReduce(TypeMultiplier<TypeList,ReduceOpSum[nreduce]>{},
+                               TypeMultiplier<TypeList,       Real[nreduce]>{},
+                               rho_new,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                               -> TypeMultiplier<GpuTuple,Real[nreduce]>
+            {
+                auto const& data_arr = data_ma[box_no];
+                AMREX_D_TERM(Real x = offset[0] + (i+0.5)*dx[0];,
+                             Real y = offset[1] + (j+0.5)*dx[1];,
+                             Real z = offset[2] + (k+0.5)*dx[2]);
+                amrex::Real sig_noise = 4.;
+                amrex::Real threshold = fh_ce;
+        //threshold = .3;
+                amrex::Real alpha = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-(sig_noise+1.)*c_init_1[0]);
+                alpha = std::max(0.,alpha);
+        alpha = data_arr(i,j,k,1) >= 0.5 ? 1. : 0.;
+                amrex::Real beta = (data_arr(i,j,k,1)-c_init_1[0])/(1.-2.*c_init_1[0]);
+                if(beta < (sig_noise-1.)*c_init_1[0]/(1.-2.*c_init_1[0])){
+                    beta = 0.;
+                }
+                //amrex::Real gam = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-2.*sig_noise*c_init_1[0]);
+        beta = (data_arr(i,j,k,1)-0.3)/(1.-2.*0.3);
+                beta = std::min(1.,std::max(0.,beta));
+                amrex::Real gam = (data_arr(i,j,k,1)-threshold)/(1.-2.*threshold);
+                gam = std::min(1.,std::max(0.,gam));
+                return {alpha,beta,gam,
+                        AMREX_D_DECL(x*alpha,y*alpha,z*alpha),
+                        AMREX_D_DECL(x*beta ,y*beta ,z*beta ),
+                        AMREX_D_DECL(x*gam  ,y*gam  ,z*gam  )};
+            });
+
+            Array<Real,nreduce> result;
+            amrex::constexpr_for<0, nreduce> ([&](auto i)
+            {
+                result[i] = amrex::get<i>(r);
+            });
+
+            ParallelDescriptor::ReduceRealSum(result.data(), nreduce);
+
+#if (AMREX_SPACEDIM == 2 )
+            amrex::Real cent_massx = result[3] / result[0];
+            amrex::Real cent_massy = result[4] / result[0];
+            if (ParallelDescriptor::IOProcessor()) {
+                amrex::Print{} << "center " << time+dt << " " << cent_massx << " " << cent_massy << std::endl;
+                amrex::Print{} << "mass " << time+dt << " " << result[0] << std::endl;
+            }
+            //amrex::Real F0 = 4.e9;
+            //amrex::Print{} << "force " << time+dt << " " << F0*mass_gpu[0]*dx[0]*dx[1] << std::endl;
+#else
+            amrex::Real cent_massx  = result[3 ] / result[0];
+            amrex::Real cent_massy  = result[4 ] / result[0];
+            amrex::Real cent_massz  = result[5 ] / result[0];
+            amrex::Real cent_massbx = result[6 ] / result[1];
+            amrex::Real cent_massby = result[7 ] / result[1];
+            amrex::Real cent_massbz = result[8 ] / result[1];
+            amrex::Real cent_masscx = result[9 ] / result[2];
+            amrex::Real cent_masscy = result[10] / result[2];
+            amrex::Real cent_masscz = result[11] / result[2];
+
+            if (ParallelDescriptor::IOProcessor()) {
+                amrex::Print{} << "centerA " << time+dt << " " << cent_massx << " " << cent_massy << " " << cent_massz  << std::endl;
+                amrex::Print{} << "centerB " << time+dt << " " << cent_massbx << " " << cent_massby << " " << cent_massbz  << std::endl;
+                amrex::Print{} << "centerC " << time+dt << " " << cent_masscx << " " << cent_masscy << " " << cent_masscz  << std::endl;
+                amrex::Print{} << "massA " << time+dt << " " << result[0] << std::endl;
+                amrex::Print{} << "massBalt " << time+dt << " " << result[1] << std::endl;
+                amrex::Print{} << "massC " << time+dt << " " << result[2] << std::endl;
+            }
+#endif
+    }
+#endif
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);

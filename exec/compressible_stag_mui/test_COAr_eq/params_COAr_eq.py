@@ -49,6 +49,8 @@ print("- average molecular mass = %e\n" % mavg)
 
 temp = 1000.
 pres = 1.01325e6            # 1atm
+p1   = pres*X1
+p2   = pres*X2
 
 rho = pres*Mavg/Runiv/temp  # total mass density
 rho1 = rho*Y1
@@ -119,7 +121,7 @@ rcol1 = math.sqrt(kB*temp/2/math.pi/m1)*n1*(lat_const**2*math.sqrt(3)/2)
 
 sprob = 1.
 rads1 = sprob*rcol1
-kads1 = rads1/n1
+kads1 = rads1/p1
 
 kdes1 = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
 
@@ -129,7 +131,7 @@ print("- collision rate rcol1 = %e" % rcol1)
 
 print("- sticking prob = %f" % sprob)
 print("- rads1 = %e (rate)" % rads1)
-print("- kads1 = rads1/n1 (rate const) = %e" % kads1)
+print("- kads1 = rads1/p1 (rate const) = %e" % kads1)
 
 print("- kdes1 = %e" % kdes1)
 

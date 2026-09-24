@@ -71,6 +71,10 @@ void main_main ()
         icor = n_cell/2;;
         pp.query("icor",icor);
 
+        if (icor < 0 || icor >= n_cell) {
+            Abort("icor must lie in [0,n_cell)");
+        }
+
         ncopies = 1;
         pp.query("ncopies",ncopies);
 
@@ -274,10 +278,10 @@ void main_main ()
         BoxArray edge_ba = ba;
         edge_ba.surroundingNodes(dir);
         flux[dir].define(edge_ba, dm, Ncomp, 0);
+        flux[dir].setVal(0.0);
         stochFlux[dir].define(edge_ba, dm, Ncomp, 0);
     }
 
-    flux[1].setVal(0.);
     AMREX_D_TERM(stochFlux[0].setVal(0.0);,
                  stochFlux[1].setVal(0.0);,
                  stochFlux[2].setVal(0.0););
@@ -300,6 +304,41 @@ void main_main ()
 
             istat += 1;
 
+            // The reference cell for the two-point correlation, (icor,j,k), lives in a
+            // single box in x -- and so on a single rank.  Gather the reference column
+            // phi(icor,:,:) here, before the accumulation loop below, rather than
+            // indexing phiNew(icor,j,k) inside that loop, which reads outside the
+            // current FAB whenever max_grid_size splits the domain in x.
+            const auto dlo = amrex::lbound(geom.Domain());
+            const auto dhi = amrex::ubound(geom.Domain());
+            const int ncor_j = dhi.y - dlo.y + 1;
+            const int ncor_k = dhi.z - dlo.z + 1;
+
+            // phi_cor[(k-dlo.z)*ncor_j + (j-dlo.y)] holds phi(icor,j,k).  Each (j,k) is
+            // set by exactly one box -- the one owning icor in x -- so the entries left
+            // at zero elsewhere make the sum below an exact gather.
+            Vector<Real> phi_cor(ncor_j*ncor_k, 0.);
+
+            for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+            {
+                const Box& vbx = mfi.validbox();
+
+                if (icor < vbx.smallEnd(0) || icor > vbx.bigEnd(0)) continue;
+
+                const auto lo = amrex::lbound(vbx);
+                const auto hi = amrex::ubound(vbx);
+
+                auto const& phiNew = phi_new.array(mfi);
+
+                for (auto k = lo.z; k <= hi.z; ++k) {
+                    for (auto j = lo.y; j <= hi.y; ++j) {
+                        phi_cor[(k-dlo.z)*ncor_j + (j-dlo.y)] = phiNew(icor,j,k);
+                    }
+                }
+            }
+
+            ParallelDescriptor::ReduceRealSum(phi_cor.dataPtr(), phi_cor.size());
+
             for ( MFIter mfi(stats); mfi.isValid(); ++mfi )
             {
                 const Box& vbx = mfi.validbox();
@@ -311,11 +350,12 @@ void main_main ()
 
                 for (auto k = lo.z; k <= hi.z; ++k) {
                     for (auto j = lo.y; j <= hi.y; ++j) {
+                        const Real phi_ref = phi_cor[(k-dlo.z)*ncor_j + (j-dlo.y)];
                         for (auto i = lo.x; i <= hi.x; ++i) {
                             stat_arr(i,j,k,0) += phiNew(i,j,k);
                             stat_arr(i,j,k,1) += phiNew(i,j,k)*phiNew(i,j,k);
-                            stat_arr(i,j,k,2) += phiNew(i,j,k)*phiNew(icor,j,k);
-                            stat_arr(i,j,k,3) += phiNew(icor,j,k);
+                            stat_arr(i,j,k,2) += phiNew(i,j,k)*phi_ref;
+                            stat_arr(i,j,k,3) += phi_ref;
                         }
                     }
                 }

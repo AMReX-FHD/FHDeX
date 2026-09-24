@@ -78,39 +78,39 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //   StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
     {
         auto mask = cumom[0].OwnerMask(geom.periodicity());
-        rhouu[0] = MultiFab::Dot(cumom[0],0,vel[0],0,1,0);
+        rhouu[0] = MultiFab::Dot(*mask,cumom[0],0,vel[0],0,1,0);
     }
     {
         auto mask = cumom[1].OwnerMask(geom.periodicity());
-        rhouu[1] = MultiFab::Dot(cumom[1],0,vel[1],0,1,0);
+        rhouu[1] = MultiFab::Dot(*mask,cumom[1],0,vel[1],0,1,0);
     }
     {
         auto mask = cumom[2].OwnerMask(geom.periodicity());
-        rhouu[2] = MultiFab::Dot(cumom[2],0,vel[2],0,1,0);
+        rhouu[2] = MultiFab::Dot(*mask,cumom[2],0,vel[2],0,1,0);
     }
-    rhouu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
-    rhouu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
-    rhouu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
+    rhouu[0] *= dProb;
+    rhouu[1] *= dProb;
+    rhouu[2] *= dProb;
     turbKE = 0.5*( rhouu[0] + rhouu[1] + rhouu[2] );
 
     // RMS velocity
 //    StagInnerProd(vel,0,vel,0,macTemp,uu);
     {
         auto mask = vel[0].OwnerMask(geom.periodicity());
-        uu[0] = MultiFab::Dot(vel[0],0,vel[0],0,1,0);
+        uu[0] = MultiFab::Dot(*mask,vel[0],0,vel[0],0,1,0);
     }
     {
         auto mask = vel[1].OwnerMask(geom.periodicity());
-        uu[1] = MultiFab::Dot(vel[1],0,vel[1],0,1,0);
+        uu[1] = MultiFab::Dot(*mask,vel[1],0,vel[1],0,1,0);
     }
     {
         auto mask = vel[2].OwnerMask(geom.periodicity());
-        uu[2] = MultiFab::Dot(vel[2],0,vel[2],0,1,0);
+        uu[2] = MultiFab::Dot(*mask,vel[2],0,vel[2],0,1,0);
     }
-    uu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
-    uu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
-    uu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
-    u_rms = sqrt((uu[0] + uu[1] + uu[2])/3.0);
+    uu[0] *= dProb;
+    uu[1] *= dProb;
+    uu[2] *= dProb;
+    u_rms = std::sqrt((uu[0] + uu[1] + uu[2])/3.0);
 
     // Compute sound speed
     ComputeSoundSpeed(sound_speed,prim);
@@ -154,27 +154,27 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     Real avg_mom4 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^4>
 
     // Taylor Microscale
-    taylor_len = sqrt(3.0)*u_rms/sqrt(avg_mom2); // from Wang et al., JFM, 2012
+    taylor_len = std::sqrt(3.0)*u_rms/std::sqrt(avg_mom2); // from Wang et al., JFM, 2012
 
     // Taylor Reynolds Number & Turbulent Mach number
     Real rho_avg = ComputeSpatialMean(prim, 0);
     Real eta_avg = ComputeSpatialMean(eta, 0);
     taylor_Re = rho_avg*taylor_len*u_rms/eta_avg; // from from John, Donzis, Sreenivasan, PRL 2019
-    taylor_Ma = sqrt(3.0)*u_rms/c_speed; // from John, Donzis, Sreenivasan, PRL 2019
+    taylor_Ma = std::sqrt(3.0)*u_rms/c_speed; // from John, Donzis, Sreenivasan, PRL 2019
 
     // Skewness
     //Real skew1 = gradU3[0]/pow(gradU2[0],1.5); // <(du_1/dx_1)^3>/<(du_1/dx_1)^2>^1.5
     //Real skew2 = gradU3[1]/pow(gradU2[1],1.5); // <(du_2/dx_2)^3>/<(du_2/dx_2)^2>^1.5
     //Real skew3 = gradU3[2]/pow(gradU2[2],1.5); // <(du_3/dx_3)^3>/<(du_3/dx_3)^2>^1.5
     // <\sum_i (du_i/dx_i)^3> / (\sum_i <(du_i/dx_i)^2>^1.5)
-    skew = avg_mom3/(pow(gradU2[0],1.5) + pow(gradU2[1],1.5) + pow(gradU2[2],1.5));
+    skew = avg_mom3/(std::pow(gradU2[0],Real(1.5)) + std::pow(gradU2[1],Real(1.5)) + std::pow(gradU2[2],Real(1.5)));
 
     // Kurtosis
     //Real kurt1 = gradU4[0]/pow(gradU2[0],2); // <(du_1/dx_1)^4>/<(du_1/dx_1)^2>^2
     //Real kurt2 = gradU4[1]/pow(gradU2[1],2); // <(du_2/dx_2)^4>/<(du_2/dx_2)^2>^2
     //Real kurt3 = gradU4[2]/pow(gradU2[2],2); // <(du_3/dx_3)^4>/<(du_3/dx_3)^2>^2
     // <\sum_i (du_i/dx_i)^4> / (\sum_i <(du_i/dx_i)^2>^2)
-    kurt =  avg_mom4/(pow(gradU2[0],2) + pow(gradU2[1],2) + pow(gradU2[2],2));
+    kurt =  avg_mom4/(std::pow(gradU2[0],Real(2)) + std::pow(gradU2[1],Real(2)) + std::pow(gradU2[2],Real(2)));
 
     // Compute \omega (curl)
     ComputeCurlFaceToEdge(vel,curlU,geom);
@@ -185,19 +185,19 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 //    EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
     {
         auto mask = curlUtemp[0].OwnerMask(geom.periodicity());
-        eps_s_vec[0] = MultiFab::Dot(curlUtemp[0],0,eta_edge[0],0,1,0);
+        eps_s_vec[0] = MultiFab::Dot(*mask,curlUtemp[0],0,eta_edge[0],0,1,0);
     }
     {
         auto mask = curlUtemp[1].OwnerMask(geom.periodicity());
-        eps_s_vec[1] = MultiFab::Dot(curlUtemp[1],0,eta_edge[1],0,1,0);
+        eps_s_vec[1] = MultiFab::Dot(*mask,curlUtemp[1],0,eta_edge[1],0,1,0);
     }
     {
         auto mask = curlUtemp[2].OwnerMask(geom.periodicity());
-        eps_s_vec[2] = MultiFab::Dot(curlUtemp[2],0,eta_edge[2],0,1,0);
+        eps_s_vec[2] = MultiFab::Dot(*mask,curlUtemp[2],0,eta_edge[2],0,1,0);
     }
-    eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
-    eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
-    eps_s_vec[2] /= (n_cells[1]+1)*(n_cells[2]+1)*n_cells[0];
+    eps_s_vec[0] *= dProb;
+    eps_s_vec[1] *= dProb;
+    eps_s_vec[2] *= dProb;
     eps_s = (eps_s_vec[0] + eps_s_vec[1] + eps_s_vec[2]);
 
     // Dilational dissipation (4/3)*<eta (\sum_i du_i/dx_i)^2>
@@ -220,9 +220,9 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     Real eps_t = eps_s + eps_d;
 
     // Kolmogorov scales
-    kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_s)),0.25);
-    kolm_d = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_d)),0.25);
-    kolm_t = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_t)),0.25);
+    kolm_s = std::pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_s)),Real(0.25));
+    kolm_d = std::pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_d)),Real(0.25));
+    kolm_t = std::pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_t)),Real(0.25));
 //    kolm_s = pow((eta_avg*eta_avg*eta_avg/eps_s),0.25);
 //    kolm_d = pow((eta_avg*eta_avg*eta_avg/eps_d),0.25);
 //    kolm_t = pow((eta_avg*eta_avg*eta_avg/eps_t),0.25);
@@ -285,7 +285,7 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     MultiFab::AddProduct(ccTemp,vel_decomp,1,vel_decomp,1,0,1,0); //vv
     MultiFab::AddProduct(ccTemp,vel_decomp,2,vel_decomp,2,0,1,0); //ww
     u_rms_s = ComputeSpatialMean(ccTemp, 0);
-    u_rms_s = sqrt(u_rms_s/3.0);
+    u_rms_s = std::sqrt(u_rms_s/3.0);
     MultiFab::Multiply(ccTemp,prim,0,0,1,0); // rho*(uu+vv+ww)
     turbKE_s = ComputeSpatialMean(ccTemp,0);
     turbKE_s = 0.5*turbKE_s;
@@ -296,7 +296,7 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     MultiFab::AddProduct(ccTemp,vel_decomp,4,vel_decomp,4,0,1,0); //vv
     MultiFab::AddProduct(ccTemp,vel_decomp,5,vel_decomp,5,0,1,0); //ww
     u_rms_d = ComputeSpatialMean(ccTemp, 0);
-    u_rms_d = sqrt(u_rms_d/3.0);
+    u_rms_d = std::sqrt(u_rms_d/3.0);
     MultiFab::Multiply(ccTemp,prim,0,0,1,0); // rho*(uu+vv+ww)
     turbKE_d = ComputeSpatialMean(ccTemp,0);
     turbKE_d = 0.5*turbKE_d;
@@ -308,7 +308,7 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     // Taylor Mach (dilatational)
     ComputeSoundSpeed(sound_speed,prim);
     Real c_speed = ComputeSpatialMean(sound_speed, 0);
-    taylor_Ma_d = sqrt(3.0)*u_rms_d/c_speed;
+    taylor_Ma_d = std::sqrt(3.0)*u_rms_d/c_speed;
 
     // compute gradU = [du/dx dv/dy dw/dz] at cell-centers
     ComputeGrad(vel_decomp,gradU,0,0,6,-1,geom,0);
@@ -352,16 +352,16 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     // Skewness
     // <\sum_i (du_i/dx_i)^3> / (\sum_i <(du_i/dx_i)^2>^1.5)
     skew_s = (gradU3_s[0] + gradU3_s[1] + gradU3_s[2])/
-             (pow(gradU2_s[0],1.5) + pow(gradU2_s[1],1.5) + pow(gradU2_s[2],1.5));
+             (std::pow(gradU2_s[0],Real(1.5)) + std::pow(gradU2_s[1],Real(1.5)) + std::pow(gradU2_s[2],Real(1.5)));
     skew_d = (gradU3_d[0] + gradU3_d[1] + gradU3_d[2])/
-             (pow(gradU2_d[0],1.5) + pow(gradU2_d[1],1.5) + pow(gradU2_d[2],1.5));
+             (std::pow(gradU2_d[0],Real(1.5)) + std::pow(gradU2_d[1],Real(1.5)) + std::pow(gradU2_d[2],Real(1.5)));
 
     // Kurtosis
     // <\sum_i (du_i/dx_i)^4> / (\sum_i <(du_i/dx_i)^2>^2)
     kurt_s = (gradU4_s[0] + gradU4_s[1] + gradU4_s[2])/
-             (pow(gradU2_s[0],2.0) + pow(gradU2_s[1],2.0) + pow(gradU2_s[2],2.0));
+             (std::pow(gradU2_s[0],Real(2.0)) + std::pow(gradU2_s[1],Real(2.0)) + std::pow(gradU2_s[2],Real(2.0)));
     kurt_d = (gradU4_d[0] + gradU4_d[1] + gradU4_d[2])/
-             (pow(gradU2_d[0],2.0) + pow(gradU2_d[1],2.0) + pow(gradU2_d[2],2.0));
+             (std::pow(gradU2_d[0],Real(2.0)) + std::pow(gradU2_d[1],Real(2.0)) + std::pow(gradU2_d[2],Real(2.0)));
 
 }
 #endif
@@ -430,7 +430,7 @@ void EvaluateWritePlotFileVelGrad(int step,
             Real w1_pp  = u21_pp - u12_pp;
 
             // u_1,2
-            vgrad(i,j,k,3) = 0.25*(u12_mm + u12_mp + u12_pm + u12_pp);
+            vgrad(i,j,k,3) = Real(0.25)*(u12_mm + u12_mp + u12_pm + u12_pp);
 
             // on edges: u_1,3 and u_3,1 and curl w2 = u_1,3 - u_3,1
             Real u13_mm = (velx(i,j,k) - velx(i,j,k-1))/dx[2];
@@ -447,7 +447,7 @@ void EvaluateWritePlotFileVelGrad(int step,
             Real w2_pp  = u13_pp - u31_pp;
 
             // u_1,3
-            vgrad(i,j,k,4) = 0.25*(u13_mm + u13_mp + u13_pm + u13_pp);
+            vgrad(i,j,k,4) = Real(0.25)*(u13_mm + u13_mp + u13_pm + u13_pp);
 
             // on edges: u_2,3 and u_3,2 and curl w2 = u_3,2 - u_2,3
             Real u23_mm = (vely(i,j,k) - vely(i,j,k-1))/dx[2];
@@ -464,10 +464,10 @@ void EvaluateWritePlotFileVelGrad(int step,
             Real w3_pp  = u32_pp - u23_pp;
 
             // u_2,3
-            vgrad(i,j,k,5) = 0.25*(u23_mm + u23_mp + u23_pm + u23_pp);
+            vgrad(i,j,k,5) = Real(0.25)*(u23_mm + u23_mp + u23_pm + u23_pp);
 
             // vorticity magnitude: sqrt(w1*w1 + w2*w2 + w3*w3)
-            vgrad(i,j,k,7) = sqrt(0.25*(w1_mm*w1_mm + w1_mp*w1_mp + w1_pm*w1_pm + w1_pp*w1_pp +
+            vgrad(i,j,k,7) = std::sqrt(Real(0.25)*(w1_mm*w1_mm + w1_mp*w1_mp + w1_pm*w1_pm + w1_pp*w1_pp +
                                         w2_mm*w2_mm + w2_mp*w2_mp + w2_pm*w2_pm + w2_pp*w2_pp +
                                         w3_mm*w3_mm + w3_mp*w3_mp + w3_pm*w3_pm + w3_pp*w3_pp));
         });
@@ -672,7 +672,7 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u21_pp = (vely(i+1,j+1,k) - vely(i,j+1,k))/dx[0];
             Real w1_pp  = u21_pp - u12_pp;
             out(i,j,k,0) = w1_mm;
-            out(i,j,k,3) = 0.5*(w1_mm+w1_mp+w1_pm+w1_pp);
+            out(i,j,k,3) = 0.25*(w1_mm+w1_mp+w1_pm+w1_pp);
 
             // on edges: u_1,3 and u_3,1 and curl w2 = u_1,3 - u_3,1
             Real u13_mm = (velx(i,j,k) - velx(i,j,k-1))/dx[2];
@@ -688,7 +688,7 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u31_pp = (velz(i+1,j,k+1) - velz(i,j,k+1))/dx[0];
             Real w2_pp  = u13_pp - u31_pp;
             out(i,j,k,1) = w2_mm;
-            out(i,j,k,4) = 0.5*(w2_mm+w2_mp+w2_pm+w2_pp);
+            out(i,j,k,4) = 0.25*(w2_mm+w2_mp+w2_pm+w2_pp);
 
             // on edges: u_2,3 and u_3,2 and curl w2 = u_3,2 - u_2,3
             Real u23_mm = (vely(i,j,k) - vely(i,j,k-1))/dx[2];
@@ -704,12 +704,12 @@ void EvaluateWritePlotFileVelGradTiny(int step,
             Real u32_pp = (velz(i,j+1,k+1) - velz(i,j,k+1))/dx[1];
             Real w3_pp  = u32_pp - u23_pp;
             out(i,j,k,2) = w3_mm;
-            out(i,j,k,5) = 0.5*(w3_mm+w3_mp+w3_pm+w3_pp);
+            out(i,j,k,5) = 0.25*(w3_mm+w3_mp+w3_pm+w3_pp);
 
             // vorticity magnitude: sqrt(w1*w1 + w2*w2 + w3*w3)
-            out(i,j,k,6) = sqrt(w1_mm*w1_mm + w2_mm*w2_mm + w3_mm*w3_mm);
-            out(i,j,k,7) = sqrt(out(i,j,k,4)*out(i,j,k,4) + out(i,j,k,5)*out(i,j,k,5)
-                                + out(i,j,k,6)*out(i,j,k,6));
+            out(i,j,k,6) = std::sqrt(w1_mm*w1_mm + w2_mm*w2_mm + w3_mm*w3_mm);
+            out(i,j,k,7) = std::sqrt(out(i,j,k,3)*out(i,j,k,3) + out(i,j,k,4)*out(i,j,k,4)
+                                + out(i,j,k,5)*out(i,j,k,5));
             out(i,j,k,8) = std::sqrt(0.25*(w1_mm*w1_mm + w1_mp*w1_mp + w1_pm*w1_pm + w1_pp*w1_pp +
                                       w2_mm*w2_mm + w2_mp*w2_mp + w2_pm*w2_pm + w2_pp*w2_pp +
                                       w3_mm*w3_mm + w3_mp*w3_mp + w3_pm*w3_pm + w3_pp*w3_pp));

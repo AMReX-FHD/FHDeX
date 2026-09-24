@@ -19,7 +19,9 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
 {
     BL_PROFILE("StochasticPC::ColorParticlesWithPhi");
     const int lev = 1;
-    const auto dx = Geom(lev).CellSizeArray();
+    const auto dxi    = Geom(lev).InvCellSizeArray();
+    const auto plo    = Geom(lev).ProbLoArray();
+    const auto domain = Geom(lev).Domain();
 
     amrex::Print() << "PHIARR BOX " << phi.boxArray() << std::endl;
 
@@ -38,10 +40,13 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
         amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int n)
         {
             ParticleType& p = pstruct[n];
-            int i = static_cast<int>(p.pos(0) / dx[0]);
-            int j = static_cast<int>(p.pos(1) / dx[1]);
-            int k = 0;
-            p.rdata(RealIdx::zold) = phi_arr(i,j,k);
+            // Use the same helper getNewCell/getOldCell use: the raw divide
+            // omitted prob_lo and domain.smallEnd(), and static_cast truncates
+            // toward zero instead of flooring, so particles just outside the
+            // low side of the domain -- which AddParticles deliberately allows
+            // -- collapsed onto cell 0.
+            const amrex::IntVect iv = amrex::getParticleCell(p, plo, dxi, domain);
+            p.rdata(RealIdx::zold) = phi_arr(iv,0);
         });
     }
 }
@@ -100,7 +105,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
         amrex::ParallelForRNG(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
         {
-            if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))) >= 0) {return;}
+            if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))).first >= 0) {return;}
             Real rannum = amrex::Random(engine);
 // JBB set up particles directly
             //int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
@@ -186,10 +191,12 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
                     if(std::abs(vsubx) >= 1.e-12)
                     {
                        sampx = -gamma * std::log(1. - r[0]*(1. - std::exp(-2*vsubx*dx[0]/gamma)))/(2.*vsubx);
+#ifndef AMREX_USE_GPU
                        if( sampx < 0. || sampx > dx[0])
                        {
                           amrex::Print() << " offx " << sampx << " " << r[0] << " " << vsubx << std::endl;
                        }
+#endif
                      //  if(j == 50){
                      //     amrex::Print() << "center " << i << " " << j << " " << sampx << " " << r[0] << " " << vsubx << std::endl;
                      //  }
@@ -199,10 +206,12 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
                     if(std::abs(vsuby) >= 1.e-12)
                     {
                        sampy = -gamma * std::log(1. - r[1]*(1. - std::exp(-2*vsuby*dx[1]/gamma)))/(2.*vsuby);
+#ifndef AMREX_USE_GPU
                        if( sampy < 0. || sampy > dx[1])
                        {
                           amrex::Print() << "offy " <<sampy << " " << r[1] << " " << vsuby << std::endl;
                        }
+#endif
                        r[1] = sampy / dx[1];
                     }
                 }
@@ -252,7 +261,7 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
         amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
         {
             ParticleType& p = pstruct[i];
-            if (assign_grid(p) < 0) {
+            if (assign_grid(p).first < 0) {
                 p.id() = -1;
             }
         });
@@ -300,7 +309,7 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_fine_f
                 // int inew = new_pos[0];
                 // if (inew == 31) amrex::Print() <<" PARTICLE NOW AT 31 : OLD POS " << iold << std::endl;
 
-                if ( (assign_grid(old_pos) >= 0) && (assign_grid(new_pos) < 0)) {
+                if ( (assign_grid(old_pos).first >= 0) && (assign_grid(new_pos).first < 0)) {
                    Gpu::Atomic::AddNoRet(&phi_arr(new_pos,0), 1.0);
                 }
             });
@@ -367,6 +376,8 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
     }
     m_reflux_particle_locator.setGeometry(Geom(lev));
 
+    const auto is_per = Geom(lev).isPeriodicArray();
+
     auto assign_grid = m_reflux_particle_locator.getGridAssignor();
 
     for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
@@ -386,8 +397,20 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
                 auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
                 auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
 
-                if ( (assign_grid(old_pos) < 0) && (assign_grid(new_pos) >= 0)) {
-                   Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
+                if ( (assign_grid(old_pos).first < 0) && (assign_grid(new_pos).first >= 0)) {
+                   // The deposit belongs in the cell the particle came from.  That cell is
+                   // normally inside this FAB, but a particle that crossed a periodic
+                   // boundary this step has an old cell on the far side of the domain,
+                   // because AdvectWithRandomWalk wrapped its position.  Undo the wrap so
+                   // the deposit lands next to the new cell instead of out of bounds.
+                   if (Box(phi_arr).contains(old_pos)) {
+                      Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
+                   } else {
+                      auto shifted_pos = periodicCorrectOldCell(old_pos, new_pos,
+                                                                is_per, domain_lev);
+                      AMREX_ASSERT(Box(phi_arr).contains(shifted_pos));
+                      Gpu::Atomic::AddNoRet(&phi_arr(shifted_pos,0), -1.0);
+                   }
                 }
             });
         } // if not in ba_to_keep
@@ -563,10 +586,12 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
                  }
 
+#ifndef AMREX_USE_GPU
                  if(std::abs(updatex) > dx[0] || std::abs(updatey) > dx[1])
                  {
                     amrex::Print{} << "at " << xloc << " " << yloc << " step " << updatex << " " << updatey << " with inc " << incx << " " << incy << std::endl;
                  }
+#endif
 
                  updatex = std::max(-dx[0], std::min( dx[0], updatex));
                  updatey = std::max(-dx[1], std::min( dx[1], updatey));

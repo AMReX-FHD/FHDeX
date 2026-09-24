@@ -106,7 +106,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     // Perform weighting of white noise fields
 
     // Set stochastic weights
-    swgt2 = ( 2.0*std::sqrt(2.0) + 1.0*std::sqrt(3.0) ) / 5.0;
+    swgt2 = ( Real(2.0)*std::sqrt(Real(2.0)) + Real(1.0)*std::sqrt(Real(3.0)) ) / Real(5.0);
     stoch_weights = {swgt1, swgt2};
 
     AMREX_D_TERM(stochFlux[0].setVal(0.0);,
@@ -215,7 +215,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     // Perform weighting of white noise fields
 
     // Set stochastic weights
-    swgt2 = ( -4.0*std::sqrt(2.0) + 3.0*std::sqrt(3.0) ) / 5.0;
+    swgt2 = ( -Real(4.0)*std::sqrt(Real(2.0)) + Real(3.0)*std::sqrt(Real(3.0)) ) / Real(5.0);
     stoch_weights = {swgt1, swgt2};
 
     AMREX_D_TERM(stochFlux[0].setVal(0.0);,
@@ -265,7 +265,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
+            cup2_fab(i,j,k,n) = Real(0.25)*( Real(3.0)* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
                                        ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                                       + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
                                                       + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
@@ -295,12 +295,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
         amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cup2_fab(i,j,k,n+1) += 0.25* dt * cup_fab(i,j,k,0)*grav[n];
+            cup2_fab(i,j,k,n+1) += Real(0.25)* dt * cup_fab(i,j,k,0)*grav[n];
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup2_fab(i,j,k,4) += 0.25 * dt * (  grav[0]*cup_fab(i,j,k,1)
+            cup2_fab(i,j,k,4) += Real(0.25) * dt * (  grav[0]*cup_fab(i,j,k,1)
                                               + grav[1]*cup_fab(i,j,k,2)
                                               + grav[2]*cup_fab(i,j,k,3));
         });
@@ -320,7 +320,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     // Perform weighting of white noise fields
 
     // Set stochastic weights
-    swgt2 = ( 1.0*std::sqrt(2.0) - 2.0*std::sqrt(3.0) ) / 10.0;
+    swgt2 = ( Real(1.0)*std::sqrt(Real(2.0)) - Real(2.0)*std::sqrt(Real(3.0)) ) / Real(10.0);
     stoch_weights = {swgt1, swgt2};
 
     AMREX_D_TERM(stochFlux[0].setVal(0.0);,
@@ -369,7 +369,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
+            cu_fab(i,j,k,n) = (Real(2.)/Real(3.)) *( Real(0.5)* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
                                     (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                                      + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
                                                      + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
@@ -402,12 +402,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
         amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cu_fab(i,j,k,n+1) += 2./3.* dt * cup2_fab(i,j,k,0)*grav[n];
+            cu_fab(i,j,k,n+1) += Real(2.)/Real(3.)* dt * cup2_fab(i,j,k,0)*grav[n];
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cu_fab(i,j,k,4) += 2./3. * dt * (  grav[0]*cup2_fab(i,j,k,1)
+            cu_fab(i,j,k,4) += Real(2.)/Real(3.) * dt * (  grav[0]*cup2_fab(i,j,k,1)
                                              + grav[1]*cup2_fab(i,j,k,2)
                                              + grav[2]*cup2_fab(i,j,k,3) );
         });

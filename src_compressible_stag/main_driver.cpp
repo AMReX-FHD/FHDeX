@@ -62,6 +62,7 @@ void main_driver(const char* argv)
 
     // read the inputs file for MFsurfchem
     InitializeMFSurfchemNamespace();
+    nspec_surfcov = n_ads_spec;
 
 #if defined(MUI) || defined(USE_AMREX_MPMD)
     // read the inputs file for surfchem_mui
@@ -73,11 +74,7 @@ void main_driver(const char* argv)
 
     if (nspec_mui<1) {
         Abort("nspec_mui must be at least one");
-    }
-
-    if (restart>0) {
-        Abort("restart not supported in compressible_stag_mui");
-    }
+    } else nspec_surfcov = nspec_mui;
 #endif
 
     int step_start, statsCount;
@@ -265,14 +262,27 @@ void main_driver(const char* argv)
             }
         }
     }
-    if (do_2D and n_ads_spec>0 and ads_wall_dir != 1) {
-        Abort("do_2D with n_ads_spec>0 requires ads_wall_dir = 1");
+    if (do_2D and nspec_surfcov>0 and ads_wall_dir != 1) {
+        Abort("do_2D with nspec_surfcov>0 requires ads_wall_dir = 1");
     }
-    if (do_1D and n_ads_spec>0 and ads_wall_dir != 0) {
-        Abort("do_1D with n_ads_spec>0 requires ads_wall_dir = 0");
+    if (do_1D and nspec_surfcov>0 and ads_wall_dir != 0) {
+        Abort("do_1D with nspec_surfcov>0 requires ads_wall_dir = 0");
     }
     if ((all_correl == 1) and (cross_cell > 0) and (cross_cell < n_cells[0]-1)) {
         amrex::Print() << "Correlations will be done at four equi-distant x* because all_correl = 1" << "\n";
+    }
+
+    // The membrane routines (doLangevin/applyEffusion and the membrane wall BCs)
+    // only fire on boxes that start at membrane_cell or end at membrane_cell-1, so
+    // the membrane face has to fall on a box boundary.  Otherwise it is silently
+    // inactive and the run looks normal but has no membrane at all.
+    if (membrane_cell >= 0) {
+        if ((membrane_cell <= 0) or (membrane_cell >= n_cells[0])) {
+            Abort("membrane_cell must satisfy 0 < membrane_cell < n_cells[0]");
+        }
+        if (membrane_cell % max_grid_size[0] != 0) {
+            Abort("membrane_cell must be a multiple of max_grid_size[0] so the membrane face lies on a box boundary");
+        }
     }
 
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies
@@ -499,9 +509,9 @@ void main_driver(const char* argv)
     }
 
     Vector< std::string > surfcov_var_names;
-    if (n_ads_spec > 0) {
-        surfcov_var_names.resize(n_ads_spec);
-        for (int d=0; d<n_ads_spec; d++) {
+    if (nspec_surfcov > 0) {
+        surfcov_var_names.resize(nspec_surfcov);
+        for (int d=0; d<nspec_surfcov; d++) {
             x = "surfCov";
             x += (48+d);
             surfcov_var_names[d] = x;
@@ -512,18 +522,18 @@ void main_driver(const char* argv)
     Vector<Real> var_scaling_prim;
     var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
     for (int d=0; d<var_scaling_prim.size(); ++d) {
-        var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
+        var_scaling_prim[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
     }
     Vector<Real> var_scaling_cons;
     // scale SF results by inverse cell volume
     var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
     for (int d=0; d<var_scaling_cons.size(); ++d) {
-        var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
+        var_scaling_cons[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
     }
 
     Vector<Real> surfcov_var_scaling;
-    if (n_ads_spec > 0) {
-        surfcov_var_scaling.resize(n_ads_spec*(n_ads_spec+1)/2);
+    if (nspec_surfcov > 0) {
+        surfcov_var_scaling.resize(nspec_surfcov*(nspec_surfcov+1)/2);
         for (int d=0; d<surfcov_var_scaling.size(); ++d) {
             surfcov_var_scaling[d] = 1.;
         }
@@ -559,12 +569,30 @@ void main_driver(const char* argv)
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
 
-        if (n_ads_spec>0) {
-            dNadsdes.define(ba,dmap,n_ads_spec,0);
-            dNads.define(ba,dmap,n_ads_spec,0);
-            dNdes.define(ba,dmap,n_ads_spec,0);
-            nspec_surfcov = n_ads_spec;
+        if (nspec_surfcov>0) {
+            surfcov.define(ba,dmap,nspec_surfcov,0);
+            if (n_ads_spec > 0) {
+                dNadsdes.define(ba,dmap,n_ads_spec,0);
+                dNads.define(ba,dmap,n_ads_spec,0);
+                dNdes.define(ba,dmap,n_ads_spec,0);
+            }
+#if defined(MUI) || defined(USE_AMREX_MPMD)
+            Ntot.define(ba,dmap,1,0);
+#endif
         }
+#if defined(MUI)
+        mui_fetch_Ntot(Ntot, dx, uniface, 0);
+
+        mui_fetch_surfcov(Ntot, surfcov, dx, uniface, 0);
+
+        mui_forget(uniface, 0);
+
+#elif defined(USE_AMREX_MPMD)
+        mpmd_copier = std::make_unique<MPMD::Copier>(Ntot.boxArray(),
+                                                     Ntot.DistributionMap());
+        amrex_fetch_Ntot(Ntot, *mpmd_copier);
+        amrex_fetch_surfcov(Ntot, surfcov, *mpmd_copier);
+#endif
 
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
@@ -630,19 +658,17 @@ void main_driver(const char* argv)
         // 6+ns:6+2ns-1 (Xk;  mole fractions)
         prim.define(ba,dmap,nprimvars,ngc);
 
-        if (n_ads_spec>0) {
-            surfcov.define(ba,dmap,n_ads_spec,0);
-            dNadsdes.define(ba,dmap,n_ads_spec,0);
-            dNads.define(ba,dmap,n_ads_spec,0);
-            dNdes.define(ba,dmap,n_ads_spec,0);
-            nspec_surfcov = n_ads_spec;
-        }
-
+        if (nspec_surfcov>0) {
+            surfcov.define(ba,dmap,nspec_surfcov,0);
+            if (n_ads_spec>0) {
+                dNadsdes.define(ba,dmap,n_ads_spec,0);
+                dNads.define(ba,dmap,n_ads_spec,0);
+                dNdes.define(ba,dmap,n_ads_spec,0);
+            }
 #if defined(MUI) || defined(USE_AMREX_MPMD)
-        surfcov.define(ba,dmap,nspec_mui,0);
-        Ntot.define(ba,dmap,1,0);
-        nspec_surfcov = nspec_mui;
+            Ntot.define(ba,dmap,1,0);
 #endif
+        }
 
         cuMeans.define(ba,dmap,nvars,ngc);
         cuVars.define(ba,dmap,nvars,ngc);
@@ -794,15 +820,9 @@ void main_driver(const char* argv)
         setBCStag(prim, cu, cumom, vel, geom);
 
         if (plot_int > 0) {
+            calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, mom3, mom4, surfcov, surfcovMeans, surfcovVars, surfcovcoVars, eta, kappa, zeta);
-#if defined(TURB)
-            if (turbForcing > 0) {
-                EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
-                EvaluateWritePlotFileVelGradTiny(0, 0.0, geom, vel, vel_decomp);
-            }
-#endif
-
             if (plot_cross) {
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCrossMF, 0, geom, ncross);
@@ -841,6 +861,13 @@ void main_driver(const char* argv)
         vel_decomp.define(ba, dmap, 6, 0);
         vel_decomp.setVal(0.0);
     }
+
+    // step-0 velocity-gradient plotfiles for a fresh start; must follow the
+    // vel_decomp.define() above
+    if ((restart <= 0) and (plot_int > 0) and (turbForcing > 0)) {
+        EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
+        EvaluateWritePlotFileVelGradTiny(0, 0.0, geom, vel, vel_decomp);
+    }
 #endif
 
     ///////////////////////////////////////////
@@ -849,7 +876,7 @@ void main_driver(const char* argv)
 
     // don't do structure factors of surface if there is only 1 cell
     int surfCov_has_multiple_cells = 1;
-    if (n_ads_spec > 0) {
+    if (nspec_surfcov > 0) {
         if (do_1D) {
             // for do_1D each pencil has a single cell for surface coverage
             // so don't take structure factors
@@ -905,7 +932,7 @@ void main_driver(const char* argv)
                 }
             }
 
-            if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+            if (nspec_surfcov > 0 && surfCov_has_multiple_cells) {
                 MultiFab Flattened;  // flattened multifab defined below
                 // we are only calling ExtractSlice here to obtain
                 // a built version of Flattened so can obtain what we need to build the
@@ -961,7 +988,7 @@ void main_driver(const char* argv)
                 }
             }
 
-            if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+            if (nspec_surfcov > 0 && surfCov_has_multiple_cells) {
 
                 // each plane in z will have an x-pencil on the low-y face
                 structFactSurfCovVec.resize(n_cells[2]);
@@ -1078,7 +1105,7 @@ void main_driver(const char* argv)
             if (splitting_MFsurfchem == 0) {
                 sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt);
             } else if (splitting_MFsurfchem == 1) {
-                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+                sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/Real(2.0));
                 update_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom);
 
                 for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -1109,7 +1136,7 @@ void main_driver(const char* argv)
         }
 
         if (n_ads_spec>0 && splitting_MFsurfchem == 1) {
-            sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/2.0);
+            sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dNads, dNdes, geom, dt/Real(2.0));
         }
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
@@ -1494,9 +1521,9 @@ void main_driver(const char* argv)
                 } // if (project_dir...
 
                 // surface coverage
-                if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+                if (nspec_surfcov > 0 && surfCov_has_multiple_cells) {
                     MultiFab Flattened;  // flattened multifab defined below
-                    ExtractSlice(surfcov, Flattened, ads_wall_dir, 0, 0, n_ads_spec);
+                    ExtractSlice(surfcov, Flattened, ads_wall_dir, 0, 0, nspec_surfcov);
                     structFactSurfCov.FortStructure(Flattened);
                 }
             }
@@ -1532,11 +1559,11 @@ void main_driver(const char* argv)
                 }
 
                 // surface coverage
-                if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+                if (nspec_surfcov > 0 && surfCov_has_multiple_cells) {
 
                     MultiFab pencil;
                     for (int i=0; i<n_cells[2]; ++i) {
-                        ExtractXPencil(surfcov, pencil, 0, i, 0, n_ads_spec);
+                        ExtractXPencil(surfcov, pencil, 0, i, 0, nspec_surfcov);
                         structFactSurfCovVec[i].FortStructure(pencil);
                     }
                 }
@@ -1547,12 +1574,12 @@ void main_driver(const char* argv)
                 for (int i=0; i<n_cells[1]*n_cells[2]; ++i) {
                     {
                         MultiFab pencil;
-                        ExtractXPencil(structFactPrimMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsPrim);
+                        ExtractXPencil(structFactPrimMF, pencil, i%n_cells[1], i/n_cells[1], 0, structVarsPrim);
                         structFactPrimArray[i].FortStructure(pencil);
                     }
                     {
                         MultiFab pencil;
-                        ExtractXPencil(structFactConsMF, pencil, i/n_cells[1], i%n_cells[1], 0, structVarsCons);
+                        ExtractXPencil(structFactConsMF, pencil, i%n_cells[1], i/n_cells[1], 0, structVarsCons);
                         structFactConsArray[i].FortStructure(pencil);
                     }
                 }
@@ -1583,7 +1610,7 @@ void main_driver(const char* argv)
                     }
                 }
 
-                if (n_ads_spec > 0 && surfCov_has_multiple_cells) {
+                if (nspec_surfcov > 0 && surfCov_has_multiple_cells) {
                     structFactSurfCov.WritePlotFile(step,time,"plt_SF_surfcov");
                 }
             }
@@ -1608,7 +1635,7 @@ void main_driver(const char* argv)
                     structFactConsVec[i].AddToExternal(cons_mag,cons_realimag);
                 }
 
-                Real ncellsinv = 1.0/n_cells[2];
+                Real ncellsinv = Real(1.0)/n_cells[2];
                 prim_mag.mult(ncellsinv);
                 cons_mag.mult(ncellsinv);
                 prim_realimag.mult(ncellsinv);
@@ -1639,7 +1666,7 @@ void main_driver(const char* argv)
                     structFactPrimFlattenedVec[i].AddToExternal(prim_mag,prim_realimag);
                     structFactConsFlattenedVec[i].AddToExternal(cons_mag,cons_realimag);
                 }
-                Real ncellsinv = 1.0/n_cells[2];
+                Real ncellsinv = Real(1.0)/n_cells[2];
                 prim_mag.mult(ncellsinv);
                 prim_realimag.mult(ncellsinv);
                 cons_mag.mult(ncellsinv);
@@ -1658,7 +1685,7 @@ void main_driver(const char* argv)
             //
             //
 
-            if (do_2D && n_ads_spec > 0 && surfCov_has_multiple_cells) {
+            if (do_2D && nspec_surfcov > 0 && surfCov_has_multiple_cells) {
 
                 MultiFab surfcov_mag, surfcov_realimag;
 
@@ -1671,7 +1698,7 @@ void main_driver(const char* argv)
                 for (int i=0; i<n_cells[2]; ++i) {
                     structFactSurfCovVec[i].AddToExternal(surfcov_mag,surfcov_realimag);
                 }
-                Real ncellsinv = 1.0/n_cells[2];
+                Real ncellsinv = Real(1.0)/n_cells[2];
                 surfcov_mag.mult(ncellsinv);
                 surfcov_realimag.mult(ncellsinv);
 
@@ -1699,7 +1726,7 @@ void main_driver(const char* argv)
                     structFactConsArray[i].AddToExternal(cons_mag,cons_realimag);
                 }
 
-                Real ncellsinv = 1.0/(n_cells[1]*n_cells[2]);
+                Real ncellsinv = Real(1.0)/(n_cells[1]*n_cells[2]);
                 prim_mag.mult(ncellsinv);
                 cons_mag.mult(ncellsinv);
                 prim_realimag.mult(ncellsinv);

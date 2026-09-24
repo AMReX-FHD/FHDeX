@@ -11,6 +11,8 @@ AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
 AMREX_GPU_MANAGED int compressible::turbRestartRun = 1;
 AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
+AMREX_GPU_MANAGED int compressible::dirichlet_type = 1;
+AMREX_GPU_MANAGED bool compressible::constant_transport = false;
 
 void InitializeCompressibleNamespace()
 {
@@ -81,8 +83,29 @@ void InitializeCompressibleNamespace()
 
     // bulk viscosity ratio
     pp.query("zeta_ratio",zeta_ratio);
-    if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio < 0.0)) amrex::Abort("need non-negative zeta_ratio (ratio of bulk to shear viscosity) for visc_type = 3 (use bulk viscosity)");
-    if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio >= 0.0)) amrex::Print() << "bulk viscosity model selected; bulk viscosity ratio is: " << zeta_ratio << "\n";
+    if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio < Real(0.0))) amrex::Abort("need non-negative zeta_ratio (ratio of bulk to shear viscosity) for visc_type = 3 (use bulk viscosity)");
+    if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio >= Real(0.0))) amrex::Print() << "bulk viscosity model selected; bulk viscosity ratio is: " << zeta_ratio << "\n";
+
+
+    // dirichlet boundary function
+    // type 1: qty(x=0) [boundary] = dirichlet value
+    // type 2: qty(x=0) [boundary] = 0.5*(dirichlet value + 1st cell in domain)
+    dirichlet_type = 1;
+    pp.query("dirichlet_type",dirichlet_type);
+    if ((dirichlet_type != 1) and (dirichlet_type != 2)) {
+        amrex::Abort("dirichlet_type must be 1 or 2");
+    }
+
+    // constant transport: no spatial or temporal variation of transport coefficients
+    int const_trans = 0;
+    pp.query("constant_transport",const_trans);
+    if ((const_trans != 0) and (const_trans != 1)) {
+        amrex::Abort("constant_transport must be 0 or 1");
+    }
+    constant_transport = (const_trans == 1);
+    if (constant_transport) {
+        amrex::Print() << "constant transport chosen\n";
+    }
 
     return;
 }
@@ -90,11 +113,11 @@ void InitializeCompressibleNamespace()
 
 void GetHcGas() {
     for (int i=0; i<nspecies; ++i) {
-        if (hcv[i] < 0.) {
-            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
+        if (hcv[i] < Real(0.)) {
+            hcv[i] = Real(0.5)*dof[i]*Runiv/molmass[i];
         }
-        if (hcp[i] < 0.) {
-            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
+        if (hcp[i] < Real(0.)) {
+            hcp[i] = Real(0.5)*(Real(2.)+dof[i])*Runiv/molmass[i];
         }
     }
 }
@@ -115,15 +138,15 @@ void InitConsVar(MultiFab& cons,
         dx[d] = dx_host[d];
         reallo[d] = realDomain.lo(d);
         realhi[d] = realDomain.hi(d);
-        center[d] = ( realhi[d] - reallo[d] ) / 2.;
+        center[d] = ( realhi[d] - reallo[d] ) / Real(2.);
     }
 
     // from namelist
     Real t_lo_y = t_lo[1];
     Real t_hi_y = t_hi[1];
 
-    Real hy = ( prob_hi[1] - prob_lo[1] ) / 3.;
-    Real pi = acos(-1.);
+    Real hy = ( prob_hi[1] - prob_lo[1] ) / Real(3.);
+    Real pi = std::acos(-Real(1.));
     Real Lf = realhi[0] - reallo[0];
 
     // compute some values and overwrite based on prob_type
@@ -161,9 +184,9 @@ void InitConsVar(MultiFab& cons,
             GpuArray<Real,MAX_SPECIES> massvec;
             GpuArray<Real,MAX_SPECIES> Yk;
 
-            AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
-                         itVec[1] = (j+0.5)*dx[1]; ,
-                         itVec[2] = (k+0.5)*dx[2]);
+            AMREX_D_TERM(itVec[0] = (i+Real(0.5))*dx[0]; ,
+                         itVec[1] = (j+Real(0.5))*dx[1]; ,
+                         itVec[2] = (k+Real(0.5))*dx[2]);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 pos[d] = reallo[d] + itVec[d];
@@ -174,16 +197,16 @@ void InitConsVar(MultiFab& cons,
 
             if (prob_type == 2) { // Rayleigh-Taylor
 
-                if (relpos[2] >= 0.) {
-                    massvec[0] = 0.4;
-                    massvec[1] = 0.4;
-                    massvec[2] = 0.1;
-                    massvec[3] = 0.1;
+                if (relpos[2] >= Real(0.)) {
+                    massvec[0] = Real(0.4);
+                    massvec[1] = Real(0.4);
+                    massvec[2] = Real(0.1);
+                    massvec[3] = Real(0.1);
                 } else {
-                    massvec[0] = 0.1;
-                    massvec[1] = 0.1;
-                    massvec[2] = 0.4;
-                    massvec[3] = 0.4;
+                    massvec[0] = Real(0.1);
+                    massvec[1] = Real(0.1);
+                    massvec[2] = Real(0.4);
+                    massvec[3] = Real(0.4);
                 }
 
                 Real pamb;
@@ -194,14 +217,14 @@ void InitConsVar(MultiFab& cons,
                 for (int l=0; l<nspecies; ++l) {
                     molmix = molmix + massvec[l]/molmass[l];
                 }
-                molmix = 1.0/molmix;
+                molmix = Real(1.0)/molmix;
                 Real rgasmix = Runiv/molmix;
                 Real alpha = grav[2]/(rgasmix*T_init[0]);
 
                 // rho = exponential in z-dir to init @ hydrostatic eqm.
                 // must satisfy system: dP/dz = -rho*g & P = rhogasmix*rho*T
                 // Assumes temp=const
-                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
+                cu(i,j,k,0) = pamb*std::exp(alpha*pos[2])/(rgasmix*T_init[0]);
 
                 for (int l=0; l<nspecies; ++l) {
                     cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
@@ -210,7 +233,7 @@ void InitConsVar(MultiFab& cons,
                 Real intEnergy;
                 GetEnergy(intEnergy, massvec, T_init[0]);
 
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
                                                            cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 3) { // diffusion barrier
@@ -223,7 +246,7 @@ void InitConsVar(MultiFab& cons,
 
                 Real intEnergy;
                 GetEnergy(intEnergy, massvec, T_init[0]);
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
                                                            cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
@@ -240,24 +263,24 @@ void InitConsVar(MultiFab& cons,
                 Real rhoscale = molmass[0] / avogadro * pscale / (k_B * T_init[0]);
 
                 // compute pressure (needed to compute density)
-                Real pres = pscale+rhoscale*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
+                Real pres = pscale+rhoscale*velscale*velscale*std::cos(Real(2.)*pi*x/Lf)*std::cos(Real(4.)*pi*y/Lf)*(std::cos(Real(4.)*pi*z/Lf)+Real(2.));
 
                 // density
                 cu(i,j,k,0) = (molmass[0] / avogadro) * pres / (k_B * T_init[0]);
 
                 // momentum
-                cu(i,j,k,1) =  velscale*cu(i,j,k,0)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
-                cu(i,j,k,2) = -velscale*cu(i,j,k,0)*cos(2.*pi*x/Lf)*sin(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
+                cu(i,j,k,1) =  velscale*cu(i,j,k,0)*std::sin(Real(2.)*pi*x/Lf)*std::cos(Real(2.)*pi*y/Lf)*std::cos(Real(2.)*pi*z/Lf);
+                cu(i,j,k,2) = -velscale*cu(i,j,k,0)*std::cos(Real(2.)*pi*x/Lf)*std::sin(Real(2.)*pi*y/Lf)*std::cos(Real(2.)*pi*z/Lf);
                 cu(i,j,k,3) = 0.;
 
                 // internal energy
-                cu(i,j,k,4) = pres/(5./3.-1.) + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                cu(i,j,k,4) = pres/(Real(5.)/Real(3.)-Real(1.)) + Real(0.5)*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                      cu(i,j,k,2)*cu(i,j,k,2) +
                                                      cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
 
                 // mass densities (50/50 red/blue argon)
-                cu(i,j,k,5) = 0.5*cu(i,j,k,0);
-                cu(i,j,k,6) = 0.5*cu(i,j,k,0);
+                cu(i,j,k,5) = Real(0.5)*cu(i,j,k,0);
+                cu(i,j,k,6) = Real(0.5)*cu(i,j,k,0);
 
             } else if (prob_type == 5) { // Taylor Green Vortex
 
@@ -296,7 +319,7 @@ void InitConsVar(MultiFab& cons,
                    for (int l=0;l<nspecies;l++) {
                      Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
                    }
-                   cu(i,j,k,0) = rho0 + 0.1*rho0*sin(2.*pi*y/Ly);
+                   cu(i,j,k,0) = rho0 + Real(0.1)*rho0*std::sin(Real(2.)*pi*y/Ly);
                    for (int l=0;l<nspecies;l++) {
                      cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
                    }
@@ -313,7 +336,7 @@ void InitConsVar(MultiFab& cons,
                    GetPressureGas(pressure,massvec,rho0,T_init[0]);
 
                    Real temperature;
-                   temperature = T_init[0] + 0.1*T_init[0]*sin(2.*pi*y/Ly);
+                   temperature = T_init[0] + Real(0.1)*T_init[0]*std::sin(Real(2.)*pi*y/Ly);
 
                    Real density;
                    GetDensity(pressure,density,temperature,massvec);
@@ -353,7 +376,7 @@ void InitConsVar(MultiFab& cons,
                         GetPressureGas(pamb,massvec,rho0,T_init[0]);
 
                         Real density;
-                        GetDensity(pamb*1.5,density,T_init[0],massvec);
+                        GetDensity(pamb*Real(1.5),density,T_init[0],massvec);
                         cu(i,j,k,0) = density;
                         for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
 
@@ -370,8 +393,8 @@ void InitConsVar(MultiFab& cons,
                         Real pamb;
                         GetPressureGas(pamb,massvec,rho0,T_init[0]);
 
-                        massvec[0] = 0.4;
-                        massvec[1] = 0.6;
+                        massvec[0] = Real(0.4);
+                        massvec[1] = Real(0.6);
                         Real density;
                         GetDensity(pamb,density,T_init[0],massvec);
                         cu(i,j,k,0) = density;
@@ -391,8 +414,8 @@ void InitConsVar(MultiFab& cons,
                GetEnergy(intEnergy, massvec, T_init[0]);
 
                // Set checkerboarded density -- will automatically set checkerboarded pressure for same T, Y
-               Real rhomin = rho0*0.5;
-               Real rhomax = rho0*1.5;
+               Real rhomin = rho0*Real(0.5);
+               Real rhomax = rho0*Real(1.5);
 
                if ((i+j+k) % 2 == 0) {
                    cu(i,j,k,0) = rhomin;

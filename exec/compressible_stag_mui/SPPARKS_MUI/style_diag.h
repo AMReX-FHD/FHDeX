@@ -3,6 +3,7 @@
 #include "diag_diffusion.h"
 #include "diag_energy.h"
 #include "diag_erbium.h"
+#include "diag_lotkavolterra.h"
 #include "diag_propensity.h"
 #include "diag_sinter_density.h"
 #include "diag_sinter_free_energy.h"

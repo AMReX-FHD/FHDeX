@@ -62,19 +62,19 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
 
         amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            facex(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n));
+            facex(i,j,k,scomp+n) = Real(0.5)*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n));
         }
 #if (AMREX_SPACEDIM >= 2)
         ,
                            bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            facey(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i,j-1,k,scomp+n));
+            facey(i,j,k,scomp+n) = Real(0.5)*(cc(i,j,k,scomp+n)+cc(i,j-1,k,scomp+n));
         }
 #if (AMREX_SPACEDIM == 3)
         ,
                            bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            facez(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i,j,k-1,scomp+n));
+            facez(i,j,k,scomp+n) = Real(0.5)*(cc(i,j,k,scomp+n)+cc(i,j,k-1,scomp+n));
         }
 #endif
 #endif
@@ -84,7 +84,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
         // note: at physical boundaries,
         // the value in the ghost cells represent the value ON the boundary
         // so we simply copy the ghost cell value into the value on the domain (and ghost faces too)
-        if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) {
+        if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) {
             if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
                 int lo = dom.smallEnd(0);
                 amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -95,8 +95,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
-
-        if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) {
+        if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) {
             if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
                 int hi = dom.bigEnd(0)+1;
                 amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -109,7 +108,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
         }
 
 #if (AMREX_SPACEDIM >= 2)
-        if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
+        if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir  || bc_lo[1] == SPEC_CONTACT_BC) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
                 amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -120,8 +119,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
-
-        if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) {
+        if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir  || bc_hi[1] == SPEC_CONTACT_BC) {
             if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
                 int hi = dom.bigEnd(1)+1;
                 amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -134,7 +132,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
         }
 
 #if (AMREX_SPACEDIM == 3)
-        if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) {
+        if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) {
             if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
                 amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -145,8 +143,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
-
-        if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) {
+        if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) {
             if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
                 int hi = dom.bigEnd(2)+1;
                 amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -444,15 +441,15 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
 
         amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            edge_xy(i,j,k,scomp+n) = 0.25*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i-1,j-1,k,scomp+n));
+            edge_xy(i,j,k,scomp+n) = Real(0.25)*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i-1,j-1,k,scomp+n));
         },
                            bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            edge_xz(i,j,k,scomp+n) = 0.25*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n)+cc(i,j,k-1,scomp+n)+cc(i-1,j,k-1,scomp+n));
+            edge_xz(i,j,k,scomp+n) = Real(0.25)*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n)+cc(i,j,k-1,scomp+n)+cc(i-1,j,k-1,scomp+n));
         },
                            bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            edge_yz(i,j,k,scomp+n) = 0.25*(cc(i,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i,j,k-1,scomp+n)+cc(i,j-1,k-1,scomp+n));
+            edge_yz(i,j,k,scomp+n) = Real(0.25)*(cc(i,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i,j,k-1,scomp+n)+cc(i,j-1,k-1,scomp+n));
         });
 
         // boundary conditions
@@ -466,7 +463,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i <= lo) {
-                        edge_xy(i,j,k,scomp+n) = 0.5*(cc(lo-1,j,k,scomp+n)+cc(lo-1,j-1,k,scomp+n));
+                        edge_xy(i,j,k,scomp+n) = Real(0.5)*(cc(lo-1,j,k,scomp+n)+cc(lo-1,j-1,k,scomp+n));
                     }
                 });
             }
@@ -475,7 +472,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i <= lo) {
-                        edge_xz(i,j,k,scomp+n) = 0.50*(cc(lo-1,j,k,scomp+n)+cc(lo-1,j,k-1,scomp+n));
+                        edge_xz(i,j,k,scomp+n) = Real(0.50)*(cc(lo-1,j,k,scomp+n)+cc(lo-1,j,k-1,scomp+n));
                     }
                 });
             }
@@ -488,7 +485,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i >= hi+1) {
-                        edge_xy(i,j,k,scomp+n) = 0.5*(cc(hi+1,j,k,scomp+n)+cc(hi+1,j-1,k,scomp+n));
+                        edge_xy(i,j,k,scomp+n) = Real(0.5)*(cc(hi+1,j,k,scomp+n)+cc(hi+1,j-1,k,scomp+n));
                     }
                 });
             }
@@ -497,7 +494,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i >= hi+1) {
-                        edge_xz(i,j,k,scomp+n) = 0.5*(cc(hi+1,j,k,scomp+n)+cc(hi+1,j,k-1,scomp+n));
+                        edge_xz(i,j,k,scomp+n) = Real(0.5)*(cc(hi+1,j,k,scomp+n)+cc(hi+1,j,k-1,scomp+n));
                     }
                 });
             }
@@ -510,7 +507,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j <= lo) {
-                        edge_xy(i,j,k,scomp+n) = 0.5*(cc(i,lo-1,k,scomp+n)+cc(i-1,lo-1,k,scomp+n));
+                        edge_xy(i,j,k,scomp+n) = Real(0.5)*(cc(i,lo-1,k,scomp+n)+cc(i-1,lo-1,k,scomp+n));
                     }
                 });
             }
@@ -519,7 +516,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j <= lo) {
-                        edge_yz(i,j,k,scomp+n) = 0.5*(cc(i,lo-1,k,scomp+n)+cc(i,lo-1,k-1,scomp+n));
+                        edge_yz(i,j,k,scomp+n) = Real(0.5)*(cc(i,lo-1,k,scomp+n)+cc(i,lo-1,k-1,scomp+n));
                     }
                 });
             }
@@ -532,7 +529,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j >= hi+1) {
-                        edge_xy(i,j,k,scomp+n) = 0.5*(cc(i,hi+1,k)+cc(i-1,hi+1,k));
+                        edge_xy(i,j,k,scomp+n) = Real(0.5)*(cc(i,hi+1,k)+cc(i-1,hi+1,k));
                     }
                 });
             }
@@ -541,7 +538,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j >= hi+1) {
-                        edge_yz(i,j,k,scomp+n) = 0.5*(cc(i,hi+1,k)+cc(i,hi+1,k-1));
+                        edge_yz(i,j,k,scomp+n) = Real(0.5)*(cc(i,hi+1,k)+cc(i,hi+1,k-1));
                     }
                 });
             }
@@ -554,7 +551,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k <= lo) {
-                        edge_xz(i,j,k,scomp+n) = 0.5*(cc(i,j,lo-1)+cc(i-1,j,lo-1));
+                        edge_xz(i,j,k,scomp+n) = Real(0.5)*(cc(i,j,lo-1)+cc(i-1,j,lo-1));
                     }
                 });
             }
@@ -563,7 +560,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k <= lo) {
-                        edge_yz(i,j,k,scomp+n) = 0.5*(cc(i,j,lo-1)+cc(i,j-1,lo-1));
+                        edge_yz(i,j,k,scomp+n) = Real(0.5)*(cc(i,j,lo-1)+cc(i,j-1,lo-1));
                     }
                 });
             }
@@ -576,7 +573,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k >= hi+1) {
-                        edge_xz(i,j,k,scomp+n) = 0.5*(cc(i,j,hi+1)+cc(i-1,j,hi+1));
+                        edge_xz(i,j,k,scomp+n) = Real(0.5)*(cc(i,j,hi+1)+cc(i-1,j,hi+1));
                     }
                 });
             }
@@ -585,7 +582,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                 amrex::ParallelFor(bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k >= hi+1) {
-                        edge_yz(i,j,k,scomp+n) = 0.5*(cc(i,j,hi+1)+cc(i,j-1,hi+1));
+                        edge_yz(i,j,k,scomp+n) = Real(0.5)*(cc(i,j,hi+1)+cc(i,j-1,hi+1));
                     }
                 });
             }

@@ -19,3 +19,4 @@ CEXE_sources   += ProjectOntoEOS.cpp
 CEXE_sources   += multispec_functions.cpp
 CEXE_sources   += RhoUtil.cpp
 CEXE_sources   += StochMassFlux.cpp
+CEXE_sources   += MultiFabPhysBC_FH.cpp

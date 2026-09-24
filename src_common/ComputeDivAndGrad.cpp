@@ -94,7 +94,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
         // boundary conditions
         // note: at physical boundaries,
         // alter stencil at boundary since ghost value represents value at boundary
-        if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) {
+        if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) {
             if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
                 int lo = dom.smallEnd(0);
                 amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -102,13 +102,12 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     if (i == lo) {
                         // subtract off incorrect gradient from above, then add the correct gradient
                         gphix(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
-                        gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
+                        gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (Real(0.5)*dx[0]);
                     }
                 });
             }
         }
-
-        if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) {
+        if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) {
             if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
                 int hi = dom.bigEnd(0)+1;
                 amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -116,14 +115,14 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     if (i == hi) {
                         // subtract off incorrect gradient from above, then add the correct gradient
                         gphix(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
-                        gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
+                        gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (Real(0.5)*dx[0]);
                     }
                 });
             }
         }
 
 #if (AMREX_SPACEDIM >= 2)
-        if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
+        if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
                 amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -131,13 +130,13 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     if (j == lo) {
                         // subtract off incorrect gradient from above, then add the correct gradient
                         gphiy(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
-                        gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
+                        gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (Real(0.5)*dx[1]);
                     }
                 });
             }
         }
 
-        if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) {
+        if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) {
             if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
                 int hi = dom.bigEnd(1)+1;
                 amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -145,14 +144,14 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     if (j == hi) {
                         // subtract off incorrect gradient from above, then add the correct gradient
                         gphiy(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
-                        gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
+                        gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (Real(0.5)*dx[1]);
                     }
                 });
             }
         }
 
 #if (AMREX_SPACEDIM == 3)
-        if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) {
+        if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) {
             if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
                 amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -160,13 +159,12 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     if (k == lo) {
                         // subtract off incorrect gradient from above, then add the correct gradient
                         gphiz(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
-                        gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
+                        gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (Real(0.5)*dx[2]);
                     }
                 });
             }
         }
-
-        if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) {
+        if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) {
             if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
                 int hi = dom.bigEnd(2)+1;
                 amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -174,7 +172,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     if (k == hi) {
                         // subtract off incorrect gradient from above, then add the correct gradient
                         gphiz(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
-                        gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
+                        gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (Real(0.5)*dx[2]);
                     }
                 });
             }
@@ -237,7 +235,7 @@ void ComputeCentredGradCompDir(const MultiFab & phi,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            gphi_fab(i,j,k,outcomp) = (phi_fab(i+ioff,j+joff,k+koff,incomp) - phi_fab(i-ioff,j-joff,k-koff,incomp)) / (2.*dx[dir]);
+            gphi_fab(i,j,k,outcomp) = (phi_fab(i+ioff,j+joff,k+koff,incomp) - phi_fab(i-ioff,j-joff,k-koff,incomp)) / (Real(2.)*dx[dir]);
         });
     }
 }
@@ -293,10 +291,10 @@ void ComputeLap(const MultiFab & phi_in,
         amrex::ParallelFor(bx, numcomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Lphi(i,j,k,outcomp+n) =
-                  ( phi(i-1,j,k,incomp+n) - 2.*phi(i,j,k,incomp+n) + phi(i+1,j,k,incomp+n) ) / (dx[0]*dx[0])
-                + ( phi(i,j-1,k,incomp+n) - 2.*phi(i,j,k,incomp+n) + phi(i,j+1,k,incomp+n) ) / (dx[1]*dx[1])
+                  ( phi(i-1,j,k,incomp+n) - Real(2.)*phi(i,j,k,incomp+n) + phi(i+1,j,k,incomp+n) ) / (dx[0]*dx[0])
+                + ( phi(i,j-1,k,incomp+n) - Real(2.)*phi(i,j,k,incomp+n) + phi(i,j+1,k,incomp+n) ) / (dx[1]*dx[1])
 #if (AMREX_SPACEDIM == 3)
-                + ( phi(i,j,k-1,incomp+n) - 2.*phi(i,j,k,incomp+n) + phi(i,j,k+1,incomp+n) ) / (dx[2]*dx[2])
+                + ( phi(i,j,k-1,incomp+n) - Real(2.)*phi(i,j,k,incomp+n) + phi(i,j,k+1,incomp+n) ) / (dx[2]*dx[2])
 #endif
                 ;
         });
@@ -445,18 +443,18 @@ void ComputeCurlCC(const MultiFab& vel_in,
         {
             // dw/dy - dv/dz
             curl(i,j,k,outcomp) =
-                (vel(i,j+1,k,incomp+2) - vel(i,j-1,k,incomp+2)) / (2.*dx[1]) -
-                (vel(i,j,k+1,incomp+1) - vel(i,j,k-1,incomp+1)) / (2.*dx[2]);
+                (vel(i,j+1,k,incomp+2) - vel(i,j-1,k,incomp+2)) / (Real(2.)*dx[1]) -
+                (vel(i,j,k+1,incomp+1) - vel(i,j,k-1,incomp+1)) / (Real(2.)*dx[2]);
 
             // du/dz - dw/dx
             curl(i,j,k,outcomp+1) =
-                (vel(i,j,k+1,incomp+0) - vel(i,j,k-1,incomp+0)) / (2.*dx[2]) -
-                (vel(i+1,j,k,incomp+2) - vel(i-1,j,k,incomp+2)) / (2.*dx[0]);
+                (vel(i,j,k+1,incomp+0) - vel(i,j,k-1,incomp+0)) / (Real(2.)*dx[2]) -
+                (vel(i+1,j,k,incomp+2) - vel(i-1,j,k,incomp+2)) / (Real(2.)*dx[0]);
 
             // dv/dx - du/dy
             curl(i,j,k,outcomp+2) =
-                (vel(i+1,j,k,incomp+1) - vel(i-1,j,k,incomp+1)) / (2.*dx[0]) -
-                (vel(i,j+1,k,incomp+0) - vel(i,j-1,k,incomp+0)) / (2.*dx[1]);
+                (vel(i+1,j,k,incomp+1) - vel(i-1,j,k,incomp+1)) / (Real(2.)*dx[0]) -
+                (vel(i,j+1,k,incomp+0) - vel(i,j-1,k,incomp+0)) / (Real(2.)*dx[1]);
         });
     }
 }
@@ -482,9 +480,9 @@ void ComputeDivCC(const MultiFab& vel_in,
         {
             // dw/dy - dv/dz
             div(i,j,k,outcomp) =
-                (vel(i+1,j,k,incomp+0) - vel(i-1,j,k,incomp+0)) / (2.*dx[0]) +
-                (vel(i,j+1,k,incomp+1) - vel(i,j-1,k,incomp+1)) / (2.*dx[1]) +
-                (vel(i,j,k+1,incomp+2) - vel(i,j,k-1,incomp+2)) / (2.*dx[2]);
+                (vel(i+1,j,k,incomp+0) - vel(i-1,j,k,incomp+0)) / (Real(2.)*dx[0]) +
+                (vel(i,j+1,k,incomp+1) - vel(i,j-1,k,incomp+1)) / (Real(2.)*dx[1]) +
+                (vel(i,j,k+1,incomp+2) - vel(i,j,k-1,incomp+2)) / (Real(2.)*dx[2]);
         });
     }
 }
