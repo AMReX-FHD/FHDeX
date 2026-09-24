@@ -73,7 +73,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
 
     // compute physical coordinate and store in first column
     for (r=0; r<npts; ++r) {
-        average[r*(ncomp+1)] = prob_lo[dir] + (r+0.5)*h;
+        average[r*(ncomp+1)] = prob_lo[dir] + (r+Real(0.5))*h;
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -237,9 +237,9 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
     // by default we average over the entire domain, but one can pass in slab_lo/hi to set bounds
     Real ninv;
     if (slablo != -1 && slabhi != 99999) {
-        ninv = 1./(slabhi-slablo+1);
+        ninv = Real(1.)/(slabhi-slablo+1);
     } else {
-        ninv = 1./(domain.length(dir));
+        ninv = Real(1.)/(domain.length(dir));
     }
 
     MultiFab mf_onecomp(mf.boxArray(), mf.DistributionMap(), 1, 0);
