@@ -11,9 +11,8 @@ RNG_DIR = ../../../src_rng/
 COM_DIR = ../../../src_common/
 
 include $(SRC_DIR)/Make.package
-include $(SRC_DIR)/Src_K/Make.package
-INCLUDE_LOCATIONS += $(SRC_DIR) $(SRC_DIR)/Src_K
-VPATH_LOCATIONS   += $(SRC_DIR) $(SRC_DIR)/Src_K
+INCLUDE_LOCATIONS += $(SRC_DIR)
+VPATH_LOCATIONS   += $(SRC_DIR)
 
 include $(RNG_DIR)/Make.package
 INCLUDE_LOCATIONS += $(RNG_DIR)

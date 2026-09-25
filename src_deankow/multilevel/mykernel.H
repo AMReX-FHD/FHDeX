@@ -83,6 +83,7 @@ void init_phi (int i, int j, int k,
         phi(i,j,k,0) = 10.1/cellvol;
     }
 #endif
+        phi(i,j,k,0) = 20./cellvol;
 
 #if 0
     // 2D Test for multilevel
@@ -181,7 +182,7 @@ void compute_flux_x (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
+    int ext_pot = 0;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
@@ -245,8 +246,10 @@ void compute_flux_x (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i-1,j,k,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i-1,j,k,coeff_index));
+        //phipn = std::abs(phi(i,j,k,coeff_index));
+        //phimn = std::abs(phi(i-1,j,k,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i-1,j,k,coeff_index),0.);
         stofact = 1.;
         //amrex::Print() << " C " << std::endl;
 
@@ -303,7 +306,7 @@ void compute_flux_y (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 1;
+    int ext_pot = 0;
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;
@@ -336,8 +339,10 @@ void compute_flux_y (int i, int j, int k,
 
         phip = phi(i,j,k,0);
         phim = phi(i,j-1,k,0);
-        phipn = std::abs(phi(i,j,k,coeff_index));
-        phimn = std::abs(phi(i,j-1,k,coeff_index));
+        // phipn = std::abs(phi(i,j,k,coeff_index));
+        // phimn = std::abs(phi(i,j-1,k,coeff_index));
+        phipn = std::max(phi(i,j,k,coeff_index),0.);
+        phimn = std::max(phi(i,j-1,k,coeff_index),0.);
         stofact = 1.;
 
     }

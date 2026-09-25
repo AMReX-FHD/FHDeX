@@ -31,6 +31,7 @@
 
 #ifdef USE_AMREX_MPMD
 #include "app_surfchemtest.h"
+#include "app_lotkavolterra.h"
 #else
 #include "style_app.h"
 #endif
@@ -654,6 +655,7 @@ void Input::app_style()
     else if (strcmp(arg[0],#key) == 0) app = new Class(spk,narg,arg);
 #ifdef USE_AMREX_MPMD
 #include "app_surfchemtest.h"
+#include "app_lotkavolterra.h"
 #else
 #include "style_app.h"
 #endif

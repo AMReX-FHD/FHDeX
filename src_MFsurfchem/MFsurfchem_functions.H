@@ -10,7 +10,7 @@
 #include "common_namespace.H"
 #include "MFsurfchem_namespace.H"
 
-#define AVONUM 6.02214076e23
+#define AVONUM amrex::Real(6.02214076e23)
 
 using namespace MFsurfchem;
 using namespace amrex;

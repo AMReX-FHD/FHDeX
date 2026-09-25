@@ -1,14 +1,17 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../../amrex/
+AMREX_HOME ?= ../../../amrex/
 
 DEBUG     = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
-DIM       = 2
-MAX_SPEC      = 8
+DIM       = 3
+MAX_SPEC  = 2
+# MAX_ELEM needs to be MAX_SPEC*(MAX_SPEC-1)/2
+MAX_ELEM  = 1
+USE_FFT   = TRUE
 
 TINY_PROFILE = FALSE
 
@@ -42,10 +45,6 @@ INCLUDE_LOCATIONS += ../../src_gmres/
 include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
-
-VPATH_LOCATIONS   += ../../src_multispec/
-INCLUDE_LOCATIONS += ../../src_multispec/
-CEXE_SOURCES += multispec_namespace.H
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/FFT/Make.package

@@ -340,9 +340,9 @@ void main_driver(const char* argv)
                      rho_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
         p0 = 884.147e3;
-        dProb = (AMREX_SPACEDIM==2) ? 1./(n_cells[0]*n_cells[1]) : 1./(n_cells[0]*n_cells[1]*n_cells[2]);
+        dProb = (AMREX_SPACEDIM==2) ? Real(1.)/(n_cells[0]*n_cells[1]) : Real(1.)/(n_cells[0]*n_cells[1]*n_cells[2]);
         rho0 = molmass[0] / avogadro * p0 / (k_B * T_init[0]);
-        nu0 = 0.185;
+        nu0 = Real(0.185);
     }
 
     Real time = 0;
@@ -399,7 +399,7 @@ void main_driver(const char* argv)
     Vector<Real> var_scaling_prim;
     var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
     for (int d=0; d<var_scaling_prim.size(); ++d) {
-        var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
+        var_scaling_prim[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
     }
 
     // compute all pairs
@@ -457,7 +457,7 @@ void main_driver(const char* argv)
     Vector<Real> var_scaling_cons;
     var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
     for (int d=0; d<var_scaling_cons.size(); ++d) {
-        var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
+        var_scaling_cons[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
     }
 
     // compute all pairs
@@ -511,7 +511,7 @@ void main_driver(const char* argv)
 
     Vector<Real> var_scaling(AMREX_SPACEDIM);
     for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./dVol;
+        var_scaling[d] = Real(1.)/dVol;
     }
 
     // Select which variable pairs to include in structure factor:
@@ -870,7 +870,7 @@ void main_driver(const char* argv)
             MultiFab::Multiply(rhoscaled_gradU, prim, 0, 0, 1, 0);
             CCInnerProd(gradU,0,rhoscaled_gradU,0,ccTemp,curlUdotcurlU[0]);
 
-            Real DIVCOR = 2.* dProb*curlUdotcurlU[0] * nu0 / (3.* rho0);
+            Real DIVCOR = Real(2.)* dProb*curlUdotcurlU[0] * nu0 / (Real(3.)* rho0);
 
             Print() << "Non-viscosity scaled energy dissipation "
                     << time << " "

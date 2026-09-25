@@ -81,12 +81,14 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
 
     if (variance < 0.0) {
         // Ensure zero total momentum
-        Vector<Real> av_mom;
+        // SumStag writes sum[0..AMREX_SPACEDIM-1] and does not resize, so the
+        // caller has to size this (cf. advance.cpp's mean_stress_umac)
+        Vector<Real> av_mom(AMREX_SPACEDIM);
         // take staggered sum & divide by number of cells
         SumStag(m_old,av_mom,true);
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // subtract off average
-            m_old[d].plus(-av_mom[d],1);
+            m_old[d].plus(-av_mom[d],0);
             m_old[d].OverrideSync(geom.periodicity());
             m_old[d].FillBoundary(geom.periodicity());
         }

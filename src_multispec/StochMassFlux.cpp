@@ -297,10 +297,12 @@ void StochMassFlux::StochMassFluxDiv(const MultiFab& rho,
         stoch_mass_flux[d].FillBoundary(geom.periodicity());
     }
 
-    // If there are walls with zero-flux boundary conditions
     if (is_nonisothermal == 1) {
         Abort("StochMassFlux: is_nonisothermal==1 not supported yet");
     }
+
+    // If there are walls with zero-flux boundary conditions
+    ZeroEdgevalWalls(stoch_mass_flux, geom, 0, nspecies);
 
     // correct fluxes to ensure mass conservation to roundoff
     if (correct_flux == 1 && nspecies > 1) {

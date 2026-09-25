@@ -91,9 +91,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
     }
 
     // If there are walls with zero-flux boundary conditions
-    if (is_nonisothermal) {
-        ZeroEdgevalWalls(diff_mass_flux, geom, 0, nspecies);
-    }
+    ZeroEdgevalWalls(diff_mass_flux, geom, 0, nspecies);
 
     //correct fluxes to ensure mass conservation to roundoff
     if (correct_flux==1 && (nspecies > 1)) {
@@ -307,14 +305,14 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    //BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi); // fix for mole fractions
+    BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi); // fix for mole fractions
 
     //Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
     // fill conc ghost cells
     molarconc.FillBoundary(geom.periodicity());
-    
+
     Real bc_fraction = 0.5;
-    MultiFabPhysBCFH(molarconc, geom, 0, nspecies, bc_fraction);    
+    MultiFabPhysBCFH(molarconc, geom, 0, nspecies, bc_fraction);
 
     // Physical Domain
     Box dom(geom.Domain());
@@ -435,7 +433,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
         },
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.)*Nbar(i,j,k) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.)*Nbar(i,j,k));
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.)*Nbar(i,j,k) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.)*Nbar(i,j-1,k));
             fluxy(i,j,k,n) = fluxy(i,j,k,n) + phiavg*( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
         });
 

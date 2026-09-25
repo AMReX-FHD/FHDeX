@@ -195,14 +195,15 @@ void RK3stepStag(MultiFab& cu,
         MultiFabFillRandomNormal(stochedge_y_B[0], 0, 1, 0.0, 1.0, geom, true, true);
     }
     else { // 3D
+        // The stress tensor is symmetric, so only one independent random field per
+        // edge type is needed.  calculateFluxStag consumes exactly three:
+        // stochedge_x[0] (xy), stochedge_x[1] (xz) and stochedge_y[1] (yz).
         for (int i=0; i<2; i++) {
             MultiFabFillRandomNormal(stochedge_x_A[i], 0, 1, 0.0, 1.0, geom, true, true);
             MultiFabFillRandomNormal(stochedge_x_B[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_y_A[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_y_B[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_z_A[i], 0, 1, 0.0, 1.0, geom, true, true);
-            MultiFabFillRandomNormal(stochedge_z_B[i], 0, 1, 0.0, 1.0, geom, true, true);
         }
+        MultiFabFillRandomNormal(stochedge_y_A[1], 0, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochedge_y_B[1], 0, 1, 0.0, 1.0, geom, true, true);
     }
 
     if (do_1D) { // 1D no v_x and w_z stochastic terms
@@ -234,7 +235,7 @@ void RK3stepStag(MultiFab& cu,
     /////////////////////////////////////////////////////
     // Perform weighting of white noise fields
     // Set stochastic weights
-    swgt2 = ( 2.0*std::sqrt(2.0) + 1.0*std::sqrt(3.0) ) / 5.0;
+    swgt2 = ( Real(2.0)*std::sqrt(Real(2.0)) + Real(1.0)*std::sqrt(Real(3.0)) ) / Real(5.0);
     stoch_weights = {swgt1, swgt2};
 
     // fill stochastic face fluxes
@@ -288,15 +289,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
@@ -453,7 +450,7 @@ void RK3stepStag(MultiFab& cu,
                     -dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
                     -dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
                     -dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
-                    +0.5*dt*grav[0]*(cu_fab(i-1,j,k,0)+cu_fab(i,j,k,0));
+                    +Real(0.5)*dt*grav[0]*(cu_fab(i-1,j,k,0)+cu_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_x = turbvf_x_o(i,j,k);
@@ -466,7 +463,7 @@ void RK3stepStag(MultiFab& cu,
                     -dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
                     -dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                     -dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
-                    +0.5*dt*grav[1]*(cu_fab(i,j-1,k,0)+cu_fab(i,j,k,0));
+                    +Real(0.5)*dt*grav[1]*(cu_fab(i,j-1,k,0)+cu_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_y = turbvf_y_o(i,j,k);
@@ -479,7 +476,7 @@ void RK3stepStag(MultiFab& cu,
                     -dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
                     -dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
                     -dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
-                    +0.5*dt*grav[2]*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0));
+                    +Real(0.5)*dt*grav[2]*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_z = turbvf_z_o(i,j,k);
@@ -507,7 +504,7 @@ void RK3stepStag(MultiFab& cu,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup_fab(i,j,k,4) += 0.5 * dt * (  grav[0]*(momx(i+1,j,k)+momx(i,j,k))
+            cup_fab(i,j,k,4) += Real(0.5) * dt * (  grav[0]*(momx(i+1,j,k)+momx(i,j,k))
                                             + grav[1]*(momy(i,j+1,k)+momy(i,j,k))
                                             + grav[2]*(momz(i,j,k+1)+momz(i,j,k)) );
 #if defined(TURB)
@@ -565,7 +562,7 @@ void RK3stepStag(MultiFab& cu,
     // Perform weighting of white noise fields
 
     // Set stochastic weights
-    swgt2 = ( -4.0*std::sqrt(2.0) + 3.0*std::sqrt(3.0) ) / 5.0;
+    swgt2 = ( -Real(4.0)*std::sqrt(Real(2.0)) + Real(3.0)*std::sqrt(Real(3.0)) ) / Real(5.0);
     stoch_weights = {swgt1, swgt2};
 
     // fill stochastic face fluxes
@@ -619,15 +616,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
@@ -668,7 +661,7 @@ void RK3stepStag(MultiFab& cu,
         aux3 = ParallelDescriptor::second();
         ComputeFluxMomReservoir(cup,prim,vel,cumom_res,
                                 faceflux_res,
-                                geom,0.25*dt); // compute fluxes and momentum from reservoir particle update
+                                geom,Real(0.25)*dt); // compute fluxes and momentum from reservoir particle update
         ResetReservoirFluxes(faceflux_res, faceflux,
                              edgeflux_x,
                              edgeflux_y,
@@ -770,7 +763,7 @@ void RK3stepStag(MultiFab& cu,
 
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
+            cup2_fab(i,j,k,n) = Real(0.25)*( Real(3.0)* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
                 ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
                                + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
@@ -781,41 +774,41 @@ void RK3stepStag(MultiFab& cu,
         // momentum flux
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momp2x(i,j,k) = 0.25*3.0*momx(i,j,k) + 0.25*mompx(i,j,k)
-                -0.25*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
-                -0.25*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
-                -0.25*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
-                +0.5*0.25*dt*grav[0]*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0));
+            momp2x(i,j,k) = Real(0.25)*Real(3.0)*momx(i,j,k) + Real(0.25)*mompx(i,j,k)
+                -Real(0.25)*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
+                -Real(0.25)*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
+                -Real(0.25)*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
+                +Real(0.5)*Real(0.25)*dt*grav[0]*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_x = turbvf_x(i,j,k);
-                momp2x(i,j,k) += dt*0.5*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0))*aF_x;
+                momp2x(i,j,k) += 0.25*dt*0.5*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0))*aF_x;
             }
 #endif
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momp2y(i,j,k) = 0.25*3.0*momy(i,j,k) + 0.25*mompy(i,j,k)
-                -0.25*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
-                -0.25*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
-                -0.25*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
-                +0.5*0.25*dt*grav[1]*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0));
+            momp2y(i,j,k) = Real(0.25)*Real(3.0)*momy(i,j,k) + Real(0.25)*mompy(i,j,k)
+                -Real(0.25)*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
+                -Real(0.25)*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
+                -Real(0.25)*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
+                +Real(0.5)*Real(0.25)*dt*grav[1]*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_y = turbvf_y(i,j,k);
-                momp2y(i,j,k) += dt*0.5*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0))*aF_y;
+                momp2y(i,j,k) += 0.25*dt*0.5*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0))*aF_y;
             }
 #endif
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momp2z(i,j,k) = 0.25*3.0*momz(i,j,k) + 0.25*mompz(i,j,k)
-                -0.25*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
-                -0.25*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
-                -0.25*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
-                +0.5*0.25*dt*grav[2]*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0));
+            momp2z(i,j,k) = Real(0.25)*Real(3.0)*momz(i,j,k) + Real(0.25)*mompz(i,j,k)
+                -Real(0.25)*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
+                -Real(0.25)*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
+                -Real(0.25)*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
+                +Real(0.5)*Real(0.25)*dt*grav[2]*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_z = turbvf_z(i,j,k);
-                momp2z(i,j,k) += dt*0.5*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0))*aF_z;
+                momp2z(i,j,k) += 0.25*dt*0.5*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0))*aF_z;
             }
 #endif
         });
@@ -840,7 +833,7 @@ void RK3stepStag(MultiFab& cu,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav[0]*(mompx(i+1,j,k)+mompx(i,j,k))
+            cup2_fab(i,j,k,4) += Real(0.5) * Real(0.25) * dt * (  grav[0]*(mompx(i+1,j,k)+mompx(i,j,k))
                                                     + grav[1]*(mompy(i,j+1,k)+mompy(i,j,k))
                                                     + grav[2]*(mompz(i,j,k+1)+mompz(i,j,k)) );
 #if defined(TURB)
@@ -898,7 +891,7 @@ void RK3stepStag(MultiFab& cu,
     // Perform weighting of white noise fields
 
     // Set stochastic weights
-    swgt2 = ( 1.0*std::sqrt(2.0) - 2.0*std::sqrt(3.0) ) / 10.0;
+    swgt2 = ( Real(1.0)*std::sqrt(Real(2.0)) - Real(2.0)*std::sqrt(Real(3.0)) ) / Real(10.0);
     stoch_weights = {swgt1, swgt2};
 
     // fill stochastic face fluxes
@@ -952,15 +945,11 @@ void RK3stepStag(MultiFab& cu,
                 stoch_weights[0], stochedge_x_A[i], 0,
                 stoch_weights[1], stochedge_x_B[i], 0,
                 0, 1, 0);
-            MultiFab::LinComb(stochedge_y[i],
-                stoch_weights[0], stochedge_y_A[i], 0,
-                stoch_weights[1], stochedge_y_B[i], 0,
-                0, 1, 0);
-            MultiFab::LinComb(stochedge_z[i],
-                stoch_weights[0], stochedge_z_A[i], 0,
-                stoch_weights[1], stochedge_z_B[i], 0,
-                0, 1, 0);
         }
+        MultiFab::LinComb(stochedge_y[1],
+            stoch_weights[0], stochedge_y_A[1], 0,
+            stoch_weights[1], stochedge_y_B[1], 0,
+            0, 1, 0);
     }
 
     // fill stochastic cell-centered fluxes
@@ -1001,7 +990,7 @@ void RK3stepStag(MultiFab& cu,
         aux5 = ParallelDescriptor::second();
         ComputeFluxMomReservoir(cup2,prim,vel,cumom_res,
                                 faceflux_res,
-                                geom,(2.0/3.0)*dt); // compute fluxes and momentum from reservoir particle update
+                                geom,(Real(2.0)/Real(3.0))*dt); // compute fluxes and momentum from reservoir particle update
         ResetReservoirFluxes(faceflux_res, faceflux,
                              edgeflux_x,
                              edgeflux_y,
@@ -1105,7 +1094,7 @@ void RK3stepStag(MultiFab& cu,
 
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
+            cu_fab(i,j,k,n) = (Real(2.)/Real(3.)) *( Real(0.5)* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
                 (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                              + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
                              + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
@@ -1117,41 +1106,41 @@ void RK3stepStag(MultiFab& cu,
         // momentum flux
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momx(i,j,k) = (2./3.)*(0.5*momx(i,j,k) + momp2x(i,j,k))
-                -(2./3.)*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
-                -(2./3.)*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
-                -(2./3.)*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
-                +0.5*(2./3.)*dt*grav[0]*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0));
+            momx(i,j,k) = (Real(2.)/Real(3.))*(Real(0.5)*momx(i,j,k) + momp2x(i,j,k))
+                -(Real(2.)/Real(3.))*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
+                -(Real(2.)/Real(3.))*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
+                -(Real(2.)/Real(3.))*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
+                +Real(0.5)*(Real(2.)/Real(3.))*dt*grav[0]*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_x = 0.5*(turbvf_x_o(i,j,k)   + turbvf_x(i,j,k)  );
-                momx(i,j,k) += dt*0.5*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0))*aF_x;
+                momx(i,j,k) += (2./3.)*dt*0.5*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0))*aF_x;
             }
 #endif
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momy(i,j,k) = (2./3.)*(0.5*momy(i,j,k) + momp2y(i,j,k))
-                -(2./3.)*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
-                -(2./3.)*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
-                -(2./3.)*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
-                +0.5*(2/3.)*dt*grav[1]*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0));
+            momy(i,j,k) = (Real(2.)/Real(3.))*(Real(0.5)*momy(i,j,k) + momp2y(i,j,k))
+                -(Real(2.)/Real(3.))*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
+                -(Real(2.)/Real(3.))*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
+                -(Real(2.)/Real(3.))*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
+                +Real(0.5)*(2/Real(3.))*dt*grav[1]*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_y = 0.5*(turbvf_y_o(i,j,k)   + turbvf_y(i,j,k)  );
-                momy(i,j,k) += dt*0.5*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0))*aF_y;
+                momy(i,j,k) += (2./3.)*dt*0.5*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0))*aF_y;
             }
 #endif
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momz(i,j,k) = (2./3.)*(0.5*momz(i,j,k) + momp2z(i,j,k))
-                -(2./3.)*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
-                -(2./3.)*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
-                -(2./3.)*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
-                +0.5*(2./3.)*dt*grav[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0));
+            momz(i,j,k) = (Real(2.)/Real(3.))*(Real(0.5)*momz(i,j,k) + momp2z(i,j,k))
+                -(Real(2.)/Real(3.))*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
+                -(Real(2.)/Real(3.))*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
+                -(Real(2.)/Real(3.))*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
+                +Real(0.5)*(Real(2.)/Real(3.))*dt*grav[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_z = 0.5*(turbvf_z_o(i,j,k)   + turbvf_z(i,j,k)  );
-                momz(i,j,k) += dt*0.5*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0))*aF_z;
+                momz(i,j,k) += (2./3.)*dt*0.5*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0))*aF_z;
             }
 #endif
         });
@@ -1180,7 +1169,7 @@ void RK3stepStag(MultiFab& cu,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
+            cu_fab(i,j,k,4) += Real(0.5) * (Real(2.)/Real(3.)) * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
                                                     + grav[1]*(momp2y(i,j+1,k)+momp2y(i,j,k))
                                                     + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
 #if defined(TURB)

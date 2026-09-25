@@ -40,16 +40,16 @@ amrex_kmc_lattice_offset ${lat_off_x} ${lat_off_y}
 # i2:       0 (vac) 1 (spec1) 2 (spec2) 3 (spec3) 4 (spec4) 5 (spec5)
 # i3 - i7:  ac1-ac5 = number of adsorption events of the species at the site
 # i8 - i12: dc1-dc5 = number of desoprtion events of the species at the site
-# d1 - d5:  density1-5 = number density of the fluid cell right above the site 
+# d1 - d5:  pressure1-5 = number density of the fluid cell right above the site 
 # d6:       temperature
 
 set         i2 value 0
 set         i2 value 1 fraction 4.036202e-01 if i1 = 1
 set         i2 value 2 fraction 4.349240e-01 if i1 = 2
 
-event       4 siteA vac   3.912398e-11 spec1 beta 0.5
+event       4 siteA vac   2.833739e+02 spec1 beta -0.5
 event       5 siteA spec1 2.926784e+07 vac           
-event       6 siteB siteB vac   vac   1.956199e-11 spec2 spec2 spec2 beta 0.5
+event       6 siteB siteB vac   vac   1.416869e+02 spec2 spec2 spec2 beta -0.5
 event       7 siteB siteB spec2 spec2 1.463392e+07 vac   vac   spec2         
 
 ###########################
@@ -68,7 +68,7 @@ amrex_push_agg 0 one occ1 occ2
 variable ts loop ${nstep}
 label ts_loop
     # MPI_FETCH
-    amrex_fetch_agg ${ts} density1 density2 temp
+    amrex_fetch_agg ${ts} pressure1 pressure2 temp
 
     # RUN KMC
     run ${Trun} pre no post no

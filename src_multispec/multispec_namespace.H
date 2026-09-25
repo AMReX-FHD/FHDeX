@@ -1,5 +1,6 @@
+#ifndef _multispec_namespace_H_
+#define _multispec_namespace_H_
 
-#include "common_namespace.H" // included so we get MAX_SPECIES
 
 namespace multispec {
 
@@ -65,3 +66,4 @@ namespace multispec {
     extern amrex::Real                L_zero;
 }
 
+#endif

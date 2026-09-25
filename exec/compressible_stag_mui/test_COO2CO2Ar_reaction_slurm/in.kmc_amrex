@@ -41,17 +41,17 @@ amrex_kmc_lattice_offset ${lat_off_x} ${lat_off_y}
 # i2:       0 (vac) 1 (spec1) 2 (spec2) 3 (spec3) 4 (spec4) 5 (spec5)
 # i3 - i7:  ac1-ac5 = number of adsorption events of the species at the site
 # i8 - i12: dc1-dc5 = number of desoprtion events of the species at the site
-# d1 - d5:  density1-5 = number density of the fluid cell right above the site 
+# d1 - d5:  pressure1-5 = partial pressure of the fluid cell right above the site 
 # d6:       temperature
 
 # siteA = br / siteB = cus / spec1 = CO / spec2 = O2
 # Adsorption
-event       4 siteA vac   1.689029e-11 spec1 beta 0.5
-event       4 siteB vac   1.689029e-11 spec1 beta 0.5
-event       6 siteA siteA vac   vac   7.901118e-12 spec2 spec2 spec2 beta 0.5 #half
-event       6 siteA siteB vac   vac   1.580224e-11 spec2 spec2 spec2 beta 0.5
-event       6 siteB siteA vac   vac   1.580224e-11 spec2 spec2 spec2 beta 0.5
-event       6 siteB siteB vac   vac   7.901118e-12 spec2 spec2 spec2 beta 0.5 #half
+event       4 siteA vac   2.038412e+02 spec1 beta -0.5
+event       4 siteB vac   2.038412e+02 spec1 beta -0.5
+event       6 siteA siteA vac   vac   9.535504e+01 spec2 spec2 spec2 beta -0.5 #half
+event       6 siteA siteB vac   vac   1.907101e+02 spec2 spec2 spec2 beta -0.5
+event       6 siteB siteA vac   vac   1.907101e+02 spec2 spec2 spec2 beta -0.5
+event       6 siteB siteB vac   vac   9.535504e+01 spec2 spec2 spec2 beta -0.5 #half
 
 # Desorption
 event       5 siteA spec1 5.487788e+04 vac
@@ -96,12 +96,12 @@ amrex_push_agg 0 one occ1 occ2 occ3
 variable ts loop ${nstep}
 label ts_loop
     # MPI_FETCH
-    amrex_fetch_agg ${ts} density1 density2 density3 temp
+    amrex_fetch_agg ${ts} pressure1 pressure2 pressure3 temp
 
     # RUN KMC
     run ${Trun} pre no post no
 
     # MPI_PUSH
-    amrex_push_agg ${ts} ac1 dc1 dac2 adc2 adc3 occ1 occ2 occ3
+    amrex_push_agg ${ts} ac1 dc1 dac2 adc2 dac3 adc3 occ1 occ2 occ3
 next ts 
 jump in.kmc_amrex ts_loop

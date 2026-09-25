@@ -173,25 +173,27 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     LinOpBCType hi_linop_bc[3];
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
+
+        // periodic has to be set on both ends of a direction
+        if (bc_es_lo[i] == -1 || bc_es_hi[i] == -1) {
+            if (bc_es_lo[i] != -1 || bc_es_hi[i] != -1) {
+                Abort("ElectroDiffusiveMassFlux: periodic bc_es must be set at both ends of a direction");
+            }
             lo_linop_bc[i] = LinOpBCType::Periodic;
             hi_linop_bc[i] = LinOpBCType::Periodic;
+            continue;
         }
-        if(bc_es_lo[i] == 2)
-        {
-            lo_linop_bc[i] = LinOpBCType::inhomogNeumann;
+
+        switch (bc_es_lo[i]) {
+        case 1:  lo_linop_bc[i] = LinOpBCType::Dirichlet;      break;
+        case 2:  lo_linop_bc[i] = LinOpBCType::inhomogNeumann; break;
+        default: Abort("ElectroDiffusiveMassFlux: unsupported bc_es_lo (expected -1, 1, or 2)");
         }
-        if(bc_es_hi[i] == 2)
-        {
-            hi_linop_bc[i] = LinOpBCType::inhomogNeumann;
-        }
-        if(bc_es_lo[i] == 1)
-        {
-            lo_linop_bc[i] = LinOpBCType::Dirichlet;
-        }
-        if(bc_es_hi[i] == 1)
-        {
-            hi_linop_bc[i] = LinOpBCType::Dirichlet;
+
+        switch (bc_es_hi[i]) {
+        case 1:  hi_linop_bc[i] = LinOpBCType::Dirichlet;      break;
+        case 2:  hi_linop_bc[i] = LinOpBCType::inhomogNeumann; break;
+        default: Abort("ElectroDiffusiveMassFlux: unsupported bc_es_hi (expected -1, 1, or 2)");
         }
     }
 

@@ -47,6 +47,7 @@ exec/**/stag*
 
 ## Checkpoints
 exec/**/chk*
+exec/**/*.dat
 
 ## Debug data
 exec/**/ib_data/*
@@ -64,3 +65,5 @@ exec/**/out
 exec/lib_hydro/amrex
 exec/lib_hydro/cmake/dist
 exec/lib_hydro/demo/dist
+
+

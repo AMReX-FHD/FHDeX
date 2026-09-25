@@ -97,7 +97,7 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
     ba_temp.enclosedCells();
     long numpts = ba_temp.numPts();
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      sum[d] = sum[d]/(double)(numpts);
+      sum[d] = sum[d]/(Real)(numpts);
     }
   }
 }
@@ -231,7 +231,7 @@ void SumEdge(const std::array<MultiFab, NUM_EDGE>& m1,
     ba_temp.enclosedCells();
     long numpts = ba_temp.numPts();
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      sum[d] = sum[d]/(double)(numpts);
+      sum[d] = sum[d]/(Real)(numpts);
     }
   }
 }
@@ -249,7 +249,7 @@ void SumCC(const amrex::MultiFab& m1,
   if (divide_by_ncells == 1) {
     BoxArray ba_temp = m1.boxArray();
     long numpts = ba_temp.numPts();
-    sum = sum/(double)(numpts);
+    sum = sum/(Real)(numpts);
   }
 }
 

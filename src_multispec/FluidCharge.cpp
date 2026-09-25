@@ -135,7 +135,7 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
 
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             Lorentz_force[i].mult(-1.,0,1);
-            MultiFab::Add(Lorentz_force[i],grad_Epot[i],0,0,1,0);
+            MultiFab::Multiply(Lorentz_force[i],grad_Epot[i],0,0,1,0);
         }
 
         return;
@@ -171,6 +171,12 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
 
     // fill ghost cells for div(-eps*E)
     temp_cc.FillBoundary(geom.periodicity());
+    // temp_cc is single-component, so it cannot carry the two-component
+    // Flory-Huggins contact-angle BC (bc_mass == 4)
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bc_mass_lo[d] != 4 && bc_mass_hi[d] != 4,
+            "ComputeLorentzForce: bc_mass == 4 (contact angle) is not supported for charged fluids");
+    }
     MultiFabPhysBC(temp_cc,geom,0,1,SPEC_BC_COMP);
 
     // average div(-eps*E) to faces, store in Lorentz_force

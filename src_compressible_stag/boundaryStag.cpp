@@ -27,9 +27,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_x_lo[ns];
           sumy = sumy + bc_Yk_x_lo[ns];
        }
-       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
            GetMassfrac(bc_Xk_x_lo,bc_Yk_x_lo);;
-       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
            GetMolfrac(bc_Yk_x_lo,bc_Xk_x_lo);
        }
        else {
@@ -42,21 +42,21 @@ void SetupCWallStag() {
         // if t_lo/hi is positive, compute rho_lo/hi (default)
         // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
 
-        if (p_lo[0] <= 0.0) { // set reservoir pressure to ambient if not specified
+        if (p_lo[0] <= Real(0.0)) { // set reservoir pressure to ambient if not specified
             GpuArray<Real,MAX_SPECIES> massvec;
             for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
             GetPressureGas(p_lo[0],massvec,rho0,T_init[0]);
         }
 
-        if (rho_lo[0] <= 0.0) { // specify reservoir density if not specified
+        if (rho_lo[0] <= Real(0.0)) { // specify reservoir density if not specified
             GetDensity(p_lo[0],rho_lo[0],t_lo[0],bc_Yk_x_lo);
         }
-        else if (t_lo[0] <= 0.0) { // specify reservoir temperature if not specified
+        else if (t_lo[0] <= Real(0.0)) { // specify reservoir temperature if not specified
             Real molmix = 0.;
             for (int n=0; n<nspecies; ++n) {
                 molmix += bc_Yk_x_lo[n]/molmass[n];
             }
-            molmix = 1./molmix;
+            molmix = Real(1.)/molmix;
             t_lo[0] = p_lo[0]*(molmix/Runiv)/rho_lo[0];
         }
     }
@@ -68,9 +68,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_x_hi[ns];
           sumy = sumy + bc_Yk_x_hi[ns];
        }
-       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
           GetMassfrac(bc_Xk_x_hi,bc_Yk_x_hi);
-       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
           GetMolfrac(bc_Yk_x_hi,bc_Xk_x_hi);
        } else {
            Abort("SetupCWallStag: hi-x; mass or mole fractions do not sum to 1");
@@ -82,21 +82,21 @@ void SetupCWallStag() {
         // if t_lo/hi is positive, compute rho_lo/hi (default)
         // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
 
-        if (p_hi[0] <= 0.0) {  // set reservoir pressure to ambient if not specified
+        if (p_hi[0] <= Real(0.0)) {  // set reservoir pressure to ambient if not specified
             GpuArray<Real,MAX_SPECIES> massvec;
             for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
             GetPressureGas(p_hi[0],massvec,rho0,T_init[0]);
         }
 
-        if (rho_hi[0] <= 0.0) { // specify reservoir density  if not specified
+        if (rho_hi[0] <= Real(0.0)) { // specify reservoir density  if not specified
             GetDensity(p_hi[0],rho_hi[0],t_hi[0],bc_Yk_x_hi);
         }
-        else if (t_hi[0] <= 0.0) { // specify reservoir temperature if not specified
+        else if (t_hi[0] <= Real(0.0)) { // specify reservoir temperature if not specified
             Real molmix = 0.;
             for (int n=0; n<nspecies; ++n) {
                 molmix += bc_Yk_x_hi[n]/molmass[n];
             }
-            molmix = 1./molmix;
+            molmix = Real(1.)/molmix;
             t_hi[0] = p_hi[0]*(molmix/Runiv)/rho_hi[0];
         }
     }
@@ -109,9 +109,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_y_lo[ns];
           sumy = sumy + bc_Yk_y_lo[ns];
        }
-       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
           GetMassfrac(bc_Xk_y_lo,bc_Yk_y_lo);
-       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
           GetMolfrac(bc_Yk_y_lo,bc_Xk_y_lo);
        } else {
            Abort("SetupCWallStag: lo-y; mass or mole fractions do not sum to 1");
@@ -123,21 +123,21 @@ void SetupCWallStag() {
         // if t_lo/hi is positive, compute rho_lo/hi (default)
         // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
 
-        if (p_lo[1] <= 0.0) {  // set reservoir pressure to ambient if not specified
+        if (p_lo[1] <= Real(0.0)) {  // set reservoir pressure to ambient if not specified
             GpuArray<Real,MAX_SPECIES> massvec;
             for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
             GetPressureGas(p_lo[1],massvec,rho0,T_init[0]);
         }
 
-        if (rho_lo[1] <= 0.0) { // specify reservoir density  if not specified
+        if (rho_lo[1] <= Real(0.0)) { // specify reservoir density  if not specified
             GetDensity(p_lo[1],rho_lo[1],t_lo[1],bc_Yk_y_lo);
         }
-        else if (t_lo[1] <= 0.0) { // specify reservoir temperature if not specified
+        else if (t_lo[1] <= Real(0.0)) { // specify reservoir temperature if not specified
             Real molmix = 0.;
             for (int n=0; n<nspecies; ++n) {
                 molmix += bc_Yk_y_lo[n]/molmass[n];
             }
-            molmix = 1./molmix;
+            molmix = Real(1.)/molmix;
             t_lo[1] = p_lo[1]*(molmix/Runiv)/rho_lo[1];
         }
     }
@@ -149,9 +149,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_y_hi[ns];
           sumy = sumy + bc_Yk_y_hi[ns];
        }
-       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
           GetMassfrac(bc_Xk_y_hi,bc_Yk_y_hi);
-       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
           GetMolfrac(bc_Yk_y_hi,bc_Xk_y_hi);
        } else {
            Abort("SetupCWallStag: hi-y; mass or mole fractions do not sum to 1");
@@ -163,21 +163,21 @@ void SetupCWallStag() {
         // if t_lo/hi is positive, compute rho_lo/hi (default)
         // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
 
-        if (p_hi[1] <= 0.0) {  // set reservoir pressure to ambient if not specified
+        if (p_hi[1] <= Real(0.0)) {  // set reservoir pressure to ambient if not specified
             GpuArray<Real,MAX_SPECIES> massvec;
             for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
             GetPressureGas(p_hi[1],massvec,rho0,T_init[0]);
         }
 
-        if (rho_hi[1] <= 0.0) { // specify reservoir density  if not specified
+        if (rho_hi[1] <= Real(0.0)) { // specify reservoir density  if not specified
             GetDensity(p_hi[1],rho_hi[1],t_hi[1],bc_Yk_y_hi);
         }
-        else if (t_hi[1] <= 0.0) { // specify reservoir temperature if not specified
+        else if (t_hi[1] <= Real(0.0)) { // specify reservoir temperature if not specified
             Real molmix = 0.;
             for (int n=0; n<nspecies; ++n) {
                 molmix += bc_Yk_y_hi[n]/molmass[n];
             }
-            molmix = 1./molmix;
+            molmix = Real(1.)/molmix;
             t_hi[1] = p_hi[1]*(molmix/Runiv)/rho_hi[1];
         }
     }
@@ -190,9 +190,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_z_lo[ns];
           sumy = sumy + bc_Yk_z_lo[ns];
        }
-       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
           GetMassfrac(bc_Xk_z_lo,bc_Yk_z_lo);
-       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
           GetMolfrac(bc_Yk_z_lo,bc_Xk_z_lo);
        } else {
            Abort("SetupCWallStag: lo-z; mass or mole fractions do not sum to 1");
@@ -204,21 +204,21 @@ void SetupCWallStag() {
         // if t_lo/hi is positive, compute rho_lo/hi (default)
         // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
 
-        if (p_lo[2] <= 0.0) {  // set reservoir pressure to ambient if not specified
+        if (p_lo[2] <= Real(0.0)) {  // set reservoir pressure to ambient if not specified
             GpuArray<Real,MAX_SPECIES> massvec;
             for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
             GetPressureGas(p_lo[2],massvec,rho0,T_init[0]);
         }
 
-        if (rho_lo[2] <= 0.0) { // specify reservoir density  if not specified
+        if (rho_lo[2] <= Real(0.0)) { // specify reservoir density  if not specified
             GetDensity(p_lo[2],rho_lo[2],t_lo[2],bc_Yk_z_lo);
         }
-        else if (t_lo[2] <= 0.0) { // specify reservoir temperature if not specified
+        else if (t_lo[2] <= Real(0.0)) { // specify reservoir temperature if not specified
             Real molmix = 0.;
             for (int n=0; n<nspecies; ++n) {
                 molmix += bc_Yk_z_lo[n]/molmass[n];
             }
-            molmix = 1./molmix;
+            molmix = Real(1.)/molmix;
             t_lo[2] = p_lo[2]*(molmix/Runiv)/rho_lo[2];
         }
     }
@@ -230,9 +230,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_z_hi[ns];
           sumy = sumy + bc_Yk_z_hi[ns];
        }
-       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
           GetMassfrac(bc_Xk_z_hi,bc_Yk_z_hi);
-       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
           GetMolfrac(bc_Yk_z_hi,bc_Xk_z_hi);
        } else {
            Abort("SetupCWallStag: hi-z; mass or mole fractions do not sum to 1");
@@ -244,21 +244,21 @@ void SetupCWallStag() {
         // if t_lo/hi is positive, compute rho_lo/hi (default)
         // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
 
-        if (p_hi[2] <= 0.0) {  // set reservoir pressure to ambient if not specified
+        if (p_hi[2] <= Real(0.0)) {  // set reservoir pressure to ambient if not specified
             GpuArray<Real,MAX_SPECIES> massvec;
             for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
             GetPressureGas(p_hi[2],massvec,rho0,T_init[0]);
         }
 
-        if (rho_hi[2] <= 0.0) { // specify reservoir density  if not specified
+        if (rho_hi[2] <= Real(0.0)) { // specify reservoir density  if not specified
             GetDensity(p_hi[2],rho_hi[2],t_hi[2],bc_Yk_z_hi);
         }
-        else if (t_hi[2] <= 0.0) { // specify reservoir temperature if not specified
+        else if (t_hi[2] <= Real(0.0)) { // specify reservoir temperature if not specified
             Real molmix = 0.;
             for (int n=0; n<nspecies; ++n) {
                 molmix += bc_Yk_z_hi[n]/molmass[n];
             }
-            molmix = 1./molmix;
+            molmix = Real(1.)/molmix;
             t_hi[2] = p_hi[2]*(molmix/Runiv)/rho_hi[2];
         }
     }
@@ -787,7 +787,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/rho);
+                    kinenergy *= (Real(0.125)/rho);
 
                     cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
@@ -826,7 +826,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/rho);
+                    kinenergy *= (Real(0.125)/rho);
 
                     cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
@@ -1739,7 +1739,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/rho);
+                    kinenergy *= (Real(0.125)/rho);
 
                     cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
@@ -1806,7 +1806,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/rho);
+                    kinenergy *= (Real(0.125)/rho);
 
                     cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
@@ -1873,7 +1873,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/rho);
+                    kinenergy *= (Real(0.125)/rho);
 
                     cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
@@ -1940,7 +1940,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/rho);
+                    kinenergy *= (Real(0.125)/rho);
 
                     cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
@@ -2007,7 +2007,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/rho);
+                    kinenergy *= (Real(0.125)/rho);
 
                     cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
@@ -2074,7 +2074,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
                     kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
                     kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/rho);
+                    kinenergy *= (Real(0.125)/rho);
 
                     cons(i,j,k,4) = rho*intenergy + kinenergy;
                 }
@@ -2095,7 +2095,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = concentration   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_lo[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_lo[0] == 1) ? Real(0.) : std::sqrt(Real(2.));
 
         // domain grown nodally based on faceflux_in[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
@@ -2126,7 +2126,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = concentration   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_hi[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_hi[0] == 1) ? Real(0.) : std::sqrt(Real(2.));
 
         // domain grown nodally based on faceflux_in[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
@@ -2158,7 +2158,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = concentration   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_lo[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_lo[1] == 1) ? Real(0.) : std::sqrt(Real(2.));
 
         // domain grown nodally based on faceflux_in[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
@@ -2189,7 +2189,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = concentration   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_hi[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_hi[1] == 1) ? Real(0.) : std::sqrt(Real(2.));
 
         // domain grown nodally based on faceflux_in[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
@@ -2221,7 +2221,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = concentration   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_lo[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_lo[2] == 1) ? Real(0.) : std::sqrt(Real(2.));
 
         // domain grown nodally based on faceflux_in[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
@@ -2252,7 +2252,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = concentration   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_hi[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_hi[2] == 1) ? Real(0.) : std::sqrt(Real(2.));
 
         // domain grown nodally based on faceflux_in[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
@@ -2286,7 +2286,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = adiabatic        : multiply fluxes on wall by 0
         // 2 = isothermal       : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_therm_lo[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_therm_lo[0] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_lo[0] >= 3) factor = 1.0;
 
@@ -2314,7 +2314,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = adiabatic        : multiply fluxes on wall by 0
         // 2 = isothermal       : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_therm_hi[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_therm_hi[0] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_hi[0] >= 3) factor = 1.0;
 
@@ -2343,7 +2343,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = adiabatic        : multiply fluxes on wall by 0
         // 2 = isothermal       : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_therm_lo[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_therm_lo[1] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_lo[1] >= 3) factor = 1.0;
 
@@ -2371,7 +2371,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = adiabatic        : multiply fluxes on wall by 0
         // 2 = isothermal       : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_therm_hi[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_therm_hi[1] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_hi[1] >= 3) factor = 1.0;
 
@@ -2400,7 +2400,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = adiabatic        : multiply fluxes on wall by 0
         // 2 = isothermal       : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_therm_lo[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_therm_lo[2] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_lo[2] >= 3) factor = 1.0;
 
@@ -2428,7 +2428,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = adiabatic        : multiply fluxes on wall by 0
         // 2 = isothermal       : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_therm_hi[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_therm_hi[2] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_hi[2] >= 3) factor = 1.0;
 
@@ -2460,7 +2460,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_vel_lo[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_lo[0] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_lo[0] >= 3) factor = 1.0;
 
@@ -2535,7 +2535,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_vel_hi[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_hi[0] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_hi[0] >= 3) factor = 1.0;
 
@@ -2610,7 +2610,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_vel_lo[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_lo[1] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_lo[1] >= 3) factor = 1.0;
 
@@ -2685,7 +2685,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_vel_hi[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_hi[1] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_hi[1] >= 3) factor = 1.0;
 
@@ -2760,7 +2760,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_vel_lo[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_lo[2] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_lo[2] >= 3) factor = 1.0;
 
@@ -2835,7 +2835,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_vel_hi[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_hi[2] == 1) ? Real(0.) : std::sqrt(Real(2.));
         // reservoir            : unchanged
         if (bc_mass_hi[2] >= 3) factor = 1.0;
 

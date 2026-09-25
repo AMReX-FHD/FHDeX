@@ -25,9 +25,9 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
 
     // fill conc ghost cells
     conc.FillBoundary(geom.periodicity());
-    
+
     Real bc_fraction = 1.;
-    MultiFabPhysBCFH(conc,geom,0,nspecies,bc_fraction);    
+    MultiFabPhysBCFH(conc,geom,0,nspecies,bc_fraction);
 
 //  JBB  check what's in this
 //    Real scale_factor = rhobar[0]*k_B*T_init[0]/molmass[0];
@@ -516,7 +516,13 @@ void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_p
 
     // fill conc ghost cells
     conc.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(conc,geom,0,nspecies,SPEC_BC_COMP);
+    if (use_flory_huggins == 1) {
+        // bc_frac=1 puts the extrapolated value at the ghost cell center, which is
+        // what the face average/difference stencils below expect at a wall
+        MultiFabPhysBCFH(conc,geom,0,nspecies,1.);
+    } else {
+        MultiFabPhysBC(conc,geom,0,nspecies,SPEC_BC_COMP);
+    }
     amrex::Real A_coeff = hamaker_A;
     //A_coeff = -3.5e-14;
     //A_coeff = 4.*1.85e-13;
