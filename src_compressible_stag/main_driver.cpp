@@ -1648,7 +1648,7 @@ void main_driver(const char* argv)
 
             }
 
-            if (ads_wall_dir == 1 && slicepoint != -1) {
+            if (do_2D && ads_wall_dir == 1 && slicepoint != -1) {
 
                 MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
 
