@@ -133,7 +133,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     //y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              //y = prob_lo[1] + (j+0.5)*dx[1] - rad*std::cos(alpha) ;,
 
-                Real r = (AMREX_SPACEDIM == 1) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
+                Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
 
                 if (smoothing_width == 0.) {
 

@@ -2,6 +2,7 @@
 #define MY_KERNEL_H_
 
 #include <AMReX_FArrayBox.H>
+#include "Potentials.H"
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void init_phi (int i, int j, int k,
@@ -44,19 +45,14 @@ void init_int_pot (int i, int j, int k,
                amrex::Array4<amrex::Real> const& U,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
-               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_hi)
+               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_hi,
+               PotentialParams const& pot)
 {
     constexpr double  PI = 3.14159265358979323846264338327950288;
-    amrex::Real eps, R, alpha;
-    // TODO(3D): eps is calibrated for 2D. The convolution C = U*phi is scaled by
-    // the cell volume in AdvancePhiAtLevel.cpp, so the integrated strength of
-    // U = eps*exp(-(r/R)^alpha) changes by roughly a factor of R going 2D -> 3D.
-    // eps needs recalibrating for 3D runs. NOTE: this literal is duplicated in
-    // AmrCoreAdv.cpp (the adv.test_int_pot check) -- change both together.
-    eps = 0.0333*20000.*20.;
-    eps = 0.0333*20000.*6.77;
-    R = 0.1;
-    alpha = 3.;
+    // TODO(3D): amr.ip_eps is calibrated for 2D. The convolution C = U*phi is
+    // scaled by the cell volume in AdvancePhiAtLevel.cpp, so the integrated
+    // strength of U changes by roughly a factor of ip_R going 2D -> 3D.
+    // ip_eps needs recalibrating for 3D runs.
 
 //    shiftinging definit of U by 1/2 for fft
     amrex::Real x,y,z,xlen,ylen,zlen;
@@ -84,7 +80,7 @@ void init_int_pot (int i, int j, int k,
     amrex::Real r = std::sqrt(x*x+y*y);
 #endif
 
-    U(i,j,k) =  eps * std::exp( - std::pow(r/R,alpha));
+    U(i,j,k) = ip_U(r, pot);
 //    U(i,j,k) = std::cos(2*PI*i*dx[0]);
 /*
     U(i,j,k) = 0.;
@@ -129,18 +125,16 @@ void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& stochfluxx,
                      amrex::Array4<amrex::Real> const& C,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv, amrex::Real diff_coeff,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
+                     PotentialParams const& pot)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 0;
-    int inter_pot = 1;
-    amrex::Real alpha = .25;
-    amrex::Real beta = .75;
-    amrex::Real gamma = 5.e-4;
-    gamma = 1.1e-3;
+    const amrex::Real ep_alpha = pot.ep_alpha;
+    const amrex::Real ep_beta  = pot.ep_beta;
+    const amrex::Real ep_gamma = pot.ep_gamma;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -226,7 +220,7 @@ void compute_flux_x (int i, int j, int k,
 
           fluxx(i,j,k,0) = diff_coeff*(phip-phim) * dxinv;
 
-          if(ext_pot == 1) {
+          if(pot.use_ext_pot == 1) {
 
              amrex::Real xloc;
              xloc = i / dxinv;
@@ -234,13 +228,13 @@ void compute_flux_x (int i, int j, int k,
 
              amrex::Real Vsubx;
 
-             Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
+             Vsubx = 2.*(xloc - ep_beta) * (xloc - ep_alpha)* (2.*xloc - ep_alpha - ep_beta) / ep_gamma;
 
              fluxx(i,j,k,0) += phiavg * Vsubx;
 
           }
 
-          if(inter_pot == 1) {
+          if(pot.use_int_pot == 1) {
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
@@ -263,18 +257,14 @@ void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& stochfluxy,
                      amrex::Array4<amrex::Real> const& C,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv, amrex::Real diff_coeff,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
+                     PotentialParams const& pot)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 0;
-    int inter_pot = 1;
-    amrex::Real alpha = .25;
-    amrex::Real beta = .75;
-    amrex::Real gamma = 5.e-4;
-    gamma = 1.1e-3;
+    const amrex::Real ep_gamma = pot.ep_gamma;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -322,7 +312,7 @@ void compute_flux_y (int i, int j, int k,
 
         fluxy(i,j,k,0) = diff_coeff*(phip-phim) * dyinv;
 
-          if(ext_pot == 1) {
+          if(pot.use_ext_pot == 1) {
 
              amrex::Real yloc;
              yloc = j / dyinv;
@@ -330,13 +320,13 @@ void compute_flux_y (int i, int j, int k,
 
              amrex::Real Vsuby;
 
-             Vsuby =0.5* 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
+             Vsuby =0.5* 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / ep_gamma;
 
              fluxy(i,j,k,0) += phiavg * Vsuby;
 
           }
 
-          if(inter_pot == 1) {
+          if(pot.use_int_pot == 1) {
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
@@ -362,18 +352,14 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& stochfluxz,
                      amrex::Array4<amrex::Real> const& C,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv, amrex::Real diff_coeff,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
+                     PotentialParams const& pot)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    int ext_pot = 0;
-    int inter_pot = 1;
-    amrex::Real alpha = .25;
-    amrex::Real beta = .75;
-    amrex::Real gamma = 5.e-4;
-    gamma = 1.1e-3;
+    const amrex::Real ep_gamma = pot.ep_gamma;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -419,7 +405,7 @@ void compute_flux_z (int i, int j, int k,
 
         fluxz(i,j,k,0) = diff_coeff*(phip-phim) * dzinv;
 
-          if(ext_pot == 1) {
+          if(pot.use_ext_pot == 1) {
 
              amrex::Real zloc;
              zloc = k / dzinv;
@@ -427,18 +413,18 @@ void compute_flux_z (int i, int j, int k,
 
              // TODO(3D): Vsubz is a verbatim copy of the y-direction cubic well
              // in compute_flux_y -- there is no physically defined z potential.
-             // Inert while ext_pot is 0 above, but wrong if it is ever enabled.
+             // Inert unless amr.use_ext_pot = 1, but wrong if it is ever enabled.
              // Whatever is chosen here must be mirrored in the particle drift in
              // StochasticPC::AdvectParticles (use_ext_pot branches).
              amrex::Real Vsubz;
 
-             Vsubz =0.5* 4.*(zloc - .5)*(zloc - .5)*(zloc - .5) / gamma;
+             Vsubz =0.5* 4.*(zloc - .5)*(zloc - .5)*(zloc - .5) / ep_gamma;
 
              fluxz(i,j,k,0) += phiavg * Vsubz;
 
           }
 
-          if(inter_pot == 1) {
+          if(pot.use_int_pot == 1) {
 
              amrex::Real phiavg = 0.5*(phim+phip);
 

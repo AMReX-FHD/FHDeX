@@ -12,6 +12,8 @@
 #include <AMReX_FillPatcher.H>
 #include <AMReX_FFT.H>
 
+#include "Potentials.H"
+
 #ifdef AMREX_USE_OMP
 #   include <omp.h>
 #endif
@@ -114,6 +116,9 @@ private:
     // initialize FFT state for level 0 (used on first init and restart)
     void InitFFTLevel0 ();
 
+    // print min/max of Re(Uhat) over all k and the k where each occurs
+    void PrintUhatMinMax ();
+
     // Pack pointers to phi_old and/or phi_new and associated times.
     void GetData (int lev, amrex::Real time, amrex::Vector<amrex::MultiFab*>& data,
                   amrex::Vector<amrex::Real>& datatime);
@@ -169,6 +174,9 @@ private:
 
     amrex::MultiFab U;
     amrex::MultiFab C;
+
+    // interaction (ip_) and external (ep_) potential parameters
+    PotentialParams pot;
 
     // FFT setup (cache these in real code)
     std::unique_ptr<amrex::FFT::R2C<amrex::Real, amrex::FFT::Direction::forward>> r2c_forward;

@@ -491,6 +491,7 @@ AmrCoreAdv::InitFFTLevel0 ()
     const auto problo = Geom(lev).ProbLoArray();
     const auto probhi = Geom(lev).ProbHiArray();
     const auto dx     = Geom(lev).CellSizeArray();
+    const PotentialParams pot_loc = pot;
 
     for (MFIter mfi(phi_new[lev]); mfi.isValid(); ++mfi)
     {
@@ -499,7 +500,7 @@ AmrCoreAdv::InitFFTLevel0 ()
         amrex::ParallelFor(vbx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
-            init_int_pot(i,j,k,U_arr,dx,problo,probhi);
+            init_int_pot(i,j,k,U_arr,dx,problo,probhi,pot_loc);
         });
     }
 
@@ -526,7 +527,7 @@ AmrCoreAdv::InitFFTLevel0 ()
             }
 
             const Real umax = amrex::get<0>(reduce_data_max.value());
-            const Real eps = 0.0333 * 20000.0;
+            const Real eps = pot.ip_eps;
             const Real umax_err = std::abs(umax - eps);
 
             if (test_int_pot) {
@@ -583,6 +584,93 @@ AmrCoreAdv::InitFFTLevel0 ()
     }
 
     r2c_forward->forward(U, Uhat);
+
+    PrintUhatMinMax();
+}
+
+void
+AmrCoreAdv::PrintUhatMinMax ()
+{
+    const int lev = 0;
+    const Box& domain = Geom(lev).Domain();
+    const IntVect nk = domain.length();
+
+    // Uhat is in natural (x,y,z) order: i in [0,nx/2], j in [0,ny), k in [0,nz)
+    const Long nky = nk[1];
+#if (AMREX_SPACEDIM > 2)
+    const Long nkz = nk[2];
+#else
+    const Long nkz = 1;
+#endif
+
+    // Pass 1: min and max of Re(Uhat)
+    ReduceOps<ReduceOpMin, ReduceOpMax> reduce_op;
+    ReduceData<Real, Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    for (MFIter mfi(Uhat); mfi.isValid(); ++mfi) {
+        auto const& u = Uhat.const_array(mfi);
+        reduce_op.eval(mfi.fabbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            const Real re = u(i,j,k).real();
+            return {re, re};
+        });
+    }
+    auto hv = reduce_data.value(reduce_op);
+    Real umin = amrex::get<0>(hv);
+    Real umax = amrex::get<1>(hv);
+    ParallelDescriptor::ReduceRealMin(umin);
+    ParallelDescriptor::ReduceRealMax(umax);
+
+    // Pass 2: smallest flattened index at which the min and max occur
+    const Long nomatch = std::numeric_limits<Long>::max();
+    ReduceOps<ReduceOpMin, ReduceOpMin> reduce_op_idx;
+    ReduceData<Long, Long> reduce_data_idx(reduce_op_idx);
+    using ReduceTupleIdx = typename decltype(reduce_data_idx)::Type;
+    for (MFIter mfi(Uhat); mfi.isValid(); ++mfi) {
+        auto const& u = Uhat.const_array(mfi);
+        reduce_op_idx.eval(mfi.fabbox(), reduce_data_idx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTupleIdx
+        {
+            const Real re = u(i,j,k).real();
+            const Long idx = (Long(i)*nky + j)*nkz + k;
+            return {(re == umin) ? idx : nomatch, (re == umax) ? idx : nomatch};
+        });
+    }
+    auto hi = reduce_data_idx.value(reduce_op_idx);
+    Long idx_min = amrex::get<0>(hi);
+    Long idx_max = amrex::get<1>(hi);
+    ParallelDescriptor::ReduceLongMin(idx_min);
+    ParallelDescriptor::ReduceLongMin(idx_max);
+
+    const Real cellvol = AMREX_D_TERM(Geom(lev).CellSize(0),
+                                     *Geom(lev).CellSize(1),
+                                     *Geom(lev).CellSize(2));
+
+    auto print_k = [&] (const char* label, Real val, Long idx)
+    {
+        const int i = static_cast<int>(idx / (nky*nkz));
+        const int j = static_cast<int>((idx / nkz) % nky);
+        const int k = static_cast<int>(idx % nkz);
+        // signed wavenumbers; the x direction only stores [0,nx/2]
+        int kvec[3] = {i, (j <= nk[1]/2) ? j : j - nk[1], 0};
+#if (AMREX_SPACEDIM > 2)
+        kvec[2] = (k <= nk[2]/2) ? k : k - nk[2];
+#else
+        amrex::ignore_unused(k);
+#endif
+        Real kmag2 = 0.;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            const Real kd = 2.*amrex::Math::pi<Real>()*kvec[d]/Geom(lev).ProbLength(d);
+            kmag2 += kd*kd;
+        }
+        amrex::Print() << "Uhat " << label << " Re = " << val
+                       << " (times cellvol = " << val*cellvol << ")"
+                       << " at k = (" << AMREX_D_TERM(kvec[0], << "," << kvec[1], << "," << kvec[2]) << ")"
+                       << " |k| = " << std::sqrt(kmag2) << "\n";
+    };
+    print_k("min", umin, idx_min);
+    print_k("max", umax, idx_max);
 }
 
 // tag all cells for refinement
@@ -693,8 +781,10 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.query("do_subcycle", do_subcycle);
     }
 
+    read_potential_params(pot);
+
 #ifdef AMREX_PARTICLES
-        particleData.init_particle_params(max_level);
+        particleData.init_particle_params(max_level, pot);
 #endif
 }
 
