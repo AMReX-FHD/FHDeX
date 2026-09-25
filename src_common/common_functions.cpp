@@ -83,6 +83,7 @@ amrex::Vector<amrex::Real> common::u_init;
 amrex::Real                common::perturb_width;
 AMREX_GPU_MANAGED amrex::Real common::smoothing_width;
 AMREX_GPU_MANAGED amrex::Real common::radius_cyl;
+AMREX_GPU_MANAGED amrex::Real common::bubble_offset;
 AMREX_GPU_MANAGED amrex::Real common::radius_outer;
 AMREX_GPU_MANAGED amrex::Real common::film_thickness;
 AMREX_GPU_MANAGED amrex::Real common::surf_thickness;
@@ -471,6 +472,7 @@ void InitializeCommonNamespace() {
     perturb_width = 0.;
     smoothing_width = 1.;
     radius_cyl = 0.;
+    bubble_offset = 0.;
     radius_outer = 0.;
     film_thickness = 0.;
     surf_thickness = 0.;
@@ -799,6 +801,7 @@ void InitializeCommonNamespace() {
     pp.query("perturb_width",perturb_width);
     pp.query("smoothing_width",smoothing_width);
     pp.query("radius_cyl",radius_cyl);
+    pp.query("bubble_offset",bubble_offset);
     pp.query("radius_outer",radius_outer);
     pp.query("film_thickness",film_thickness);
     pp.query("surf_thickness",surf_thickness);
