@@ -8,6 +8,9 @@
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_Math.H>
 
+#include <iomanip>
+#include <sstream>
+
 #ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
@@ -454,7 +457,9 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
 //                phi_rescale(i,j,k,phi_arr,phisum);
-                  phi_arr(i,j,k,0) /= phisum;
+                  for (int n = 0; n < Ncomp; ++n) {
+                      phi_arr(i,j,k,n) /= phisum;
+                  }
             });
         }
 
@@ -586,6 +591,51 @@ AmrCoreAdv::InitFFTLevel0 ()
     r2c_forward->forward(U, Uhat);
 
     PrintUhatMinMax();
+    ComputeInteractionStiffness();
+}
+
+void
+AmrCoreAdv::ComputeInteractionStiffness ()
+{
+    int_stiff = 0.;
+    if (!pot.use_int_pot) { return; }
+
+    const int lev = 0;
+    const IntVect nk = Geom(lev).Domain().length();
+    const auto dx = Geom(lev).CellSizeArray();
+    const Real cellvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
+    const Real pi = amrex::Math::pi<Real>();
+
+    // The interaction flux phi_face*(C_i - C_{i-1})/dx followed by the flux
+    // divergence has the discrete-Laplacian symbol
+    //   keff^2 = sum_d 4/dx_d^2 sin^2(pi m_d/n_d)
+    // so linearized about phi the operator is -keff^2 [D + phi*Uhat(k)*cellvol].
+    ReduceOps<ReduceOpMax> reduce_op;
+    ReduceData<Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    for (MFIter mfi(Uhat); mfi.isValid(); ++mfi) {
+        auto const& u = Uhat.const_array(mfi);
+        reduce_op.eval(mfi.fabbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            amrex::ignore_unused(k);
+            const int m[3] = {i, j, k};
+            Real keff2 = 0.;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                const Real s = std::sin(pi*m[d]/nk[d]);
+                keff2 += 4.*s*s/(dx[d]*dx[d]);
+            }
+            return {keff2 * amrex::max(u(i,j,k).real()*cellvol, Real(0.))};
+        });
+    }
+    int_stiff = amrex::get<0>(reduce_data.value(reduce_op));
+    ParallelDescriptor::ReduceRealMax(int_stiff);
+
+    Real keff2_max = 0.;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) { keff2_max += 4./(dx[d]*dx[d]); }
+    amrex::Print() << "Explicit stability: D*keff2_max = " << diff_coeff*keff2_max
+                   << " interaction max_k keff^2*Uhat*cellvol = " << int_stiff
+                   << " (multiplied by max phi in EstTimeStep)\n";
 }
 
 void
@@ -603,9 +653,49 @@ AmrCoreAdv::PrintUhatMinMax ()
     const Long nkz = 1;
 #endif
 
-    // Pass 1: min and max of Re(Uhat)
-    ReduceOps<ReduceOpMin, ReduceOpMax> reduce_op;
-    ReduceData<Real, Real> reduce_data(reduce_op);
+    const Real cellvol = AMREX_D_TERM(Geom(lev).CellSize(0),
+                                     *Geom(lev).CellSize(1),
+                                     *Geom(lev).CellSize(2));
+
+    // phi is normalized to integrate to 1 (MakeNewLevelFromScratch), so the
+    // uniform state is mu0 = 1/L^d
+    GpuArray<Real,AMREX_SPACEDIM> twopi_over_L;
+    Real dom_vol = 1.;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        twopi_over_L[d] = 2.*amrex::Math::pi<Real>()/Geom(lev).ProbLength(d);
+        dom_vol *= Geom(lev).ProbLength(d);
+    }
+    const Real mu0 = 1./dom_vol;
+    const Real D = diff_coeff;
+    const int nkx_i = nk[0];
+    const int nky_i = nk[1];
+#if (AMREX_SPACEDIM > 2)
+    const int nkz_i = nk[2];
+#endif
+    amrex::ignore_unused(nkx_i);
+
+    // |k|^2 of spectral cell (i,j,k) using signed wavenumbers
+    auto kmag2_of = [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) -> Real
+    {
+        const Real kx = i*twopi_over_L[0];
+        const Real ky = ((j <= nky_i/2) ? j : j - nky_i)*twopi_over_L[1];
+#if (AMREX_SPACEDIM > 2)
+        const Real kz = ((k <= nkz_i/2) ? k : k - nkz_i)*twopi_over_L[2];
+        return kx*kx + ky*ky + kz*kz;
+#else
+        amrex::ignore_unused(k);
+        return kx*kx + ky*ky;
+#endif
+    };
+
+    // Linear growth rate about mu0: sigma(k) = -k^2 [D + mu0 * Uhat(k)*cellvol].
+    // k = 0 is the conserved mass and is excluded from the stability quantities.
+    const Real big = std::numeric_limits<Real>::max();
+
+    // Pass 1: min and max of Re(Uhat) over all k; min of Re(Uhat) and max of
+    // sigma over k != 0
+    ReduceOps<ReduceOpMin, ReduceOpMax, ReduceOpMin, ReduceOpMax> reduce_op;
+    ReduceData<Real, Real, Real, Real> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
     for (MFIter mfi(Uhat); mfi.isValid(); ++mfi) {
         auto const& u = Uhat.const_array(mfi);
@@ -613,19 +703,25 @@ AmrCoreAdv::PrintUhatMinMax ()
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             const Real re = u(i,j,k).real();
-            return {re, re};
+            const bool kzero = (i == 0 && j == 0 && k == 0);
+            const Real sigma = -kmag2_of(i,j,k) * (D + mu0*re*cellvol);
+            return {re, re, kzero ? big : re, kzero ? -big : sigma};
         });
     }
     auto hv = reduce_data.value(reduce_op);
-    Real umin = amrex::get<0>(hv);
-    Real umax = amrex::get<1>(hv);
+    Real umin    = amrex::get<0>(hv);
+    Real umax    = amrex::get<1>(hv);
+    Real umin_nz = amrex::get<2>(hv);
+    Real sigmax  = amrex::get<3>(hv);
     ParallelDescriptor::ReduceRealMin(umin);
     ParallelDescriptor::ReduceRealMax(umax);
+    ParallelDescriptor::ReduceRealMin(umin_nz);
+    ParallelDescriptor::ReduceRealMax(sigmax);
 
-    // Pass 2: smallest flattened index at which the min and max occur
+    // Pass 2: smallest flattened index at which each extremum occurs
     const Long nomatch = std::numeric_limits<Long>::max();
-    ReduceOps<ReduceOpMin, ReduceOpMin> reduce_op_idx;
-    ReduceData<Long, Long> reduce_data_idx(reduce_op_idx);
+    ReduceOps<ReduceOpMin, ReduceOpMin, ReduceOpMin, ReduceOpMin> reduce_op_idx;
+    ReduceData<Long, Long, Long, Long> reduce_data_idx(reduce_op_idx);
     using ReduceTupleIdx = typename decltype(reduce_data_idx)::Type;
     for (MFIter mfi(Uhat); mfi.isValid(); ++mfi) {
         auto const& u = Uhat.const_array(mfi);
@@ -633,21 +729,27 @@ AmrCoreAdv::PrintUhatMinMax ()
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTupleIdx
         {
             const Real re = u(i,j,k).real();
+            const bool kzero = (i == 0 && j == 0 && k == 0);
+            const Real sigma = -kmag2_of(i,j,k) * (D + mu0*re*cellvol);
             const Long idx = (Long(i)*nky + j)*nkz + k;
-            return {(re == umin) ? idx : nomatch, (re == umax) ? idx : nomatch};
+            return {(re == umin) ? idx : nomatch,
+                    (re == umax) ? idx : nomatch,
+                    (!kzero && re == umin_nz) ? idx : nomatch,
+                    (!kzero && sigma == sigmax) ? idx : nomatch};
         });
     }
     auto hi = reduce_data_idx.value(reduce_op_idx);
-    Long idx_min = amrex::get<0>(hi);
-    Long idx_max = amrex::get<1>(hi);
+    Long idx_min    = amrex::get<0>(hi);
+    Long idx_max    = amrex::get<1>(hi);
+    Long idx_min_nz = amrex::get<2>(hi);
+    Long idx_sigmax = amrex::get<3>(hi);
     ParallelDescriptor::ReduceLongMin(idx_min);
     ParallelDescriptor::ReduceLongMin(idx_max);
+    ParallelDescriptor::ReduceLongMin(idx_min_nz);
+    ParallelDescriptor::ReduceLongMin(idx_sigmax);
 
-    const Real cellvol = AMREX_D_TERM(Geom(lev).CellSize(0),
-                                     *Geom(lev).CellSize(1),
-                                     *Geom(lev).CellSize(2));
-
-    auto print_k = [&] (const char* label, Real val, Long idx)
+    // "(kx,ky[,kz]) |k| = ..." for a flattened spectral index
+    auto k_string = [&] (Long idx)
     {
         const int i = static_cast<int>(idx / (nky*nkz));
         const int j = static_cast<int>((idx / nkz) % nky);
@@ -656,21 +758,33 @@ AmrCoreAdv::PrintUhatMinMax ()
         int kvec[3] = {i, (j <= nk[1]/2) ? j : j - nk[1], 0};
 #if (AMREX_SPACEDIM > 2)
         kvec[2] = (k <= nk[2]/2) ? k : k - nk[2];
-#else
-        amrex::ignore_unused(k);
 #endif
-        Real kmag2 = 0.;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            const Real kd = 2.*amrex::Math::pi<Real>()*kvec[d]/Geom(lev).ProbLength(d);
-            kmag2 += kd*kd;
-        }
+        std::ostringstream os;
+        os << std::setprecision(10)
+           << "(" << AMREX_D_TERM(kvec[0], << "," << kvec[1], << "," << kvec[2]) << ")"
+           << " |k| = " << std::sqrt(kmag2_of(i,j,k));
+        return os.str();
+    };
+
+    auto print_k = [&] (const char* label, Real val, Long idx)
+    {
         amrex::Print() << "Uhat " << label << " Re = " << val
                        << " (times cellvol = " << val*cellvol << ")"
-                       << " at k = (" << AMREX_D_TERM(kvec[0], << "," << kvec[1], << "," << kvec[2]) << ")"
-                       << " |k| = " << std::sqrt(kmag2) << "\n";
+                       << " at k = " << k_string(idx) << "\n";
     };
     print_k("min", umin, idx_min);
     print_k("max", umax, idx_max);
+
+    // Linear stability of the uniform state
+    amrex::Print() << "Linear stability: mu0 = 1/L^d = " << mu0 << " D = " << D << "\n";
+    print_k("min over k != 0,", umin_nz, idx_min_nz);
+    if (D > 0.) {
+        amrex::Print() << "  Lambda = -mu0*Uhat_min*cellvol/D = " << -mu0*umin_nz*cellvol/D
+                       << " (unstable if > 1)\n";
+    }
+    amrex::Print() << "  max growth rate sigma = " << sigmax
+                   << " at k = " << k_string(idx_sigmax)
+                   << ((sigmax > 0.) ? "  -> UNSTABLE" : "  -> STABLE") << "\n";
 }
 
 // tag all cells for refinement
@@ -1070,17 +1184,25 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
 {
     BL_PROFILE("AmrCoreAdv::EstTimeStep()");
 
-    Real dt_est = std::numeric_limits<Real>::max();
-
     const Real* dx  =  geom[lev].CellSize();
 
-    Real coeff = AMREX_D_TERM(   2./(dx[0]*dx[0]),
-                               + 2./(dx[1]*dx[1]),
-                               + 2./(dx[2]*dx[2]) );
-    Real est = diff_coeff / (coeff);
-    dt_est = amrex::min(dt_est, est);
+    // Forward Euler is stable when dt * lambda_max <= 2, where lambda_max is the
+    // largest eigenvalue of the operator linearized about phi:
+    //   lambda_max <= D*keff2_max + max(phi)*int_stiff
+    // with keff2_max = sum_d 4/dx_d^2 (pure diffusion gives dt <= dx^2/(2 d D)).
+    // cfl is the fraction of this limit that is used.
+    Real keff2_max = AMREX_D_TERM(   4./(dx[0]*dx[0]),
+                                   + 4./(dx[1]*dx[1]),
+                                   + 4./(dx[2]*dx[2]) );
+    Real lambda_max = diff_coeff * keff2_max;
+    if (pot.use_int_pot && int_stiff > 0.) {
+        lambda_max += amrex::max(phi_new[lev].max(0), Real(0.)) * int_stiff;
+    }
 
-    dt_est *= cfl;
+    Real dt_est = std::numeric_limits<Real>::max();
+    if (lambda_max > 0.) {
+        dt_est = cfl * 2. / lambda_max;
+    }
 
     return dt_est;
 }

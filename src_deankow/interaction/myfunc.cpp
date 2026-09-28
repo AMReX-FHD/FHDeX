@@ -45,7 +45,8 @@ void advance_phi (MultiFab& phi_old,
                                        *(probhi[1]-problo[1]),
                                        *(probhi[2]-problo[2]));
 
-    variance /= dom_vol;
+//  I  don't think this is correct
+//  variance /= dom_vol;
 
 
   if(dorand != 0.){

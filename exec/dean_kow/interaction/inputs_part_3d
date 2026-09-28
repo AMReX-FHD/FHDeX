@@ -11,12 +11,10 @@ amrex.fpe_trap_invalid = 1
 # *****************************************************************
 # Specific to this application
 # *****************************************************************
-diff_coeff = 0.5
-diff_coeff = .46
+diff_coeff = .25
 alg_type = 0
 dorand = 1.
-num_part = 81920.
-num_part = 20480.
+num_part = 20000000.
 
 
 # *****************************************************************
@@ -42,23 +40,19 @@ amr.v              = 1       # verbosity in Amr
 # Resolution and refinement
 # *****************************************************************
 
-amr.n_cell          = 256 256
-amr.max_grid_size_x = 16 16 64
-amr.max_grid_size_y = 16 16 64
-amr.max_grid_size_x = 64 64 64
-amr.max_grid_size_y = 64 64 64
-amr.n_cell          = 64 64  
-amr.n_cell          = 32 32 
+amr.n_cell          = 64 64 64
+amr.max_grid_size_x = 32
+amr.max_grid_size_y = 32
+amr.max_grid_size_z = 32
 
 amr.max_level       = 1
 amr.use_particles   = 1      # Turn particles on or off
-amr.ip_range   = 0.25      # interaction potential cutoff radius
 amr.ip_range   = 0.3125      # interaction potential cutoff radius
 
 # Interaction potential (ip_ prefix); defaults shown
 amr.use_int_pot = 1        # 1 = on, 0 = off
 amr.ip_type     = gema     # functional form: gema = ip_eps*exp(-(r/ip_R)^ip_alpha)
-amr.ip_eps      = 666.
+amr.ip_eps      = 4509.
 amr.ip_R        = 0.1
 amr.ip_alpha    = 3.
 
@@ -107,13 +101,13 @@ adv.phierr = 10.
 # *****************************************************************
 # Plotfile name and frequency
 # *****************************************************************
-amr.plot_file  = plt_pp_   # root name of plot file
+amr.plot_file  = plt_pp_3d_   # root name of plot file
 amr.plot_int   =  100    # number of timesteps between plot files
                         # if negative then no plot files will be written
 
 # *****************************************************************
 # Checkpoint name and frequency
 # *****************************************************************
-amr.chk_file = chk      # root name of checkpoint file
+amr.chk_file = chk_pp_3d_      # root name of checkpoint file
 amr.chk_int  = -1       # number of timesteps between checkpoint files
                         # if negative then no checkpoint files will be written
