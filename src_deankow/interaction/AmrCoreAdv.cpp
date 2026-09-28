@@ -532,7 +532,7 @@ AmrCoreAdv::InitFFTLevel0 ()
             }
 
             const Real umax = amrex::get<0>(reduce_data_max.value());
-            const Real eps = pot.ip_eps;
+            const Real eps = ip_U(0.0, pot);
             const Real umax_err = std::abs(umax - eps);
 
             if (test_int_pot) {
@@ -637,6 +637,70 @@ AmrCoreAdv::ComputeInteractionStiffness ()
                    << " interaction max_k keff^2*Uhat*cellvol = " << int_stiff
                    << " (multiplied by max phi in EstTimeStep)\n";
 }
+
+namespace {
+
+// Continuum (infinite-domain) linear stability of the uniform state mu0 for
+// the interaction kernel; see STABILITY.md. uhat_min_disc is the discrete
+// min over k != 0 of Uhat*cellvol, printed alongside for comparison.
+void
+PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmin,
+                         Real uhat_min_disc)
+{
+    if (!pot.use_int_pot) { return; }
+
+    const Real pi = amrex::Math::pi<Real>();
+    const Real R = pot.ip_R;
+    const Real eps = pot.ip_eps;
+    const Real d = AMREX_SPACEDIM;
+
+    Real uhat0 = 0.;
+    if (pot.ip_type == IntPotType::HK) {
+        // Uhat(k) = eps*R^(d+1)*S(kR), S(q) = 2(2pi)^(d/2) J_{d/2+1}(q)/q^(d/2+1).
+        // S(0) = pi/2 (2D), 8pi/15 (3D); the negative lobe bottoms out at the
+        // first zero of J_{d/2+2}: q = 6.38016 (2D), 6.98793 (3D).
+#if (AMREX_SPACEDIM == 2)
+        const Real S0 = pi/2.;
+        const Real Smin = -0.0920791;
+        const Real qmin = 6.38016;
+#else
+        const Real S0 = 8.*pi/15.;
+        const Real Smin = -0.0688719;
+        const Real qmin = 6.98793;
+#endif
+        const Real scale = eps*std::pow(R, d+1.);
+        uhat0 = scale*S0;
+        const Real uhat_min = (eps > 0.) ? scale*Smin : uhat0;
+        amrex::Print() << "Continuum stability (HK): Uhat(0) = " << uhat0
+                       << " Uhat min = " << uhat_min
+                       << " (discrete min over k != 0 = " << uhat_min_disc << ")\n";
+        if (eps > 0.) {
+            const Real dcrit = mu0*scale*std::abs(Smin);
+            amrex::Print() << "  repulsive: D_crit = mu0*eps*R^(d+1)*|S_min| = " << dcrit
+                           << " D/D_crit = " << D/dcrit
+                           << ((D < dcrit) ? "  -> UNSTABLE" : "  -> STABLE")
+                           << ", selected wavelength = " << 2.*pi*R/qmin << "\n";
+        }
+        if (R/dxmin < 8.) {
+            amrex::Print() << "  WARNING: ip_R/dx = " << R/dxmin
+                           << " < 8; the HK kernel and its ~R cluster wavelength are under-resolved\n";
+        }
+    } else {
+        // Uhat(0) = eps * 2 pi^(d/2)/Gamma(d/2) * R^d/alpha * Gamma(d/alpha)
+        const Real alpha = pot.ip_alpha;
+        uhat0 = eps*2.*std::pow(pi, d/2.)/std::tgamma(d/2.)
+              * std::pow(R, d)/alpha*std::tgamma(d/alpha);
+        amrex::Print() << "Continuum stability (GEMA): Uhat(0) = " << uhat0 << "\n";
+    }
+
+    if (eps < 0. && D > 0.) {
+        const Real lambda = mu0*std::abs(uhat0)/D;
+        amrex::Print() << "  attractive: Lambda = mu0*|Uhat(0)|/D = " << lambda
+                       << ((lambda > 1.) ? "  -> UNSTABLE" : "  -> STABLE") << "\n";
+    }
+}
+
+} // namespace
 
 void
 AmrCoreAdv::PrintUhatMinMax ()
@@ -785,6 +849,10 @@ AmrCoreAdv::PrintUhatMinMax ()
     amrex::Print() << "  max growth rate sigma = " << sigmax
                    << " at k = " << k_string(idx_sigmax)
                    << ((sigmax > 0.) ? "  -> UNSTABLE" : "  -> STABLE") << "\n";
+
+    Real dxmin = Geom(lev).CellSize(0);
+    for (int d = 1; d < AMREX_SPACEDIM; ++d) { dxmin = amrex::min(dxmin, Geom(lev).CellSize(d)); }
+    PrintContinuumStability(pot, mu0, D, dxmin, umin_nz*cellvol);
 }
 
 // tag all cells for refinement

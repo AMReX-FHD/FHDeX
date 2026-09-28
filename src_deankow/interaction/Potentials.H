@@ -19,7 +19,8 @@
 // value here, a name in read_potential_params, and a case in ip_U and
 // ip_dUdr_over_r.
 enum IntPotType : int {
-    GEMA = 0   // generalized exponential model: U = ip_eps*exp(-(r/ip_R)^ip_alpha)
+    GEMA = 0,  // generalized exponential model: U = ip_eps*exp(-(r/ip_R)^ip_alpha)
+    HK   = 1   // U = ip_eps*ip_R*(1-(r/ip_R)^2) for r < ip_R, 0 otherwise
 };
 
 struct PotentialParams
@@ -45,6 +46,12 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real ip_U (amrex::Real r, PotentialParams const& pot) noexcept
 {
     switch (pot.ip_type) {
+    case IntPotType::HK:
+    {
+        if (r >= pot.ip_R) { return 0.0; }
+        const amrex::Real s = r/pot.ip_R;
+        return pot.ip_eps * pot.ip_R * (1.0 - s*s);
+    }
     case IntPotType::GEMA:
     default:
         return pot.ip_eps * std::exp(-std::pow(r/pot.ip_R, pot.ip_alpha));
@@ -59,6 +66,8 @@ amrex::Real ip_dUdr_over_r (amrex::Real r, PotentialParams const& pot) noexcept
     if (r <= 0.0) { return 0.0; }
     if (pot.ip_range > 0.0 && r >= pot.ip_range) { return 0.0; }
     switch (pot.ip_type) {
+    case IntPotType::HK:
+        return (r < pot.ip_R) ? -2.0 * pot.ip_eps / pot.ip_R : 0.0;
     case IntPotType::GEMA:
     default:
     {
@@ -89,8 +98,10 @@ inline void read_potential_params (PotentialParams& pot)
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     if (ip_type_name == "gema") {
         pot.ip_type = IntPotType::GEMA;
+    } else if (ip_type_name == "hk") {
+        pot.ip_type = IntPotType::HK;
     } else {
-        amrex::Abort("Unknown amr.ip_type = " + ip_type_name + "; valid types are: gema");
+        amrex::Abort("Unknown amr.ip_type = " + ip_type_name + "; valid types are: gema, hk");
     }
     pp.query("ip_eps", pot.ip_eps);
     pp.query("ip_R", pot.ip_R);
@@ -104,7 +115,11 @@ inline void read_potential_params (PotentialParams& pot)
 
     if (pot.use_int_pot) {
         if (pot.ip_R <= 0.0) { amrex::Abort("amr.ip_R must be positive"); }
-        if (pot.ip_alpha <= 0.0) { amrex::Abort("amr.ip_alpha must be positive"); }
+        if (pot.ip_type == IntPotType::GEMA && pot.ip_alpha <= 0.0) { amrex::Abort("amr.ip_alpha must be positive"); }
+    }
+    // HK has compact support, so its exact particle cutoff is ip_R
+    if (pot.use_int_pot && pot.ip_type == IntPotType::HK && pot.ip_range <= 0.0) {
+        pot.ip_range = pot.ip_R;
     }
     if (pot.use_ext_pot && pot.ep_gamma <= 0.0) {
         amrex::Abort("amr.ep_gamma must be positive");
@@ -113,9 +128,11 @@ inline void read_potential_params (PotentialParams& pot)
     amrex::Print() << "Interaction potential: use_int_pot = " << pot.use_int_pot
                    << " ip_type = " << ip_type_name
                    << " ip_eps = " << pot.ip_eps
-                   << " ip_R = " << pot.ip_R
-                   << " ip_alpha = " << pot.ip_alpha
-                   << " ip_range = " << pot.ip_range << "\n";
+                   << " ip_R = " << pot.ip_R;
+    if (pot.ip_type == IntPotType::GEMA) {
+        amrex::Print() << " ip_alpha = " << pot.ip_alpha;
+    }
+    amrex::Print() << " ip_range = " << pot.ip_range << "\n";
     amrex::Print() << "External potential: use_ext_pot = " << pot.use_ext_pot
                    << " ep_alpha = " << pot.ep_alpha
                    << " ep_beta = " << pot.ep_beta
