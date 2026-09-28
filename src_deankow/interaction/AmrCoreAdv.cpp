@@ -527,16 +527,20 @@ AmrCoreAdv::InitFFTLevel0 ()
                 reduce_op_max.eval(bx, reduce_data_max,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
                 {
-                    return ReduceTuple{U_arr(i,j,k)};
+                    // U at the r = 0 cell; the kernel's peak for gema and hk
+                    // but not for morse, whose U(0) is below its tail
+                    const bool origin = (i == 0 && j == 0 && k == 0);
+                    return ReduceTuple{origin ? U_arr(i,j,k) : std::numeric_limits<Real>::lowest()};
                 });
             }
 
-            const Real umax = amrex::get<0>(reduce_data_max.value());
+            Real umax = amrex::get<0>(reduce_data_max.value());
+            ParallelDescriptor::ReduceRealMax(umax);
             const Real eps = ip_U(0.0, pot);
             const Real umax_err = std::abs(umax - eps);
 
             if (test_int_pot) {
-                amrex::Print() << "IntPotTest max(U)=" << umax
+                amrex::Print() << "IntPotTest U(0)=" << umax
                                << " expected=" << eps
                                << " abs_err=" << umax_err << "\n";
             }
@@ -585,6 +589,20 @@ AmrCoreAdv::InitFFTLevel0 ()
                     amrex::Print() << "IntPotSymTest max_abs_diff=" << max_sym_err << "\n";
                 }
             }
+        }
+    }
+
+    // The mesh kernel is not truncated; it is wrapped at half the box, so its
+    // tail there must be negligible
+    if (pot.use_int_pot) {
+        Real lhalf = 0.5*Geom(lev).ProbLength(0);
+        for (int d = 1; d < AMREX_SPACEDIM; ++d) { lhalf = amrex::min(lhalf, 0.5*Geom(lev).ProbLength(d)); }
+        const Real uscale = ip_Uscale(pot, lhalf);
+        const Real uwrap = std::abs(ip_U(lhalf, pot));
+        const Real wrap_rel = (uscale > 0.) ? uwrap/uscale : uwrap;
+        if (wrap_rel > 1.e-4) {
+            amrex::Print() << "WARNING: interaction kernel at half the box |U(L/2)|/max|U| = " << wrap_rel
+                           << " > 1e-4; periodic images interact\n";
         }
     }
 
@@ -642,10 +660,11 @@ namespace {
 
 // Continuum (infinite-domain) linear stability of the uniform state mu0 for
 // the interaction kernel; see STABILITY.md. uhat_min_disc is the discrete
-// min over k != 0 of Uhat*cellvol, printed alongside for comparison.
+// min over k != 0 of Uhat*cellvol, printed alongside for comparison; kbox is
+// the smallest nonzero wavenumber the periodic box supports.
 void
 PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmin,
-                         Real uhat_min_disc)
+                         Real kbox, Real uhat_min_disc)
 {
     if (!pot.use_int_pot) { return; }
 
@@ -685,6 +704,84 @@ PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmi
             amrex::Print() << "  WARNING: ip_R/dx = " << R/dxmin
                            << " < 8; the HK kernel and its ~R cluster wavelength are under-resolved\n";
         }
+    } else if (pot.ip_type == IntPotType::MORSE) {
+        // With A = eps_att e^(re/R_att), B = eps_rep e^(re/R_rep),
+        // U = -A e^(-r/R_att) + B e^(-r/R_rep), and the transform of e^(-r/a) is
+        //   2D: 2 pi a^2 (1+k^2a^2)^(-3/2),  3D: 8 pi a^3 (1+k^2a^2)^(-2)
+        const Real Ra = pot.ip_R_att;
+        const Real Rr = pot.ip_R_rep;
+        const Real A = pot.ip_eps_att*std::exp(pot.ip_re/Ra);
+        const Real B = pot.ip_eps_rep*std::exp(pot.ip_re/Rr);
+        auto uhat_of = [=] (Real kk) -> Real
+        {
+#if (AMREX_SPACEDIM == 2)
+            return 2.*pi*(-A*Ra*Ra*std::pow(1.+kk*kk*Ra*Ra, -1.5)
+                          + B*Rr*Rr*std::pow(1.+kk*kk*Rr*Rr, -1.5));
+#else
+            const Real fa = 1.+kk*kk*Ra*Ra;
+            const Real fr = 1.+kk*kk*Rr*Rr;
+            return 8.*pi*(-A*Ra*Ra*Ra/(fa*fa) + B*Rr*Rr*Rr/(fr*fr));
+#endif
+        };
+        uhat0 = uhat_of(0.);
+
+        // Uhat is increasing wherever it is negative (STABILITY.md), so either
+        // Uhat(0) < 0 and the minimum is at k = 0 (demixing), or Uhat > 0 for
+        // all k. The scan confirms this. k = 0 itself is the conserved mass, so
+        // in a periodic box the lowest mode that can grow is kbox; report the
+        // infinite-domain and the box thresholds, the latter up to the grid
+        // Nyquist wavenumber.
+        constexpr int nscan = 20000;
+        const Real kmax = 50./Rr;
+        const Real knyq = pi*std::sqrt(d)/dxmin;
+        Real uhat_min = uhat0, k_min = 0.;
+        Real uhat_min_box = uhat_of(kbox), k_min_box = kbox;
+        Real sig_max = -std::numeric_limits<Real>::max(), k_sig = kbox;
+        for (int n = 1; n <= nscan; ++n) {
+            const Real kk = kmax*n/nscan;
+            const Real u = uhat_of(kk);
+            if (u < uhat_min) { uhat_min = u; k_min = kk; }
+            if (kk >= kbox && kk <= knyq) {
+                if (u < uhat_min_box) { uhat_min_box = u; k_min_box = kk; }
+                const Real sig = -kk*kk*(D + mu0*u);
+                if (sig > sig_max) { sig_max = sig; k_sig = kk; }
+            }
+        }
+        amrex::Print() << "Continuum stability (MORSE): Uhat(0) = " << uhat0
+                       << " Uhat min = " << uhat_min << " at |k| = " << k_min;
+        if (uhat_min < 0.) {
+            amrex::Print() << ((k_min > 0.) ? " (finite wavelength " : " (demixing");
+            if (k_min > 0.) { amrex::Print() << 2.*pi/k_min; }
+            amrex::Print() << ")";
+        }
+        amrex::Print() << "\n";
+        const Real dcrit = -mu0*uhat_min;
+        const Real dcrit_box = -mu0*uhat_min_box;
+        if (dcrit > 0.) {
+            amrex::Print() << "  infinite domain: D_crit = -mu0*min Uhat = " << dcrit
+                           << " D/D_crit = " << D/dcrit
+                           << ((D < dcrit) ? "  -> UNSTABLE" : "  -> STABLE") << "\n";
+        } else {
+            amrex::Print() << "  infinite domain: Uhat >= 0 everywhere, STABLE at any D\n";
+        }
+        amrex::Print() << "  this box (|k| >= " << kbox << "): Uhat min = " << uhat_min_box
+                       << " at |k| = " << k_min_box
+                       << " (discrete min over k != 0 = " << uhat_min_disc << ")";
+        if (dcrit_box > 0.) {
+            amrex::Print() << " D_crit = " << dcrit_box << " D/D_crit = " << D/dcrit_box
+                           << ((D < dcrit_box) ? "  -> UNSTABLE" : "  -> STABLE");
+            if (D < dcrit_box) {
+                amrex::Print() << ", fastest growth sigma = " << sig_max << " at |k| = " << k_sig;
+            }
+        } else {
+            amrex::Print() << "  -> STABLE at any D";
+        }
+        amrex::Print() << "\n";
+        if (Rr/dxmin < 4.) {
+            amrex::Print() << "  WARNING: ip_R_rep/dx = " << Rr/dxmin
+                           << " < 4; the Morse repulsive core is under-resolved\n";
+        }
+        return;
     } else {
         // Uhat(0) = eps * 2 pi^(d/2)/Gamma(d/2) * R^d/alpha * Gamma(d/alpha)
         const Real alpha = pot.ip_alpha;
@@ -852,7 +949,9 @@ AmrCoreAdv::PrintUhatMinMax ()
 
     Real dxmin = Geom(lev).CellSize(0);
     for (int d = 1; d < AMREX_SPACEDIM; ++d) { dxmin = amrex::min(dxmin, Geom(lev).CellSize(d)); }
-    PrintContinuumStability(pot, mu0, D, dxmin, umin_nz*cellvol);
+    Real lmax = Geom(lev).ProbLength(0);
+    for (int d = 1; d < AMREX_SPACEDIM; ++d) { lmax = amrex::max(lmax, Geom(lev).ProbLength(d)); }
+    PrintContinuumStability(pot, mu0, D, dxmin, 2.*amrex::Math::pi<Real>()/lmax, umin_nz*cellvol);
 }
 
 // tag all cells for refinement
