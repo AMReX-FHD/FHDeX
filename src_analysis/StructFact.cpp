@@ -7,6 +7,39 @@
 
 #include <AMReX_FFT.H>
 
+namespace {
+
+// Geometry whose "physical" coordinates are the (unshifted) integer wavenumbers
+Geometry MakeKSpaceGeometry (const BoxArray& ba_in)
+{
+    Box domain = ba_in.minimalBox();
+
+    Vector<Real> kspace_lo(AMREX_SPACEDIM);
+    Vector<Real> kspace_hi(AMREX_SPACEDIM);
+
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        if (domain.length(d) % 2 == 0) {
+            // even number of cells
+            kspace_lo[d] = -domain.length(d) / 2. - 0.5;
+            kspace_hi[d] = domain.length(d) / 2. - 0.5;
+        } else {
+            // odd number of cells
+            kspace_lo[d] = -domain.length(d) / 2.;
+            kspace_hi[d] = domain.length(d) / 2.;
+        }
+    }
+
+    RealBox kspace({AMREX_D_DECL(kspace_lo[0], kspace_lo[1], kspace_lo[2])},
+                   {AMREX_D_DECL(kspace_hi[0], kspace_hi[1], kspace_hi[2])});
+
+    // required only to define geom object
+    Vector<int> is_periodic(AMREX_SPACEDIM, 1);
+
+    return Geometry(domain, &kspace, CoordSys::cartesian, is_periodic.data());
+}
+
+}
+
 // blank constructor
 StructFact::StructFact()
 {}
@@ -202,30 +235,7 @@ void StructFact::define(const BoxArray& ba_in,
         cnt++;
     }
 
-    Box domain = ba_in.minimalBox();
-
-    Vector<Real> kspace_lo(AMREX_SPACEDIM);
-    Vector<Real> kspace_hi(AMREX_SPACEDIM);
-
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        if (domain.length(d) % 2 == 0) {
-            // even number of cells
-            kspace_lo[d] = -domain.length(d) / 2. - 0.5;
-            kspace_hi[d] = domain.length(d) / 2. - 0.5;
-        } else {
-            // odd number of cells
-            kspace_lo[d] = -domain.length(d) / 2.;
-            kspace_hi[d] = domain.length(d) / 2.;
-        }
-    }
-
-    RealBox kspace({AMREX_D_DECL(kspace_lo[0], kspace_lo[1], kspace_lo[2])},
-                   {AMREX_D_DECL(kspace_hi[0], kspace_hi[1], kspace_hi[2])});
-
-    // required only to define geom object
-    Vector<int> is_periodic(AMREX_SPACEDIM, 1);
-
-    geom_sf.define(domain, &kspace, CoordSys::cartesian, is_periodic.data());
+    geom_sf = MakeKSpaceGeometry(ba_in);
 }
 
 void StructFact::FortStructure(const MultiFab& variables,
@@ -361,8 +371,12 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     BoxArray ba_onegrid(domain);
     DistributionMapping dm_onegrid(ba_onegrid);
 
-    // create amrex::FFT object
-    amrex::FFT::R2C my_fft(domain);
+    // create (or reuse) the forward-only amrex::FFT object for this domain
+    if (!fft_plan || fft_domain != domain) {
+        fft_plan = std::make_unique<amrex::FFT::R2C<Real, amrex::FFT::Direction::forward>>(domain);
+        fft_domain = domain;
+    }
+    auto& my_fft = *fft_plan;
 
     // create storage for the FFT (distributed and single-grid)
     auto const& [ba_fft, dm_fft] = my_fft.getSpectralDataLayout();
@@ -600,6 +614,7 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
 
     BL_PROFILE_VAR("StructFact::Finalize()", StructFactFinalize);
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nsamples > 0, "StructFact::Finalize called with nsamples == 0");
     Real nsamples_inv = 1.0/(Real)nsamples;
 
     ShiftFFT(cov_real_in, zero_avg);
@@ -786,68 +801,26 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
         });
     }
 
+    // copy the per-rank partial sums to the host, then reduce once over all ranks
+    Gpu::HostVector<int> phicnt_host(npts);
+    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, phicnt_device.begin(), phicnt_device.end(), phicnt_host.begin());
+    Gpu::streamSynchronize();
+
+    ParallelDescriptor::ReduceRealSum(phisum_host.dataPtr(), npts);
+    ParallelDescriptor::ReduceIntSum(phicnt_host.dataPtr(), npts);
+
+    Real dk = 1.;
+
     for (int d = 1; d < npts; ++d) {
-        ParallelDescriptor::ReduceRealSum(phisum_device[d]);
-        ParallelDescriptor::ReduceIntSum(phicnt_device[d]);
-    }
-
-#if 0
-    for (int d=1; d<npts_sq; ++d) {
-        ParallelDescriptor::ReduceRealSum(phisum_device_large[d]);
-        ParallelDescriptor::ReduceIntSum(phicnt_device_large[d]);
-    }
-
-    if (ParallelDescriptor::IOProcessor()) {
-        std::ofstream turb_disc;
-        std::string turbNamedisc = "turb_disc";
-        turbNamedisc += std::to_string(step);
-        turbNamedisc += ".txt";
-
-        turb_disc.open(turbNamedisc);
-        for (int d=1; d<npts_sq; ++d) {
-            if(phicnt_device_large[d]>0) {
-                Real dreal = d;
-                turb_disc << sqrt(dreal) << " " << 4.*M_PI*d*phisum_device_large[d]/phicnt_device_large[d] << std::endl;
-            }
-        }
-    }
-
-    Real dk = 1.;
-    if (ParallelDescriptor::IOProcessor()) {
-        std::ofstream turb_alt;
-        std::string turbNamealt = "turb_alt";
-        turbNamealt += std::to_string(step);
-        turbNamealt += ".txt";
-
-        turb_alt.open(turbNamealt);
-        for (int d=1; d<npts; ++d) {
-            turb_alt << d << " " << phisum_device[d] << std::endl;
-        }
-    }
-#endif
-
-    Real dk = 1.;
-
+        if (phicnt_host[d] > 0) {
 #if (AMREX_SPACEDIM == 2)
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-        if (d != 0) {
-            // phisum_ptr[d] *= 2.*M_PI*d*dk*dk/phicnt_ptr[d];
-            phisum_ptr[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_ptr[d];
-        }
-    });
+            phisum_host[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_host[d];
 #else
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-        if (d != 0) {
-            // phisum_ptr[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_ptr[d];
-            // phisum_ptr[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_ptr[d];
-            phisum_ptr[d] *= 4. * M_PI * (d * d * dk + dk * dk * dk / 12.) / phicnt_ptr[d];
-        }
-    });
+            phisum_host[d] *= 4.*M_PI*(d*d*dk + dk*dk*dk/12.)/phicnt_host[d];
 #endif
-
-    Gpu::copy(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+        }
+    }
 
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
@@ -922,45 +895,26 @@ void StructFact::IntegratekShellsScalar(const int& step,
             });
         }
 
-        for (int d = 1; d < npts; ++d) {
-            ParallelDescriptor::ReduceRealSum(phisum_device[d]);
-            ParallelDescriptor::ReduceIntSum(phicnt_device[d]);
-        }
+        // copy the per-rank partial sums to the host, then reduce once over all ranks
+        Gpu::HostVector<int> phicnt_host(npts);
+        Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, phicnt_device.begin(), phicnt_device.end(), phicnt_host.begin());
+        Gpu::streamSynchronize();
+
+        ParallelDescriptor::ReduceRealSum(phisum_host.dataPtr(), npts);
+        ParallelDescriptor::ReduceIntSum(phicnt_host.dataPtr(), npts);
 
         Real dk = 1.;
 
+        for (int d = 1; d < npts; ++d) {
+            if (phicnt_host[d] > 0) {
 #if (AMREX_SPACEDIM == 2)
-#if 0
-        for (int d=1; d<npts; ++d) {
-            //  phisum_vect[d] *= 2.*M_PI*d*dk*dk/phicnt_vect[d];
-            phisum_vect[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_vect[d];
-        }
-#endif
-        amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-        {
-            if (d != 0) {
-                // phisum_ptr[d] *= 2.*M_PI*d*dk*dk/phicnt_ptr[d];
-                phisum_ptr[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_ptr[d];
-            }
-        });
+                phisum_host[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_host[d];
 #else
-#if 0
-        for (int d=1; d<npts; ++d) {
-            //  phisum_vect[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_vect[d];
-            //  phisum_vect[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_vect[d];
-            phisum_vect[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_vect[d];
-        }
+                phisum_host[d] *= 4.*M_PI*(d*d*dk + dk*dk*dk/12.)/phicnt_host[d];
 #endif
-        amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-        {
-            if (d != 0) {
-            // phisum_ptr[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_ptr[d];
-            // phisum_ptr[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_ptr[d];
-                phisum_ptr[d] *= 4. * M_PI * (d * d * dk + dk * dk * dk / 12.) / phicnt_ptr[d];
             }
-        });
-#endif
-        Gpu::copy(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+        }
 
         if (ParallelDescriptor::IOProcessor()) {
             std::ofstream turb;
@@ -1164,6 +1118,9 @@ void StructFact::ReadCheckPoint(std::string checkfile_base,
         cov_real.define(ba_in, dmap_in, NCOV, 0);
         cov_imag.define(ba_in, dmap_in, NCOV, 0);
         cov_mag.define(ba_in, dmap_in, NCOV, 0);
+
+        // k-space geometry used by WritePlotFile (define() is not called on restart)
+        geom_sf = MakeKSpaceGeometry(ba_in);
     }
 
     // read in the MultiFab data
