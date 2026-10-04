@@ -761,7 +761,7 @@ void main_driver(const char* argv)
                             << "<c> " << "TaylorLen " << "TaylorRe " << "TaylorMa "
                             << "skew " << "kurt "
                             << "eps_s " << "eps_d " << "eps_d/eps_s "
-                            << "kolm_s " << "kolm_s" << "kolm_t"
+                            << "kolm_s " << "kolm_d " << "kolm_t"
                             << std::endl;
 
                 turboutfiledecomp.open(turbfilenamedecomp);
@@ -1239,7 +1239,7 @@ void main_driver(const char* argv)
                 spatialCrossVec.assign(spatialCrossVec.size(), 0.0);
             }
 
-            std::printf("Resetting stat collection.\n");
+            amrex::Print() << "Resetting stat collection." << std::endl;
 
             statsCount = 1;
 
