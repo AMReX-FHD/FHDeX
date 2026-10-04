@@ -430,6 +430,10 @@ void ComputeCurlCC(const MultiFab& vel_in,
 {
     BL_PROFILE_VAR("ComputeCurlCC()",ComputeCurlCC);
 
+#if (AMREX_SPACEDIM != 3)
+    amrex::ignore_unused(vel_in, incomp, curl_in, outcomp, geom);
+    amrex::Abort("ComputeCurlCC requires AMREX_SPACEDIM == 3");
+#else
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(vel_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -457,6 +461,7 @@ void ComputeCurlCC(const MultiFab& vel_in,
                 (vel(i,j+1,k,incomp+0) - vel(i,j-1,k,incomp+0)) / (Real(2.)*dx[1]);
         });
     }
+#endif
 }
 
 void ComputeDivCC(const MultiFab& vel_in,
@@ -465,8 +470,12 @@ void ComputeDivCC(const MultiFab& vel_in,
                    int outcomp,
                    const Geometry & geom)
 {
-    BL_PROFILE_VAR("ComputeDivCC()",ComputeCurlCC);
+    BL_PROFILE_VAR("ComputeDivCC()",ComputeDivCC);
 
+#if (AMREX_SPACEDIM != 3)
+    amrex::ignore_unused(vel_in, incomp, div_in, outcomp, geom);
+    amrex::Abort("ComputeDivCC requires AMREX_SPACEDIM == 3");
+#else
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(vel_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -478,11 +487,12 @@ void ComputeDivCC(const MultiFab& vel_in,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            // dw/dy - dv/dz
+            // du/dx + dv/dy + dw/dz
             div(i,j,k,outcomp) =
                 (vel(i+1,j,k,incomp+0) - vel(i-1,j,k,incomp+0)) / (Real(2.)*dx[0]) +
                 (vel(i,j+1,k,incomp+1) - vel(i,j-1,k,incomp+1)) / (Real(2.)*dx[1]) +
                 (vel(i,j,k+1,incomp+2) - vel(i,j,k-1,incomp+2)) / (Real(2.)*dx[2]);
         });
     }
+#endif
 }

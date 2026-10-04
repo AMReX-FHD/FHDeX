@@ -58,7 +58,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                     if (i < lo) {
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - 0.5*dx[0]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -82,7 +82,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                     if (i > hi) {
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n) - 0.5*dx[0]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -113,7 +113,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                     if (j < lo) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n) - 0.5*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
+                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n) - 0.5*dx[1]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -137,7 +137,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                     if (j > hi) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n) - 0.5*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n) - 0.5*dx[1]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -169,7 +169,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                     if (k < lo) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
-                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n) - 0.5*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
+                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n) - 0.5*dx[2]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -193,7 +193,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                     if (k > hi) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
-                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n) - 0.5*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n) - 0.5*dx[2]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -775,7 +775,7 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
             });
         }
 
-        if ((bc_es_lo[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+        if ((bc_es_hi[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
             const Real fac = (bc_es_hi[0] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
