@@ -25,10 +25,6 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
     // We do this here so we can print the FABs for debugging
     phi_new[lev].setVal(0.0);
 
-    if( lev == 1 ) {
-        amrex::Print() << "NOT SURE HOW I GOT HERE" << std::endl;
-    }
-
 //    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, dt_lev, npts_scale, geom[lev], bcs);
 
 

@@ -88,6 +88,9 @@ void main_main ()
 
         avg_type = 0;
         pp.query ("avg_type",avg_type);
+        if (avg_type < 0 || avg_type > 3) {
+            Abort("avg_type must be 0, 1, 2 or 3 (compute_flux_x has no other branch)");
+        }
 
         phileft = 32;
         pp.query ("phileft",phileft);
@@ -261,12 +264,15 @@ void main_main ()
     // time = starting time in the simulation
     Real time = 0.0;
 
+    Vector<std::string> varnames(Ncomp, "phi");
+    if (Ncomp == 2) { varnames[1] = "phi0"; }
+
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
     {
         int n = 0;
         const std::string& pltfile = amrex::Concatenate("plt",n,7);
-        WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, phi_new, varnames, geom, time, 0);
     }
 
     // build the flux multifabs
@@ -366,7 +372,7 @@ void main_main ()
         if (plot_int > 0 && n%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",n,7);
-            WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
+            WriteSingleLevelPlotfile(pltfile, phi_new, varnames, geom, time, n);
 
             if(nstat > 0 && istat > 0){
 

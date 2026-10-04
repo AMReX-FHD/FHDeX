@@ -595,9 +595,9 @@ StochasticPC::AdvectParticles (int lev, Real dt,
         }
     }
 
-    if (use_ext_pot == 0 && interaction_range <= 0.0) {
-        return;
-    }
+    // No early return here: with neither potential on, the branch below still has to
+    // record xold and apply the random walk (AdvectWithRandomWalk is no longer called
+    // by ParticleData::advance_particles).
 
     const amrex::Real ep_alpha = pot.ep_alpha;
     const amrex::Real ep_beta  = pot.ep_beta;

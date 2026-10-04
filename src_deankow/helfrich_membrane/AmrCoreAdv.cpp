@@ -699,6 +699,9 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.queryAdd("npts_scale", npts_scale);
 
         pp.query("num_part",num_part);
+        if (num_part <= 0.) {
+            Abort("num_part must be set to a positive value in the inputs");
+        }
         pp.query("dorand",dorand);
 
         pp.query("nstat",nstat);
@@ -709,6 +712,14 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
 
         num_flux = 1;
         pp.query("num_flux",num_flux);
+        if (num_flux != 1 && num_flux != 4) {
+            Abort("num_flux must be 1 or 4");
+        }
+#if (AMREX_SPACEDIM > 2)
+        if (num_flux != 1) {
+            Abort("num_flux == 4 is only implemented in 2D");
+        }
+#endif
 
         ext_pot = 0;
         pp.query("ext_pot",ext_pot);
@@ -717,6 +728,13 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
         pp.queryarr("bc_lo", bc_lo);
         pp.queryarr("bc_hi", bc_hi);
+        // the flux kernels treat foextrap (2) like ext_dir with a zero boundary value,
+        // i.e., a homogeneous Dirichlet wall, not zero flux; require bc = 3 for that
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            if (bc_lo[d] == amrex::BCType::foextrap || bc_hi[d] == amrex::BCType::foextrap) {
+                amrex::Abort("bc = 2 (foextrap) is not implemented as a zero-flux wall here; use bc = 3 for a zero-value (Dirichlet) wall");
+            }
+        }
 
         seed = 0;
         pp.queryAdd("seed", seed);
@@ -885,8 +903,11 @@ AmrCoreAdv::UpdateSurfaceFromFourier (const amrex::Geometry& geom, amrex::Real d
               });
           }
 
-    // Enforce Hermitian symmetry in ky for real-valued surface:
-    // h_hat(kx, ky) = conj(h_hat(kx, ny-ky))
+    // Hermitian symmetry in ky, h_hat(kx, ky) = conj(h_hat(kx, ny-ky)), is NOT enforced:
+    // the loop below is disabled. The c2r backward transform still returns a real surface,
+    // but on the kx = 0 and kx = nx/2 columns it discards the non-Hermitian part, so the
+    // stored h_hat there differs from what the transform uses. If re-enabled, note that it
+    // reads and writes mirrored (j, ny-j) pairs in one ParallelFor, which races on GPU.
  /*
     for (amrex::MFIter mfi(h_hat); mfi.isValid(); ++mfi) {
         const amrex::Box& bx = mfi.validbox();
@@ -1570,6 +1591,11 @@ void GotoNextLine (std::istream& is)
 void
 AmrCoreAdv::ReadCheckpointFile ()
 {
+    // The surface metric (gmetric, sqrgmetric, detg, ...), stats and surf_area are only
+    // built in MakeNewLevelFromScratch and are not checkpointed, so a restarted run would
+    // use undefined data in advance_phi.
+    amrex::Abort("Restart is not supported in src_deankow/helfrich_membrane; the surface metric is not rebuilt from a checkpoint");
+
     amrex::Print() << "Restart from checkpoint " << restart_chkfile << "\n";
 
     // Header
@@ -1636,8 +1662,12 @@ AmrCoreAdv::ReadCheckpointFile ()
         SetDistributionMap(lev, dm);
 
         // build MultiFab and FluxRegister data
-        int ncomp = 1;
-        int ng = 0;
+        // These must match MakeNewLevelFromScratch: ncomp follows alg_type and the flux
+        // kernels read one ghost cell (phi(i-1,j,k) ...), so ng = 1. With ng = 0 the
+        // FillBoundary calls in AdvancePhiAtLevel are no-ops and compute_flux_* read
+        // past the end of each FAB after a restart.
+        int ncomp = (alg_type == 0) ? 1 : 2;
+        int ng = 1;
         phi_old[lev].define(grids[lev], dmap[lev], ncomp, ng);
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, ng);
 

@@ -658,6 +658,9 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.queryAdd("npts_scale", npts_scale);
 
         pp.query("num_part",num_part);
+        if (num_part <= 0.) {
+            Abort("num_part must be set to a positive value in the inputs");
+        }
         pp.query("dorand",dorand);
 
         pp.query("nstat",nstat);
@@ -1411,6 +1414,11 @@ void GotoNextLine (std::istream& is)
 void
 AmrCoreAdv::ReadCheckpointFile ()
 {
+    // The surface metric (gmetric, sqrgmetric, detg, ...), stats and surf_area are only
+    // built in MakeNewLevelFromScratch and are not checkpointed, so a restarted run would
+    // use undefined data in advance_phi.
+    amrex::Abort("Restart is not supported in src_deankow/surface; the surface metric is not rebuilt from a checkpoint");
+
     amrex::Print() << "Restart from checkpoint " << restart_chkfile << "\n";
 
     // Header
@@ -1477,8 +1485,12 @@ AmrCoreAdv::ReadCheckpointFile ()
         SetDistributionMap(lev, dm);
 
         // build MultiFab and FluxRegister data
-        int ncomp = 1;
-        int ng = 0;
+        // These must match MakeNewLevelFromScratch: ncomp follows alg_type and the flux
+        // kernels read one ghost cell (phi(i-1,j,k) ...), so ng = 1. With ng = 0 the
+        // FillBoundary calls in AdvancePhiAtLevel are no-ops and compute_flux_* read
+        // past the end of each FAB after a restart.
+        int ncomp = (alg_type == 0) ? 1 : 2;
+        int ng = 1;
         phi_old[lev].define(grids[lev], dmap[lev], ncomp, ng);
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, ng);
 
