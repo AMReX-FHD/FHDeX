@@ -549,44 +549,44 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                             muzepp += Real(0.5)*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                           zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) +
-                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/Real(3.);
+                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) );
 
                             muzemp += Real(0.5)*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                           zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
-                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/Real(3.);
+                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) );
 
                             muzepm += Real(0.5)*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                           zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
-                                          zeta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) );
 
                             muzemm += Real(0.5)*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                           zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                          zeta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) );
 
                         }
                         else  if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             muzepp += Real(0.5)*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) +
-                                          zeta(i,j,k+1)*prim(i,j,k+1,4) )/Real(3.);
+                                          zeta(i,j,k+1)*prim(i,j,k+1,4) );
 
                             muzemp += Real(0.5)*(zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
-                                          zeta(i,j,k+1)*prim(i,j,k+1,4) )/Real(3.);
+                                          zeta(i,j,k+1)*prim(i,j,k+1,4) );
 
                             muzepm += Real(0.5)*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i+1,j,k)*prim(i+1,j,k,4) +
-                                          zeta(i,j,k)*prim(i,j,k,4) )/Real(3.);
+                                          zeta(i,j,k)*prim(i,j,k,4) );
 
                             muzemm += Real(0.5)*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                          zeta(i,j,k)*prim(i,j,k,4) )/Real(3.);
+                                          zeta(i,j,k)*prim(i,j,k,4) );
 
                         }
                         else {
@@ -854,8 +854,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j+1,k)*prim(i-1,j+1,k,4) + eta(i,j+1,k)*prim(i,j+1,k,4) +
                                         eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) )/Real(3.);
 
-                    Real muzepm = Real(0.25)*(eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k-2)*prim(i,j,k,4) +
-                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k-2)*prim(i,j-1,k,4) +
+                    Real muzepm = Real(0.25)*(eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
+                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
                                         eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
                                         eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/Real(3.);
 
@@ -915,44 +915,44 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                             muzepp += Real(0.5)*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) +
-                                          zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/Real(3.);
+                                          zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) );
 
                             muzemp += Real(0.5)*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
                                           zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
                                           zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                          zeta(i,j,k-1)*prim(i,j,k-1,4) )/Real(3.);
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) );
 
                             muzepm += Real(0.5)*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) +
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) +
-                                          zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/Real(3.);
+                                          zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) );
 
                             muzemm += Real(0.5)*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
                                           zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                           zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                          zeta(i,j,k-1)*prim(i,j,k-1,4) )/Real(3.);
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) );
 
                         }
-                        if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                        else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                             muzepp += Real(0.5)*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) +
-                                           zeta(i,j+1,k)*prim(i,j+1,k,4) )/Real(3.);
+                                           zeta(i,j+1,k)*prim(i,j+1,k,4) );
 
                             muzemp += Real(0.5)*(zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                            zeta(i,j+1,k)*prim(i,j+1,k,4) +
                                            zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                           zeta(i,j,k)*prim(i,j,k,4) )/Real(3.);
+                                           zeta(i,j,k)*prim(i,j,k,4) );
 
                             muzepm += Real(0.5)*(zeta(i+1,j,k)*prim(i+1,j,k,4) +
                                            zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) +
-                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/Real(3.);
+                                           zeta(i,j-1,k)*prim(i,j-1,k,4) );
 
                             muzemm += Real(0.5)*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                            zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                            zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                           zeta(i,j,k)*prim(i,j,k,4) )/Real(3.);
+                                           zeta(i,j,k)*prim(i,j,k,4) );
 
                         }
                         else {
@@ -966,8 +966,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                             zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) +
                                             zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
 
-                            muzepm += Real(0.25)*(zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k-2)*prim(i,j,k,4) +
-                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k-2)*prim(i,j-1,k,4) +
+                            muzepm += Real(0.25)*(zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
+                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                             zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                             zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) );
 
@@ -1558,7 +1558,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     meanYk[ns] = Real(0.5)*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns));
                     Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx[2]/meanP;
                     dk[ns] = term1 + term2;
-                    Real ChiX = Real(0.5)*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns));
+                    Real ChiX = Real(0.5)*(chi(i,j,k-1,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns));
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
 
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
@@ -1601,7 +1601,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real Q5 = 0.0;
                 for (int ns=0; ns<nspecies; ++ns) {
-                    Real Q5s = (hk[ns] + Real(0.5) * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
+                    Real Q5s = (hk[ns] + Real(0.5) * Runiv*meanT*(chi(i,j,k-1,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k-1,ns)/molmass[ns])*Fk[ns];
                     }

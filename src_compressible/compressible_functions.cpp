@@ -36,6 +36,8 @@ void InitializeCompressibleNamespace()
         case 3:
             amrex::Print() << "HCB binary transport model selected" << "\n";
             break;
+        default:
+            amrex::Abort("InitializeCompressibleNamespace: transport_type must be 1, 2 or 3");
     }
 
     // get membrane cell
@@ -125,6 +127,17 @@ void GetHcGas() {
 
 void InitConsVar(MultiFab& cons,
                  const amrex::Geometry& geom) {
+
+    // some problem types hard-code the number of species or the cell index of a discontinuity
+    if (prob_type == 2 && nspecies != 4) {
+        Abort("InitConsVar: prob_type = 2 (Rayleigh-Taylor) requires nspecies = 4");
+    }
+    if ((prob_type == 4 || prob_type == 5 || prob_type == 106) && nspecies != 2) {
+        Abort("InitConsVar: prob_type = 4, 5 and 106 require nspecies = 2");
+    }
+    if ((prob_type == 104 || prob_type == 105 || prob_type == 106) && n_cells[0] <= 15) {
+        Abort("InitConsVar: prob_type = 104-106 place the discontinuity at i = 15 and require n_cells[0] > 15");
+    }
 
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
@@ -315,7 +328,7 @@ void InitConsVar(MultiFab& cons,
             } else if (prob_type == 100) { // sinusoidal density variation
 
                    Real y = itVec[1];
-                   Real Ly = realhi[1] - reallo[0];
+                   Real Ly = realhi[1] - reallo[1];
                    for (int l=0;l<nspecies;l++) {
                      Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
                    }
@@ -328,7 +341,7 @@ void InitConsVar(MultiFab& cons,
             else if (prob_type == 101) { // sinusoidal temperature variation (constant pressure)
 
                    Real y = itVec[1];
-                   Real Ly = realhi[1] - reallo[0];
+                   Real Ly = realhi[1] - reallo[1];
 
                    for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
 

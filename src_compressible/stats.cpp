@@ -15,6 +15,15 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
     GpuArray<Real,MAX_SPECIES> fracvec;
 
+#ifdef AMREX_USE_GPU
+    // The loops below run on the host over Array4 views of the MultiFab data, which is only
+    // valid if that data lives in managed memory (e.g., amrex.the_arena_is_managed = 1).
+    if (!cons.arena()->isManaged()) {
+        amrex::Abort("evaluateStats (src_compressible/stats.cpp) runs on the host and is not ported to GPU; "
+                     "set amrex.the_arena_is_managed = 1 or stats_int <= 0");
+    }
+#endif
+
     int n_cells_yz = n_cells[1]*n_cells[2];
 
     /* miscVals
