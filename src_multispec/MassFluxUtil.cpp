@@ -338,7 +338,12 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 RhoAvSum += RhoAv[n];
             }
 
-            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_XN);
+            if (RhoAvSum > 0.) {
+                ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_XN);
+            } else {
+                // no mass on either side of the face: no stochastic mass flux
+                MatrixToZeros(nspecies, sqrtLOnsager_XN);
+            }
 
             //copy data back
             for (int n=0; n<nspecies; ++n ){
@@ -371,7 +376,12 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 RhoAvSum += RhoAv[n];
             }
 
-            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_YN);
+            if (RhoAvSum > 0.) {
+                ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_YN);
+            } else {
+                // no mass on either side of the face: no stochastic mass flux
+                MatrixToZeros(nspecies, sqrtLOnsager_YN);
+            }
 
             //copy data back
             for (int n=0; n<nspecies; ++n ){
@@ -405,7 +415,12 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 RhoAvSum += RhoAv[n];
             }
 
-            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_ZN);
+            if (RhoAvSum > 0.) {
+                ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_ZN);
+            } else {
+                // no mass on either side of the face: no stochastic mass flux
+                MatrixToZeros(nspecies, sqrtLOnsager_ZN);
+            }
 
             //copy data back
             for (int n=0; n<nspecies; ++n ){
