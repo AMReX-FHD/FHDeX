@@ -4,9 +4,9 @@ Real ComputeSpatialMean(MultiFab& mf, const int& incomp)
 {
     BL_PROFILE_VAR("ComputeSpatialMean()",ComputeSpatialMean);
 
-    int npts = (AMREX_SPACEDIM == 2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
+    Long npts = mf.boxArray().numPts();
 
-    Real average = mf.sum(incomp) / npts;
+    Real average = mf.sum(incomp) / Real(npts);
 
     return average;
 
@@ -16,9 +16,9 @@ Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
 {
     BL_PROFILE_VAR("ComputeSpatialVariance()",ComputeSpatialVariance);
 
-    int npts = (AMREX_SPACEDIM == 2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
+    Long npts = mf.boxArray().numPts();
 
-    Real average = mf.sum(incomp) / npts;
+    Real average = mf.sum(incomp) / Real(npts);
 
     BoxArray ba = mf.boxArray();
     DistributionMapping dmap = mf.DistributionMap();
@@ -36,7 +36,7 @@ Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
     MultiFab::Multiply(temp,temp,0,0,1,0);
 
     // compute the variance
-    Real variance = temp.sum(0) / (npts-1);
+    Real variance = temp.sum(0) / Real(npts-1);
 
     return variance;
 }
@@ -66,13 +66,18 @@ void ComputeBasicStats(MultiFab & instant, MultiFab & means,
 
 void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom)
 {
-    BL_PROFILE_VAR("ComputeBasicStats()",ComputeBasicStats);
+    BL_PROFILE_VAR("OutputVolumeMean()",OutputVolumeMean);
 
-    Real result = (MaskedSum(instant, comp, geom.periodicity())*geom.CellSize()[0]*geom.CellSize()[1]*geom.CellSize()[2])/domainVol;
+    Real dV = AMREX_D_TERM(geom.CellSize(0), *geom.CellSize(1), *geom.CellSize(2));
+#if (AMREX_SPACEDIM == 2)
+    dV *= cell_depth;
+#endif
 
-    if(ParallelDescriptor::MyProc() == 0) {
+    Real result = MaskedSum(instant, comp, geom.periodicity())*dV/domainVol;
+
+    if (ParallelDescriptor::IOProcessor()) {
         std::ofstream ofs(filename, std::ofstream::app);
-        ofs << result/domainVol << "\n";
+        ofs << result << "\n";
         ofs.close();
     }
 
