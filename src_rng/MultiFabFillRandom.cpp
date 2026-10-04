@@ -7,6 +7,8 @@ void MultiFabFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 {
     BL_PROFILE_VAR("MultiFabFillRandom()",MultiFabFillRandom);
 
+    AMREX_ALWAYS_ASSERT(ng <= mf.nGrow());
+
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const Box& bx = (ng==0) ? mfi.validbox() : mfi.growntilebox(ng);
         const Array4<Real>& mf_fab = mf.array(mfi);
@@ -18,8 +20,9 @@ void MultiFabFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 
     //----------------------------------------
 
-    // Scale standard gaussian samples by standard deviation
-    mf.mult(sqrt(variance), comp, 1, 0);
+    // Scale standard gaussian samples by standard deviation. Include the ng
+    // ghost cells that were filled above so physical-boundary ghosts match.
+    mf.mult(std::sqrt(variance), comp, 1, ng);
 
     // sync up random numbers of faces/nodes that are at the same physical location
     mf.OverrideSync(geom.periodicity());
@@ -53,9 +56,8 @@ void MultiFabFillRandomNormal(MultiFab& mf, const int& scomp, const int& ncomp,
 void MultiFabFillRandomUniform(MultiFab& mf, const int& scomp, const int& ncomp,
                                const Geometry& geom, bool overridesync, bool fillboundary)
 {
-    BL_PROFILE_VAR("MultiFabFillRandomNormal()",MultiFabFillRandomNormal);
+    BL_PROFILE_VAR("MultiFabFillRandomUniform()",MultiFabFillRandomUniform);
 
-    // FillRandomNormal requires standard deviation
     FillRandom(mf, scomp, ncomp);
 
     // overridesync
