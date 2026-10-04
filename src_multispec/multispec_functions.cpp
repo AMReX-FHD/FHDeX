@@ -27,6 +27,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::fh_monome
 AMREX_GPU_MANAGED amrex::Real                               multispec::fh_tension;
 AMREX_GPU_MANAGED amrex::Real                               multispec::fh_ce;
 AMREX_GPU_MANAGED amrex::Real                               multispec::hamaker_A;
+amrex::Real                                                 multispec::disjoin_force;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>      multispec::contact_angle_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>      multispec::contact_angle_hi;
 AMREX_GPU_MANAGED amrex::Real                               multispec::monomer_mass;
@@ -94,6 +95,7 @@ void InitializeMultispecNamespace() {
     fh_tension = 0.;
     fh_ce = 0.;
     hamaker_A = 0.;
+    disjoin_force = 4.e12;  // experimental constant x body force used when use_disjoin_pres = 1
     monomer_mass = 1.;      // divisor in the Flory-Huggins scale factor; must be > 0
 
     for (int i=0; i<MAX_SPECIES; ++i) {
@@ -214,6 +216,12 @@ void InitializeMultispecNamespace() {
     pp.query("fh_tension",fh_tension);
     pp.query("fh_ce",fh_ce);
     pp.query("hamaker_A",hamaker_A);
+    pp.query("disjoin_force",disjoin_force);
+    if (use_disjoin_pres == 1) {
+        amrex::Print() << "WARNING: use_disjoin_pres = 1 applies the constant experimental force disjoin_force = "
+                       << disjoin_force << " in x; hamaker_A and the computed disjoining pressure are not used"
+                       << std::endl;
+    }
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);
     pp.query("chi_iterations",chi_iterations);

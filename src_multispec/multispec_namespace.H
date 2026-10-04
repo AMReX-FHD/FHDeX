@@ -29,6 +29,7 @@ namespace multispec {
     extern AMREX_GPU_MANAGED amrex::Real fh_tension;
     extern AMREX_GPU_MANAGED amrex::Real fh_ce;
     extern AMREX_GPU_MANAGED amrex::Real hamaker_A;
+    extern amrex::Real disjoin_force;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>          contact_angle_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>          contact_angle_hi;
     extern AMREX_GPU_MANAGED amrex::Real monomer_mass;
