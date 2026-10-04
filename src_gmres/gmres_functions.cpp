@@ -142,4 +142,10 @@ void InitializeGmresNamespace() {
     pp.query("gmres_min_iter",gmres_min_iter);
     pp.query("gmres_spatial_order",gmres_spatial_order);
 
+    // StagApplyOp only implements |visc_type| = 1 and 2; report the limitation once at startup
+    // rather than at the first GMRES iteration
+    if (std::abs(visc_type) == 3) {
+        Abort("visc_type = +-3 (bulk viscosity) is not supported by the GMRES solver; use |visc_type| = 1 or 2");
+    }
+
 }
