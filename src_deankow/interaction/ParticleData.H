@@ -169,12 +169,16 @@ struct ParticleData {
         }
     }
 
-    void Restart(amrex::ParGDBBase* a_gdb, std::string& restart_file)
+    void Restart(amrex::ParGDBBase* a_gdb, const amrex::BoxArray& grown_fba, std::string& restart_file)
     {
         if (use_particles) {
             const amrex::Geometry& geom_fine = a_gdb->Geom(1);
             int neighbor_cells = num_neighbor_cells(geom_fine);
             stochastic_particles = std::make_unique<StochasticPC>(a_gdb, neighbor_cells);
+            // level-1 particles live on the grown fine BoxArray, as in init_particles
+            stochastic_particles->SetParticleBoxArray(1,grown_fba);
+            amrex::DistributionMapping grown_dm { grown_fba, amrex::ParallelDescriptor::NProcs() };
+            stochastic_particles->SetParticleDistributionMap(1,grown_dm);
             std::string particle_file("stochastic_particles");
             stochastic_particles->Restart(restart_file, particle_file);
         }
@@ -260,11 +264,6 @@ struct ParticleData {
             stochastic_particles->RefluxFineToCrse(phi_fine.boxArray(), phi_grown);
 
             phi_grown.mult(1./cell_vol);
-#if (AMREX_SPACEDIM == 2)
-            print_state(phi_grown, amrex::IntVect(31,16));
-#else
-            print_state(phi_grown, amrex::IntVect(31,16,0));
-#endif
 
             phi_crse_new.ParallelAdd(phi_grown,0,0,1);
 

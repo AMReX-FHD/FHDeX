@@ -1026,6 +1026,9 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.queryAdd("npts_scale", npts_scale);
 
         pp.query("num_part", num_part);
+        if (num_part <= 0.) {
+            Abort("num_part must be set to a positive value in the inputs");
+        }
         pp.queryAdd("dorand", dorand);
 
         alg_type = 0;
@@ -1038,6 +1041,13 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
         pp.queryarr("bc_lo", bc_lo);
         pp.queryarr("bc_hi", bc_hi);
+        // the flux kernels treat foextrap (2) like ext_dir with a zero boundary value,
+        // i.e., a homogeneous Dirichlet wall, not zero flux; require bc = 3 for that
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            if (bc_lo[d] == amrex::BCType::foextrap || bc_hi[d] == amrex::BCType::foextrap) {
+                amrex::Abort("bc = 2 (foextrap) is not implemented as a zero-flux wall here; use bc = 3 for a zero-value (Dirichlet) wall");
+            }
+        }
 
         seed = 0;
         pp.queryAdd("seed", seed);
@@ -1698,7 +1708,11 @@ AmrCoreAdv::ReadCheckpointFile ()
     }
 
 #ifdef AMREX_PARTICLES
-    particleData.Restart((amrex::ParGDBBase*)GetParGDB(),restart_chkfile);
+    // rebuild the grown fine BoxArray used for the particle/grid coupling
+    if (finest_level >= 1) {
+        MakeFBA(grids[1]);
+    }
+    particleData.Restart((amrex::ParGDBBase*)GetParGDB(),grown_fba,restart_chkfile);
 #endif
 
 

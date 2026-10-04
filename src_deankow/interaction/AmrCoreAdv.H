@@ -203,7 +203,7 @@ private:
 
     amrex::Real dorand = 1.;
 
-    amrex::Real num_part;
+    amrex::Real num_part = -1.; // particle count the density is scaled with; must be set in the inputs
 
     amrex::Real diff_coeff;
 

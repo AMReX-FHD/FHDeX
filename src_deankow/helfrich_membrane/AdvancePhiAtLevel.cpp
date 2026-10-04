@@ -27,13 +27,6 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
     // We do this here so we can print the FABs for debugging
     phi_new[lev].setVal(0.0);
 
-    if( lev == 1 ) {
-        amrex::Print() << "NOT SURE HOW I GOT HERE" << std::endl;
-    }
-
-        amrex::Print() << "entering advance_phi" << std::endl;
-       amrex::Print() << " " << dt_lev << std::endl;
-       amrex::Print() << " time " << time << " " << dt_lev << std::endl;
 
        const auto dx     = geom[lev].CellSizeArray();
        const auto problo = geom[lev].ProbLoArray();
@@ -72,8 +65,6 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
 
 //    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, dt_lev, npts_scale, geom[lev], bcs);
 
-        amrex::Print() << "calling advance_phi" << std::endl;
-
     advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, gmetric, sqrgmetric, detg, newgmetric, newsqrgmetric, newdetg,
                 dt_lev, num_part, dorand, num_flux, ext_pot, geom[lev], bcs, time);
 
@@ -89,13 +80,13 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
         if (flux_reg[lev+1]) {
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 // update the lev+1/lev flux register (index lev+1)
-                flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(),1.0);
+                flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,phi_new[lev].nComp(),1.0);
             }
         }
         if (flux_reg[lev]) {
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 // update the lev/lev-1 flux register (index lev)
-                flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(),-1.0);
+                flux_reg[lev]->FineAdd(fluxes[i],i,0,0,phi_new[lev].nComp(),-1.0);
             }
         }
     }
