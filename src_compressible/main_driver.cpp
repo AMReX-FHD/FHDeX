@@ -35,6 +35,14 @@ void main_driver(const char* argv)
     // read the inputs file for compressible
     InitializeCompressibleNamespace();
 
+    // the hyperbolic flux stencil reads prim(i-2,...) at the low face and (i+1) at the
+    // high face, so every direction needs at least two ghost cells
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        if (ngc[d] < 2) {
+            Abort("src_compressible requires ngc >= 2 in every direction (set ngc = 2 2 2 in the inputs)");
+        }
+    }
+
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
 
@@ -120,13 +128,16 @@ void main_driver(const char* argv)
     //Initialise rngs
     /////////////////////////////////////////
 
-    if (restart < 0) {
-
+    // seed on restarts too; the checkpoint does not store the RNG state.
+    // With a fixed seed, offset by the restart step so that segments restarted
+    // from different checkpoints do not replay the same noise.
+    {
         if (seed > 0) {
+            int root_seed = (restart > 0) ? seed + restart*ParallelDescriptor::NProcs() : seed;
             // initializes the seed for C++ random number calls
-            InitRandom(seed+ParallelDescriptor::MyProc(),
+            InitRandom(root_seed+ParallelDescriptor::MyProc(),
                        ParallelDescriptor::NProcs(),
-                       seed+ParallelDescriptor::MyProc());
+                       root_seed+ParallelDescriptor::MyProc());
         } else if (seed == 0) {
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
@@ -386,8 +397,7 @@ void main_driver(const char* argv)
 
     // Yk
     for (int d=0; d<nspecies; d++) {
-        x = "Y";
-        x += (49+d);
+        x = "Y" + std::to_string(d+1);
         prim_var_names[cnt++] = x;
     }
 
@@ -441,8 +451,7 @@ void main_driver(const char* argv)
 
     // rho*Yk
     for (int d=0; d<nspecies; d++) {
-        x = "rhoY";
-        x += (49+d);
+        x = "rhoY" + std::to_string(d+1);
         cons_var_names[cnt++] = x;
     }
 
@@ -559,6 +568,11 @@ void main_driver(const char* argv)
         if (restart > 0 && step==1) {
             ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                            primMeans, primVars, spatialCross, miscStats, eta, kappa);
+            // ReadCheckPoint redefines only some MultiFabs on the checkpoint's BoxArray;
+            // the rest (zeta, chi, D, fluxes, ...) keep the one built above
+            if (cu.boxArray() != ba || cu.DistributionMap() != dmap) {
+                Abort("Restart requires the same grids as the checkpoint (same n_cells, max_grid_size and number of MPI ranks)");
+            }
         }
 
         // timer
@@ -725,11 +739,7 @@ void main_driver(const char* argv)
             // timer
             Real t1 = ParallelDescriptor::second();
 
-            Print() << "HERE1\n";
-
             structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
-
-            Print() << "HERE2\n";
             structFactCons.WritePlotFile(step,time,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimFlattened.WritePlotFile(step,time,"plt_SF_prim_Flattened");
@@ -846,9 +856,7 @@ void main_driver(const char* argv)
             // FORM 5: <curl(V) dot (curl(V)> using cell-centered gradients
 
             // compute curlU (store in gradU)
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                ComputeCurlCC(prim,1,gradU,0,geom);
-            }
+            ComputeCurlCC(prim,1,gradU,0,geom);
 
             // create a copy of curlU scaled by rho
             MultiFab::Copy(rhoscaled_gradU, gradU, 0, 0, AMREX_SPACEDIM, 0);
