@@ -6,6 +6,9 @@
 #include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_GpuComplex.H>
+#include <AMReX_FFT.H>
+
+#include <memory>
 
 #include <string>
 
@@ -38,6 +41,11 @@ class StructFact {
     amrex::Vector< int > var_u;
 
     Geometry geom_sf;
+
+    // forward R2C plan reused across ComputeFFT calls (plan creation is expensive on GPUs);
+    // rebuilt if ComputeFFT is called for a different domain
+    std::unique_ptr<amrex::FFT::R2C<Real, amrex::FFT::Direction::forward>> fft_plan;
+    Box fft_domain;
 
 public:
 
