@@ -234,28 +234,6 @@ void BDS_ComputeSlopes(Box const& bx,
         Array1D<Real, 1, 4> smax;
         Array1D<Real, 1, 4> sc;
 
-        Array1D<bool, 1, 4> allow_change;
-        for (int mm=1; mm<=4; ++mm) {
-            allow_change(mm) = true;
-        }
-
-        if ( i<=dlo.x && lo_x_physbc ) {
-            allow_change(1) = false;
-            allow_change(2) = false;
-        }
-        if ( i>=dhi.x+1 && hi_x_physbc ) {
-            allow_change(3) = false;
-            allow_change(4) = false;
-        }
-        if ( j<=dlo.y && lo_y_physbc ) {
-            allow_change(1) = false;
-            allow_change(3) = false;
-        }
-        if ( j>=dhi.y+1 && hi_y_physbc ) {
-            allow_change(2) = false;
-            allow_change(4) = false;
-        }
-
         // compute initial estimates of slopes from unlimited corner points
         // sx
         slopes(i,j,k,0) = 0.5*(sint(i+1,j+1,k) + sint(i+1,j,k) - sint(i,j+1,k) - sint(i,j,k)) / hx;
@@ -292,9 +270,7 @@ void BDS_ComputeSlopes(Box const& bx,
             smax(1) = amrex::max(s(i,j,k,icomp), s(i-1,j,k,icomp), s(i,j-1,k,icomp), s(i-1,j-1,k,icomp));
 
             for(int mm=1; mm<=4; ++mm){
-               if (allow_change(mm)) {
-                   sc(mm) = amrex::max(amrex::min(sc(mm), smax(mm)), smin(mm));
-               }
+               sc(mm) = amrex::max(amrex::min(sc(mm), smax(mm)), smin(mm));
             }
 
             // iterative loop
@@ -316,7 +292,7 @@ void BDS_ComputeSlopes(Box const& bx,
 
                // count how many nodes are larger(smaller) than the cell-centered value
                for(int mm=1; mm<=4; ++mm){
-                  if (diff(mm) > eps && allow_change(mm)) {
+                  if (diff(mm) > eps) {
                      kdp = kdp+1;
                   }
                }
@@ -324,8 +300,6 @@ void BDS_ComputeSlopes(Box const& bx,
                // adjust node values
                for(int mm=1; mm<=4; ++mm){
 
-                  // don't allow boundary nodes to change value
-                  if (!allow_change(mm)) continue;
 
                   // how many node values are left to potentially adjust
                   if (kdp<1) {
@@ -999,48 +973,6 @@ void BDS_ComputeSlopes(Box const& bx,
         Array1D<Real, 1, 8> smax;
         Array1D<Real, 1, 8> sc;
 
-        Array1D<bool, 1, 8> allow_change;
-        for (int mm=1; mm<=8; ++mm) {
-            allow_change(mm) = true;
-        }
-
-        if ( i==dlo.x && lo_x_physbc ) {
-            allow_change(1) = false;
-            allow_change(2) = false;
-            allow_change(3) = false;
-            allow_change(4) = false;
-        }
-        if ( i==dhi.x+1 && hi_x_physbc ) {
-            allow_change(5) = false;
-            allow_change(6) = false;
-            allow_change(7) = false;
-            allow_change(8) = false;
-        }
-        if ( j==dlo.y && lo_y_physbc ) {
-            allow_change(1) = false;
-            allow_change(2) = false;
-            allow_change(5) = false;
-            allow_change(6) = false;
-        }
-        if ( j==dhi.y+1 && hi_y_physbc ) {
-            allow_change(3) = false;
-            allow_change(4) = false;
-            allow_change(7) = false;
-            allow_change(8) = false;
-        }
-        if ( k==dlo.z && lo_z_physbc ) {
-            allow_change(1) = false;
-            allow_change(3) = false;
-            allow_change(5) = false;
-            allow_change(7) = false;
-        }
-        if ( k==dhi.z+1 && hi_z_physbc ) {
-            allow_change(2) = false;
-            allow_change(4) = false;
-            allow_change(6) = false;
-            allow_change(8) = false;
-        }
-
          // compute initial estimates of slopes from unlimited corner points
          // sx
          slopes(i,j,k,0) = 0.25*(( sint(i+1,j  ,k  ) + sint(i+1,j+1,k  )
@@ -1174,9 +1106,7 @@ void BDS_ComputeSlopes(Box const& bx,
                            s(i  ,j  ,k-1,icomp),s(i  ,j-1,k  ,icomp),s(i-1,j  ,k  ,icomp),s(i  ,j  ,k  ,icomp));
 
              for(int mm=1; mm<=8; ++mm){
-                if (allow_change(mm)) {
-                    sc(mm) = max(min(sc(mm), smax(mm)), smin(mm));
-                }
+                sc(mm) = max(min(sc(mm), smax(mm)), smin(mm));
              }
 
              // iterative loop
@@ -1198,7 +1128,7 @@ void BDS_ComputeSlopes(Box const& bx,
 
                // count how many nodes are larger(smaller) than the cell-centered value
                 for(int mm=1; mm<=8; ++mm){
-                   if (diff(mm) > eps && allow_change(mm)) {
+                   if (diff(mm) > eps) {
                       kdp = kdp+1;
                    }
                 }
@@ -1206,8 +1136,6 @@ void BDS_ComputeSlopes(Box const& bx,
                 // adjust node values
                 for(int mm=1; mm<=8; ++mm){
 
-                   // don't allow boundary nodes to change value
-                   if (!allow_change(mm)) continue;
 
                    if (kdp<1) {
                       div = 1.0;
@@ -3366,7 +3294,7 @@ void BDS_ComputeConc(Box const& bx,
         p2(2) = jsign*0.5*hy;
         p2(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
-        p3(1) = isign*0.5*hx - umac(i+1,j+joff,k)*dt;
+        p3(1) = isign*0.5*hx - umac(i+1,j,k+koff)*dt;
         p3(2) = jsign*0.5*hy;
         p3(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
@@ -3442,7 +3370,7 @@ void BDS_ComputeConc(Box const& bx,
         p2(2) = jsign*0.5*hy;
         p2(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
-        p3(1) = isign*0.5*hx - umac(i+1,j+joff,k)*dt;
+        p3(1) = isign*0.5*hx - umac(i+1,j,k+koff)*dt;
         p3(2) = jsign*0.5*hy;
         p3(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
@@ -3579,7 +3507,7 @@ void BDS_ComputeConc(Box const& bx,
         p2(2) = jsign*0.5*hy;
         p2(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
-        p3(1) = isign*0.5*hx - umac(i,j+joff,k)*dt;
+        p3(1) = isign*0.5*hx - umac(i,j,k+koff)*dt;
         p3(2) = jsign*0.5*hy;
         p3(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
@@ -3655,7 +3583,7 @@ void BDS_ComputeConc(Box const& bx,
         p2(2) = jsign*0.5*hy;
         p2(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
-        p3(1) = isign*0.5*hx - umac(i,j+joff,k)*dt;
+        p3(1) = isign*0.5*hx - umac(i,j,k+koff)*dt;
         p3(2) = jsign*0.5*hy;
         p3(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
@@ -3793,7 +3721,7 @@ void BDS_ComputeConc(Box const& bx,
         p2(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
         p3(1) = isign*0.5*hx;
-        p3(2) = jsign*0.5*hy - vmac(i+ioff,j+1,k)*dt;
+        p3(2) = jsign*0.5*hy - vmac(i,j+1,k+koff)*dt;
         p3(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
         p4(1) = isign*0.5*hx - umac(i+1,j+joff,k+koff)*dt;
@@ -3869,7 +3797,7 @@ void BDS_ComputeConc(Box const& bx,
         p2(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
         p3(1) = isign*0.5*hx;
-        p3(2) = jsign*0.5*hy - vmac(i+ioff,j+1,k)*dt;
+        p3(2) = jsign*0.5*hy - vmac(i,j+1,k+koff)*dt;
         p3(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
         p4(1) = isign*0.5*hx - umac(i,j+joff,k+koff)*dt;
@@ -4006,7 +3934,7 @@ void BDS_ComputeConc(Box const& bx,
         p2(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
         p3(1) = isign*0.5*hx;
-        p3(2) = jsign*0.5*hy - vmac(i+ioff,j,k)*dt;
+        p3(2) = jsign*0.5*hy - vmac(i,j,k+koff)*dt;
         p3(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
         p4(1) = isign*0.5*hx - umac(i+1,j+joff,k+koff)*dt;
@@ -4082,7 +4010,7 @@ void BDS_ComputeConc(Box const& bx,
         p2(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
         p3(1) = isign*0.5*hx;
-        p3(2) = jsign*0.5*hy - vmac(i+ioff,j,k)*dt;
+        p3(2) = jsign*0.5*hy - vmac(i,j,k+koff)*dt;
         p3(3) = ksign*0.5*hz - wmac(i,j,k)*dt;
 
         p4(1) = isign*0.5*hx - umac(i,j+joff,k+koff)*dt;
