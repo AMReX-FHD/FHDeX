@@ -539,7 +539,7 @@ void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_p
     amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
-             amrex::Real y = (j+0.5)*dx[1];
+             amrex::Real y = prob_lo[1] + (j+0.5)*dx[1];
  //            amrex::Real alpha = (conc_arr(i,j,k,0)-c_init_1[0])/(c_init_1[1]-c_init_1[0]);
 
 //         alpha = std::max(0.,std::min(1.,alpha));
@@ -556,7 +556,9 @@ void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_p
     });
      }
 
-     amrex::Real F0 = 4.e12;
+     // EXPERIMENTAL: a constant body force in x stands in for the disjoining-pressure
+     // gradient; the djp field computed above is not used. Set via inputs `disjoin_force`.
+     const amrex::Real F0 = disjoin_force; // plain local: captured by value in the device lambdas below
         for (int n = 0 ; n < AMREX_SPACEDIM; n++)
             disjoining_pressure[n].setVal(0.);
 
