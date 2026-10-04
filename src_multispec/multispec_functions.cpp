@@ -4,18 +4,18 @@
 
 int                                                         multispec::inverse_type;
 int                                                         multispec::temp_type;
-int                                                         multispec::chi_iterations;
+AMREX_GPU_MANAGED int                                       multispec::chi_iterations;
 amrex::Real                                                 multispec::start_time;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> multispec::Dbar;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::Dtherm;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> multispec::H_offdiag;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::H_diag;
-amrex::Real                                                 multispec::fraction_tolerance;
+AMREX_GPU_MANAGED amrex::Real                               multispec::fraction_tolerance;
 int                                                         multispec::correct_flux;
 int                                                         multispec::print_error_norms;
 AMREX_GPU_MANAGED int                                       multispec::is_nonisothermal;
 AMREX_GPU_MANAGED int                                       multispec::is_ideal_mixture;
-int                                                         multispec::use_lapack;
+AMREX_GPU_MANAGED int                                       multispec::use_lapack;
 AMREX_GPU_MANAGED int                                       multispec::use_multiphase;
 AMREX_GPU_MANAGED int                                       multispec::use_flory_huggins;
 AMREX_GPU_MANAGED int                                       multispec::use_disjoin_pres;
@@ -36,7 +36,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_2;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_3;
 int                                                         multispec::midpoint_stoch_mass_flux_type;
 AMREX_GPU_MANAGED int                                       multispec::avg_type;
-int                                                         multispec::mixture_type;
+AMREX_GPU_MANAGED int                                       multispec::mixture_type;
 
 // charged fluid
 int                                                         multispec::use_charged_fluid;
@@ -233,17 +233,17 @@ void InitializeMultispecNamespace() {
         }
     }
    // contact angles in degrees.  converty to radians
-    if(pp.queryarr("contact_angle_lo",temp)) {
+    if(pp.queryarr("contact_angle_lo",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             contact_angle_lo[i] = temp[i]*M_PI/180.;
         }
     }
-    if(pp.queryarr("contact_angle_hi",temp)) {
+    if(pp.queryarr("contact_angle_hi",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             contact_angle_hi[i] = temp[i]*M_PI/180.;
         }
     }
-    if(pp.queryarr("fh_monomers",temp)) {
+    if(pp.queryarr("fh_monomers",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             fh_monomers[i] = temp[i];
         }
@@ -256,17 +256,17 @@ void InitializeMultispecNamespace() {
             molmass[i] = fh_monomers[i]*monomer_mass;
         }
     }
-    if(pp.queryarr("c_init_1",temp)) {
+    if(pp.queryarr("c_init_1",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             c_init_1[i] = temp[i];
         }
     }
-    if(pp.queryarr("c_init_2",temp)) {
+    if(pp.queryarr("c_init_2",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             c_init_2[i] = temp[i];
         }
     }
-    if(pp.queryarr("c_init_3",temp)) {
+    if(pp.queryarr("c_init_3",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             c_init_3[i] = temp[i];
         }
@@ -294,6 +294,12 @@ void InitializeMultispecNamespace() {
     pp.query("midpoint_stoch_mass_flux_type",midpoint_stoch_mass_flux_type);
     pp.query("avg_type",avg_type);
     pp.query("mixture_type",mixture_type);
+    if (std::abs(mixture_type) == 1 || std::abs(mixture_type) == 2) {
+        Abort("mixture_type = 1 and 2 are not currently supported");
+    }
+    if (mixture_type == 3 && nspecies < 3) {
+        Abort("mixture_type = 3 requires nspecies >= 3");
+    }
     pp.query("use_charged_fluid",use_charged_fluid);
     pp.query("print_debye_len",print_debye_len);
     pp.query("dielectric_const",dielectric_const);

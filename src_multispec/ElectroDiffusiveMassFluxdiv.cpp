@@ -323,9 +323,13 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
 void LimitEMF(const MultiFab& rho_in,
               std::array< MultiFab, AMREX_SPACEDIM >& electro_mass_flux) {
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rho_in.nGrow() >= 1, "LimitEMF: rho needs a ghost cell");
 
+    // Face-based form of the cell-based rule: the face between cells (c-1) and c is zeroed for all
+    // species if any species is empty in cell c and the flux there is positive, or empty in cell
+    // c-1 and the flux is negative. Both boxes that share a face evaluate the same test on the
+    // same data, so the duplicated copies of a face stay identical across boxes and ranks.
     for ( MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.tilebox();
 
         const Array4<Real const>& rho = rho_in.array(mfi);
 
@@ -333,44 +337,41 @@ void LimitEMF(const MultiFab& rho_in,
                      const Array4<Real>& emfy = electro_mass_flux[1].array(mfi);,
                      const Array4<Real>& emfz = electro_mass_flux[2].array(mfi););
 
-        amrex::ParallelFor(bx, nspecies,  [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        AMREX_D_TERM(const Box& bx_x = mfi.nodaltilebox(0);,
+                     const Box& bx_y = mfi.nodaltilebox(1);,
+                     const Box& bx_z = mfi.nodaltilebox(2););
+
+        auto fx = [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (rho(i,j,k,n) <= 0.) {
-
-                if (emfx(i,j,k,n) > 0.) {
-                    for (int m=0; m<nspecies; ++m) {
-                        emfx(i,j,k,m) = 0.;
-                    }
-                }
-                if (emfx(i+1,j,k,n) < 0.) {
-                    for (int m=0; m<nspecies; ++m) {
-                        emfx(i+1,j,k,m) = 0.;
-                    }
-                }
-
-                if (emfy(i,j,k,n) > 0.) {
-                    for (int m=0; m<nspecies; ++m) {
-                        emfy(i,j,k,m) = 0.;
-                    }
-                }
-                if (emfy(i,j+1,k,n) < 0.) {
-                    for (int m=0; m<nspecies; ++m) {
-                        emfy(i,j+1,k,m) = 0.;
-                    }
-                }
-#if (AMREX_SPACEDIM == 3)
-                if (emfz(i,j,k,n) > 0.) {
-                    for (int m=0; m<nspecies; ++m) {
-                        emfz(i,j,k,m) = 0.;
-                    }
-                }
-                if (emfz(i,j,k+1,n) < 0.) {
-                    for (int m=0; m<nspecies; ++m) {
-                        emfz(i,j,k+1,m) = 0.;
-                    }
-                }
-#endif
+            bool zero = false;
+            for (int n=0; n<nspecies; ++n) {
+                if ((rho(i  ,j,k,n) <= 0. && emfx(i,j,k,n) > 0.) ||
+                    (rho(i-1,j,k,n) <= 0. && emfx(i,j,k,n) < 0.)) { zero = true; }
             }
-        });
+            if (zero) { for (int m=0; m<nspecies; ++m) { emfx(i,j,k,m) = 0.; } }
+        };
+        auto fy = [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            bool zero = false;
+            for (int n=0; n<nspecies; ++n) {
+                if ((rho(i,j  ,k,n) <= 0. && emfy(i,j,k,n) > 0.) ||
+                    (rho(i,j-1,k,n) <= 0. && emfy(i,j,k,n) < 0.)) { zero = true; }
+            }
+            if (zero) { for (int m=0; m<nspecies; ++m) { emfy(i,j,k,m) = 0.; } }
+        };
+#if (AMREX_SPACEDIM == 3)
+        auto fz = [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            bool zero = false;
+            for (int n=0; n<nspecies; ++n) {
+                if ((rho(i,j,k  ,n) <= 0. && emfz(i,j,k,n) > 0.) ||
+                    (rho(i,j,k-1,n) <= 0. && emfz(i,j,k,n) < 0.)) { zero = true; }
+            }
+            if (zero) { for (int m=0; m<nspecies; ++m) { emfz(i,j,k,m) = 0.; } }
+        };
+        amrex::ParallelFor(bx_x, bx_y, bx_z, fx, fy, fz);
+#else
+        amrex::ParallelFor(bx_x, bx_y, fx, fy);
+#endif
     } // end MFIter
 }
