@@ -16,5 +16,6 @@ void advance_phi (amrex::MultiFab& phi_old,
                   amrex::Real dt, amrex::Real num_part, amrex::Real diff_coeff, amrex::Real dorand,
                   amrex::Geometry const& geom,
                   Vector<amrex::BCRec> const& BoundaryCondition,
-                  PotentialParams const& pot);
+                  PotentialParams const& pot,
+                  int noise_avg_type, int drift_flux_type);
 #endif

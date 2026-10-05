@@ -162,6 +162,10 @@ AmrCoreAdv::Evolve ()
                        << std::scientific <<  sum_phi_new << " " << std::setw(2l) << std::setprecision(12)
                        << std::scientific << (sum_phi_new - sum_phi_old) << std::endl;
 
+        if (neg_diag_int > 0 && (step+1) % neg_diag_int == 0) {
+            PrintNegativeDensityDiagnostics(step+1);
+        }
+
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
             t_new[lev] = cur_time;
@@ -654,6 +658,55 @@ AmrCoreAdv::ComputeInteractionStiffness ()
     amrex::Print() << "Explicit stability: D*keff2_max = " << diff_coeff*keff2_max
                    << " interaction max_k keff^2*Uhat*cellvol = " << int_stiff
                    << " (multiplied by max phi in EstTimeStep)\n";
+
+    // |C_i - C_{i-1}|/dx <= max|dU/dr| * sum|phi| cellvol, so max|dU/dr| bounds
+    // the interaction drift velocity per unit mass
+    drift_wmax = 0.;
+    if (drift_flux_type == 1) {
+        Real lhalf = 0.5*Geom(lev).ProbLength(0);
+        for (int d = 1; d < AMREX_SPACEDIM; ++d) { lhalf = amrex::min(lhalf, 0.5*Geom(lev).ProbLength(d)); }
+        constexpr int nsamp = 4096;
+        for (int n = 1; n <= nsamp; ++n) {
+            const Real r = lhalf*n/nsamp;
+            drift_wmax = amrex::max(drift_wmax, std::abs(ip_dUdr_over_r(r, pot)*r));
+        }
+        amrex::Print() << "Scharfetter-Gummel drift flux: max|dU/dr| = " << drift_wmax
+                       << " (drift velocity bound per unit mass, used in EstTimeStep)\n";
+    }
+}
+
+void
+AmrCoreAdv::PrintNegativeDensityDiagnostics (int step) const
+{
+    const int lev = 0;
+    const auto dx = Geom(lev).CellSizeArray();
+    const Real cellvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
+
+    ReduceOps<ReduceOpMin, ReduceOpSum, ReduceOpSum> reduce_op;
+    ReduceData<Real, Real, Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    for (MFIter mfi(phi_new[lev]); mfi.isValid(); ++mfi) {
+        auto const& phi = phi_new[lev].const_array(mfi);
+        reduce_op.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            const Real p = phi(i,j,k,0);
+            return {p, (p < 0.) ? Real(1.) : Real(0.), amrex::min(p, Real(0.))};
+        });
+    }
+    auto r = reduce_data.value(reduce_op);
+    Real phimin = amrex::get<0>(r);
+    Real nneg = amrex::get<1>(r);
+    Real negsum = amrex::get<2>(r);
+    ParallelDescriptor::ReduceRealMin(phimin);
+    ParallelDescriptor::ReduceRealSum(nneg);
+    ParallelDescriptor::ReduceRealSum(negsum);
+
+    const Real ncells = Geom(lev).Domain().d_numPts();
+    amrex::Print() << "NegDiag step " << step
+                   << " min phi = " << phimin
+                   << " negative cell fraction = " << nneg/ncells
+                   << " negative mass = " << negsum*cellvol << "\n";
 }
 
 namespace {
@@ -1037,6 +1090,19 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         diff_coeff = 0.5;
         pp.queryAdd("diff_coeff", diff_coeff);
 
+        pp.query("noise_avg_type", noise_avg_type);
+        if (noise_avg_type != 0 && noise_avg_type != 1) {
+            Abort("noise_avg_type must be 0 (average of square roots) or 1 (smoothed Heaviside)");
+        }
+        pp.query("drift_flux_type", drift_flux_type);
+        if (drift_flux_type != 0 && drift_flux_type != 1) {
+            Abort("drift_flux_type must be 0 (centered) or 1 (Scharfetter-Gummel)");
+        }
+        if (drift_flux_type == 1 && diff_coeff <= 0.) {
+            Abort("drift_flux_type = 1 needs diff_coeff > 0");
+        }
+        pp.query("neg_diag_int", neg_diag_int);
+
 
         // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
         pp.queryarr("bc_lo", bc_lo);
@@ -1374,6 +1440,14 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
     Real lambda_max = diff_coeff * keff2_max;
     if (pot.use_int_pot && int_stiff > 0.) {
         lambda_max += amrex::max(phi_new[lev].max(0), Real(0.)) * int_stiff;
+    }
+    if (pot.use_int_pot && drift_flux_type == 1) {
+        // positivity of the Scharfetter-Gummel update at cfl <= 1 also needs
+        // dt * sum_d 2|w|/dx_d <= 2; |w| <= drift_wmax * sum|phi| cellvol.
+        // The external potential drift is not included in this bound.
+        const Real cellvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
+        const Real wmax = drift_wmax * phi_new[lev].norm1(0) * cellvol;
+        lambda_max += 2. * wmax * (AMREX_D_TERM(1./dx[0], + 1./dx[1], + 1./dx[2]));
     }
 
     Real dt_est = std::numeric_limits<Real>::max();

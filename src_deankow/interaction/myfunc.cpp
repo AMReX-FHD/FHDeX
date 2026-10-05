@@ -17,7 +17,9 @@ void advance_phi (MultiFab& phi_old,
                   Real dorand,
                   Geometry const& geom,
                   Vector<BCRec> const& BoundaryCondition,
-                  PotentialParams const& pot)
+                  PotentialParams const& pot,
+                  int noise_avg_type,
+                  int drift_flux_type)
 {
     int Ncomp = phi_old.nComp();
 
@@ -35,6 +37,9 @@ void advance_phi (MultiFab& phi_old,
 #if(AMREX_SPACEDIM > 2)
     variance *=dzinv;
 #endif
+
+    // particles per cell per unit density, for the noise_avg_type = 1 cutoff
+    const Real n_per_phi = num_part / AMREX_D_TERM(dxinv, *dyinv, *dzinv);
 
     const auto problo = geom.ProbLoArray();
     const auto probhi = geom.ProbHiArray();
@@ -92,21 +97,24 @@ void advance_phi (MultiFab& phi_old,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 compute_flux_x(i,j,k,fluxx,stochfluxx,C_arr,phi,dxinv,diff_coeff,
-                               lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp,pot);
+                               lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp,pot,
+                               noise_avg_type, drift_flux_type, n_per_phi);
             });
 
         amrex::ParallelFor(ybx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 compute_flux_y(i,j,k,fluxy,stochfluxy,C_arr,phi,dyinv,diff_coeff,
-                               lo.y, hi.y, dom_lo.y, dom_hi.y, bc.lo(1), bc.hi(1),Ncomp,pot);
+                               lo.y, hi.y, dom_lo.y, dom_hi.y, bc.lo(1), bc.hi(1),Ncomp,pot,
+                               noise_avg_type, drift_flux_type, n_per_phi);
             });
 #if (AMREX_SPACEDIM > 2)
         amrex::ParallelFor(zbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 compute_flux_z(i,j,k,fluxz,stochfluxz,C_arr,phi,dzinv,diff_coeff,
-                               lo.z, hi.z, dom_lo.z, dom_hi.z, bc.lo(2), bc.hi(2),Ncomp,pot);
+                               lo.z, hi.z, dom_lo.z, dom_hi.z, bc.lo(2), bc.hi(2),Ncomp,pot,
+                               noise_avg_type, drift_flux_type, n_per_phi);
             });
 #endif
     }

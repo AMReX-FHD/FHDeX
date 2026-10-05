@@ -209,6 +209,21 @@ private:
 
     int alg_type;
 
+    // face noise amplitude: 0 = average of square roots,
+    // 1 = arithmetic average with a C0-smoothed Heaviside of the particle count
+    int noise_avg_type = 0;
+
+    // drift (potential) flux: 0 = centered, 1 = Scharfetter-Gummel
+    int drift_flux_type = 0;
+
+    // bound on |grad C| per unit mass, for the Scharfetter-Gummel time step limit
+    amrex::Real drift_wmax = 0.;
+
+    // print negative-density diagnostics every neg_diag_int steps (0 = off)
+    int neg_diag_int = 0;
+
+    void PrintNegativeDensityDiagnostics (int step) const;
+
     int seed=0;
 
     amrex::BoxArray grown_fba;

@@ -33,6 +33,11 @@ alg_type = 0
 dorand = 1.
 num_part = 81920.          # sets the noise amplitude; ~8000 per initial cluster
 
+# SPDE discretization options (defaults reproduce the original scheme)
+#noise_avg_type  = 1       # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
+#drift_flux_type = 1       # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, smaller dt)
+#neg_diag_int    = 1000    # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+
 # *****************************************************************
 # Problem size and geometry
 # *****************************************************************
