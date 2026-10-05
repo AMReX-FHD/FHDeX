@@ -289,7 +289,7 @@ void compute_flux_x (int i, int j, int k,
              if (drift_flux_type == 1) {
                 wdrift += (C(i,j,k) - C(i-1,j,k)) * dxinv;
              } else {
-                fluxx(i,j,k,0) += phiavg * (C(i,j,k) - C(i-1,j,k)) * dxinv;
+                fluxx(i,j,k,0) += std::max(phiavg,0.) * (C(i,j,k) - C(i-1,j,k)) * dxinv;
              }
 
           }
@@ -397,7 +397,7 @@ void compute_flux_y (int i, int j, int k,
              if (drift_flux_type == 1) {
                 wdrift += (C(i,j,k) - C(i,j-1,k)) * dyinv;
              } else {
-                fluxy(i,j,k,0) += phiavg * (C(i,j,k) - C(i,j-1,k)) * dyinv;
+                fluxy(i,j,k,0) += std::max(phiavg,0.) * (C(i,j,k) - C(i,j-1,k)) * dyinv;
              }
 
           }
@@ -511,7 +511,7 @@ void compute_flux_z (int i, int j, int k,
              if (drift_flux_type == 1) {
                 wdrift += (C(i,j,k) - C(i,j,k-1)) * dzinv;
              } else {
-                fluxz(i,j,k,0) += phiavg * (C(i,j,k) - C(i,j,k-1)) * dzinv;
+                fluxz(i,j,k,0) += std::max(phiavg,0.) * (C(i,j,k) - C(i,j,k-1)) * dzinv;
              }
 
           }
