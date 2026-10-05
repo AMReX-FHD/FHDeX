@@ -60,7 +60,7 @@ amr.ref_ratio       = 1
 
 # Interaction potential (ip_ prefix)
 amr.use_int_pot = 1        # 1 = on, 0 = off
-amr.ip_type     = gema     # gema: ip_eps*exp(-(r/ip_R)^ip_alpha); hk: ip_eps*ip_R*(1-(r/ip_R)^2), 0 for r >= ip_R; morse: see below
+amr.ip_type     = gema     # gema: ip_eps*exp(-(r/ip_R)^ip_alpha); hk: ip_eps*ip_R*(1-(r/ip_R)^2)/2, 0 for r >= ip_R; morse: see below
 amr.ip_eps      = 4509.
 amr.ip_R        = 0.1
 amr.ip_alpha    = 3.       # gema only
