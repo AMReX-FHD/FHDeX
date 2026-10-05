@@ -20,7 +20,7 @@
 // ip_dUdr_over_r.
 enum IntPotType : int {
     GEMA = 0,  // generalized exponential model: U = ip_eps*exp(-(r/ip_R)^ip_alpha)
-    HK   = 1,  // U = ip_eps*ip_R*(1-(r/ip_R)^2) for r < ip_R, 0 otherwise
+    HK   = 1,  // U = ip_eps*ip_R*(1-(r/ip_R)^2)/2 for r < ip_R, 0 otherwise
     MORSE = 2  // generalized Morse: U = -ip_eps_att*exp(-(r-ip_re)/ip_R_att)
                //                        + ip_eps_rep*exp(-(r-ip_re)/ip_R_rep)
 };
@@ -64,7 +64,7 @@ amrex::Real ip_U (amrex::Real r, PotentialParams const& pot) noexcept
     {
         if (r >= pot.ip_R) { return 0.0; }
         const amrex::Real s = r/pot.ip_R;
-        return pot.ip_eps * pot.ip_R * (1.0 - s*s);
+        return 0.5 * pot.ip_eps * pot.ip_R * (1.0 - s*s);
     }
     case IntPotType::GEMA:
     default:
@@ -89,7 +89,7 @@ amrex::Real ip_dUdr_over_r (amrex::Real r, PotentialParams const& pot) noexcept
         return dUdr / r;
     }
     case IntPotType::HK:
-        return (r < pot.ip_R) ? -2.0 * pot.ip_eps / pot.ip_R : 0.0;
+        return (r < pot.ip_R) ? -pot.ip_eps / pot.ip_R : 0.0;
     case IntPotType::GEMA:
     default:
     {
