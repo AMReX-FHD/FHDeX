@@ -119,6 +119,22 @@ void init_int_pot (int i, int j, int k,
 //        amrex::Print() << "i j U " << i << " " << j << " " << U(i,j,k) << " " << Ux << std::endl;
 }
 
+// Drift velocity of the external potential at a face, d V_ext/dx_d, as a
+// function of the face coordinate. Shared by the flux kernels and the drift
+// measurement used for the time step (AmrCoreAdv::MeasureDrift).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::Real ext_drift_x (amrex::Real xloc, PotentialParams const& pot) noexcept
+{
+    return 2.*(xloc - pot.ep_beta) * (xloc - pot.ep_alpha)* (2.*xloc - pot.ep_alpha - pot.ep_beta) / pot.ep_gamma;
+}
+
+// TODO(3D): the z drift reuses the y-direction cubic well; see compute_flux_z
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::Real ext_drift_y (amrex::Real yloc, PotentialParams const& pot) noexcept
+{
+    return 0.5* 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / pot.ep_gamma;
+}
+
 // Bernoulli function B(z) = z/(e^z - 1), with B(0) = 1
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real bernoulli (amrex::Real z) noexcept
@@ -173,9 +189,6 @@ void compute_flux_x (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    const amrex::Real ep_alpha = pot.ep_alpha;
-    const amrex::Real ep_beta  = pot.ep_beta;
-    const amrex::Real ep_gamma = pot.ep_gamma;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -272,7 +285,7 @@ void compute_flux_x (int i, int j, int k,
 
              amrex::Real Vsubx;
 
-             Vsubx = 2.*(xloc - ep_beta) * (xloc - ep_alpha)* (2.*xloc - ep_alpha - ep_beta) / ep_gamma;
+             Vsubx = ext_drift_x(xloc, pot);
 
              if (drift_flux_type == 1) {
                 wdrift += Vsubx;
@@ -321,7 +334,6 @@ void compute_flux_y (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    const amrex::Real ep_gamma = pot.ep_gamma;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -380,7 +392,7 @@ void compute_flux_y (int i, int j, int k,
 
              amrex::Real Vsuby;
 
-             Vsuby =0.5* 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / ep_gamma;
+             Vsuby = ext_drift_y(yloc, pot);
 
              if (drift_flux_type == 1) {
                 wdrift += Vsuby;
@@ -432,7 +444,6 @@ void compute_flux_z (int i, int j, int k,
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
 
-    const amrex::Real ep_gamma = pot.ep_gamma;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -494,7 +505,7 @@ void compute_flux_z (int i, int j, int k,
              // StochasticPC::AdvectParticles (use_ext_pot branches).
              amrex::Real Vsubz;
 
-             Vsubz =0.5* 4.*(zloc - .5)*(zloc - .5)*(zloc - .5) / ep_gamma;
+             Vsubz = ext_drift_y(zloc, pot);
 
              if (drift_flux_type == 1) {
                 wdrift += Vsubz;

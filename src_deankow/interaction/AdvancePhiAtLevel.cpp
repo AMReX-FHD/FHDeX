@@ -149,6 +149,9 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
 
     C.FillBoundary(Geom(lev).periodicity());
 
+    // face drift velocity of this step, for the time step and the diagnostics
+    if (NeedDriftMeasurement()) { MeasureDrift(lev); }
+
     phi_old[lev].FillBoundary(Geom(lev).periodicity());
 
     // We do this here so we can print the FABs for debugging

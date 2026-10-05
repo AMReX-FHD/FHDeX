@@ -379,27 +379,45 @@ and the pair force is set to zero for `r < 1e-6` (`ip_morse_rmin` in
 
 ## Numerical limits
 
-Reaching the repulsive threshold means lowering the diffusivity, and that runs
-into `EstTimeStep` in `AmrCoreAdv.cpp`, which computes `est = diff_coeff / coeff`
-with `coeff` the sum of `2/dx^2`. Every other variant in `src_deankow`
-(`ensemble`, `helfrich_membrane`, `moving`, `multilevel`, `surface`) uses
-`est = 1 / (2 * coeff)` instead. `diff_coeff / coeff` has units of length to
-the fourth over time rather than time, and the explicit diffusive limit wants
-the diffusivity in the denominator. As written the step shrinks in proportion
-to `diff_coeff`, exactly when the stability limit is growing. At
-`diff_coeff = 0.6` the two forms agree to within 20 percent, which is
-presumably why it has gone unnoticed.
+`EstTimeStep` in `AmrCoreAdv.cpp` sets `dt = cfl * 2 / lambda`, the
+fraction `cfl` of the forward Euler limit for the largest eigenvalue `lambda`:
 
-The cost of that at the diffusivities a repulsive run needs, in 3D at 64 cubed
-with `cfl = 0.005`, counting steps per e-folding of the fastest mode:
+$$\lambda = D \sum_d \frac{4}{dx_d^{2}} + \max(\phi) \, S_{\mathrm{int}}
+\; \left[ + \; 4 \sum_d \frac{\max|w_d|}{dx_d} \right]$$
 
-| eps | D | Stability limit | dt, interaction | dt, other variants | Steps per e-fold |
-| --- | --- | --- | --- | --- | --- |
-| 666 | 0.0222 | 1.8e-3 | 4.5e-9 | 1.0e-7 | 3,450,000 or 154,000 |
-| 4509 | 0.1506 | 2.7e-4 | 3.1e-8 | 1.0e-7 | 75,000 or 22,700 |
+- The first term is the explicit diffusion limit.
+- `S_int` (`int_stiff`) is `max_k keff^2 max(Uhat(k) cellvol, 0)`, the interaction
+  operator linearized about a uniform state, scaled by the largest density. It
+  is computed from the discrete `Uhat` of whichever kernel is in use, but it
+  only sees the positive part of `Uhat`: for an attractive kernel with
+  `Uhat <= 0` at every k (attractive gema with `alpha <= 2`, some morse
+  settings) it is zero. It also does not bound the drift in a clustered state.
+  As clusters form, `max(phi)` grows like `gamma alpha m^2 / (2 pi R)` for a
+  pp or hk cluster of mass m, and dt falls with it.
+- The bracketed term is added only with `drift_flux_type = 1`. With
+  `w = grad(C + V_ext)` the face drift velocity, the Scharfetter-Gummel update
+  keeps `phi >= 0` when `dt sum_d (2D/dx_d^2 + 2|w_d|/dx_d) <= 1`; the Bernoulli
+  weights on a cell's two faces add to at most `2 + |Pe_lo| + |Pe_hi|`, the worst
+  case being flow out of both faces. With `cfl <= 1` the factor 4 guarantees it.
 
-The run is roughly three orders of magnitude over-resolved in time even before
-the diffusivity is lowered.
+`max|w_d|` is measured over all faces in the previous step (`MeasureDrift`,
+which forms `w` exactly as the flux kernels do, external potential included),
+so dt lags the drift by one step. Before the first measurement (the first step,
+or the first step after a restart) the interaction drift is bounded instead by
+`max|dU/dr| * sum|phi| cellvol`.
+
+Two further controls, both off by default:
+
+| Input | Effect |
+| --- | --- |
+| `drift_cfl = c` | Also limit `dt * sum_d max|w_d|/dx_d <= c`, for either drift flux |
+| `drift_diag_int = n` | Every n steps print `max|w_d|`, the drift CFL number `dt sum_d max|w_d|/dx_d` and the largest cell Peclet number `max|w_d| dx_d / D` |
+
+The centered drift flux (`drift_flux_type = 0`) is only monotone for cell Peclet
+number `<= 2`; the diagnostic flags larger values. In the 256^2 pp merger
+(`inputs_fv_pp_merge`) it exceeds 2 at the core edge of the merged cluster, and
+in the 128^2 hk cluster run (`inputs_fv_hk_cluster` at 128^2) it reaches about
+2.5. Neither run is limited by the drift CFL number, which stays well below 1.
 
 Resolution matters too, and only for the repulsive case. The selected
 wavelength is `1.17 R`, which at `n_cell = 64` with `R = 0.1` is 7.3 cells: too

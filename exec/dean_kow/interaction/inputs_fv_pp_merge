@@ -37,8 +37,10 @@ num_part = 327680.         # 5 particles per cell on 256^2
 
 # SPDE discretization options (defaults reproduce the original scheme)
 #noise_avg_type  = 1       # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
-#drift_flux_type = 1       # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, smaller dt)
+#drift_flux_type = 1       # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, dt limited by measured drift)
 #neg_diag_int    = 1000    # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+#drift_diag_int  = 1000    # print drift CFL number and max cell Peclet number every n steps (0 = off)
+#drift_cfl       = 0.5     # also limit dt*sum_d max|grad(C+V_ext)|/dx_d <= drift_cfl (0 = off)
 
 # *****************************************************************
 # Problem size and geometry
@@ -105,7 +107,7 @@ adv.phierr = 10.
 # Plotfile name and frequency
 # *****************************************************************
 amr.plot_file  = plt_pp_   # root name of plot file
-amr.plot_int   = 1000      # about every 0.0005-0.001 in time; ~60 plotfiles for space-time stacking
+amr.plot_int   = 1000      # about every 0.0003-0.001 in time; ~100 plotfiles for space-time stacking
 
 # *****************************************************************
 # Checkpoint name and frequency
