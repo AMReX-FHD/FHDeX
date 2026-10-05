@@ -119,6 +119,46 @@ void init_int_pot (int i, int j, int k,
 //        amrex::Print() << "i j U " << i << " " << j << " " << U(i,j,k) << " " << Ux << std::endl;
 }
 
+// Bernoulli function B(z) = z/(e^z - 1), with B(0) = 1
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::Real bernoulli (amrex::Real z) noexcept
+{
+    if (std::abs(z) < 1.e-4) { return 1. - 0.5*z + z*z/12.; }
+    return z/std::expm1(z);
+}
+
+// Scharfetter-Gummel face flux for F = D dphi/dx + w phi, with w the drift
+// velocity (gradient of the potential) at the face. It reduces to the centered
+// flux D (phip-phim)/dx + w (phim+phip)/2 for small cell Peclet number w dx/D,
+// and forward Euler keeps phi non-negative under the limit used in EstTimeStep.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::Real sg_flux (amrex::Real phim, amrex::Real phip, amrex::Real w,
+                     amrex::Real diff_coeff, amrex::Real dxinv) noexcept
+{
+    const amrex::Real pe = w/(diff_coeff*dxinv);
+    return diff_coeff*dxinv*(bernoulli(-pe)*phip - bernoulli(pe)*phim);
+}
+
+// Amplitude multiplying the face noise. phimn and phipn are the (non-negative)
+// densities on either side and n_per_phi converts density to particles per cell.
+//   noise_avg_type 0: average of square roots
+//   noise_avg_type 1: square root of the arithmetic average times a C0-smoothed
+//                     Heaviside of the particle count on each side, as
+//                     reactDiff avg_type = 1 (StochasticNFluxdiv.cpp); the noise
+//                     turns off next to a cell holding less than one particle
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::Real noise_face_amp (amrex::Real phimn, amrex::Real phipn,
+                            int noise_avg_type, amrex::Real n_per_phi) noexcept
+{
+    if (noise_avg_type == 1) {
+        if (phimn <= 0. || phipn <= 0.) { return 0.; }
+        const amrex::Real h = amrex::min(n_per_phi*phimn, amrex::Real(1.))
+                            * amrex::min(n_per_phi*phipn, amrex::Real(1.));
+        return std::sqrt(0.5*(phimn+phipn)*h);
+    }
+    return 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+}
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxx,
@@ -126,7 +166,8 @@ void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& C,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv, amrex::Real diff_coeff,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
-                     PotentialParams const& pot)
+                     PotentialParams const& pot,
+                     int noise_avg_type, int drift_flux_type, amrex::Real n_per_phi)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
@@ -220,6 +261,9 @@ void compute_flux_x (int i, int j, int k,
 
           fluxx(i,j,k,0) = diff_coeff*(phip-phim) * dxinv;
 
+        // drift velocity at the face, accumulated for the Scharfetter-Gummel flux
+        amrex::Real wdrift = 0.;
+
           if(pot.use_ext_pot == 1) {
 
              amrex::Real xloc;
@@ -230,7 +274,11 @@ void compute_flux_x (int i, int j, int k,
 
              Vsubx = 2.*(xloc - ep_beta) * (xloc - ep_alpha)* (2.*xloc - ep_alpha - ep_beta) / ep_gamma;
 
-             fluxx(i,j,k,0) += phiavg * Vsubx;
+             if (drift_flux_type == 1) {
+                wdrift += Vsubx;
+             } else {
+                fluxx(i,j,k,0) += phiavg * Vsubx;
+             }
 
           }
 
@@ -238,15 +286,23 @@ void compute_flux_x (int i, int j, int k,
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
-             fluxx(i,j,k,0) += phiavg * (C(i,j,k) - C(i-1,j,k)) * dxinv;
+             if (drift_flux_type == 1) {
+                wdrift += (C(i,j,k) - C(i-1,j,k)) * dxinv;
+             } else {
+                fluxx(i,j,k,0) += phiavg * (C(i,j,k) - C(i-1,j,k)) * dxinv;
+             }
 
           }
+
+        if (drift_flux_type == 1) {
+           fluxx(i,j,k,0) = sg_flux(phim, phip, wdrift, diff_coeff, dxinv);
+        }
 
         if(Ncomp == 2){
            fluxx(i,j,k,1) = fluxx(i,j,k,0);
         }
 
-          amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+          amrex::Real sqphiavg = noise_face_amp(phimn, phipn, noise_avg_type, n_per_phi);
           fluxx(i,j,k,0) += stofact * stochfluxx(i,j,k) * sqphiavg;
 //          amrex::Print() << " x flux " << i << " " << j << " " << fluxx(i,j,k,0) << std::endl;
 }
@@ -258,7 +314,8 @@ void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& C,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv, amrex::Real diff_coeff,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
-                     PotentialParams const& pot)
+                     PotentialParams const& pot,
+                     int noise_avg_type, int drift_flux_type, amrex::Real n_per_phi)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
@@ -312,6 +369,9 @@ void compute_flux_y (int i, int j, int k,
 
         fluxy(i,j,k,0) = diff_coeff*(phip-phim) * dyinv;
 
+        // drift velocity at the face, accumulated for the Scharfetter-Gummel flux
+        amrex::Real wdrift = 0.;
+
           if(pot.use_ext_pot == 1) {
 
              amrex::Real yloc;
@@ -322,7 +382,11 @@ void compute_flux_y (int i, int j, int k,
 
              Vsuby =0.5* 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / ep_gamma;
 
-             fluxy(i,j,k,0) += phiavg * Vsuby;
+             if (drift_flux_type == 1) {
+                wdrift += Vsuby;
+             } else {
+                fluxy(i,j,k,0) += phiavg * Vsuby;
+             }
 
           }
 
@@ -330,15 +394,23 @@ void compute_flux_y (int i, int j, int k,
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
-             fluxy(i,j,k,0) += phiavg * (C(i,j,k) - C(i,j-1,k)) * dyinv;
+             if (drift_flux_type == 1) {
+                wdrift += (C(i,j,k) - C(i,j-1,k)) * dyinv;
+             } else {
+                fluxy(i,j,k,0) += phiavg * (C(i,j,k) - C(i,j-1,k)) * dyinv;
+             }
 
           }
+
+        if (drift_flux_type == 1) {
+           fluxy(i,j,k,0) = sg_flux(phim, phip, wdrift, diff_coeff, dyinv);
+        }
 
         if(Ncomp == 2){
            fluxy(i,j,k,1) = fluxy(i,j,k,0);
         }
 
-        amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+        amrex::Real sqphiavg = noise_face_amp(phimn, phipn, noise_avg_type, n_per_phi);
 
         fluxy(i,j,k,0) += stofact * stochfluxy(i,j,k)* sqphiavg ;
 //        amrex::Print() << " y flux " << i << " " << j << " " << fluxy(i,j,k,0) << std::endl;
@@ -353,7 +425,8 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& C,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv, amrex::Real diff_coeff,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
-                     PotentialParams const& pot)
+                     PotentialParams const& pot,
+                     int noise_avg_type, int drift_flux_type, amrex::Real n_per_phi)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
@@ -405,6 +478,9 @@ void compute_flux_z (int i, int j, int k,
 
         fluxz(i,j,k,0) = diff_coeff*(phip-phim) * dzinv;
 
+        // drift velocity at the face, accumulated for the Scharfetter-Gummel flux
+        amrex::Real wdrift = 0.;
+
           if(pot.use_ext_pot == 1) {
 
              amrex::Real zloc;
@@ -420,7 +496,11 @@ void compute_flux_z (int i, int j, int k,
 
              Vsubz =0.5* 4.*(zloc - .5)*(zloc - .5)*(zloc - .5) / ep_gamma;
 
-             fluxz(i,j,k,0) += phiavg * Vsubz;
+             if (drift_flux_type == 1) {
+                wdrift += Vsubz;
+             } else {
+                fluxz(i,j,k,0) += phiavg * Vsubz;
+             }
 
           }
 
@@ -428,15 +508,23 @@ void compute_flux_z (int i, int j, int k,
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
-             fluxz(i,j,k,0) += phiavg * (C(i,j,k) - C(i,j,k-1)) * dzinv;
+             if (drift_flux_type == 1) {
+                wdrift += (C(i,j,k) - C(i,j,k-1)) * dzinv;
+             } else {
+                fluxz(i,j,k,0) += phiavg * (C(i,j,k) - C(i,j,k-1)) * dzinv;
+             }
 
           }
+
+        if (drift_flux_type == 1) {
+           fluxz(i,j,k,0) = sg_flux(phim, phip, wdrift, diff_coeff, dzinv);
+        }
 
         if(Ncomp == 2){
            fluxz(i,j,k,1) = fluxz(i,j,k,0);
         }
 
-        amrex::Real sqphiavg = 0.5*(std::sqrt(phipn)+std::sqrt(phimn));
+        amrex::Real sqphiavg = noise_face_amp(phimn, phipn, noise_avg_type, n_per_phi);
 
         fluxz(i,j,k,0) += stofact * stochfluxz(i,j,k)* sqphiavg;
 

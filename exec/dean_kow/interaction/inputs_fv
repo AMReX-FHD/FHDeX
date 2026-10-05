@@ -20,6 +20,11 @@ num_part = 20480.
 num_part = 327680.
 num_part = 81920.
 
+# SPDE discretization options (defaults reproduce the original scheme)
+#noise_avg_type  = 1       # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
+#drift_flux_type = 1       # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, smaller dt)
+#neg_diag_int    = 1000    # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+
 # *****************************************************************
 # Are we restarting from an existing checkpoint file?
 # *****************************************************************
