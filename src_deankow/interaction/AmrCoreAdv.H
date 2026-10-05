@@ -12,6 +12,8 @@
 #include <AMReX_FillPatcher.H>
 #include <AMReX_FFT.H>
 
+#include "Potentials.H"
+
 #ifdef AMREX_USE_OMP
 #   include <omp.h>
 #endif
@@ -114,6 +116,12 @@ private:
     // initialize FFT state for level 0 (used on first init and restart)
     void InitFFTLevel0 ();
 
+    // print min/max of Re(Uhat) over all k and the k where each occurs
+    void PrintUhatMinMax ();
+
+    // compute int_stiff from Uhat
+    void ComputeInteractionStiffness ();
+
     // Pack pointers to phi_old and/or phi_new and associated times.
     void GetData (int lev, amrex::Real time, amrex::Vector<amrex::MultiFab*>& data,
                   amrex::Vector<amrex::Real>& datatime);
@@ -170,6 +178,14 @@ private:
     amrex::MultiFab U;
     amrex::MultiFab C;
 
+    // interaction (ip_) and external (ep_) potential parameters
+    PotentialParams pot;
+
+    // max over k of keff^2 * max(Uhat(k)*cellvol, 0): the interaction's
+    // contribution (per unit phi) to the largest eigenvalue of the explicit
+    // operator; used by EstTimeStep. Set in InitFFTLevel0.
+    amrex::Real int_stiff = 0.;
+
     // FFT setup (cache these in real code)
     std::unique_ptr<amrex::FFT::R2C<amrex::Real, amrex::FFT::Direction::forward>> r2c_forward;
     std::unique_ptr<amrex::FFT::R2C<amrex::Real, amrex::FFT::Direction::backward>> r2c_backward;
@@ -187,7 +203,7 @@ private:
 
     amrex::Real dorand = 1.;
 
-    amrex::Real num_part;
+    amrex::Real num_part = -1.; // particle count the density is scaled with; must be set in the inputs
 
     amrex::Real diff_coeff;
 
@@ -207,7 +223,8 @@ private:
     // if >= 0 we restart from a checkpoint
     std::string restart_chkfile;
 
-    // advective cfl number - dt = cfl*dx/umax
+    // fraction of the explicit (forward Euler) stability limit used for dt;
+    // see EstTimeStep
     amrex::Real cfl = 0.7;
 
     // how often each level regrids the higher levels of refinement

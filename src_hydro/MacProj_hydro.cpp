@@ -66,7 +66,7 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     mlabec.setMaxOrder(linop_maxorder);
 
     // set boundaries for mlabec using velocity bc's
-    SetMacSolverBCs(mlabec);
+    SetMacSolverBCs(mlabec, geom);
 
     mlabec.setLevelBC(0, &macphi);
     mlabec.setScalars(0.0, 1.0);
@@ -154,7 +154,7 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
 }
 
 // Set boundaries for MAC velocities
-void SetMacSolverBCs(MLABecLaplacian& mlabec)
+void SetMacSolverBCs(MLABecLaplacian& mlabec, const Geometry& geom)
 {
     // timer for profiling
     BL_PROFILE_VAR("SetMacSolverBCs()", SetMacSolverBCs);
@@ -165,7 +165,7 @@ void SetMacSolverBCs(MLABecLaplacian& mlabec)
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (DefaultGeometry().isPeriodic(idim)) {
+        if (geom.isPeriodic(idim)) {
             lo_mlmg_bc[idim] = hi_mlmg_bc[idim] = LinOpBCType::Periodic;
         } else {
             //amrex::Error("Invalid BC");

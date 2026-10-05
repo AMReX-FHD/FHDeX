@@ -126,6 +126,7 @@ namespace common {
     extern amrex::Real                perturb_width;
     extern AMREX_GPU_MANAGED amrex::Real smoothing_width;
     extern AMREX_GPU_MANAGED amrex::Real radius_cyl;
+    extern AMREX_GPU_MANAGED amrex::Real bubble_offset;
     extern AMREX_GPU_MANAGED amrex::Real radius_outer;
     extern AMREX_GPU_MANAGED amrex::Real film_thickness;
     extern AMREX_GPU_MANAGED amrex::Real surf_thickness;

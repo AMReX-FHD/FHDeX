@@ -228,7 +228,7 @@ void ComputeMACSolverRHS(MultiFab & solverrhs,
              const std::array<MultiFab, AMREX_SPACEDIM> & umac,
              const Geometry & geom);
 
-void SetMacSolverBCs(MLABecLaplacian & mlabec);
+void SetMacSolverBCs(MLABecLaplacian & mlabec, const Geometry & geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 

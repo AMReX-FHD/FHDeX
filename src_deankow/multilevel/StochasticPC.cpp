@@ -2,6 +2,7 @@
 
 #include <AMReX_GpuContainers.H>
 #include <AMReX_Math.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_TracerParticle_mod_K.H>
 
 using namespace amrex;
@@ -431,7 +432,13 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
     Real stddev = std::sqrt(dt);
 
     int ext_pot = 0;
-    int on_surf = 1;
+    // amr.on_surf = 1 applies the curved-surface drift and anisotropic diffusion below;
+    // the default 0 matches the flat, isotropic level-0 SPDE in mykernel.H
+    int on_surf = 0;
+    {
+        ParmParse pp("amr");
+        pp.query("on_surf", on_surf);
+    }
     amrex::Real alpha = .25;
     amrex::Real beta = .75;
     amrex::Real gamma = 5.e-4;

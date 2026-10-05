@@ -265,7 +265,7 @@ void GetCv (const Real& /*temp*/,
             Real& cv)
 {
     cv = 0.;
-    for (int i=0;i<MAX_SPECIES;++i) cv += hcv[i]*Yk[i];
+    for (int i=0;i<nspecies;++i) cv += hcv[i]*Yk[i];
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -532,7 +532,7 @@ void CholeskyDecomp( GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
     for (int i=0; i<nspecies; ++i) {
         ising = 0;
 
-        for (int j=0; j<nspecies; ++j) {
+        for (int j=i; j<nspecies; ++j) {
             sum1 = a[i*nspecies+j];
 
             for (int k=i-1; k>=0; --k) {
@@ -1589,6 +1589,9 @@ void TransportCoeffs(const Real& rho, const Real& T, const Real& P,
         IdealMixtureTransportHCBBin(rho, T, P,
                                     Yk_fixed, Xk_fixed, eta, kappa, zeta,
                                     Dloc, chi);
+    }
+    else {
+        amrex::Abort("TransportCoeffs: unknown transport_type (expected 1, 2 or 3)");
     }
 
     // want this multiplied by rho for all times (rho*D_tilde = rho*Y*D)

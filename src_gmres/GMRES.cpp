@@ -75,12 +75,12 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
     bool inhomogeneous_fix = false;
     for (int i_local=0; i_local<AMREX_SPACEDIM; ++i_local) {
         if (wallspeed_x_lo[i_local] != 0.) inhomogeneous_fix = true;
-        if (wallspeed_x_hi[i] != 0.) inhomogeneous_fix = true;
-        if (wallspeed_y_lo[i] != 0.) inhomogeneous_fix = true;
-        if (wallspeed_y_hi[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_x_hi[i_local] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_y_lo[i_local] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_y_hi[i_local] != 0.) inhomogeneous_fix = true;
 #if (AMREX_SPACEDIM == 3)
-        if (wallspeed_z_lo[i] != 0.) inhomogeneous_fix = true;
-        if (wallspeed_z_hi[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_z_lo[i_local] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_z_hi[i_local] != 0.) inhomogeneous_fix = true;
 #endif
     }
 
@@ -125,6 +125,19 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         alphainv_fc[d].setVal(1.);
         alphainv_fc[d].divide(alpha_fc[d],0,1,0);
     }
+
+    // undo the scaling of the rhs and viscosities; called on every exit path
+    auto unscale_inputs = [&] () {
+        if (scale_factor != 1.) {
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                b_u[d].mult(1./scale_factor,0,1,b_u[d].nGrow());
+
+            beta.mult(1./scale_factor, 0, 1, beta.nGrow());
+            gamma.mult(1./scale_factor, 0, 1, gamma.nGrow());
+            for (int d=0; d<NUM_EDGE; ++d)
+                beta_ed[d].mult(1./scale_factor, 0, 1, beta_ed[d].nGrow());
+        }
+    };
 
     // apply scaling factor
     if (scale_factor != 1.) {
@@ -182,6 +195,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         if (gmres_verbose >= 1) {
             Print() << "GMRES.cpp: converged in 0 iterations since rhs=0" << std::endl;
         }
+
+        unscale_inputs();
         return;
     }
 
@@ -278,6 +293,15 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
             }
 
             break;
+
+        } else if (norm_resid == 0.) {
+            // exact solution already; cannot normalize a zero residual below
+            if (gmres_verbose >= 2) {
+                Print() << "GMRES converged (zero residual): Outer = " << outer_iter
+                        << " Total=" << total_iter << std::endl;
+            }
+
+            break; // exit OuterLoop
 
         } else if (total_iter >= gmres_min_iter) {
             // other options
@@ -474,17 +498,10 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         // the solution we got is scale*x_p
 
         x_p.mult(1./scale_factor, 0, 1, x_p.nGrow());
-        // unscale the rhs
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            b_u[d].mult(1./scale_factor,0,1,b_u[d].nGrow());
-
-        // unscale the viscosities
-        beta.mult(1./scale_factor, 0, 1, beta.nGrow());
-        gamma.mult(1./scale_factor, 0, 1, gamma.nGrow());
-        for (int d=0; d<NUM_EDGE; ++d)
-            beta_ed[d].mult(1./scale_factor, 0, 1, beta_ed[d].nGrow());
     }
+
+    // unscale the rhs and the viscosities
+    unscale_inputs();
 
     if (gmres_verbose >= 1) {
         Print() << "Done with GMRES:" << std::endl;

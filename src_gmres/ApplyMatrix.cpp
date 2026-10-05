@@ -27,17 +27,17 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
     // check to make sure x_u and x_p have enough ghost cells
     if (gmres_spatial_order == 2) {
         if (x_u[0].nGrow() < 1) {
-            Abort("apply_matrix.f90: x_u needs at least 1 ghost cell");
+            Abort("ApplyMatrix.cpp: x_u needs at least 1 ghost cell");
         }
         if (x_p.nGrow() < 1) {
-            Abort("apply_matrix.f90: x_p needs at least 1 ghost cell");
-        } else if (gmres_spatial_order == 4) {
-            if (x_u[0].nGrow() < 2) {
-                Abort("apply_matrix.f90: x_u needs at least 2 ghost cells");
-            }
-            if (x_p.nGrow() < 2) {
-                Abort("apply_matrix.f90: x_p needs at least 2 ghost cells");
-            }
+            Abort("ApplyMatrix.cpp: x_p needs at least 1 ghost cell");
+        }
+    } else if (gmres_spatial_order == 4) {
+        if (x_u[0].nGrow() < 2) {
+            Abort("ApplyMatrix.cpp: x_u needs at least 2 ghost cells");
+        }
+        if (x_p.nGrow() < 2) {
+            Abort("ApplyMatrix.cpp: x_p needs at least 2 ghost cells");
         }
     }
 

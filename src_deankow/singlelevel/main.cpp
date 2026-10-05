@@ -33,6 +33,7 @@ void main_main ()
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
     int alg_type;
+    int seed;
     amrex::Real npts_scale;
     amrex::Real cfl;
     Vector<int> bc_lo(AMREX_SPACEDIM,0);
@@ -67,6 +68,9 @@ void main_main ()
 
         cfl=.9;
         pp.query ("cfl",cfl);
+
+        seed = 0;
+        pp.query("seed",seed);
 
 
         // By default, the boundary conditions will be set to periodic, or bc_lo = bc_hi = 0.
@@ -123,6 +127,10 @@ void main_main ()
     //Initialise rngs
     /////////////////////////////////////////
 
+    // Local, as in 1d_stats: this driver never calls InitializeCommonNamespace, so the
+    // common::restart / common::seed globals it used to read here are still zero and
+    // the seeding block was skipped.
+    const int restart = -1;
     if (restart < 0) {
 
         if (seed > 0) {
@@ -205,12 +213,15 @@ void main_main ()
     // time = starting time in the simulation
     Real time = 0.0;
 
+    Vector<std::string> varnames(Ncomp, "phi");
+    if (Ncomp == 2) { varnames[1] = "phi0"; }
+
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
     {
         int n = 0;
         const std::string& pltfile = amrex::Concatenate("plt",n,6);
-        WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, phi_new, varnames, geom, time, 0);
     }
 
     // build the flux multifabs
@@ -246,7 +257,7 @@ void main_main ()
         if (plot_int > 0 && n%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",n,6);
-            WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
+            WriteSingleLevelPlotfile(pltfile, phi_new, varnames, geom, time, n);
 
 //            amrex::Real Ephi=0.;
 //            amrex::Real Ephi2=0.;

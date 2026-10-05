@@ -176,9 +176,9 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                            spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
 
                if (Lap < 1.0e-12) { // zero mode for no bulk motion
-                   spectral_dx(i,j,k) *= 0.0;
-                   spectral_dy(i,j,k) *= 0.0;
-                   spectral_dz(i,j,k) *= 0.0;
+                   spectral_dx(i,j,k) = GpuComplex<Real>(0.0, 0.0);
+                   spectral_dy(i,j,k) = GpuComplex<Real>(0.0, 0.0);
+                   spectral_dz(i,j,k) = GpuComplex<Real>(0.0, 0.0);
                }
                else {
 

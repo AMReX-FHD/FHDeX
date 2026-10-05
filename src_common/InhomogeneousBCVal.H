@@ -131,4 +131,22 @@ Real InhomogeneousBCVal ( int comp,
     return 0.;
 }
 
+// Neumann (gradient) value used by the foextrap (wall) branch of the ghost-cell fill routines.
+// bc_Yk_*/bc_Xk_* default to -1 meaning "not set"; an unset species value on a wall means a
+// homogeneous Neumann (zero-gradient) condition. Inhomogeneous species Neumann values are not
+// supported (a negative gradient cannot be distinguished from the sentinel).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real NeumannBCVal ( int comp,
+                    Real x,
+                    Real y,
+                    Real z,
+                    Real time)
+{
+    Real g = InhomogeneousBCVal(comp, x, y, z, time);
+    if (comp >= SPEC_BC_COMP && comp <= MOLFRAC_END_BC_COMP && g < 0.) {
+        g = 0.;
+    }
+    return g;
+}
+
 #endif

@@ -111,6 +111,18 @@ void SumEdge(const std::array<MultiFab, NUM_EDGE>& m1,
   // Initialize to zero
   std::fill(sum.begin(), sum.end(), 0.);
 
+  // divide the first nsum sums by the number of cells
+  auto divide_sums = [&] (int nsum) {
+    if (divide_by_ncells == true) {
+      BoxArray ba_temp = m1[0].boxArray();
+      ba_temp.enclosedCells();
+      long numpts = ba_temp.numPts();
+      for (int d=0; d<nsum; d++) {
+        sum[d] = sum[d]/(Real)(numpts);
+      }
+    }
+  };
+
   ReduceOps<ReduceOpSum> reduce_op;
 
   //////// xy-edges
@@ -150,6 +162,7 @@ void SumEdge(const std::array<MultiFab, NUM_EDGE>& m1,
   ParallelDescriptor::ReduceRealSum(sum[0]);
 
   if (AMREX_SPACEDIM == 2) {
+    divide_sums(1);
     return;
   }
 
@@ -225,15 +238,7 @@ void SumEdge(const std::array<MultiFab, NUM_EDGE>& m1,
   sum[2] = amrex::get<0>(reduce_datayz.value());
   ParallelDescriptor::ReduceRealSum(sum[2]);
 
-  // divide by the number of cells
-  if (divide_by_ncells == true) {
-    BoxArray ba_temp = m1[0].boxArray();
-    ba_temp.enclosedCells();
-    long numpts = ba_temp.numPts();
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      sum[d] = sum[d]/(Real)(numpts);
-    }
-  }
+  divide_sums(NUM_EDGE);
 }
 
 void SumCC(const amrex::MultiFab& m1,

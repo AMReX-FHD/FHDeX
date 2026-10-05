@@ -229,7 +229,7 @@
                  +(-phix(i+1,j,k)*betacc(i,j,k)-phix(i-1,j,k)*betacc(i-1,j,k))*dxsqinv
                  +(-phix(i,j+1,k)*betaxy(i,j+1,k)-phix(i,j-1,k)*betaxy(i,j,k))*dysqinv
  #if (AMREX_SPACEDIM == 3)
-                 +(-phix(i,j,k+1)*betaxz(i,j,k+1)-phix(i,j,k-1)*betaxz(i,j,k))*dysqinv
+                 +(-phix(i,j,k+1)*betaxz(i,j,k+1)-phix(i,j,k-1)*betaxz(i,j,k))*dzsqinv
  #endif
                  ;
          }

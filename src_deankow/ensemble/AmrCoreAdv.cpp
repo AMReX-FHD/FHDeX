@@ -1164,8 +1164,12 @@ AmrCoreAdv::ReadCheckpointFile ()
         SetDistributionMap(lev, dm);
 
         // build MultiFab and FluxRegister data
-        int ncomp = 1;
-        int ng = 0;
+        // These must match MakeNewLevelFromScratch: ncomp follows alg_type and the flux
+        // kernels read one ghost cell (phi(i-1,j,k) ...), so ng = 1. With ng = 0 the
+        // FillBoundary calls in AdvancePhiAtLevel are no-ops and compute_flux_* read
+        // past the end of each FAB after a restart.
+        int ncomp = (alg_type == 0) ? 1 : 2;
+        int ng = 1;
         phi_old[lev].define(grids[lev], dmap[lev], ncomp, ng);
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, ng);
 
@@ -1181,7 +1185,11 @@ AmrCoreAdv::ReadCheckpointFile ()
     }
 
 #ifdef AMREX_PARTICLES
-    particleData.Restart((amrex::ParGDBBase*)GetParGDB(),restart_chkfile);
+    // rebuild the grown fine BoxArray used for the particle/grid coupling
+    if (finest_level >= 1) {
+        MakeFBA(grids[1]);
+    }
+    particleData.Restart((amrex::ParGDBBase*)GetParGDB(),grown_fba,restart_chkfile);
 #endif
 
 

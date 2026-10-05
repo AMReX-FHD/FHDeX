@@ -204,7 +204,7 @@ private:
 
     // Specific to this application
     amrex::Real npts_scale;
-    amrex::Real num_part;
+    amrex::Real num_part = -1.; // particle count the density is scaled with; must be set in the inputs
     amrex::Real surf_area;
     amrex::Real dorand = 1.;
     int alg_type;

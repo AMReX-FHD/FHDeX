@@ -805,7 +805,7 @@ void Dbar2chiIterative ( int nspecies_in,
                 matrix1(i,j) = scr + matrix2(i,j);
             }
         }
-        Matrix2DSetEqual(chi, matrix1, MAX_SPECIES);
+        Matrix2DSetEqual(chi, matrix1, nspecies_in);
     }
 }
 

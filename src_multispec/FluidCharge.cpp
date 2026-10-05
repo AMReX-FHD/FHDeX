@@ -203,6 +203,8 @@ void ComputeE_ext(std::array< MultiFab, AMREX_SPACEDIM >& E_ext) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             E_ext[i].setVal(E_ext_value[i]);
         }
+    } else if (E_ext_type != 0) {
+        Abort("ComputeE_ext: only E_ext_type = 0 (none) or 1 (constant E_ext_value) is implemented");
     }
 
 }

@@ -83,6 +83,7 @@ amrex::Vector<amrex::Real> common::u_init;
 amrex::Real                common::perturb_width;
 AMREX_GPU_MANAGED amrex::Real common::smoothing_width;
 AMREX_GPU_MANAGED amrex::Real common::radius_cyl;
+AMREX_GPU_MANAGED amrex::Real common::bubble_offset;
 AMREX_GPU_MANAGED amrex::Real common::radius_outer;
 AMREX_GPU_MANAGED amrex::Real common::film_thickness;
 AMREX_GPU_MANAGED amrex::Real common::surf_thickness;
@@ -329,7 +330,7 @@ void InitializeCommonNamespace() {
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        n_cells[1] = 1;                // number of cells in domain
+        n_cells[i] = 1;                // number of cells in domain
         max_grid_size[i] = 1;          // max number of cells in a box
         max_particle_tile_size[i] = 0;
     }
@@ -360,11 +361,13 @@ void InitializeCommonNamespace() {
     // particle_placement (no default)
     particle_input = -1;
     for (int i=0; i<MAX_SPECIES; ++i) {
-        particle_count[i] = -1.;
-        p_move_tog[i] = 1.;
-        p_force_tog[i] = 1.;
-        p_int_tog[i] = 1.;
+        particle_count[i] = -1;
+        p_move_tog[i] = 1;
+        p_force_tog[i] = 1;
         particle_n0[i] = -1.;
+    }
+    for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+        p_int_tog[i] = 1;
     }
 
     // p_int_tog_wall (no default)
@@ -471,6 +474,7 @@ void InitializeCommonNamespace() {
     perturb_width = 0.;
     smoothing_width = 1.;
     radius_cyl = 0.;
+    bubble_offset = 0.;
     radius_outer = 0.;
     film_thickness = 0.;
     surf_thickness = 0.;
@@ -782,8 +786,13 @@ void InitializeCommonNamespace() {
         Abort("Cannot specify both Runiv and avogadro");
     }
     if (pp.queryarr("T_init",temp)) {
+        // a single value applies to all species; otherwise one value per species
+        int nT = pp.countval("T_init");
+        if (nT != 1 && nT < nspecies) {
+            Abort("T_init must have either 1 or nspecies values");
+        }
         for (int i=0; i<nspecies; ++i) {
-            T_init[i] = temp[i];
+            T_init[i] = temp[(nT == 1) ? 0 : i];
         }
     }
     pp.query("algorithm_type",algorithm_type);
@@ -799,6 +808,7 @@ void InitializeCommonNamespace() {
     pp.query("perturb_width",perturb_width);
     pp.query("smoothing_width",smoothing_width);
     pp.query("radius_cyl",radius_cyl);
+    pp.query("bubble_offset",bubble_offset);
     pp.query("radius_outer",radius_outer);
     pp.query("film_thickness",film_thickness);
     pp.query("surf_thickness",surf_thickness);
@@ -983,11 +993,11 @@ void InitializeCommonNamespace() {
     }
 
     pp.query("bc_rhotot_x_lo",bc_rhotot_x_lo);
-    pp.query("bc_rhotot_x_lo",bc_rhotot_x_hi);
+    pp.query("bc_rhotot_x_hi",bc_rhotot_x_hi);
     pp.query("bc_rhotot_y_lo",bc_rhotot_y_lo);
-    pp.query("bc_rhotot_y_lo",bc_rhotot_y_hi);
+    pp.query("bc_rhotot_y_hi",bc_rhotot_y_hi);
     pp.query("bc_rhotot_z_lo",bc_rhotot_z_lo);
-    pp.query("bc_rhotot_z_lo",bc_rhotot_z_hi);
+    pp.query("bc_rhotot_z_hi",bc_rhotot_z_hi);
     pp.queryarr("wallspeed_lo",wallspeed_lo,0,(AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     pp.queryarr("wallspeed_hi",wallspeed_hi,0,(AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     if (pp.queryarr("potential_lo",temp,0,AMREX_SPACEDIM)) {

@@ -9,6 +9,14 @@ void SetupBC() {
             bc_therm_hi[i] = -1;
         }
     }
+    // Reservoir BCs (bc_mass = 3) are only implemented for the x faces in this code:
+    // SetupCWall/setBC/StochFlux fill the reservoir state, momentum, energy and the
+    // stochastic heat-flux factor for x only.
+    for (int i=1; i<AMREX_SPACEDIM; ++i) {
+        if (bc_mass_lo[i] == 3 || bc_mass_hi[i] == 3) {
+            Abort("SetupBC: reservoir boundaries (bc_mass = 3) are only implemented in the x direction");
+        }
+    }
 }
 
 void SetupCWall() {
@@ -1091,8 +1099,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                             prim(i,j,k,0) = rho_hi[2]; // set ghost cell equal to reservoir density
                             cons(i,j,k,0) = rho_hi[2]; // set ghost cell equal to reservoir density
 
-                            prim(i,j,k,4) = t_hi[1]; // set ghost cell equal to reservoir temperature
-                            prim(i,j,k,5) = p_hi[1]; // set ghost cell equal to reservoir pressure
+                            prim(i,j,k,4) = t_hi[2]; // set ghost cell equal to reservoir temperature
+                            prim(i,j,k,5) = p_hi[2]; // set ghost cell equal to reservoir pressure
                         }
                     }
                 });

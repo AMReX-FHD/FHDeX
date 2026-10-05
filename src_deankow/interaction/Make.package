@@ -8,6 +8,7 @@ CEXE_headers += bc_fill.H
 CEXE_headers += Kernels.H 
 CEXE_headers += Tagging.H
 CEXE_headers += mykernel.H
+CEXE_headers += Potentials.H
 
 ifeq ($(USE_PARTICLES),TRUE)
 CEXE_headers += ParticleData.H

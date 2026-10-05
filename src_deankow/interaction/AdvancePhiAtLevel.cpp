@@ -27,6 +27,8 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
 
 //  compute convolution of U with phi to define interaction
 
+    if (pot.use_int_pot) {
+
         r2c_forward->forward(U, Uhat);
         r2c_forward->forward(phi_old[lev], Phihat);
 
@@ -128,6 +130,10 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
           const Real scaling = mesh_scale / geom[lev].Domain().d_numPts();
           C.mult(scaling, 0, 1);
 
+    } else {
+        C.setVal(0.);
+    }
+
 /*
 
         for (MFIter mfi(hack); mfi.isValid(); ++mfi) {
@@ -148,7 +154,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
     // We do this here so we can print the FABs for debugging
     phi_new[lev].setVal(0.0);
 
-    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, C, dt_lev, num_part,  diff_coeff, dorand,  geom[lev], bcs);
+    advance_phi(phi_old[lev], phi_new[lev], fluxes, stochFluxes, C, dt_lev, num_part,  diff_coeff, dorand,  geom[lev], bcs, pot);
 
     // Increment or decrement the flux registers by area and time-weighted fluxes
     // Note that the fluxes have already been scaled by dt and area

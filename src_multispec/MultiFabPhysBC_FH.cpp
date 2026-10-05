@@ -37,13 +37,24 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
     amrex::Real kappa_coeff = fh_kappa(0,1);
     amrex::Real ce = fh_ce;
     amrex::Real omce = 1.-ce;
-    amrex::Real hack = 1./(1.-2.*ce);
 
+    // contact-angle coefficient; only needed (and only well defined) with a contact-angle wall
+    bool contact_angle_wall = false;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        if (bc_mass_lo[d] == 4 || bc_mass_hi[d] == 4) contact_angle_wall = true;
+    }
 
     // amrex::Print() << "scale and coeff " << scale << " " << kappa_coeff << " " << scale*kappa_coeff << " " << fh_tension << std::endl;
 
     //Real coeff = 6.*fh_tension/(kappa_coeff*scale);
-    Real coeff = 3.*fh_tension*hack/(kappa_coeff*scale);
+    Real coeff = 0.;
+    if (contact_angle_wall) {
+        if (kappa_coeff*scale == 0. || 1.-2.*ce == 0.) {
+            Abort("MultiFabPhysBCFH: contact-angle wall (bc_mass = 4) requires nonzero fh_kappa(0,1), rhobar, T_init, and fh_ce != 0.5");
+        }
+        amrex::Real hack = 1./(1.-2.*ce);
+        coeff = 3.*fh_tension*hack/(kappa_coeff*scale);
+    }
 
 //    amrex::Print() << " coeff " << coeff << std::endl;
 
@@ -73,7 +84,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (i < lo) {
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - bc_frac*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - bc_frac*dx[0]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -87,6 +98,13 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         //data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + dx[0]*std::cos(contact_angle_lo[0])*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+            if(ncomp == 3){
+                amrex::Real inc = data(i,j,k,scomp+0) - data(lo,j,k,scomp+0) ;
+                amrex::Real c1pr = amrex::max(1.e-4,  data(lo,j,k,scomp+1)) ;
+                amrex::Real c2pr = amrex::max(1.e-4,  data(lo,j,k,scomp+2)) ;
+                data(i,j,k,scomp+1) = data(lo,j,k,scomp+1)-inc*c1pr/(c1pr+c2pr);
+                data(i,j,k,scomp+2) = data(lo,j,k,scomp+2)-inc*c2pr/(c1pr+c2pr);
+            }
 //                        amrex::Print() << " Fh data left " << j << " " << data(i,j,k,scomp) <<" " << data(i,j,k,scomp+1) <<  std::endl;
 
 //                        if(j == 18){
@@ -113,7 +131,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (i > hi) {
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n) - bc_frac*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n) - bc_frac*dx[0]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -127,6 +145,13 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         //data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + dx[0]*std::cos(contact_angle_hi[0])*data(hi,j,k,scomp+0)*data(hi,j,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+            if(ncomp == 3){
+                amrex::Real inc = data(i,j,k,scomp+0) - data(hi,j,k,scomp+0) ;
+                amrex::Real c1pr = amrex::max(1.e-4,  data(hi,j,k,scomp+1)) ;
+                amrex::Real c2pr = amrex::max(1.e-4,  data(hi,j,k,scomp+2)) ;
+                data(i,j,k,scomp+1) = data(hi,j,k,scomp+1)-inc*c1pr/(c1pr+c2pr);
+                data(i,j,k,scomp+2) = data(hi,j,k,scomp+2)-inc*c2pr/(c1pr+c2pr);
+            }
 //                        amrex::Print() << " Fh data right " << j << " " << data(i,j,k,scomp) << " " << data(i,j,k,scomp+1) << std::endl;
 
                         //data(i,j,k,scomp+1) = data(lo,j,k,scomp+1) + 0.5*dx[0]*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
@@ -155,7 +180,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (j < lo) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n) - bc_frac*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
+                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n) - bc_frac*dx[1]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -208,7 +233,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (j > hi) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
-                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n) - bc_frac*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n) - bc_frac*dx[1]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -263,7 +288,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (k < lo) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
-                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n) - bc_frac*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
+                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n) - bc_frac*dx[2]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -276,6 +301,13 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         //data(i,j,k,scomp+0) = data(i,j,lo,scomp+0) + dx[2]*std::cos(contact_angle_lo[2])*data(i,j,lo,scomp+0)*data(i,j,lo,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+            if(ncomp == 3){
+                amrex::Real inc = data(i,j,k,scomp+0) - data(i,j,lo,scomp+0) ;
+                amrex::Real c1pr = amrex::max(1.e-4,  data(i,j,lo,scomp+1)) ;
+                amrex::Real c2pr = amrex::max(1.e-4,  data(i,j,lo,scomp+2)) ;
+                data(i,j,k,scomp+1) = data(i,j,lo,scomp+1)-inc*c1pr/(c1pr+c2pr);
+                data(i,j,k,scomp+2) = data(i,j,lo,scomp+2)-inc*c2pr/(c1pr+c2pr);
+            }
 
                         //data(i,j,k,scomp+1) = data(lo,j,k,scomp+1) + 0.5*dx[0]*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
                     }
@@ -296,7 +328,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                     if (k > hi) {
                         Real x = prob_lo[0] + (i+0.5)*dx[0];
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
-                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n) - bc_frac*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n) - bc_frac*dx[2]*NeumannBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -309,6 +341,13 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                         //data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + dx[2]*std::cos(contact_angle_hi[2])*data(i,j,hi,scomp+0)*data(i,j,hi,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+            if(ncomp == 3){
+                amrex::Real inc = data(i,j,k,scomp+0) - data(i,j,hi,scomp+0) ;
+                amrex::Real c1pr = amrex::max(1.e-4,  data(i,j,hi,scomp+1)) ;
+                amrex::Real c2pr = amrex::max(1.e-4,  data(i,j,hi,scomp+2)) ;
+                data(i,j,k,scomp+1) = data(i,j,hi,scomp+1)-inc*c1pr/(c1pr+c2pr);
+                data(i,j,k,scomp+2) = data(i,j,hi,scomp+2)-inc*c2pr/(c1pr+c2pr);
+            }
 
                         //data(i,j,k,scomp+1) = data(lo,j,k,scomp+1) + 0.5*dx[0]*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
                     }

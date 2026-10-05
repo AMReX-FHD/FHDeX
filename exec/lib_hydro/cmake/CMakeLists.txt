@@ -68,7 +68,6 @@ add_library(
     ../../../src_common/NormInnerProduct.cpp
 
     ../../../src_rng/MultiFabFillRandom.cpp
-    ../../../src_rng/bl_random_c.cpp
 
     ../../../src_gmres/ApplyMatrix.cpp
     ../../../src_gmres/GMRES.cpp
@@ -114,7 +113,6 @@ set(HEADERS
     ../../../src_common/common_namespace.H
     ../../../src_common/species.H
 
-    ../../../src_rng/bl_random_c.H
     ../../../src_rng/rng_functions.H
 
     ../../../src_gmres/GMRES.H
