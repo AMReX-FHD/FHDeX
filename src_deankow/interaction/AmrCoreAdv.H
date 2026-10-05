@@ -224,6 +224,25 @@ private:
 
     void PrintNegativeDensityDiagnostics (int step) const;
 
+    // print the drift CFL number and cell Peclet number every drift_diag_int
+    // steps (0 = off)
+    int drift_diag_int = 0;
+
+    // if > 0, limit dt so that dt * sum_d max|w_d|/dx_d <= drift_cfl, with w the
+    // drift velocity grad(C + V_ext) measured at the faces in the previous step
+    amrex::Real drift_cfl = 0.;
+
+    // max over faces of |w_d| from the last step, and whether it has been measured
+    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> drift_face_max {};
+    bool drift_measured = false;
+
+    bool NeedDriftMeasurement () const {
+        return (pot.use_int_pot || pot.use_ext_pot)
+            && (drift_diag_int > 0 || drift_cfl > 0. || drift_flux_type == 1);
+    }
+    void MeasureDrift (int lev);
+    void PrintDriftDiagnostics (int step) const;
+
     int seed=0;
 
     amrex::BoxArray grown_fba;
