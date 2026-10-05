@@ -165,6 +165,9 @@ AmrCoreAdv::Evolve ()
         if (neg_diag_int > 0 && (step+1) % neg_diag_int == 0) {
             PrintNegativeDensityDiagnostics(step+1);
         }
+        if (drift_diag_int > 0 && (step+1) % drift_diag_int == 0) {
+            PrintDriftDiagnostics(step+1);
+        }
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -662,7 +665,7 @@ AmrCoreAdv::ComputeInteractionStiffness ()
     // |C_i - C_{i-1}|/dx <= max|dU/dr| * sum|phi| cellvol, so max|dU/dr| bounds
     // the interaction drift velocity per unit mass
     drift_wmax = 0.;
-    if (drift_flux_type == 1) {
+    if (drift_flux_type == 1 || drift_cfl > 0.) {
         Real lhalf = 0.5*Geom(lev).ProbLength(0);
         for (int d = 1; d < AMREX_SPACEDIM; ++d) { lhalf = amrex::min(lhalf, 0.5*Geom(lev).ProbLength(d)); }
         constexpr int nsamp = 4096;
@@ -670,9 +673,75 @@ AmrCoreAdv::ComputeInteractionStiffness ()
             const Real r = lhalf*n/nsamp;
             drift_wmax = amrex::max(drift_wmax, std::abs(ip_dUdr_over_r(r, pot)*r));
         }
-        amrex::Print() << "Scharfetter-Gummel drift flux: max|dU/dr| = " << drift_wmax
-                       << " (drift velocity bound per unit mass, used in EstTimeStep)\n";
+        amrex::Print() << "Interaction drift bound: max|dU/dr| = " << drift_wmax
+                       << " (drift velocity bound per unit mass, used in EstTimeStep until"
+                       << " the drift has been measured)\n";
     }
+}
+
+void
+AmrCoreAdv::MeasureDrift (int lev)
+{
+    // max over faces of |w_d|, with w the face drift exactly as the flux
+    // kernels in mykernel.H form it: ext_drift_* at the face coordinate plus
+    // (C_i - C_{i-1})/dx_d. Faces on non-periodic domain boundaries carry only
+    // the external part, since C has no valid ghost values there.
+    const auto dxinv = Geom(lev).InvCellSizeArray();
+    const Box& domain = Geom(lev).Domain();
+    const IntVect dlo = domain.smallEnd();
+    const IntVect dhi = domain.bigEnd();
+    const auto is_per = Geom(lev).isPeriodicArray();
+    const PotentialParams pot_loc = pot;
+    const int use_int = pot.use_int_pot;
+    const int use_ext = pot.use_ext_pot;
+
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        ReduceOps<ReduceOpMax> reduce_op;
+        ReduceData<Real> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        for (MFIter mfi(phi_old[lev]); mfi.isValid(); ++mfi) {
+            const Box fbx = amrex::surroundingNodes(mfi.validbox(), d);
+            auto const& c = C.const_array(mfi);
+            reduce_op.eval(fbx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                const int idx[3] = {i, j, k};
+                const bool wall = !is_per[d] && (idx[d] == dlo[d] || idx[d] == dhi[d]+1);
+                Real w = 0.;
+                if (use_ext) {
+                    const Real loc = idx[d] / dxinv[d];
+                    w += (d == 0) ? ext_drift_x(loc, pot_loc) : ext_drift_y(loc, pot_loc);
+                }
+                if (use_int && !wall) {
+                    const Real cm = c(i - (d == 0), j - (d == 1), k - (d == 2));
+                    w += (c(i,j,k) - cm) * dxinv[d];
+                }
+                return {std::abs(w)};
+            });
+        }
+        Real wmax = amrex::get<0>(reduce_data.value(reduce_op));
+        ParallelDescriptor::ReduceRealMax(wmax);
+        drift_face_max[d] = wmax;
+    }
+    drift_measured = true;
+}
+
+void
+AmrCoreAdv::PrintDriftDiagnostics (int step) const
+{
+    if (!drift_measured) { return; }
+    const auto dx = Geom(0).CellSizeArray();
+    Real wsum = 0., pe = 0.;
+    amrex::Print() << "DriftDiag step " << step << " max|w| =";
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        amrex::Print() << " " << drift_face_max[d];
+        wsum += drift_face_max[d]/dx[d];
+        pe = amrex::max(pe, drift_face_max[d]*dx[d]/diff_coeff);
+    }
+    // the drift was measured at the start of the step just taken, with dt[0]
+    amrex::Print() << " drift CFL dt*sum|w|/dx = " << dt[0]*wsum
+                   << " max cell Peclet |w|dx/D = " << pe
+                   << ((pe > 2.) ? " (> 2: centered drift flux not monotone)" : "") << "\n";
 }
 
 void
@@ -1154,6 +1223,11 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
             Abort("drift_flux_type = 1 needs diff_coeff > 0");
         }
         pp.query("neg_diag_int", neg_diag_int);
+        pp.query("drift_diag_int", drift_diag_int);
+        pp.query("drift_cfl", drift_cfl);
+        if (drift_cfl < 0.) {
+            Abort("drift_cfl must be >= 0 (0 = off)");
+        }
 
 
         // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
@@ -1493,18 +1567,35 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
     if (pot.use_int_pot && int_stiff > 0.) {
         lambda_max += amrex::max(phi_new[lev].max(0), Real(0.)) * int_stiff;
     }
-    if (pot.use_int_pot && drift_flux_type == 1) {
-        // positivity of the Scharfetter-Gummel update at cfl <= 1 also needs
-        // dt * sum_d 2|w|/dx_d <= 2; |w| <= drift_wmax * sum|phi| cellvol.
-        // The external potential drift is not included in this bound.
+    // wsum = sum_d max|w_d|/dx_d for the drift w = grad(C + V_ext). Once a step
+    // has been taken it is the value measured at the faces in that step
+    // (MeasureDrift), so dt lags the drift by one step. Before that (first step,
+    // or first step after a restart) the interaction part is bounded by
+    // |w| <= max|dU/dr| * sum|phi| cellvol; the external part is then omitted.
+    Real wsum = 0.;
+    if (drift_measured) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) { wsum += drift_face_max[d]/dx[d]; }
+    } else if (pot.use_int_pot && (drift_flux_type == 1 || drift_cfl > 0.)) {
         const Real cellvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-        const Real wmax = drift_wmax * phi_new[lev].norm1(0) * cellvol;
-        lambda_max += 2. * wmax * (AMREX_D_TERM(1./dx[0], + 1./dx[1], + 1./dx[2]));
+        wsum = drift_wmax * phi_new[lev].norm1(0) * cellvol
+             * (AMREX_D_TERM(1./dx[0], + 1./dx[1], + 1./dx[2]));
+    }
+    if (drift_flux_type == 1) {
+        // The Scharfetter-Gummel update keeps phi >= 0 when
+        //   dt * sum_d (2D/dx_d^2 + 2|w_d|/dx_d) <= 1
+        // (the Bernoulli weights on the two faces of a cell add to at most
+        // 2 + |Pe_lo| + |Pe_hi|, the worst case being flow out of both faces).
+        // With dt = cfl*2/lambda that holds for cfl <= 1 when lambda includes
+        // 4*wsum.
+        lambda_max += 4. * wsum;
     }
 
     Real dt_est = std::numeric_limits<Real>::max();
     if (lambda_max > 0.) {
         dt_est = cfl * 2. / lambda_max;
+    }
+    if (drift_cfl > 0. && wsum > 0.) {
+        dt_est = amrex::min(dt_est, drift_cfl / wsum);
     }
 
     return dt_est;
