@@ -675,16 +675,16 @@ PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmi
 
     Real uhat0 = 0.;
     if (pot.ip_type == IntPotType::HK) {
-        // Uhat(k) = eps*R^(d+1)*S(kR), S(q) = 2(2pi)^(d/2) J_{d/2+1}(q)/q^(d/2+1).
-        // S(0) = pi/2 (2D), 8pi/15 (3D); the negative lobe bottoms out at the
+        // Uhat(k) = eps*R^(d+1)*S(kR), S(q) = (2pi)^(d/2) J_{d/2+1}(q)/q^(d/2+1).
+        // S(0) = pi/4 (2D), 4pi/15 (3D); the negative lobe bottoms out at the
         // first zero of J_{d/2+2}: q = 6.38016 (2D), 6.98793 (3D).
 #if (AMREX_SPACEDIM == 2)
-        const Real S0 = pi/2.;
-        const Real Smin = -0.0920791;
+        const Real S0 = pi/4.;
+        const Real Smin = -0.04603955;
         const Real qmin = 6.38016;
 #else
-        const Real S0 = 8.*pi/15.;
-        const Real Smin = -0.0688719;
+        const Real S0 = 4.*pi/15.;
+        const Real Smin = -0.03443595;
         const Real qmin = 6.98793;
 #endif
         const Real scale = eps*std::pow(R, d+1.);
