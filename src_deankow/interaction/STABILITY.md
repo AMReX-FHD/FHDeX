@@ -244,6 +244,65 @@ At startup, `PrintUhatMinMax` prints these continuum values next to the
 discrete minimum of `Uhat` over `k != 0`. When the two disagree by more than a
 few percent, the grid is too coarse.
 
+## Piecewise parabolic kernel
+
+`amr.ip_type = pp` is the piecewise parabolic potential of Gerber et al.
+(arXiv:2510.17629), written in the same convention as HK, `U = -eps R w(r/R)`:
+
+$$w(s) = \begin{cases}
+\alpha (s^{2} - a^{2})/2 + \beta (a^{2} - 1)/2 & s \le a \\
+\beta (s^{2} - 1)/2 & a < s \le 1 \\
+0 & s > 1
+\end{cases}$$
+
+with `alpha = amr.ip_pp_alpha`, `beta = amr.ip_pp_beta` and `a = amr.ip_pp_a`.
+The paper's `W = gamma ell w(x/ell)` maps to `ip_R = ell`, `ip_eps = -gamma`.
+`alpha = beta = 1` is exactly HK (bit for bit), whatever `a` is.
+
+It is the sum of two HK paraboloids, a tail of radius `R` and a core of
+radius `aR`, so its transform follows from the HK one:
+
+$$\hat{U}(k) = \epsilon R^{d+1} \left[ \beta \, \hat{S}(kR)
++ (\alpha - \beta) \, a^{d+2} \, \hat{S}(k a R) \right]$$
+
+with `Shat` the HK transform above. `PrintContinuumStability` evaluates this
+and scans the box wavenumbers for the minimum and the fastest growing mode.
+
+**Why it exists.** A single paraboloid of range `R` forms clusters about
+`2.06 R` apart in 2D, beyond its own range, so neighbouring clusters do not
+attract. They merge only when their random walks close the gap, at a rate
+`D / (N m)` that slows with the particle count. With a strong core and a weak,
+longer tail, the core sets the initial pattern while the tail pulls
+neighbouring clusters together, so mergers happen by drift on a time
+`~ R / (gamma beta m)` that does not depend on `N`.
+
+**Choosing parameters.** Three conditions have to hold together:
+
+- The core, not the tail, must carry the fastest growing mode. The tail term
+  is largest at the box scale, so `beta` has a narrow window: too large and the
+  uniform state collapses into one box-sized cluster.
+- The core-driven cluster spacing must be less than `R`, so that neighbours
+  sit inside each other's tail.
+- The clusters must be resolved: `sigma = sqrt(R/(gamma alpha)) >= 2 dx`, the
+  core `a R >= 4 dx` and `R >= 8 dx` (the code warns for the last two).
+
+The first two need `gamma` well above the core's own HK threshold
+`~ 4 / (pi (a R)^3)`, while the third caps `gamma` from above, so in 2D the core cannot be smaller than about `1.5 sqrt(dx)`. On
+`128^2` there is no usable window; `256^2` is the smallest grid that works.
+
+**Example** (`exec/dean_kow/interaction/inputs_fv_pp_merge`): `256^2`,
+`gamma = 7300`, `R = 0.45`, `a = 0.27`, `alpha = 1`, `beta = 0.02`, `D = 1`,
+5 particles per cell. The fastest mode is (1,3) at growth rate 299, giving
+about 10 clusters 0.32 apart, inside the tail. In one run (seed 11) there were
+10 clusters at `t = 0.019`, 3 at 0.035 and a single cluster at 0.038. With
+`beta = 0.03` the fastest mode is already the box mode (1,0).
+
+| beta | fastest mode | clusters | tail pull e-folding time |
+| --- | --- | --- | --- |
+| 0.01 | (3,1) | ~10 | 0.06 |
+| 0.02 | (3,1) | ~10 | 0.03 |
+| 0.03 | (1,0) | 1 | - |
+
 ## Generalized Morse kernel
 
 `amr.ip_type = morse` selects the sum of an attractive and a repulsive
@@ -354,12 +413,13 @@ share them:
 
 | Parameter | Location |
 | --- | --- |
-| amr.ip_type, amr.ip_eps, amr.ip_R, amr.ip_alpha | inputs file (`Potentials.H`); gema, hk |
+| amr.ip_type, amr.ip_eps, amr.ip_R, amr.ip_alpha | inputs file (`Potentials.H`); gema, hk, pp |
+| amr.ip_pp_alpha, ip_pp_beta, ip_pp_a | inputs file (`Potentials.H`); pp |
 | amr.ip_eps_att, ip_eps_rep, ip_R_att, ip_R_rep, ip_re | inputs file (`Potentials.H`); morse |
-| amr.ip_range (particle cutoff) | inputs file; defaults to ip_R for hk, required for morse particles |
+| amr.ip_range (particle cutoff) | inputs file; defaults to ip_R for hk and pp, required for morse particles |
 | diff_coeff, cfl | the inputs files |
 
-For gema and hk, the sign of the kernel is the sign of `amr.ip_eps`: positive
+For gema, hk and pp, the sign of the kernel is the sign of `amr.ip_eps`: positive
 is repulsive, negative is attractive.
 
 All figures here are linear, mean-field and deterministic, computed with

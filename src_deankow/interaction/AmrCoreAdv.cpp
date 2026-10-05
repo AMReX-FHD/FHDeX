@@ -757,6 +757,58 @@ PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmi
             amrex::Print() << "  WARNING: ip_R/dx = " << R/dxmin
                            << " < 8; the HK kernel and its ~R cluster wavelength are under-resolved\n";
         }
+    } else if (pot.ip_type == IntPotType::PP) {
+        // PP is a sum of two HK paraboloids: beta times HK of radius R plus
+        // (alpha-beta)*a times HK of radius a*R, so with the HK transform
+        //   Uhat_HK(k; R) = eps*R^(d+1)*S(kR), S(q) = (2pi)^(d/2) J_{d/2+1}(q)/q^(d/2+1),
+        // Uhat(k) = beta*Uhat_HK(k; R) + (alpha-beta)*a*Uhat_HK(k; a R).
+        const Real alpha = pot.ip_pp_alpha;
+        const Real beta  = pot.ip_pp_beta;
+        const Real a     = pot.ip_pp_a;
+        const Real nu    = d/2. + 1.;
+        auto S = [=] (Real q) -> Real
+        {
+            if (q < 1.e-6) { return std::pow(2.*pi, d/2.)/(std::pow(2., nu)*std::tgamma(nu+1.)); }
+            return std::pow(2.*pi, d/2.)*std::cyl_bessel_j(nu, q)/std::pow(q, nu);
+        };
+        auto uhat_of = [=] (Real kk) -> Real
+        {
+            return eps*std::pow(R, d+1.)*(beta*S(kk*R) + (alpha-beta)*std::pow(a, d+2.)*S(kk*a*R));
+        };
+        uhat0 = uhat_of(0.);
+
+        // scan the box wavenumbers up to the grid Nyquist for the minimum
+        // and, when unstable, the fastest growing |k|
+        constexpr int nscan = 20000;
+        const Real knyq = pi*std::sqrt(d)/dxmin;
+        Real uhat_min_box = uhat_of(kbox), k_min_box = kbox;
+        Real sig_max = -std::numeric_limits<Real>::max(), k_sig = kbox;
+        for (int n = 0; n <= nscan; ++n) {
+            const Real kk = kbox + (knyq-kbox)*n/nscan;
+            const Real u = uhat_of(kk);
+            if (u < uhat_min_box) { uhat_min_box = u; k_min_box = kk; }
+            const Real sig = -kk*kk*(D + mu0*u);
+            if (sig > sig_max) { sig_max = sig; k_sig = kk; }
+        }
+        amrex::Print() << "Continuum stability (PP): Uhat(0) = " << uhat0
+                       << "; this box (|k| >= " << kbox << "): Uhat min = " << uhat_min_box
+                       << " at |k| = " << k_min_box
+                       << " (discrete min over k != 0 = " << uhat_min_disc << ")";
+        if (sig_max > 0.) {
+            amrex::Print() << "  -> UNSTABLE, fastest growth sigma = " << sig_max
+                           << " at |k| = " << k_sig << " (wavelength " << 2.*pi/k_sig << ")";
+        } else {
+            amrex::Print() << "  -> STABLE";
+        }
+        amrex::Print() << "\n";
+        if (a*R/dxmin < 4.) {
+            amrex::Print() << "  WARNING: ip_pp_a*ip_R/dx = " << a*R/dxmin
+                           << " < 4; the PP core is under-resolved\n";
+        }
+        if (R/dxmin < 8.) {
+            amrex::Print() << "  WARNING: ip_R/dx = " << R/dxmin
+                           << " < 8; the PP kernel is under-resolved\n";
+        }
     } else if (pot.ip_type == IntPotType::MORSE) {
         // With A = eps_att e^(re/R_att), B = eps_rep e^(re/R_rep),
         // U = -A e^(-r/R_att) + B e^(-r/R_rep), and the transform of e^(-r/a) is
