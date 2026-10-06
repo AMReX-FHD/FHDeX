@@ -1,0 +1,394 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\Uh}{\hat U}
+\newcommand{\tf}{t_{\mathrm{form}}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\emergencystretch=3em
+
+\title{Interacting Brownian particles in \code{src\_deankow/interaction}:\\
+formation, merging and splitting of clusters}
+\author{FHDeX}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent This note describes the model solved in
+\code{src\_deankow/interaction} and gives estimates of four things, for each
+interaction potential in the code:
+\begin{enumerate}[nosep]
+  \item the linear stability of the uniform state and the time for clusters
+        to form;
+  \item how many clusters form initially;
+  \item the time scales for clusters to merge;
+  \item the time scales for clusters to split.
+\end{enumerate}
+The potentials are generalized exponential (\code{gema}), Hegselmann--Krause
+(\code{hk}), generalized Morse (\code{morse}) and piecewise parabolic
+(\code{pp}). For \code{gema} and \code{hk}, both attractive and repulsive
+cases are treated. \code{README.md} lists the inputs and \code{STABILITY.md}
+has more on the linear stability and the time step. All numbers are for 2D and
+the unit periodic box, with the parameter sets of Section~\ref{sec:params}.
+
+\section{Model}
+
+\subsection{Particles}
+$N$ Brownian particles at positions $\mathbf{X}_i$ in the periodic box
+interact through a pair potential $U$, weighted by $1/N$:
+\begin{equation}
+  d\mathbf{X}_i = -\frac1N\sum_j\nabla U(|\mathbf{X}_i-\mathbf{X}_j|)\,dt
+     + \sqrt{2D}\,d\mathbf{W}_i .
+\end{equation}
+The mobility is 1, so $D$ plays the role of temperature. A particle at
+$\mathbf{x}$ feels the potential
+$C(\mathbf{x}) = N^{-1}\sum_j U(|\mathbf{x}-\mathbf{X}_j|)$.
+
+\subsection{Mean field and Dean--Kawasaki SPDE}
+With $\phi = N^{-1}\sum_i\delta(\mathbf{x}-\mathbf{X}_i)$, normalized to
+$\int\phi=1$ (so the mean is $\mu_0 = 1/A = 1$),
+\begin{equation}
+  \partial_t\phi = \nabla\cdot\bigl(D\nabla\phi + \phi\nabla C\bigr)
+     + N^{-1/2}\,\nabla\cdot\bigl(\sqrt{2D\phi}\,\boldsymbol{\xi}\bigr),
+  \qquad C = U\star\phi .
+\end{equation}
+This is the McKean--Vlasov equation plus Dean--Kawasaki noise.
+\begin{itemize}
+  \item Without noise it is the gradient flow of
+        $\mathcal F[\phi] = D\!\int\!\phi\ln\phi
+        + \tfrac12\!\iint U(\mathbf{x}-\mathbf{y})\phi(\mathbf{x})\phi(\mathbf{y})$.
+  \item Its stationary states are fixed points of $\phi = e^{-C/D}/Z$.
+  \item $N$ enters only through the noise; the mean-field strength is set by
+        $U$, $D$ and $\mu_0$.
+\end{itemize}
+In the code, $C$ is computed by FFT (\code{AdvancePhiAtLevel.cpp}), and the
+flux $D\nabla\phi+\phi\nabla C$ is discretized on faces (\code{mykernel.H}).
+The particle version (\code{StochasticPC}) sums the pair forces within the
+cutoff \code{amr.ip\_range}.
+
+\subsection{Potentials}
+\begin{align}
+  \text{\code{gema}:}\quad & U = \varepsilon\,e^{-(r/R)^\alpha}, \\
+  \text{\code{hk}:}\quad & U = \tfrac12\varepsilon R\,(1-r^2/R^2) \ \ (r<R),\quad 0 \ \ (r\ge R), \\
+  \text{\code{morse}:}\quad & U = -\varepsilon_{\mathrm{att}}\,e^{-(r-r_e)/R_{\mathrm{att}}}
+      + \varepsilon_{\mathrm{rep}}\,e^{-(r-r_e)/R_{\mathrm{rep}}}, \\
+  \text{\code{pp}:}\quad & U = -\varepsilon R\,w(r/R),\quad
+      w(s) = \begin{cases}
+        \alpha(s^2-a^2)/2 + \beta(a^2-1)/2, & s\le a,\\
+        \beta(s^2-1)/2, & a<s\le1,\\
+        0, & s>1 .
+      \end{cases}
+\end{align}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\code{ip\_type} & range & attractive when \\
+\midrule
+\code{gema} & unbounded, fast decay & $\varepsilon<0$ \\
+\code{hk} & $R$ & $\varepsilon<0$ \\
+\code{morse} & exponential tails & always ($\varepsilon_{\mathrm{att}}>\varepsilon_{\mathrm{rep}}$, $R_{\mathrm{att}}>R_{\mathrm{rep}}$ required) \\
+\code{pp} & $R$ & $\varepsilon<0$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+For \code{hk} and \code{pp}, $\varepsilon=-\gamma$ and $R=\ell$ map onto the
+potentials $\gamma\ell\,w(x/\ell)$ of Gerber et al.\ (arXiv:2510.17629).
+
+\section{General results}
+
+\subsection{Linear stability and the formation time}
+Linearizing about $\phi=\mu_0$ gives, for each Fourier mode $\mathbf k$,
+\begin{equation}
+  \sigma(k) = -k^2\bigl(D + \mu_0\,\Uh(k)\bigr), \qquad
+  \Uh(k) = 2\pi\int_0^\infty U(r)\,J_0(kr)\,r\,dr .
+\end{equation}
+The uniform state is unstable at $k$ when $\mu_0\Uh(k) < -D$. On the periodic
+box only the lattice modes $\mathbf k = 2\pi(n_x,n_y)$ exist; $k=0$ is the
+conserved mass.
+\begin{itemize}
+  \item \textbf{Attractive kernels} ($\Uh(0)<0$): the band reaches down to the
+        smallest box mode. Growth peaks where $k^2(-D-\mu_0\Uh(k))$ is
+        largest, a finite $k$ set by the kernel's shape. The system clusters
+        and then coarsens.
+  \item \textbf{Repulsive kernels} ($\Uh(0)>0$): only kernels whose $\Uh$ has
+        a negative lobe can go unstable, at the lobe's $k^*$, when
+        $D<D_{\mathrm{crit}}=\mu_0|\Uh_{\min}|$. The result is a cluster
+        crystal.
+\end{itemize}
+The noise seeds each mode with relative amplitude about $N^{-1/2}$. Nonlinear
+clusters appear once the fastest mode reaches $O(1)$:
+\begin{equation}
+  \tf \approx \frac{\ln\sqrt N}{\sigma_{\max}} = \frac{\ln N}{2\,\sigma_{\max}} ,
+\end{equation}
+up to an $O(1)/\sigma_{\max}$ correction.
+
+\subsection{Number of clusters}
+The fastest mode sets the spacing $\lambda = 2\pi/|\mathbf k_{\max}|$, and the
+pattern breaks into blobs on a lattice:
+\begin{equation}
+  n_{\mathrm{square}} = \Bigl(\frac{|\mathbf k_{\max}|L}{2\pi}\Bigr)^2, \qquad
+  n_{\mathrm{hex}} = \frac{\sqrt3}{8\pi^2}\,A\,|\mathbf k_{\max}|^2 \approx 0.87\,n_{\mathrm{square}} .
+\end{equation}
+A hexagonal lattice with reciprocal vectors of magnitude $|\mathbf k_{\max}|$
+has nearest-neighbour spacing $a = 4\pi/(\sqrt3|\mathbf k_{\max}|)$. In small
+boxes a specific $(n_x,n_y)$ mode wins, so $n_{\mathrm{square}}$ is usually
+closer. The count is uncertain by about $\pm20\%$ when several modes grow at
+nearly the same rate.
+
+The cluster mass is $m\approx1/n$. The width follows from the self-consistent
+well $C(r)\approx m\,U(r)$:
+\begin{itemize}
+  \item harmonic core: $\sigma_c^2 = D/(mU''(0))$;
+  \item flat core (\code{gema}, $\alpha>2$, $U\approx U(0)+|\varepsilon|(r/R)^\alpha$):
+        $r_c\approx R\,(D/m|\varepsilon|)^{1/\alpha}$.
+\end{itemize}
+
+\subsection{Representative parameter sets}\label{sec:params}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L l l L@{}}
+\toprule
+case & parameters & $D$ & $N$ & source \\
+\midrule
+gema attr. & $\varepsilon=-666$, $R=0.1$, $\alpha=3$ & 0.5 & 81920 & \code{inputs\_fv}, sign flipped \\
+gema rep. & $\varepsilon=+666$, $R=0.1$, $\alpha=3$ & 0.25 ($D_{\mathrm{crit}}=0.55$) & 81920 & \code{inputs\_fv}, lower $D$ \\
+hk attr. & $\varepsilon=-3000$, $R=0.1$ & 1 & 81920 & \code{inputs\_fv\_hk\_cluster} \\
+hk rep. & $\varepsilon=+2\cdot10^4$, $R=0.1$ & 0.5 ($D_{\mathrm{crit}}=0.92$) & 81920 & --- \\
+morse & $\varepsilon_{\mathrm{att}}=200$, $\varepsilon_{\mathrm{rep}}=100$, $R_{\mathrm{att}}=0.1$, $R_{\mathrm{rep}}=0.05$ & 0.5 & 81920 & --- \\
+pp & $\varepsilon=-7300$, $R=0.45$, $a=0.27$, $\alpha=1$, $\beta=0.02$ & 1 & 327680 & \code{inputs\_fv\_pp\_merge} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Merging mechanisms}
+\paragraph{(M1) Drift.} Clusters within each other's range attract. Each moves
+toward the other at speed $m|U'(d)|$, so a pair at distance $d_0$ merges in
+\begin{equation}
+  t_{\mathrm{drift}} \approx \int_{\text{core}}^{d_0}\frac{dd}{2m|U'(d)|},
+\end{equation}
+independent of $N$. This is the fast route when $\lambda$ lies inside the range.
+
+\paragraph{(M2) Brownian coalescence.} Clusters beyond range diffuse with
+$D/(Nm)$ and merge when random motion closes the gap $g\le\lambda$:
+\begin{equation}
+  t_{\mathrm{brown}} \approx \frac{g^2 N m}{8D} \qquad (\propto N).
+\end{equation}
+
+\paragraph{(M3) Mass exchange (Ostwald-type ripening).} Particles escape over
+the well depth $m|U(0)|$. Smaller clusters, with shallower wells, lose mass
+faster and eventually vanish:
+\begin{equation}
+  t_{\mathrm{exch}} \approx \frac{\sigma_c^2}{D}\,e^{m|U(0)|/D} .
+\end{equation}
+This is independent of $N$ and present in the mean-field PDE: the dynamical
+metastability of Gerber et al.
+
+\subsection{Splitting}
+\begin{itemize}
+  \item \textbf{Attractive kernels.} Separating the two halves of a cluster
+        costs a total energy $N(m/2)^2|U(0)|$, so the rate is about
+        $e^{-Nm^2|U(0)|/4D}$. That is exponentially small in $N$, and absent
+        from the gradient-flow PDE. What looks like splitting during
+        formation is the break-up of stripes into blobs, on a time of about
+        $1/\sigma_{\max}$.
+  \item \textbf{Repulsive cluster crystals.} The number of clusters is fixed
+        by the spacing $2\pi/k^*$, and the occupancy by $N/n$. Occupancies
+        change by single-particle hops over the lattice barrier $\Delta C$, at
+        a rate of about $(D/a^2)e^{-\Delta C/D}$. Creating or removing a site
+        is a collective, activated rearrangement, much slower still.
+\end{itemize}
+
+\section{Results for each potential}
+
+\subsection{Summary}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}l c c c c L c c c@{}}
+\toprule
+case & $\sigma_{\max}$ & mode & $\tf$ & $n$ (sq./hex) & spacing & $m$ & width & $m|U(0)|/D$ \\
+\midrule
+gema attr. & 3633 & (3,2) & 0.0016 & 13 / 11 & 0.277 ($2.8R$) & 0.077 & $r_c\approx0.021$ & 102 \\
+gema rep. & 757 & (7,4) & 0.0075 & 65 / 56 & hex $a=0.143$ ($1.43R$) & 0.015 & 0.008 & --- \\
+hk attr. & 265 & (3,1) & 0.021 & 10 / 9 & 0.316 ($3.2R$) & 0.10 & 0.018 & 15 \\
+hk rep. & 1750 & (10,3) & 0.0032 & 109 / 94 & hex $a=0.111$ ($1.11R$) & 0.009 & ring, $r\approx0.012$ & --- \\
+morse & 283 & (1,1) & 0.020 & 2 & 0.707 ($7.1R_{\mathrm{att}}$) & 0.5 & 0.007 & 100 \\
+pp & 299 & (3,1) & 0.021 & 10 / 9 & 0.316 ($0.70R$) & 0.10 & 0.025 & 15 \\
+\bottomrule
+\end{tabularx}
+
+\medskip
+\begin{tabularx}{\textwidth}{@{}l L L L L@{}}
+\toprule
+case & drift merge (M1) & Brownian (M2) & mass exchange (M3) & splitting \\
+\midrule
+gema attr. & none: force $\approx7\cdot10^{-6}$ & $\approx120$ & $\propto e^{102}$: never & $e^{-1.6\cdot10^5}$: never \\
+gema rep. & clusters repel & --- & hops: $\Delta C/D=17$, $\tau_{\mathrm{hop}}\approx3\cdot10^6$ & lattice change: never \\
+hk attr. & none ($\lambda>R$) & $\approx100$ & $\approx3\cdot10^{-4}e^{15}\approx10^3$ & $e^{-3\cdot10^4}$: never \\
+hk rep. & clusters repel & --- & hops: $\Delta C/D=12$, $\tau_{\mathrm{hop}}\approx4\cdot10^3$ & $\gg\tau_{\mathrm{hop}}$ \\
+morse & $\approx0.06$ & $\approx5\cdot10^3$ & $\propto e^{100}$: never & $e^{-10^6}$: never \\
+pp & $\approx0.015$ & $\approx400$ & $\approx2\cdot10^3$ & $e^{-1.2\cdot10^5}$: never \\
+\bottomrule
+\end{tabularx}
+\end{center}
+At $128^2$, $\Delta t\approx2$--$4\cdot10^{-6}$ for these runs, so $t=100$ is
+about $3\cdot10^7$ steps. Only times up to about 0.1--1 are routinely
+reachable.
+
+\subsection{\texorpdfstring{GEM-$\alpha$, attractive ($\varepsilon<0$)}{GEM-alpha, attractive}}
+\begin{itemize}
+  \item \textbf{Stability.} $\Uh(0)=0.0284\,\varepsilon$ for $\alpha=3$, so
+        $\Lambda=38$. The band runs from the smallest box mode to about
+        $6\cdot2\pi$.
+  \item \textbf{Formation.} Very fast: $\tf\approx0.0016$. Growth peaks at
+        $kR\approx2.3$ ($\lambda\approx0.28$), independent of $|\varepsilon|$
+        once $\Lambda\gg1$.
+  \item \textbf{Clusters.} About 11--13, scaling like $1/R^2$. The core is flat,
+        so clusters are compact blobs with steep edges and
+        $r_c\approx R(D/m|\varepsilon|)^{1/3}\approx0.02$.
+  \item \textbf{Merging.} The force at $2.8R$ is negligible
+        ($e^{-(2.8)^3}\approx3\cdot10^{-10}$), and mass exchange is ruled out
+        by $m|\varepsilon|/D\approx100$. Only Brownian coalescence remains,
+        with $t\approx120$ at $N=81920$, growing like $N$. The pattern is
+        effectively frozen on simulation times; weaker attraction or higher
+        $D$ moves $\lambda$ toward $R$, where drift merging becomes possible.
+  \item \textbf{Splitting.} Never.
+\end{itemize}
+
+\subsection{\texorpdfstring{GEM-$\alpha$, repulsive ($\varepsilon>0$)}{GEM-alpha, repulsive}}
+\begin{itemize}
+  \item \textbf{Stability.} For $\alpha>2$, $\Uh$ has a negative lobe: its
+        minimum is $-0.029\,\Uh(0)$ at $kR=5.03$. The uniform state is
+        unstable for $D<D_{\mathrm{crit}}=0.55$ at $\varepsilon=666$.
+  \item \textbf{Formation.} At $D=0.25$, $\sigma_{\max}\approx760$ and
+        $\tf\approx0.0075$. Near onset $\sigma\propto(D_{\mathrm{crit}}-D)k^{*2}$,
+        so $\tf$ diverges.
+  \item \textbf{Clusters.} A hexagonal cluster crystal with $a\approx1.43R$:
+        about 56 clusters of about 1300 particles. The number is set by $R$
+        alone ($k^*R\approx5$); the occupancy is $N/n$.
+  \item \textbf{Merging and splitting.} Neighbouring clusters repel. Particles
+        hop over $\Delta C\approx4.4$ ($\Delta C/D\approx17$, $\tau_{\mathrm{hop}}\approx3\cdot10^6$),
+        so the lattice is static. Defects from the formation stage persist.
+\end{itemize}
+
+\subsection{\texorpdfstring{HK, attractive ($\varepsilon<0$)}{HK, attractive}}
+\begin{itemize}
+  \item \textbf{Stability.} $\Uh(k)=\varepsilon R^3\hat S(kR)$ with
+        $\hat S(0)=\pi/4$; $\Lambda=2.28$. The onset is
+        $|\varepsilon|\approx4D/(\pi R^3)$ for small $R$.
+  \item \textbf{Formation.} The fastest mode is $(3,1)$, with $\sigma\approx265$
+        and $\tf\approx0.021$.
+  \item \textbf{Clusters.} About 10, with $\lambda\approx3.2R$; in the
+        strong-coupling limit $\lambda\to2.06R$. Either way the spacing is
+        outside the range, and the compact support freezes the pattern.
+        Gaussian clusters with $\sigma_c^2=DR/(m|\varepsilon|)$, giving
+        $\sigma_c\approx0.018$.
+  \item \textbf{Merging.} No drift. Brownian coalescence takes $\approx100$
+        ($\propto N$). Mass exchange, with $m|U(0)|/D=m\gamma R/2D\approx15$,
+        takes $\approx10^3$; this is the $e^{\gamma\ell\Delta m}$
+        metastability of Gerber et al. Both are out of reach of simulations.
+  \item \textbf{Splitting.} Never.
+\end{itemize}
+
+\subsection{\texorpdfstring{HK, repulsive ($\varepsilon>0$)}{HK, repulsive}}
+\begin{itemize}
+  \item \textbf{Stability.} The lobe $\hat S_{\min}=-0.046$ at $kR=6.38$ gives
+        $D_{\mathrm{crit}}=0.92$ at $\varepsilon=2\cdot10^4$.
+  \item \textbf{Formation.} At $D=0.5$, $\sigma_{\max}\approx1750$ and
+        $\tf\approx0.003$.
+  \item \textbf{Clusters.} A hexagonal crystal with $a\approx1.11R$: about 94
+        clusters of about 870 particles. Each parabolic piece is concave
+        (curvature $-\varepsilon/R$), so the lattice potential's minimum lies
+        off the site, at about 0.012. The clusters are small rings, confined
+        by the kernel edges, which need $\Delta x\ll0.01$ to resolve.
+  \item \textbf{Merging and splitting.} Hops cross $\Delta C/D\approx12$,
+        with $\tau_{\mathrm{hop}}\approx4\cdot10^3$; the crystal is static.
+\end{itemize}
+
+\subsection{Morse}
+\begin{itemize}
+  \item \textbf{Stability.} $\Uh$ increases wherever it is negative, so there
+        is either long-wave demixing ($\Uh(0)<0$) or stability; no crystal.
+        The code defaults ($\varepsilon_{\mathrm{att}}=1$,
+        $\varepsilon_{\mathrm{rep}}=0.5$) give $\Uh(0)=-0.055$, stable for
+        $D\gtrsim0.06$. The set here gives $\Uh(0)=-10.5$ and $\Lambda\approx21$.
+  \item \textbf{Formation.} With $\Uh\approx\Uh(0)+ck^2$, the fastest mode
+        satisfies $k_{\max}^2\approx(\mu_0|\Uh(0)|-D)/(2c)$: here $(1,1)$, with
+        $\sigma\approx283$ and $\tf\approx0.02$.
+  \item \textbf{Clusters.} About 2. More need a larger $|\Uh(0)|/D$ or a shorter
+        $R_{\mathrm{att}}$; near threshold, one band. Here
+        $\varepsilon_{\mathrm{att}}/R_{\mathrm{att}}=\varepsilon_{\mathrm{rep}}/R_{\mathrm{rep}}$,
+        so the core is harmonic with
+        $U''(0)=-\varepsilon_{\mathrm{att}}/R_{\mathrm{att}}^2+\varepsilon_{\mathrm{rep}}/R_{\mathrm{rep}}^2$
+        and $\sigma_c\approx0.007$. Otherwise the core has a cusp and
+        $r_c\approx D/(m|U'(0)|)$.
+  \item \textbf{Merging.} The exponential tail reaches between clusters, so
+        drift merging takes $\approx0.06$ and the system coarsens quickly
+        toward one cluster.
+  \item \textbf{Splitting.} Never.
+\end{itemize}
+
+\subsection{PP (piecewise parabolic)}
+\begin{itemize}
+  \item \textbf{Stability.} $\Uh$ is the sum of two HK transforms, a tail of
+        radius $R$ and a core of radius $aR$. The core sets the fastest mode
+        when the tail is weak ($\beta\lesssim0.02$ here).
+  \item \textbf{Formation.} The fastest mode is $(3,1)$, with
+        $\sigma\approx299$ and $\tf\approx0.021$. Observed: clusters from
+        $t\approx0.014$, ten by $t\approx0.018$.
+  \item \textbf{Clusters.} About 10 predicted, and 10 observed. The spacing,
+        $0.32=0.70R$, lies inside the tail.
+        $\sigma_c^2=DR/(m|\varepsilon|\alpha)$, giving $\sigma_c\approx0.025$.
+  \item \textbf{Merging.} The tail pulls neighbours together with
+        $m|U'(\lambda)|\approx10$, so drift merging takes $\approx0.015$,
+        independent of $N$. Observed: nine mergers, from 10 clusters to 1,
+        between $t\approx0.027$ and $0.036$.
+  \item \textbf{Splitting.} Never.
+\end{itemize}
+
+\section{Scaling summary}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L@{}}
+\toprule
+quantity & scaling \\
+\midrule
+$\tf$ & $\ln N/(2\sigma_{\max})$, with $\sigma_{\max}\sim(\mu_0|\Uh|-D)k^2$ \\
+number of clusters & $\propto k_{\max}^2A$: about $A/R^2$ times a kernel constant; nearly independent of $N$, and of $\varepsilon$ far above onset \\
+drift merging & $\propto1/(m|U'(\lambda)|)$; independent of $N$; needs $\lambda$ inside the range \\
+Brownian merging & $\propto Nm\lambda^2/D$ \\
+mass exchange & $\propto e^{m|U(0)|/D}$ \\
+splitting (attractive) & $\propto e^{Nm^2|U(0)|/4D}$: never \\
+hopping (repulsive) & $\propto(a^2/D)\,e^{\Delta C/D}$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\paragraph{How the estimates were made.}
+\begin{itemize}
+  \item $\sigma(k)$ is the numerical Hankel transform of $U$ on the box modes.
+        These are continuum values; the code's startup printout gives the
+        discrete ones, within a few percent.
+  \item Mass, width and drift use $m\approx1/n$ and a harmonic or flat well.
+  \item The mass-exchange and hopping times are Arrhenius estimates with an
+        $O(1)$ prefactor. Only their exponents are reliable.
+  \item The lattice barriers are from direct sums over a hexagonal lattice of
+        point clusters.
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{dean} D.~S.~Dean, \emph{J. Phys. A} \textbf{29}, L613 (1996).
+\bibitem{likos} C.~N.~Likos, A.~Lang, M.~Watzlawek and H.~Löwen,
+  \emph{Phys. Rev. E} \textbf{63}, 031206 (2001).
+\bibitem{gerber} N.~Gerber, R.~S.~Gvalani, M.~Hairer, G.~A.~Pavliotis and
+  A.~Schlichting, Formation of clusters and coarsening in weakly interacting
+  diffusions, arXiv:2510.17629.
+\end{thebibliography}
+
+\end{document}
