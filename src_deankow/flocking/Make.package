@@ -1,0 +1,23 @@
+CEXE_sources += main.cpp
+
+CEXE_headers += FlockingParams.H
+
+# DIM = 3: SPDE on (x, y, theta)
+ifeq ($(DIM),3)
+CEXE_sources += AmrCoreFlock.cpp
+CEXE_sources += AdvancePhiAtLevel.cpp
+CEXE_sources += myfunc.cpp
+
+CEXE_headers += AmrCoreFlock.H
+CEXE_headers += myfunc.H
+CEXE_headers += mykernel.H
+endif
+
+# DIM = 2: particles with a theta attribute
+ifeq ($(DIM),2)
+CEXE_sources += FlockPC.cpp
+CEXE_sources += FlockParticles.cpp
+
+CEXE_headers += FlockPC.H
+CEXE_headers += FlockParticles.H
+endif

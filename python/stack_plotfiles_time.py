@@ -106,15 +106,16 @@ def read_fab(fname, offset):
 
 
 def read_level0(pltfile, h):
-    """Read level 0 into a full-domain array [ncomp, ny, nx]."""
+    """Read level 0 into a full-domain array [ncomp, ny, nx] (2D) or [ncomp, nz, ny, nx] (3D)."""
     level_dir = os.path.join(pltfile, "Level_0")
     _, fabs = read_cell_h(level_dir)
     dlo, dhi = h["domain"]
-    nx, ny = dhi[0] - dlo[0] + 1, dhi[1] - dlo[1] + 1
-    out = np.full((len(h["varnames"]), ny, nx), np.nan)
+    shape = [b - a + 1 for a, b in zip(dlo, dhi)]
+    out = np.full([len(h["varnames"])] + shape[::-1], np.nan)
     for fname, off in fabs:
         lo, hi, data = read_fab(os.path.join(level_dir, fname), off)
-        out[:, lo[1] - dlo[1]:hi[1] - dlo[1] + 1, lo[0] - dlo[0]:hi[0] - dlo[0] + 1] = data
+        sl = tuple(slice(lo[d] - dlo[d], hi[d] - dlo[d] + 1) for d in reversed(range(len(lo))))
+        out[(slice(None),) + sl] = data
     if np.isnan(out).any():
         raise ValueError(pltfile + ": level 0 does not cover the domain")
     return out

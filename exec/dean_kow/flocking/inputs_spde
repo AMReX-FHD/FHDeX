@@ -1,0 +1,19 @@
+# Flocking SPDE on (x, y, theta):  make DIM=3; mpirun -np 4 ./main3d.gnu.MPI.ex inputs_spde
+FILE = inputs_common
+
+amr.plot_file   = plt_spde_
+amr.chk_file    = chk_spde_
+amr.chk_int     = -1
+#amr.restart    = chk_spde_00100
+
+dorand          = 1        # 0: deterministic mean-field equation
+# x, y advection: 0 centred, 1 first-order upwind, 2 MUSCL. Only the centred
+# flux is skew-symmetric and reproduces the particle (Poisson) fluctuations;
+# upwind and MUSCL add numerical diffusion with no matching noise, which
+# damps the fluctuations (about 0.5x in phi and 0.05x in rho). Centred needs
+# time_integrator = 1 and is not positivity preserving.
+adv_order       = 0
+limiter         = 0        # MUSCL limiter: 0 minmod, 1 MC
+time_integrator = 1        # 0 Euler-Maruyama, 1 Heun for the deterministic part
+adv.cfl         = 0.25     # fraction of the upwind positivity limit
+diag_int        = 10       # print mass and min phi every n steps
