@@ -1,0 +1,36 @@
+# *****************************************************************
+# Parameters shared by the flocking SPDE (inputs_spde, DIM=3) and the
+# particle code (inputs_particles, DIM=2). Both include this file with
+# "FILE = inputs_common", which is resolved relative to the directory the
+# code is run from: run in this directory or copy the inputs files along.
+# *****************************************************************
+
+# domain: x, y from prob_lo/prob_hi; theta (z) is always [0, 2 pi)
+geometry.prob_lo     = 0.0 0.0 0.0
+geometry.prob_hi     = 1.0 1.0 6.283185307179586
+geometry.is_periodic = 1 1 1
+
+# nx ny ntheta: the SPDE grid, and the particle histogram grid (ntheta bins)
+amr.n_cell           = 64 64 32
+amr.max_grid_size    = 32
+
+# model: dX = v (cos theta, sin theta) dt, dtheta = sqrt(2 D) dW
+num_part     = 4.e6        # N
+diff_coeff   = 1.0         # D, rotational diffusion
+flock.speed  = 1.0         # v
+
+# initial condition
+#   0: uniform
+#   1: 1 + ic_amp cos(2 pi (ic_kx x/Lx + ic_ky y/Ly)) cos(ic_m (theta - ic_theta0))
+#   2: Gaussian blob (ic_sigma at ic_x0, ic_y0) times 1 + ic_amp cos(theta - ic_theta0)
+flock.ic_type   = 1
+flock.ic_amp    = 0.5
+flock.ic_kx     = 1
+flock.ic_ky     = 0
+flock.ic_m      = 1
+flock.ic_theta0 = 0.0
+
+# run control and output, in time so both codes write at the same times
+stop_time     = 0.25
+amr.plot_dt   = 0.05
+seed          = 0

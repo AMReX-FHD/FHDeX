@@ -1,0 +1,5 @@
+# Particle version of inputs_mips:  ./main2d.gnu.MPI.ex inputs_mips_particles
+FILE = inputs_mips
+amr.plot_file     = plt_mips_part_
+write_particles   = 0
+adv.cfl           = 0.5

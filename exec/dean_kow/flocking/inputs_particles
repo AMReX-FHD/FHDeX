@@ -1,0 +1,9 @@
+# Flocking particles in 2D with a theta attribute:
+#   make DIM=2; mpirun -np 4 ./main2d.gnu.MPI.ex inputs_particles
+FILE = inputs_common
+
+amr.plot_file   = plt_part_
+#n_theta_bins   = 32       # default: the third entry of amr.n_cell
+#particle_dt    = 0.005    # default: adv.cfl * min(dx, dy) / v
+adv.cfl         = 0.5
+write_particles = 1        # also write particle positions and theta to the plotfile

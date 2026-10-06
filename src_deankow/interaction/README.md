@@ -19,6 +19,11 @@ is computed by FFT on level 0.
 Example inputs are in `exec/dean_kow/interaction`. `STABILITY.md` covers the
 linear stability of each potential, choosing parameters, and the time step.
 
+`MODEL.md` (LaTeX version: `MODEL.tex`) describes the model and estimates, for
+each potential (attractive and repulsive gema and hk, morse, pp), the
+linear-stability formation time, the initial number of clusters, and the time
+scales for merging and splitting.
+
 ## Interaction potentials
 
 The interaction is switched on with `amr.use_int_pot = 1` (the default) and
