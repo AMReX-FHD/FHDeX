@@ -34,7 +34,9 @@ distribution functions for 2D AMReX plotfiles}
         cluster a stable id and logging mergers, splits, new clusters and
         clusters that dissolve;
   \item accumulates two radial distribution functions: $g(r)$ of the density
-        field and $g(r)$ of the cluster centres.
+        field and $g(r)$ of the cluster centres, and the structure factor $S(k)$;
+  \item measures the orientational order of the cluster centres ($\psi_6$)
+        and whether $S(k)$ has Bragg spots or a ring.
 \end{enumerate}
 The results are whitespace-separated text tables with \code{\#} header lines.
 The script needs only Python~3 and numpy. It reuses the plotfile reader in
@@ -182,6 +184,52 @@ inside the minimum-image cell. Pair counts and expected counts are summed over
 frames before dividing, because single frames often hold only about ten
 clusters.
 
+\subsection{\texorpdfstring{Structure factor $S(k)$}{Structure factor S(k)}}
+From the same cell counts as the field $g(r)$,
+\begin{equation}
+  S(\mathbf k) = \frac{|\hat n(\mathbf k)|^2}{N_{\mathrm{tot}}}, \qquad
+  \hat n(\mathbf k) = \sum_i n_i\,e^{-i\mathbf k\cdot\mathbf x_i}, \qquad \mathbf k\ne0 ,
+\end{equation}
+so that a Poisson field gives $S=1$ and
+$S(k)=1+(N/V)\int(g-1)e^{i\mathbf k\cdot\mathbf r}d\mathbf r$. Wave vectors come
+from \code{fftfreq}: index $i>N_d/2$ is the negative wavenumber $i-N_d$, so
+$k_d=2\pi\cdot(\text{index})/L_d$. $S$ is averaged over shells
+$|\mathbf k|\in[(j-\tfrac12)\Delta k,(j+\tfrac12)\Delta k)$ with
+$\Delta k$ = \code{-{}-dk} (default $2\pi/\max L_d$), each divided by its exact
+number of modes. Only complete shells up to the smallest Nyquist wavenumber
+$\pi/\Delta x_d$ are written, averaged over the frames in \code{-{}-t-range}.
+For many samples use the in-code structure factor of
+\code{src\_deankow/interaction} (\code{struct\_fact\_int}), which writes the same
+shell average.
+
+\subsection{Orientational order: crystal or amorphous}
+$g(r)$ averages over directions, so a cluster crystal and an amorphous packing
+with the same spacing can have the same $g(r)$ peaks. Two measures, written to
+\code{order.txt} for every frame, tell them apart.
+
+\paragraph{Hexatic bond order.} Each cluster centre $i$ is joined to its
+\code{-{}-nn} nearest neighbours (default 6, minimum image), or to all
+neighbours closer than \code{-{}-nn-cut}. With bond angles $\theta_{ij}$,
+\begin{equation}
+  \psi_{6,i} = \frac1{n_i}\sum_j e^{6i\theta_{ij}} ,\qquad
+  \psi_6^{\mathrm{loc}} = \overline{|\psi_{6,i}|},\qquad
+  \psi_6^{\mathrm{glob}} = \bigl|\,\overline{\psi_{6,i}}\,\bigr| .
+\end{equation}
+A hexagonal crystal gives 1 for both. Random points give
+$\psi_6^{\mathrm{loc}}\approx0.36$ and $\psi_6^{\mathrm{glob}}\approx0.4/\sqrt N$.
+A high local but low global value means hexagonal grains with different
+orientations.
+
+\paragraph{Bragg spots or a ring.} On the shell with the largest mean $S$ of a
+frame's full $S(\mathbf k)$, with $n$ modes,
+\begin{equation}
+  \mathrm{PR} = \frac{\bigl(\sum S\bigr)^2}{n\sum S^2} ,
+\end{equation}
+which is $\approx(\text{number of spots})/n$ for Bragg spots (6/60 = 0.100 for a
+hexagonal lattice of blobs) and $\approx0.5$ for an isotropic ring with random
+phases. \code{top\_share} is the fraction of the shell's $S$ in its
+\code{-{}-top-modes} largest modes.
+
 \section{Options}
 
 \begin{center}
@@ -201,6 +249,13 @@ Option & Default & Meaning \\
 \code{-{}-search-radius R} & $L/4$ & largest distance a centre may move between frames and still be matched when its old cells overlap no new cluster \\
 \code{-{}-t-range T0 T1} & all frames & time window for both $g(r)$ averages; cluster statistics and tracking always use every frame \\
 \code{-{}-rdf-per-frame} & off & also write the field $g(r)$ of each frame in the window \\
+\code{-{}-dk D} & $2\pi/\max L$ & shell width of the structure factor \\
+\code{-{}-sf-per-frame} & off & also write the per-frame shell-averaged $S(k)$ \\
+\code{-{}-nn K} & 6 & bond order: number of nearest neighbours \\
+\code{-{}-nn-cut R} & off & bond order: all neighbours closer than $R$ instead \\
+\code{-{}-top-modes K} & 6 & \code{order.txt} \code{top\_share}: largest modes on the $S(k)$ peak shell \\
+\code{-{}-sf-full} & off & write the full $S(\mathbf k)$, averaged over the window, as the plotfile \code{sf\_full\_avg} \\
+\code{-{}-sf-full-per-frame} & off & also write the full $S(\mathbf k)$ of each frame as \code{sf\_full\_<step>} \\
 \code{-o DIR}, \code{-{}-output DIR} & \code{cluster\_diag} & output directory, created if needed; existing files are overwritten \\
 \bottomrule
 \end{tabularx}
@@ -244,6 +299,7 @@ Column & Meaning \\
 \code{peak} & largest $\phi$ in the cluster \\
 \code{ncells} & number of cells \\
 \code{wide} & 1 if the cluster spans about half the box or more ($x_c$, $y_c$, $R_g$ unreliable) \\
+\code{psi6} & $|\psi_{6,i}|$ of the cluster (NaN without neighbours) \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -301,6 +357,62 @@ Column & Meaning \\
 \end{center}
 \code{pairs} shows how much each bin's $g$ rests on; with a few clusters per
 frame, bins with only a handful of pairs are noisy.
+
+\subsection*{\texorpdfstring{\code{sf.txt}: shell-averaged structure factor}{sf.txt}}
+A header with the number of frames, the time window, \code{num\_part} and
+$\Delta k$, then one line per shell: \code{k} (mean $|\mathbf k|$ of the
+shell), \code{S}, \code{nmodes}, and with \code{-{}-sf-per-frame} one
+\code{S(t=...)} column per frame.
+
+\subsection*{\texorpdfstring{\code{order.txt}: orientational order, one line per plotfile}{order.txt}}
+A header with the neighbour rule and \code{-{}-top-modes}, then one row per
+plotfile:
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}r l L@{}}
+\toprule
+\# & Column & Meaning \\
+\midrule
+1 & \code{t} & plotfile time \\
+2 & \code{step} & plotfile step \\
+3 & \code{nclusters} & number of clusters in the frame (as in \code{summary.txt}) \\
+4 & \code{psi6\_local} & $\psi_6^{\mathrm{loc}}=\overline{|\psi_{6,i}|}$: how hexagonal each neighbourhood is, whatever its orientation; 1 for a perfect hexagon, $\approx0.36$ for random points \\
+5 & \code{psi6\_global} & $\psi_6^{\mathrm{glob}}=|\overline{\psi_{6,i}}|$: one orientation across the box; $\approx\psi_6^{\mathrm{loc}}$ for a single crystal, $\approx0.4/\sqrt N$ with no common orientation \\
+6 & \code{kpeak} & mean $|\mathbf k|$ of the $S(k)$ ring with the largest mean $S$ in this frame, normally the main peak at $\approx2\pi/\text{spacing}$ \\
+7 & \code{nmodes} & number of FFT wave vectors $n$ on that ring \\
+8 & \code{PR} & $(\sum S)^2/(n\sum S^2)$, roughly the fraction of modes carrying the signal: $\approx$ spots$/n$ for Bragg spots, $\approx0.5$ for a uniform ring \\
+9 & \code{top\_share} & fraction of the ring's $S$ in its \code{-{}-top-modes} largest modes (default 6): $\approx1$ for a crystal, small for a ring \\
+\bottomrule
+\end{tabularx}
+\end{center}
+Example, the last frame of \code{\_new\_repul\_2}:
+\begin{verbatim}
+0.08773803711 400000 53 0.987506 0.986861 50.306732 48 0.125774 0.996647
+\end{verbatim}
+At $t=0.0877$ (step 400000) there are 53 clusters. Local and global $\psi_6$
+are both 0.99: one hexagonal crystal with a single orientation. The $S(k)$
+peak ring at $|\mathbf k|\approx50.3$ has 48 modes, and $\mathrm{PR}=0.126\approx6/48$,
+with the 6 largest modes holding 99.7\% of it: six Bragg spots. The $t=0$ row,
+\code{0 0 0 nan nan 7.58 8 nan nan}, is a uniform field: the order values are
+NaN, and \code{kpeak} and \code{nmodes} only describe the first ring.
+
+\subsection*{\texorpdfstring{\code{sf\_full\_avg}, \code{sf\_full\_<step>}: full $S(\mathbf k)$ plotfiles}{sf_full plotfiles}}
+With \code{-{}-sf-full} (average over the window) or \code{-{}-sf-full-per-frame}
+(one per frame), the full structure factor is written as a single-box AMReX
+plotfile on the $k$ grid, in the layout of the in-code \code{plt\_SF\_mag}.
+\begin{itemize}[nosep]
+  \item \textbf{Layout:} cell $i$ in direction $d$ is centred at
+        $k_d=2\pi(i-n_d/2)/L_d$, so $k=0$ is the centre cell and FFT indices
+        above $n/2$ are negative wavenumbers. The cell size is $2\pi/L_d$.
+  \item \textbf{Components:} \code{S} and \code{log10S}. Bragg spots can be
+        $10^4$ times the background, so \code{log10S} is easier to view.
+        At $k=0$ both are set to 0.
+  \item \textbf{Viewing:} VisIt, ParaView or amrvis. A crystal shows bright
+        spots (six on the first ring for a 2D hexagonal lattice); an
+        amorphous state shows a uniform ring. In 3D, use slices through
+        $k=0$ or an isosurface of \code{log10S}.
+  \item \textbf{Size:} 16 bytes per cell (33~MB at $128^3$).
+\end{itemize}
+Shell-averaging \code{sf\_full\_avg} reproduces \code{sf.txt}.
 
 \section{Example}
 

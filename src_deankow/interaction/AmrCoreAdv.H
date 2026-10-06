@@ -13,6 +13,7 @@
 #include <AMReX_FFT.H>
 
 #include "Potentials.H"
+#include "StructFact.H"
 
 #ifdef AMREX_USE_OMP
 #   include <omp.h>
@@ -221,6 +222,17 @@ private:
 
     // print negative-density diagnostics every neg_diag_int steps (0 = off)
     int neg_diag_int = 0;
+
+    // structure factor of phi on level 0, accumulated every struct_fact_int
+    // steps after n_steps_skip (0 = off) and written with each plotfile
+    int struct_fact_int = 0;
+    int n_steps_skip = 0;
+    int sf_nsamples = 0;
+    int sf_last_write_step = -1;
+    StructFact structFact;
+    void InitStructFact ();
+    void StructFactSample ();
+    void WriteStructFact ();
 
     void PrintNegativeDensityDiagnostics (int step) const;
 

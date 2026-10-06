@@ -1,0 +1,444 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\emergencystretch=3em
+
+\title{Orientational-order diagnostics in \code{cluster\_diagnostics.py}\\
+and \code{cluster\_diagnostics\_3d.py}: definitions and interpretation}
+\author{FHDeX}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent This note explains the orientational-order diagnostics written by
+\code{cluster\_diagnostics.py} (2D) and \code{cluster\_diagnostics\_3d.py} (3D):
+what each quantity is and how to read it. The Markdown version is
+\code{README\_order\_diagnostics.md}.
+
+\section{\texorpdfstring{Why $g(r)$ is not enough}{Why g(r) is not enough}}
+
+The radial distribution function $g(r)$ counts pairs of clusters at distance
+$r$, averaged over every direction. It records how far apart clusters are, but
+not in which directions their neighbours lie. A crystal and a dense amorphous
+packing with the same spacing therefore have $g(r)$ peaks in the same places;
+the crystal's peaks are only somewhat sharper. That is the case in
+\code{exec/dean\_kow/interaction}:
+\begin{itemize}[nosep]
+  \item the 2D run \code{\_new\_repul\_2} looks like a hexagonal lattice;
+  \item the 3D run \code{\_3d\_noise} looks amorphous;
+  \item the cluster $g(r)$ of both has the same nearest-neighbour peak.
+\end{itemize}
+Telling these states apart needs angular information. The tools measure it in
+two independent ways:
+\begin{enumerate}[nosep]
+  \item \textbf{Bond-orientational order in real space:} the directions from
+        each cluster centre to its neighbours, compared within each
+        neighbourhood (local order) and across the box (global order).
+  \item \textbf{Bragg spots in $k$ space:} whether the main peak of the
+        structure factor $S(\mathbf k)$ sits on a few wave vectors (spots) or
+        is spread around the ring.
+\end{enumerate}
+Both are written for every frame to \code{order.txt}. The per-cluster bond
+order is added as extra columns of \code{clusters.txt}.
+
+\section{Neighbours and bonds}
+
+Order is measured on the cluster centres $\mathbf x_i$ (the circular-mean
+centres of mass in \code{clusters.txt}). The bond vectors are
+$\mathbf r_{ij} = \mathbf x_j - \mathbf x_i$, with the minimum image in each
+periodic direction. The neighbours of $i$ are
+\begin{itemize}[nosep]
+  \item by default, its \code{-{}-nn} nearest centres (6 in 2D, 12 in 3D);
+  \item with \code{-{}-nn-cut R}, every centre with $|\mathbf r_{ij}|<R$. A
+        good $R$ is the first minimum of the cluster $g(r)$ after its first
+        peak. The number of neighbours $n_i$ then varies; a cluster with no
+        neighbours gets NaN and is left out of the averages.
+\end{itemize}
+The neighbour count should match the coordination of the packing being tested
+for: 6 for 2D hexagonal, 12 for fcc or hcp, 8 (or 14 with the second shell) for
+bcc, and 6 for simple cubic. Bonds are not symmetrized: $j$ can be among $i$'s
+nearest neighbours without $i$ being among $j$'s. With a fixed \code{-{}-nn}
+this is the usual convention and has little effect.
+
+\section{\texorpdfstring{Bond order in 2D: $\psi_6$}{Bond order in 2D: psi6}}
+
+With $\theta_{ij}$ the angle of $\mathbf r_{ij}$ to the $x$ axis, each cluster
+gets the complex number
+\begin{equation}
+  \psi_{6,i} = \frac{1}{n_i}\sum_{j} e^{6i\theta_{ij}} .
+\end{equation}
+The factor 6 makes the six bonds of a perfect hexagon contribute the same
+phase, since rotating a bond by $60^\circ$ changes $6\theta$ by $360^\circ$.
+The modulus $|\psi_{6,i}|$ says how hexagonal the neighbourhood is (1 for a
+perfect hexagon); the phase $\arg\psi_{6,i}/6$ is the hexagon's orientation.
+Over the $N$ clusters of a frame,
+\begin{equation}
+  \psi_6^{\mathrm{loc}} = \frac1N\sum_i|\psi_{6,i}|
+  \quad(\code{psi6\_local}),\qquad
+  \psi_6^{\mathrm{glob}} = \Bigl|\frac1N\sum_i\psi_{6,i}\Bigr|
+  \quad(\code{psi6\_global}).
+\end{equation}
+Taking the modulus first ignores orientation; averaging the complex numbers
+first lets differently oriented hexagons cancel. Always
+$\psi_6^{\mathrm{glob}}\le\psi_6^{\mathrm{loc}}$. \code{clusters.txt} gets a
+\code{psi6} column with $|\psi_{6,i}|$.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}L l L@{}}
+\toprule
+Configuration (6 nearest neighbours) & $\psi_6^{\mathrm{loc}}$ & $\psi_6^{\mathrm{glob}}$ \\
+\midrule
+perfect hexagonal lattice & 1 & 1 \\
+hexagonal lattice, random displacements of 5\% of the spacing & 0.92 & 0.92 \\
+random points (Poisson) & 0.36 & $\approx0.4/\sqrt N$ (0.054 for $N=80$, 0.018 for $N=500$) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+The random local value is the mean modulus of an average of six random
+phases, $\approx\sqrt{\pi/24}\approx0.36$. The global value of random
+orientations is not zero in a finite system, so it must be compared with
+$0.4/\sqrt N$, not with 0.
+
+\section{\texorpdfstring{Bond order in 3D: Steinhardt $q_4$, $q_6$}{Bond order in 3D: Steinhardt q4, q6}}
+
+In 3D a bond has a direction $\hat{\mathbf r}_{ij}$ rather than one angle. Each
+neighbourhood is expanded in spherical harmonics:
+\begin{equation}
+  q_{lm,i} = \frac1{n_i}\sum_j Y_{lm}(\hat{\mathbf r}_{ij}),\quad m=-l,\dots,l,
+  \qquad
+  q_{l,i} = \Bigl(\frac{4\pi}{2l+1}\sum_{m=-l}^{l}|q_{lm,i}|^2\Bigr)^{1/2}.
+\end{equation}
+These are the Steinhardt--Nelson--Ronchetti bond-order parameters.
+\begin{itemize}[nosep]
+  \item The $2l+1$ complex numbers $q_{lm,i}$ are the 3D analogue of
+        $\psi_{6,i}$: they encode both the shape and the orientation of the
+        neighbourhood.
+  \item The sum over $m$ makes $q_{l,i}$ rotationally invariant, like
+        $|\psi_6|$ in 2D. The normalization gives $q_l=1$ when all bonds
+        point in one direction.
+  \item $l=4$ and $l=6$ are the standard pair: cubic and icosahedral
+        symmetries have strong $l=4$ and $l=6$ components.
+  \item $Y_{lm}$ is computed from Legendre polynomials in
+        \code{numpy.polynomial}, without scipy.
+\end{itemize}
+The averages follow the 2D logic:
+\begin{equation}
+  q_l^{\mathrm{loc}} = \frac1N\sum_i q_{l,i}
+  \quad(\code{q4},\ \code{q6}),\qquad
+  Q_l^{\mathrm{glob}} = \Bigl(\frac{4\pi}{2l+1}\sum_m
+     \Bigl|\frac1N\sum_i q_{lm,i}\Bigr|^2\Bigr)^{1/2}
+  \quad(\code{Q4\_global},\ \code{Q6\_global}).
+\end{equation}
+The global value equals the local value for a single perfect crystal of any
+orientation and is near zero when orientations are random.
+\code{clusters.txt} gets \code{q4} and \code{q6} columns.
+
+\subsection*{Crystal packings}
+The reference lattices are the standard ways of packing equal spheres (here,
+cluster centres) in 3D:
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L l l@{}}
+\toprule
+Name & Structure & Neighbours & Packing fraction \\
+\midrule
+fcc, face-centred cubic & a cube with a point at each corner and at the centre of each face (4 points per cell) & 12 & 0.74 (densest) \\
+hcp, hexagonal close-packed & hexagonal layers stacked ABAB\dots & 12 & 0.74 \\
+bcc, body-centred cubic & a cube with a point at each corner and one at its centre (2 per cell) & 8 (+6 at 1.15$\times$) & 0.68 \\
+sc, simple cubic & points only at the cube corners (1 per cell) & 6 & 0.52 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{itemize}
+  \item \textbf{fcc and hcp} are stacks of close-packed layers, each identical
+        to the 2D hexagonal lattice. Each layer sits in the hollows of the one
+        below, which allows three positions A, B, C: ABAB\dots\ stacking gives
+        hcp and ABCABC\dots\ gives fcc. Random stackings are common in
+        colloidal crystals. Both have 12 equidistant neighbours, so $g(r)$
+        barely separates them; their angular arrangements, and so $q_4$ and
+        $q_6$, differ.
+  \item \textbf{bcc} is less dense and more open. Each point is at the centre
+        of a cube of 8 neighbours, with 6 more at $2/\sqrt3\approx1.15$ times
+        that distance. Its reference values use 8 neighbours. With 12, the
+        first and second shells are mixed, so use \code{-{}-nn 8} (or 14, or
+        \code{-{}-nn-cut} between the shells) when testing for bcc.
+  \item \textbf{sc} is rarely stable for equal spheres. It is listed because
+        its $q_4$ and $q_6$ are distinctive.
+  \item \textbf{Which forms:}
+        \begin{itemize}[nosep]
+          \item hard or short-range repulsion typically gives fcc or hcp;
+          \item soft, long-range repulsion often gives bcc, especially near
+                melting;
+          \item soft, penetrable potentials, such as the gema and HK
+                potentials of the interaction code, can give fcc or bcc
+                cluster crystals depending on density and noise.
+        \end{itemize}
+  \item A \textbf{polycrystal} is many crystalline grains with different
+        orientations. An \textbf{amorphous} (glassy or liquid-like) packing
+        has no lattice, only short-range order.
+\end{itemize}
+
+\subsection*{Reference values}
+\begin{center}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Packing (neighbours) & $q_4$ & $q_6$ \\
+\midrule
+fcc (12) & 0.191 & 0.575 \\
+hcp (12) & 0.097 & 0.485 \\
+bcc (8) & 0.509 & 0.629 \\
+simple cubic (6) & 0.764 & 0.354 \\
+icosahedral cluster (12), for comparison & 0 & 0.663 \\
+random points (12) & 0.28 & 0.28; global $Q_6\approx0.4/\sqrt N$ (0.017 for $N=500$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+The lattice values were checked with the code: they do not depend on the
+lattice's orientation, and global $=$ local. Thermal displacements lower all
+crystal values and broaden their distributions. A dense liquid or glass
+typically has $q_6\approx0.35$--$0.45$: above random, because neighbours keep a
+minimum distance, but below the crystals.
+
+\section{\texorpdfstring{Bragg spots or a ring: $S(\mathbf k)$ on the peak shell}{Bragg spots or a ring}}
+
+For each frame the tool computes the full structure factor
+$S(\mathbf k)=|\hat n(\mathbf k)|^2/N_{\mathrm{tot}}$ on the FFT grid, before
+any shell average, and takes the shell (a ring in 2D, a spherical shell in 3D)
+with the largest mean $S$. That is normally the main peak at
+$2\pi/(\text{cluster spacing})$. On that shell, with $n$ wave vectors and values
+$S_1,\dots,S_n$,
+\begin{equation}
+  \mathrm{PR} = \frac{\bigl(\sum_a S_a\bigr)^2}{n\sum_a S_a^2},\qquad
+  \code{top\_share} = \frac{\text{sum of the \code{-{}-top-modes} largest } S_a}{\sum_a S_a}.
+\end{equation}
+\code{order.txt} also gives \code{kpeak}, the mean $|\mathbf k|$ of the shell,
+and \code{nmodes} $=n$. PR is a participation ratio: if $S$ were equal on $k$
+of the $n$ modes and zero elsewhere, $\mathrm{PR}=k/n$ exactly. It assumes no
+particular lattice.
+\begin{itemize}[nosep]
+  \item \textbf{Crystal:} a few Bragg spots carry the shell, so
+        $\mathrm{PR}\approx(\text{number of spots})/n$ and
+        $\code{top\_share}\approx1$ when \code{-{}-top-modes} is at least the
+        number of spots. Spots come in $\pm\mathbf k$ pairs: a 2D hexagonal
+        lattice has 6 on its first ring, fcc 8 on its first shell, bcc 12.
+  \item \textbf{Isotropic ring} (amorphous, liquid): with random phases each
+        $S_a$ is roughly exponentially distributed, so
+        $\langle S^2\rangle=2\langle S\rangle^2$ and $\mathrm{PR}\approx0.5$;
+        \code{top\_share} is about $\code{top\_modes}/n$, somewhat more due to
+        fluctuations.
+  \item \textbf{Uniform field} (e.g.\ $t=0$): PR and \code{top\_share} are NaN.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{@{}l r l l@{}}
+\toprule
+Field & $n$ & PR & \code{top\_share} \\
+\midrule
+2D hexagonal lattice of Gaussian blobs & 60 & $0.100=6/60$ & 1.00 \\
+2D random blobs & 12 & 0.61 & --- \\
+3D fcc lattice of blobs, $48^3$ & 602 & $0.0133=8/602$ & 1.00 \\
+3D random blobs & 98 & 0.55 & 0.36 \\
+\bottomrule
+\end{tabular}
+\end{center}
+This measure is independent of the cluster detection (\code{-{}-threshold},
+\code{-{}-mmin}) and of the neighbour rule, so it cross-checks the bond order.
+
+\paragraph{Seeing the spots.} \code{-{}-sf-full} writes the full
+$S(\mathbf k)$, averaged over the frames in \code{-{}-t-range}, as the plotfile
+\code{sf\_full\_avg} ($k=0$ at the centre, components \code{S} and
+\code{log10S}); \code{-{}-sf-full-per-frame} writes one per frame. In VisIt,
+ParaView or amrvis, a 2D crystal shows distinct spots (six on the first ring
+for a hexagonal lattice, more at $\sqrt3$ and 2 times that radius), a
+polycrystal several sets of spots on one ring, and an amorphous state a
+uniform speckled ring. In 3D use slices through $k=0$ or an isosurface of
+\code{log10S}: crystal spots are about $n/(\text{spots})\gtrsim100$ times the
+shell mean, whereas random speckle on $n$ modes reaches only about $\ln n$
+times the mean ($\approx7$ for 1000 modes).
+
+
+\section{\texorpdfstring{The columns of \code{order.txt}}{The columns of order.txt}}
+One row per plotfile, after a header line giving the neighbour rule and
+\code{-{}-top-modes}.
+
+\subsection*{2D (\code{cluster\_diagnostics.py})}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}r l L@{}}
+\toprule
+\# & Column & Meaning \\
+\midrule
+1 & \code{t} & plotfile time \\
+2 & \code{step} & plotfile step \\
+3 & \code{nclusters} & number of clusters in the frame (as in \code{summary.txt}) \\
+4 & \code{psi6\_local} & $\psi_6^{\mathrm{loc}}=\overline{|\psi_{6,i}|}$: how hexagonal each neighbourhood is, whatever its orientation; 1 for a perfect hexagon, $\approx0.36$ for random points \\
+5 & \code{psi6\_global} & $\psi_6^{\mathrm{glob}}=|\overline{\psi_{6,i}}|$: one orientation across the box; $\approx\psi_6^{\mathrm{loc}}$ for a single crystal, $\approx0.4/\sqrt N$ with no common orientation \\
+6 & \code{kpeak} & mean $|\mathbf k|$ of the $S(k)$ ring with the largest mean $S$ in this frame, normally the main peak at $\approx2\pi/\text{spacing}$ \\
+7 & \code{nmodes} & number of FFT wave vectors $n$ on that ring \\
+8 & \code{PR} & $(\sum S)^2/(n\sum S^2)$, roughly the fraction of modes carrying the signal: $\approx$ spots$/n$ for Bragg spots, $\approx0.5$ for a uniform ring \\
+9 & \code{top\_share} & fraction of the ring's $S$ in its \code{-{}-top-modes} largest modes (default 6): $\approx1$ for a crystal, small for a ring \\
+\bottomrule
+\end{tabularx}
+\end{center}
+Example, the last frame of \code{\_new\_repul\_2}:
+\begin{verbatim}
+0.08773803711 400000 53 0.987506 0.986861 50.306732 48 0.125774 0.996647
+\end{verbatim}
+At $t=0.0877$ (step 400000) there are 53 clusters. Local and global $\psi_6$
+are both 0.99: one hexagonal crystal with a single orientation. The $S(k)$
+peak ring at $|\mathbf k|\approx50.3$ has 48 modes, and $\mathrm{PR}=0.126\approx6/48$,
+with the 6 largest modes holding 99.7\% of it: six Bragg spots. The $t=0$ row,
+\code{0 0 0 nan nan 7.58 8 nan nan}, is a uniform field: the order values are
+NaN, and \code{kpeak} and \code{nmodes} only describe the first ring.
+
+\subsection*{3D (\code{cluster\_diagnostics\_3d.py})}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}r l L@{}}
+\toprule
+\# & Column & Meaning \\
+\midrule
+1--3 & \code{t}, \code{step}, \code{nclusters} & as in 2D \\
+4 & \code{q4} & $\overline{q_{4,i}}$, local (fcc 0.19, bcc 0.51 with 8 nn, random 0.28) \\
+5 & \code{q6} & $\overline{q_{6,i}}$, local (fcc 0.575, hcp 0.485, random 0.28) \\
+6 & \code{Q4\_global} & $Q_4$ from $q_{4m}$ averaged over all clusters \\
+7 & \code{Q6\_global} & $Q_6$ from $q_{6m}$ averaged over all clusters: $\approx q_6$ for a single crystal, $\approx0.4/\sqrt N$ with no common orientation \\
+8--11 & \code{kpeak}, \code{nmodes}, \code{PR}, \code{top\_share} & as in 2D; \code{-{}-top-modes} defaults to 12 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+Example, the last frame of \code{\_3d\_noise}:
+\begin{verbatim}
+0.03797721181 60000 476 0.126799 0.424355 0.016313 0.073719
+    56.909256 1142 0.318627 0.096069
+\end{verbatim}
+(one line in the file). Local $q_6=0.42$, $q_4=0.13$ lie between random and the
+crystals and match no crystal; global $Q_6=0.074$ is six times below local, so
+there is no common orientation; on the 1142-mode ring at
+$|\mathbf k|\approx56.9$, $\mathrm{PR}=0.32$ and the 12 largest modes hold only
+9.6\%: a ring, not spots. This is an amorphous packing.
+
+\section{How to read them together}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}L L L L@{}}
+\toprule
+Local order & Global order & $S(k)$ peak shell & Interpretation \\
+\midrule
+near the crystal value & $\approx$ local & PR $\approx$ spots$/n$, \code{top\_share} $\approx1$ & \textbf{single crystal} spanning the box \\
+near the crystal value & well below local, well above $0.4/\sqrt N$ & intermediate PR, several groups of spots & \textbf{polycrystal} of a few grains; global $\approx$ local$/\sqrt{\text{grains}}$ \\
+near the crystal value & $\approx0.4/\sqrt N$ & ring, PR $\approx0.3$--$0.5$ & \textbf{fine polycrystal}, hard to tell from amorphous; use per-cluster histograms \\
+between random and crystal & $\approx0.4/\sqrt N$ & ring & \textbf{amorphous / dense liquid} \\
+$\approx$ random & $\approx0.4/\sqrt N$ & ring or no clear peak & \textbf{disordered}, gas-like \\
+\bottomrule
+\end{tabularx}
+\end{center}
+In 2D, dense liquids and hexatic phases can also have fairly high local
+$\psi_6$, so local $\psi_6$ alone does not prove a crystal: the global value
+and the spots decide.
+
+\paragraph{Time series.} Plot the \code{order.txt} columns against $t$.
+\begin{itemize}[nosep]
+  \item \emph{Crystallization:} local order rises first, then global order,
+        while PR drops towards spots$/n$ and \code{top\_share} rises to 1.
+  \item \emph{Coarsening of a polycrystal:} local order flat, global order
+        rising slowly as grains merge.
+  \item \emph{Amorphous or glassy:} everything roughly constant. A slow drift
+        may mean very slow ordering; run longer before concluding.
+\end{itemize}
+
+\paragraph{Per-cluster distributions.} The \code{clusters.txt} columns
+(\code{psi6}, or \code{q4 q6}) give the distribution over clusters.
+\begin{itemize}[nosep]
+  \item One narrow peak at a crystal value: crystal.
+  \item One broad peak below the crystal values: amorphous.
+  \item Two peaks: crystalline grains with disordered regions; the weight of
+        the upper peak estimates the crystalline fraction.
+  \item 3D, $q_4$ against $q_6$: points near $(0.19, 0.575)$ for fcc,
+        $(0.10, 0.485)$ for hcp, $(0.51, 0.63)$ for bcc (8 neighbours).
+\end{itemize}
+
+\section{\texorpdfstring{Worked example: \code{\_new\_repul\_2} (2D) and \code{\_3d\_noise} (3D)}{Worked example}}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L L@{}}
+\toprule
+ & 2D \code{\_new\_repul\_2} & 3D \code{\_3d\_noise} \\
+\midrule
+frames & $t=0.022$ to $0.088$ & $t=0.032$ to $0.038$ \\
+clusters $N$ & 41--53 & 465--480 \\
+local order & $\psi_6$: $0.63\to0.89\to0.91\to0.988$ & $q_4=0.13$, $q_6=0.41$--$0.42$ \\
+global order & $\psi_6$: $0.55\to0.86\to0.89\to0.987$ & $Q_4=0.012$--$0.016$, $Q_6=0.058$--$0.074$ \\
+noise floor $0.4/\sqrt N$ & 0.055 & 0.018 \\
+$S(k)$ peak shell & 48 modes; PR $0.23\to0.126$; \code{top\_share} (6) $0.66\to0.997$ & 1142 modes; PR 0.32; \code{top\_share} (12) 0.08--0.10 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\paragraph{2D: a single hexagonal crystal, formed during the run.} Local and
+global $\psi_6$ agree and approach 1. Six Bragg spots carry essentially the
+whole ring: PR $=0.126$ against $6/48=0.125$. Early on the ordering is
+incomplete ($\psi_6=0.63$, PR $=0.23$); the lattice anneals by $t\approx0.09$.
+
+\paragraph{3D: amorphous.} Local $q_6=0.42$ is above random (0.28) but below
+hcp (0.485) and fcc (0.575), and $q_4=0.13$ matches no crystal: a dense,
+liquid-like packing. Global $Q_6=0.07$ is about 6 times smaller than the local
+value, so neighbourhoods share no orientation; it is only 4 times the
+random-orientation floor, so at most there are very many tiny grains. The
+$S(k)$ peak is a ring: the 12 largest of 1142 modes hold under 10\% of it, and
+PR $=0.32$ is far above the $\approx0.01$ Bragg spots would give. In
+\code{sf\_full\_avg} over $t=0.037$--$0.038$ the brightest modes on the peak
+shell are about 14 times the shell mean: above pure speckle ($\approx7$) but
+far below Bragg spots ($\gtrsim100$), so the ring is only weakly lumpy. The values
+drift only slowly over the window, so slow ordering at later times cannot be
+excluded.
+
+\section{Caveats}
+\begin{itemize}
+  \item \textbf{Few clusters:} the global floor is $\approx0.4/\sqrt N$; with
+        10--20 clusters, global values of 0.1--0.15 can arise by chance.
+  \item \textbf{Neighbour rule:} use a \code{-{}-nn} matching the expected
+        coordination (\code{-{}-nn 8} for bcc), or \code{-{}-nn-cut} at the
+        first minimum of the cluster $g(r)$ for loose or polydisperse
+        packings. Different rules shift the reference values; compare
+        against values computed with the same rule.
+  \item \textbf{Cluster detection:} stray small clusters inside a lattice, or a
+        merger in progress, lower the local order. Check \code{-{}-mmin} and
+        \code{-{}-threshold} if it is unexpectedly low. The $S(k)$ measure
+        does not depend on this.
+  \item \textbf{Periodic box:} a crystal fits the box without strain only for
+        certain sizes and orientations. One that does not fit has defects or a
+        twist, which lowers global order and smears the spots. The clean spots
+        of \code{\_new\_repul\_2} show that its lattice fits the box.
+  \item \textbf{Peak shell:} the shell of largest mean $S$ is used. If a low-$k$
+        shell is larger, for example during coarsening, \code{kpeak} jumps and
+        PR describes that shell instead; check \code{kpeak} against
+        $2\pi/\text{spacing}$.
+  \item \textbf{Not implemented:} classifying individual clusters as
+        crystalline with the ten Wolde criterion (normalized
+        $\mathbf q_{6,i}\cdot\mathbf q_{6,j}>0.5$ for most neighbours), which
+        would give crystalline fractions and grain sizes directly.
+\end{itemize}
+
+\section*{References}
+\begin{itemize}[nosep]
+  \item P.~J. Steinhardt, D.~R. Nelson and M. Ronchetti, Phys.\ Rev.\ B
+        \textbf{28}, 784 (1983): bond-orientational order, $q_4$ and $q_6$.
+  \item D.~R. Nelson and B.~I. Halperin, Phys.\ Rev.\ B \textbf{19}, 2457
+        (1979): $\psi_6$ and 2D melting.
+  \item P.~R. ten Wolde, M.~J. Ruiz-Montero and D. Frenkel, J.\ Chem.\ Phys.\
+        \textbf{104}, 9932 (1996): per-particle crystallinity from $q_6$
+        correlations.
+  \item W. Lechner and C. Dellago, J.\ Chem.\ Phys.\ \textbf{129}, 114707
+        (2008): averaged $q_4$, $q_6$ for better separation of crystal types.
+\end{itemize}
+
+\end{document}

@@ -171,6 +171,42 @@ drift_diag_int  = 1000
 Negative densities come mainly from the noise when there are few particles per
 cell. Raising `num_part` reduces them more than either option does.
 
+## Structure factor (in-code)
+
+The static structure factor of φ on level 0 can be accumulated during the run
+with FHDeX's `StructFact` (`src_analysis`). It is normalized as
+S(k) = |n̂(k)|²/N, with n = φ·N·ΔV the cell counts, so a Poisson (ideal) field
+gives S = 1.
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| `struct_fact_int` | 0 (off) | Take a sample every n steps |
+| `n_steps_skip` | 0 | Start sampling after this many steps, to skip the initial transient |
+
+With each plotfile, and at the end of the run, two outputs are written:
+- **`plt_SF_mag<step>` and `plt_SF_real_imag<step>`:** the averaged S(k) on a
+  k-space grid, shifted so that k = 0 is at the centre (wave vectors above
+  N/2 are negative). The k = 0 mode is set to zero.
+- **`sf_kshell_<step>.txt`:** S averaged over |k|-shells of width
+  Δk = 2π/max L, up to the smallest Nyquist wavenumber, with columns
+  `k S nmodes`. k is the mean |k| of each shell, using physical wave vectors,
+  so non-square boxes are handled.
+
+Samples accumulate from the start of the run; after a restart, accumulation
+starts again. Averaging over correlated samples is fine for the mean S, but the
+effective number of independent samples is smaller at low k.
+
+**Checks** (2D, 64², N = 81920, cfl 0.1, 8000 samples):
+- **Repulsive gema** (ε = 666, R = 0.1, D = 1 > D_crit = 0.55): S(k) follows the
+  mean-field prediction S = D/(D + μ₀Û(k)) to 1–3% at all k. That includes
+  the suppression at small k (0.058 against 0.055) and the peak S = 2.12
+  against 2.16, both at kR = 5.03.
+- **Ideal gas:** the mean S is 1.01. At high k it is about 5% above 1, the
+  expected Euler–Maruyama time-step bias.
+
+`python/cluster_diagnostics.py` and `cluster_diagnostics_3d.py` compute the
+same shell-averaged S(k) from plotfiles (`sf.txt`).
+
 ## Postprocessing
 
 `python/stack_plotfiles_time.py` stacks a series of 2D plotfiles into a 3D

@@ -133,6 +133,39 @@ def write_fab(f, lo, hi, data):
     f.write(np.ascontiguousarray(data, dtype="<f8").tobytes())
 
 
+def write_plotfile(out, data, varnames, prob_lo, dx, time=0.0, step=0):
+    """Write a single-level, single-box plotfile. data[ncomp, (z,) y, x] is in
+    C order (as read_level0 returns it); prob_lo and dx are in x, y, (z) order.
+    Existing files in out are overwritten."""
+    nc = data.shape[0]
+    n = list(data.shape[1:][::-1])
+    dim = len(n)
+    lo, hi = [0]*dim, [m - 1 for m in n]
+    prob_hi = [prob_lo[d] + n[d]*dx[d] for d in range(dim)]
+    level_dir = os.path.join(out, "Level_0")
+    os.makedirs(level_dir, exist_ok=True)
+    with open(os.path.join(level_dir, "Cell_D_00000"), "wb") as f:
+        write_fab(f, lo, hi, data)
+    flat = data.reshape(nc, -1)
+    with open(os.path.join(level_dir, "Cell_H"), "w") as f:
+        f.write("1\n1\n%d\n0\n(1 0\n%s\n)\n1\nFabOnDisk: Cell_D_00000 0\n\n" % (nc, box_str(lo, hi)))
+        for vals in (flat.min(axis=1), flat.max(axis=1)):
+            f.write("1,%d\n%s\n\n" % (nc, "".join("%.17e," % v for v in vals)))
+    with open(os.path.join(out, "Header"), "w") as f:
+        f.write("HyperCLaw-V1.1\n%d\n" % nc)
+        for v in varnames:
+            f.write(v + "\n")
+        f.write("%d\n%.17g\n0\n" % (dim, time))
+        f.write(" ".join("%.17g" % v for v in prob_lo) + "\n")
+        f.write(" ".join("%.17g" % v for v in prob_hi) + "\n\n")
+        f.write(box_str(lo, hi) + "\n%d\n" % step)
+        f.write(" ".join("%.17g" % v for v in dx) + "\n0\n0\n")
+        f.write("0 1 %.17g\n%d\n" % (time, step))
+        for d in range(dim):
+            f.write("%.17g %.17g\n" % (prob_lo[d], prob_hi[d]))
+        f.write("Level_0/Cell\n")
+
+
 def stack(files, out, varnames=None, every=1, tscale=1.0, use_index=False, kchunk=32):
     headers = [(read_header(p), p) for p in files]
     headers.sort(key=lambda hp: hp[0]["step"])

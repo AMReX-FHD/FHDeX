@@ -1,0 +1,267 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\emergencystretch=3em
+
+\title{\code{cluster\_diagnostics\_3d.py}: cluster statistics and radial\\
+distribution functions for 3D AMReX plotfiles}
+\author{FHDeX}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Overview}
+
+\code{cluster\_diagnostics\_3d.py} (in \code{FHDeX/python}) is the 3D analog of
+\code{cluster\_diagnostics.py}, for plotfiles in which $x$, $y$ and $z$ are all
+spatial. It was written for the 3D runs of \code{src\_deankow/interaction}. For each
+plotfile it
+\begin{enumerate}[nosep]
+  \item finds the clusters in the density field and measures each one's mass,
+        centre, size and peak density;
+  \item matches them to the clusters in the previous plotfile, giving each
+        cluster a stable id and logging mergers, splits, new clusters and
+        clusters that dissolve;
+  \item accumulates two radial distribution functions: $g(r)$ of the density
+        field and $g(r)$ of the cluster centres.
+\end{enumerate}
+It needs only Python~3 and numpy, and reuses the plotfile reader in
+\code{stack\_plotfiles\_time.py}. Definitions, options and outputs match the 2D
+tool; the differences are:
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L L@{}}
+\toprule
+ & 2D & 3D \\
+\midrule
+connectivity & 4 face neighbours & 6 face neighbours \\
+cluster centre & $(x_c,y_c)$ & $(x_c,y_c,z_c)$; \code{clusters.txt} gains \code{zc} \\
+cell measure & $\Delta x\,\Delta y$ & $\Delta x\,\Delta y\,\Delta z$ \\
+cluster-$g(r)$ shell & $\pi((r+\Delta r)^2-r^2)/A$ & $\tfrac{4\pi}{3}((r+\Delta r)^3-r^3)/V$ \\
+field $g(r)$ & 2D FFT autocorrelation & 3D FFT autocorrelation \\
+labelling & per-cell flood fill & vectorized label propagation \\
+\code{-{}-mmin} default & 0.01 & $10^{-4}$, and a warning when most mass above the threshold is in lighter regions \\
+\bottomrule
+\end{tabularx}
+\end{center}
+At $128^3$ ($2\cdot10^6$ cells) a frame takes about 2~s and 300~MB.
+
+\paragraph{Usage.}
+\begin{verbatim}
+python3 cluster_diagnostics_3d.py plt_fv3d_* --num-part 2e7 -o diag3d
+python3 cluster_diagnostics_3d.py plt_fv3d_* --num-part 2e7 -o diag3d \
+        --every 10
+\end{verbatim}
+
+\section{Assumptions and limitations}
+\begin{itemize}
+  \item \textbf{3D, periodic in all directions, level 0 only.} 2D plotfiles are
+        rejected with a pointer to the 2D tool.
+  \item \textbf{Density field only.} Both $g(r)$ are computed from the density
+        variable (\code{phi0} by default).
+  \item \textbf{Touching clusters count as one.} In 3D the region above the
+        threshold extends further from a cluster's centre than in 2D, so merges
+        register at larger separations.
+  \item \textbf{Total mass includes negative densities,} so the mass fraction in
+        clusters can slightly exceed 1.
+  \item \textbf{Choosing \code{-{}-mmin}.} It is a fraction of the total mass.
+        The default, $10^{-4}$, comes from the $128^3$ interaction run
+        (\code{\_3d\_noise/plt\_fv3d\_060000}). There the regions above the
+        $5\times$ threshold split into noise (1--5 cells, mass
+        $\le3\cdot10^{-5}$), an empty gap from $3\cdot10^{-5}$ to $10^{-4}$,
+        small clusters ($10^{-4}$--$10^{-3}$), and about 470 clusters of
+        $10^{-3}$--$3\cdot10^{-3}$ holding 91\% of the mass. The gap is the
+        same at thresholds of 2, 10 and $20\times$ the mean. For other runs use
+        about $0.05/n_{\mathrm{clusters}}$; the script warns if most of the mass
+        above the threshold is dropped. The 2D tool keeps 0.01.
+\end{itemize}
+
+\section{Definitions}
+
+The domain is the periodic box
+$\prod_d[x_{d,\mathrm{lo}}, x_{d,\mathrm{lo}}+L_d)$ with cells of volume
+$\Delta V=\Delta x\,\Delta y\,\Delta z$, centres $\mathbf{x}_i$ and densities
+$\phi_i$. The minimum-image displacement is
+$\operatorname{mi}_d(a) = (a+\tfrac12L_d)\bmod L_d - \tfrac12L_d$.
+
+\subsection{Cluster}
+With $\bar\phi=\sum_i\phi_i\,\Delta V/(L_xL_yL_z)$ and threshold factor $c$
+(\code{-{}-threshold}), a cluster is a face-connected set of cells (six
+neighbours, periodic) with $\phi_i>c\,\bar\phi$. It is kept if its mass
+$M=\sum_{i\in C}\phi_i\,\Delta V$ is at least \code{-{}-mmin} times the total.
+
+\paragraph{Labelling.} Every cell above the threshold starts with a unique
+label. Each cell then repeatedly takes the largest label among itself and its
+six neighbours, restricted to cells above the threshold, until nothing
+changes. This takes about as many sweeps as the largest cluster's diameter in
+cells. The labels are then renumbered $1..n$.
+
+With weights $w_i=\phi_i\,\Delta V$:
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}lL@{}}
+\toprule
+quantity & definition \\
+\midrule
+mass $M$ & $\sum_{i\in C}w_i$ \\
+centre $(x_c,y_c,z_c)$ & circular mean per direction,
+  $x_c=\frac{L_x}{2\pi}\operatorname{atan2}\bigl(\sum w_i\sin\frac{2\pi x_i}{L_x},\sum w_i\cos\frac{2\pi x_i}{L_x}\bigr)\bmod L_x$ \\
+$R_g$ & $R_g^2=\sum w_i|\mathbf d_i|^2/M$, with $\mathbf d_i$ the minimum-image displacement from the centre \\
+peak, ncells & $\max_{i\in C}\phi_i$; number of cells \\
+wide & 1 if some $|d_{i,k}|\ge0.45\,L_k$ (minimum image ambiguous) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Tracking between frames}
+These are the 2D rules with 3D minimum-image distances. Let
+$O_{ba}=\sum_{i\in b\cap a}\phi^{\mathrm{old}}_i\,\Delta V$.
+\begin{enumerate}[nosep]
+  \item \textbf{Matching:} old $b$ goes to $\arg\max_aO_{ba}$ if
+        $O_{ba}>0.1M_b$, else to the nearest new centre within
+        \code{-{}-search-radius}.
+  \item \textbf{Merger:} two or more old clusters assigned to one new cluster
+        with $M_a\ge0.7\sum M_b$.
+  \item \textbf{Split:} $O_{ba}>0.1M_b$ for two or more new $a$.
+  \item \textbf{Formed and dissolved:} the remaining unassigned clusters.
+  \item \textbf{Ids:} the most massive parent's id; fresh ids otherwise.
+\end{enumerate}
+
+\subsection{\texorpdfstring{Density-field $g(r)$}{Density-field g(r)}}
+With $n_i=\phi_iN\Delta V$, $M$ cells and $N_{\mathrm{tot}}=\sum n_i$,
+\begin{equation}
+  G(\boldsymbol\Delta)=\sum_in_in_{i+\boldsymbol\Delta}-\delta_{\boldsymbol\Delta,0}\sum_in_i,
+  \qquad g(\boldsymbol\Delta)=\frac{M\,G(\boldsymbol\Delta)}{N_{\mathrm{tot}}(N_{\mathrm{tot}}-1)},
+\end{equation}
+computed by a 3D FFT; a Poisson field gives $g=1$ everywhere. Displacements
+are wrapped componentwise into $[-M_d/2,M_d/2)$, and $g(r)$ in a bin is the
+average over the lattice displacements in it, which is an exact per-shell
+normalization.
+
+\subsection{\texorpdfstring{Cluster-centre $g(r)$}{Cluster-centre g(r)}}
+\begin{equation}
+  g(r_k)=\frac{\sum_{\text{frames}}\#\{\text{pairs with } r\in[r_k,r_k+\Delta r)\}}
+  {\sum_{\text{frames}}\tfrac12n_c(n_c-1)\,\tfrac{4\pi}{3}\bigl((r_k+\Delta r)^3-r_k^3\bigr)/V},
+\end{equation}
+with $V=L_xL_yL_z$. The shell volume is exact for $r\le L/2$, because each
+sphere lies inside the minimum-image cube.
+
+\subsection{\texorpdfstring{Structure factor $S(k)$}{Structure factor S(k)}}
+As in 2D, with 3D wave vectors. From the same cell counts as the field $g(r)$,
+\begin{equation}
+  S(\mathbf k) = \frac{|\hat n(\mathbf k)|^2}{N_{\mathrm{tot}}}, \qquad
+  \hat n(\mathbf k) = \sum_i n_i\,e^{-i\mathbf k\cdot\mathbf x_i}, \qquad \mathbf k\ne0 ,
+\end{equation}
+so that a Poisson field gives $S=1$ and
+$S(k)=1+(N/V)\int(g-1)e^{i\mathbf k\cdot\mathbf r}d\mathbf r$. Wave vectors come
+from \code{fftfreq}: index $i>N_d/2$ is the negative wavenumber $i-N_d$, so
+$k_d=2\pi\cdot(\text{index})/L_d$. $S$ is averaged over shells
+$|\mathbf k|\in[(j-\tfrac12)\Delta k,(j+\tfrac12)\Delta k)$ with
+$\Delta k$ = \code{-{}-dk} (default $2\pi/\max L_d$), each divided by its exact
+number of modes. Only complete shells up to the smallest Nyquist wavenumber
+$\pi/\Delta x_d$ are written, averaged over the frames in \code{-{}-t-range}.
+For many samples use the in-code structure factor of
+\code{src\_deankow/interaction} (\code{struct\_fact\_int}), which writes the same
+shell average.
+
+\subsection{Orientational order: crystal or amorphous}
+$g(r)$ averages over directions, so a cluster crystal and an amorphous packing
+with the same spacing can have the same $g(r)$ peaks. Each cluster centre $i$
+is joined to its \code{-{}-nn} nearest neighbours (default 12, minimum image),
+or to all neighbours closer than \code{-{}-nn-cut}, and for $l=4,6$
+\begin{equation}
+  q_{lm,i} = \frac1{n_i}\sum_j Y_{lm}(\hat{\mathbf r}_{ij}) ,\qquad
+  q_{l,i} = \Bigl(\frac{4\pi}{2l+1}\sum_{m=-l}^{l}|q_{lm,i}|^2\Bigr)^{1/2} .
+\end{equation}
+The local order is $\overline{q_{l,i}}$. The global $Q_l$ uses
+$\overline{q_{lm,i}}$, averaged over all clusters before the norm: it equals
+the local value for a single crystal of any orientation, and is
+$\approx0.4/\sqrt N$ for an amorphous packing or a fine polycrystal. Reference
+values $(q_4, q_6)$, for face-centred cubic (fcc), hexagonal close-packed
+(hcp), body-centred cubic (bcc) and simple cubic lattices (defined in
+\code{order\_diagnostics.tex}): fcc (12 nn) $(0.191, 0.575)$, hcp (12) $(0.097, 0.485)$,
+bcc (8) $(0.509, 0.629)$, simple cubic (6) $(0.764, 0.354)$, random points (12)
+$(0.28, 0.28)$.
+
+As in 2D, $\mathrm{PR}=(\sum S)^2/(n\sum S^2)$ on the $S(k)$ shell with the
+largest mean $S$ is $\approx(\text{number of spots})/n$ for Bragg spots (8/602
+for an fcc lattice of blobs) and $\approx0.5$ for a ring.
+
+\section{Options}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l l L@{}}
+\toprule
+option & default & meaning \\
+\midrule
+\code{plotfiles} & (required) & 3D plotfile directories \\
+\code{-{}-num-part N} & (required) & \code{num\_part} of the run \\
+\code{-{}-var NAME} & \code{phi0} & density variable \\
+\code{-{}-threshold C} & 5 & cluster cells have $\phi>C\bar\phi$ \\
+\code{-{}-mmin F} & $10^{-4}$ & smallest cluster kept, as a fraction of the total mass; about $0.05/n_{\mathrm{clusters}}$ \\
+\code{-{}-every K} & 1 & every $K$-th plotfile \\
+\code{-{}-rmax R} & $L/2$ & range of both $g(r)$; values above $L/2$ are clipped with a warning \\
+\code{-{}-dr D} & $\Delta x$ & field $g(r)$ bin width \\
+\code{-{}-dr-clusters D} & $L/50$ & cluster $g(r)$ bin width \\
+\code{-{}-search-radius R} & $L/4$ & largest centre jump allowed when matching without overlap \\
+\code{-{}-t-range T0 T1} & all & time window for the $g(r)$ averages \\
+\code{-{}-rdf-per-frame} & off & also write the per-frame field $g(r)$ \\
+\code{-{}-dk D} & $2\pi/\max L$ & shell width of the structure factor \\
+\code{-{}-sf-per-frame} & off & also write the per-frame shell-averaged $S(k)$ \\
+\code{-{}-nn K} & 12 & bond order: number of nearest neighbours \\
+\code{-{}-nn-cut R} & off & bond order: all neighbours closer than $R$ instead \\
+\code{-{}-top-modes K} & 12 & \code{order.txt} \code{top\_share}: largest modes on the $S(k)$ peak shell \\
+\code{-{}-sf-full} & off & write the full $S(\mathbf k)$, averaged over the window, as the plotfile \code{sf\_full\_avg} \\
+\code{-{}-sf-full-per-frame} & off & also write the full $S(\mathbf k)$ of each frame as \code{sf\_full\_<step>} \\
+\code{-o DIR} & \code{cluster\_diag\_3d} & output directory \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Output files}
+These are the same as the 2D tool (see \code{README\_cluster\_diagnostics.md}),
+with a \code{zc} column added:
+\begin{itemize}[nosep]
+  \item \code{summary.txt}: \code{t step nclusters mass\_fraction largest\_mass merges splits forms dissolves}
+  \item \code{clusters.txt}: \code{t step id mass xc yc zc Rg peak ncells wide q4 q6}
+  \item \code{events.txt}: \code{t step type old\_ids old\_masses new\_ids new\_masses}
+  \item \code{rdf\_field.txt}: \code{r g ndisplacements} (and per-frame columns)
+  \item \code{rdf\_clusters.txt}: \code{r\_lo r\_hi g pairs expected}
+  \item \code{sf.txt}: \code{k S nmodes} (and per-frame columns): the shell-averaged structure factor
+  \item \code{order.txt}: \code{t step nclusters q4 q6 Q4\_global Q6\_global}
+        \code{kpeak nmodes PR top\_share}
+  \item \code{sf\_full\_avg}, \code{sf\_full\_<step>} (with \code{-{}-sf-full},
+        \code{-{}-sf-full-per-frame}): the full $S(\mathbf k)$ as a plotfile on
+        the 3D $k$ grid, $k=0$ at the centre, components \code{S} and
+        \code{log10S} (33~MB at $128^3$)
+\end{itemize}
+
+\section{Checks}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}L L@{}}
+\toprule
+test & result \\
+\midrule
+Poisson field, $64^3$, $N=4\cdot10^6$ & $g=1.00000$, rms deviation $10^{-5}$ \\
+$4\times4\times4$ lattice of Gaussian blobs, sites on the boundaries & 64 clusters at the sites ($x_c=1\equiv0$); cluster $g(r)$ only at $L/4$, $\sqrt2L/4$, $\sqrt3L/4$, $L/2$ with pair counts 192, 384, 256, 96 \\
+shifts by half a cell and half the box & identical $g(r)$ \\
+\code{-{}-rmax 0.7} & clipped to 0.5 with a warning \\
+blobs merging across the $z$ boundary, and the reverse & one merge and one split; $0.594+0.394\to0.988$ \\
+2D pattern extruded in $z$, against the 2D tool & same 4 clusters, masses and centres \\
+3D interaction run, $128^3$, default \code{-{}-mmin} & about 476 clusters (92\% of the mass), mostly 0.001--0.003; $g(r)$ peak at 0.14--0.16; about 2~s per frame \\
+sc, bcc, fcc, hcp point lattices; random points & reference $q_4$, $q_6$ above, global $=$ local, rotation invariant; random: $q_6=0.283$, $Q_6=0.017$ ($N=500$) \\
+fcc lattice of blobs, $48^3$; random blobs & PR $=0.0133=8/602$; random PR 0.55 \\
+\code{\_3d\_noise}, $t=0.032$--$0.038$ & $q_4=0.13$, $q_6=0.41$--$0.42$, $Q_6=0.06$--$0.07$; PR 0.32 over 1142 modes: amorphous (2D \code{\_new\_repul\_2}: $\psi_6=0.99$ local and global, 6 spots) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\end{document}
