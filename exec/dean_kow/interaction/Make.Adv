@@ -10,6 +10,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 SRC_DIR = ../../../src_deankow/interaction
 RNG_DIR = ../../../src_rng/
 COM_DIR = ../../../src_common/
+ANA_DIR = ../../../src_analysis/
 
 include $(SRC_DIR)/Make.package 
 INCLUDE_LOCATIONS += $(SRC_DIR)
@@ -22,6 +23,11 @@ VPATH_LOCATIONS   += $(RNG_DIR)
 include $(COM_DIR)/Make.package 
 INCLUDE_LOCATIONS += $(COM_DIR)
 VPATH_LOCATIONS   += $(COM_DIR)
+
+# structure factor (StructFact)
+include $(ANA_DIR)/Make.package
+INCLUDE_LOCATIONS += $(ANA_DIR)
+VPATH_LOCATIONS   += $(ANA_DIR)
 
 Pdirs 	:= Base Boundary AmrCore
 ifeq ($(USE_PARTICLES),TRUE)
