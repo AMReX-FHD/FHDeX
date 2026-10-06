@@ -1,6 +1,8 @@
 CEXE_sources += main.cpp
 
 CEXE_headers += FlockingParams.H
+CEXE_sources += DensityConv.cpp
+CEXE_headers += DensityConv.H
 
 # DIM = 3: SPDE on (x, y, theta)
 ifeq ($(DIM),3)

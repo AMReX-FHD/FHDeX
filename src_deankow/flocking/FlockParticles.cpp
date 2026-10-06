@@ -79,6 +79,8 @@ FlockParticles::ReadParameters ()
 
     fp.xlo = lo[0];  fp.lx = hi[0] - lo[0];
     fp.ylo = lo[1];  fp.ly = hi[1] - lo[1];
+    rhobar = 1.0/(fp.lx*fp.ly);
+    print_mips_stability(fp);
 
     if (dt_fixed <= 0.0) {
         const Real h = amrex::min(geom.CellSize(0), geom.CellSize(1));
@@ -92,9 +94,40 @@ FlockParticles::ReadParameters ()
 void
 FlockParticles::InitData ()
 {
-    pc = std::make_unique<FlockPC>(geom, dmap, grids);
+    // the pair sum needs neighbour cells covering the kernel cutoff
+    int ncells = 1;
+    if (fp.speed_type != 0 && fp.density_method == 1) {
+        const Real hmin = amrex::min(geom.CellSize(0), geom.CellSize(1));
+        ncells = amrex::max(1, static_cast<int>(std::ceil(flock_kernel_cutoff(fp)/hmin)));
+        amrex::Print() << "Pair-sum density: " << ncells << " neighbour cells\n";
+    }
+    pc = std::make_unique<FlockPC>(geom, dmap, grids, ncells);
     pc->InitParticles(fp);
-    hist.define(grids, dmap, n_theta_bins + 3, 0);
+    hist.define(grids, dmap, n_theta_bins + 4, 0);
+
+    rho_grid.define(grids, dmap, 1, 1);
+    rt_grid.define(grids, dmap, 1, 1);
+    dconv.define(geom, grids, dmap, fp);
+    amrex::Print() << "Sensing kernel: discrete / continuous normalization = "
+                   << dconv.discrete_over_continuous() << "\n";
+
+    // with the pair sum, optionally compare it with the particle-mesh rho_tilde
+    // at the initial positions
+    int density_check = 0;
+    {
+        ParmParse pp("flock");
+        pp.query("density_check", density_check);
+    }
+    if (density_check && fp.speed_type != 0 && fp.density_method == 1) {
+        pc->ComputeRhoTildePairs(fp);
+        pc->DepositCIC(rho_grid);
+        dconv.apply(rho_grid, rt_grid);
+        Real maxdiff, rmsdiff, rmsval;
+        pc->CompareWithCIC(rt_grid, maxdiff, rmsdiff, rmsval);
+        amrex::Print() << "Density check (particle-mesh vs pair sum at the particles): rms rho_tilde = "
+                       << rmsval << " rms diff = " << rmsdiff << " (relative " << rmsdiff/rmsval
+                       << ") max diff = " << maxdiff << "\n";
+    }
     t_new = 0.0;
     step_count = 0;
     if (plot_int > 0 || plot_dt > 0.0) { WritePlotFile(); }
@@ -113,7 +146,8 @@ FlockParticles::Evolve ()
         dt = amrex::min(dt, stop_time - cur_time);
         dt = amrex::min(dt, next_plot_time - cur_time);
 
-        pc->Advance(dt, fp);
+        UpdateRhoTilde();
+        pc->Advance(dt, fp, rhobar);
 
         cur_time += dt;
         t_new = cur_time;
@@ -135,9 +169,28 @@ FlockParticles::Evolve ()
 }
 
 void
+FlockParticles::UpdateRhoTilde ()
+{
+    if (fp.speed_type == 0) { return; }
+    if (fp.density_method == 1) {
+        pc->ComputeRhoTildePairs(fp);
+    } else {
+        pc->DepositCIC(rho_grid);
+        dconv.apply(rho_grid, rt_grid);
+        pc->InterpolateCIC(rt_grid);
+    }
+}
+
+void
 FlockParticles::WritePlotFile ()
 {
     pc->DepositHistogram(hist, n_theta_bins);
+
+    // rho_tilde on the grid by particle-mesh (CIC deposit, W convolution), as a
+    // diagnostic for any speed_type and density_method
+    pc->DepositCIC(rho_grid);
+    dconv.apply(rho_grid, rt_grid);
+    MultiFab::Copy(hist, rt_grid, 0, n_theta_bins + 3, 1, 0);
 
     Vector<std::string> varnames;
     for (int k = 0; k < n_theta_bins; ++k) {
@@ -148,11 +201,14 @@ FlockParticles::WritePlotFile ()
     varnames.push_back("rho");
     varnames.push_back("px");
     varnames.push_back("py");
+    varnames.push_back("rhot");
 
     const std::string& plotfilename = amrex::Concatenate(plot_file, step_count, 6);
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
     WriteSingleLevelPlotfile(plotfilename, hist, varnames, geom, t_new, step_count);
     if (write_particles) {
-        pc->WritePlotFile(plotfilename, "particles", {"theta"}, {});
+        const Vector<std::string> real_names {"theta", "rhot"};
+        const Vector<std::string> int_names;
+        pc->WritePlotFile(plotfilename, "particles", real_names, int_names);
     }
 }

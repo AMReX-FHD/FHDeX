@@ -4,7 +4,8 @@
 
 using namespace amrex;
 
-void compute_det_fluxes (MultiFab const& phi, Array<MultiFab, AMREX_SPACEDIM>& flux,
+void compute_det_fluxes (MultiFab const& phi, MultiFab const& rhot, Real rhobar,
+                         Array<MultiFab, AMREX_SPACEDIM>& flux,
                          Geometry const& geom, FlockingParams const& fp,
                          int adv_order, int limiter)
 {
@@ -13,10 +14,12 @@ void compute_det_fluxes (MultiFab const& phi, Array<MultiFab, AMREX_SPACEDIM>& f
     const Real thlo   = geom.ProbLo(2);
     // turning rate from the alignment interaction; 0 until it is implemented
     const Real omega  = 0.0;
+    const Real rhobar_inv = 1.0/rhobar;
 
     for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         auto const& p  = phi.const_array(mfi);
+        auto const& rt = rhot.const_array(mfi);
         auto const& fx = flux[0].array(mfi);
         auto const& fy = flux[1].array(mfi);
         auto const& fz = flux[2].array(mfi);
@@ -26,11 +29,11 @@ void compute_det_fluxes (MultiFab const& phi, Array<MultiFab, AMREX_SPACEDIM>& f
 
         amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            compute_flux_x(i, j, k, fx, p, thlo + (k+0.5)*dth, fp, adv_order, limiter);
+            compute_flux_x(i, j, k, fx, p, rt, rhobar_inv, thlo + (k+0.5)*dth, fp, adv_order, limiter);
         });
         amrex::ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            compute_flux_y(i, j, k, fy, p, thlo + (k+0.5)*dth, fp, adv_order, limiter);
+            compute_flux_y(i, j, k, fy, p, rt, rhobar_inv, thlo + (k+0.5)*dth, fp, adv_order, limiter);
         });
         amrex::ParallelFor(zbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {

@@ -1,5 +1,6 @@
 #include <cmath>
 
+#include <AMReX_NeighborList.H>
 #include <AMReX_Random.H>
 
 #include "FlockPC.H"
@@ -59,6 +60,7 @@ FlockPC::InitParticles (FlockingParams const& fp, int nq)
                     p.pos(0) = x;
                     p.pos(1) = y;
                     p.rdata(FlockRealIdx::theta) = th;
+                    p.rdata(FlockRealIdx::rhot) = 0.0;
                     ptile.push_back(p);
                 }
             }
@@ -71,11 +73,13 @@ FlockPC::InitParticles (FlockingParams const& fp, int nq)
 }
 
 void
-FlockPC::Advance (Real dt, FlockingParams const& fp)
+FlockPC::Advance (Real dt, FlockingParams const& fp, Real rhobar)
 {
     const int lev = 0;
     const Real v  = fp.speed;
     const Real sd = std::sqrt(2.0*fp.diff_coeff*dt);
+    const Real rhobar_inv = 1.0/rhobar;
+    const FlockingParams fp_loc = fp;
 
     for (ParIterType pti(*this, lev); pti.isValid(); ++pti) {
         auto& aos = pti.GetArrayOfStructs();
@@ -85,8 +89,9 @@ FlockPC::Advance (Real dt, FlockingParams const& fp)
         {
             ParticleType& p = pstruct[ip];
             Real th = p.rdata(FlockRealIdx::theta);
-            p.pos(0) += v*std::cos(th)*dt;
-            p.pos(1) += v*std::sin(th)*dt;
+            const Real vi = v*flock_speed_factor(p.rdata(FlockRealIdx::rhot)*rhobar_inv, fp_loc);
+            p.pos(0) += vi*std::cos(th)*dt;
+            p.pos(1) += vi*std::sin(th)*dt;
             th += sd*amrex::RandomNormal(0.0, 1.0, engine);
             th -= flock_two_pi*std::floor(th/flock_two_pi);
             if (th >= flock_two_pi) { th = 0.0; }   // guard against round-off
@@ -96,6 +101,165 @@ FlockPC::Advance (Real dt, FlockingParams const& fp)
 
     // periodic wrap in x and y and move particles to their new boxes
     Redistribute();
+}
+
+void
+FlockPC::DepositCIC (MultiFab& rho) const
+{
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const auto dx  = geom.CellSizeArray();
+    const auto plo = geom.ProbLoArray();
+    AMREX_ALWAYS_ASSERT(rho.nGrow() >= 1);
+
+    rho.setVal(0.0);
+    for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti) {
+        const auto& aos = pti.GetArrayOfStructs();
+        const ParticleType* pstruct = aos().data();
+        const int np = aos.numParticles();
+        auto const& r = rho.array(pti);
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int ip) noexcept
+        {
+            const ParticleType& p = pstruct[ip];
+            const Real lx = (p.pos(0) - plo[0])/dx[0] - 0.5;
+            const Real ly = (p.pos(1) - plo[1])/dx[1] - 0.5;
+            const int i = static_cast<int>(std::floor(lx));
+            const int j = static_cast<int>(std::floor(ly));
+            const Real fx = lx - i;
+            const Real fy = ly - j;
+            amrex::Gpu::Atomic::AddNoRet(&r(i  ,j  ,0), (1.0-fx)*(1.0-fy));
+            amrex::Gpu::Atomic::AddNoRet(&r(i+1,j  ,0),      fx *(1.0-fy));
+            amrex::Gpu::Atomic::AddNoRet(&r(i  ,j+1,0), (1.0-fx)*     fy );
+            amrex::Gpu::Atomic::AddNoRet(&r(i+1,j+1,0),      fx *     fy );
+        });
+    }
+    rho.SumBoundary(geom.periodicity());
+    const Real ntot = static_cast<Real>(TotalNumberOfParticles());
+    rho.mult(1.0/(ntot*dx[0]*dx[1]), 0, 1);
+    rho.FillBoundary(geom.periodicity());
+}
+
+void
+FlockPC::InterpolateCIC (MultiFab const& rt)
+{
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const auto dx  = geom.CellSizeArray();
+    const auto plo = geom.ProbLoArray();
+    AMREX_ALWAYS_ASSERT(rt.nGrow() >= 1);
+
+    for (ParIterType pti(*this, lev); pti.isValid(); ++pti) {
+        auto& aos = pti.GetArrayOfStructs();
+        ParticleType* pstruct = aos().data();
+        const int np = aos.numParticles();
+        auto const& r = rt.const_array(pti);
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int ip) noexcept
+        {
+            ParticleType& p = pstruct[ip];
+            const Real lx = (p.pos(0) - plo[0])/dx[0] - 0.5;
+            const Real ly = (p.pos(1) - plo[1])/dx[1] - 0.5;
+            const int i = static_cast<int>(std::floor(lx));
+            const int j = static_cast<int>(std::floor(ly));
+            const Real fx = lx - i;
+            const Real fy = ly - j;
+            p.rdata(FlockRealIdx::rhot) = (1.0-fx)*(1.0-fy)*r(i,j,0) + fx*(1.0-fy)*r(i+1,j,0)
+                                        + (1.0-fx)*fy*r(i,j+1,0) + fx*fy*r(i+1,j+1,0);
+        });
+    }
+}
+
+void
+FlockPC::CompareWithCIC (MultiFab const& rt, Real& maxdiff, Real& rmsdiff, Real& rmsval) const
+{
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const auto dx  = geom.CellSizeArray();
+    const auto plo = geom.ProbLoArray();
+    maxdiff = 0.0;
+    Real s2 = 0.0, v2 = 0.0;
+    for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti) {
+        const auto& aos = pti.GetArrayOfStructs();
+        const ParticleType* pstruct = aos().data();
+        const int np = aos.numParticles();
+        auto const& r = rt.const_array(pti);
+        for (int ip = 0; ip < np; ++ip) {
+            const ParticleType& p = pstruct[ip];
+            const Real lx = (p.pos(0) - plo[0])/dx[0] - 0.5;
+            const Real ly = (p.pos(1) - plo[1])/dx[1] - 0.5;
+            const int i = static_cast<int>(std::floor(lx));
+            const int j = static_cast<int>(std::floor(ly));
+            const Real fx = lx - i;
+            const Real fy = ly - j;
+            const Real cic = (1.0-fx)*(1.0-fy)*r(i,j,0) + fx*(1.0-fy)*r(i+1,j,0)
+                           + (1.0-fx)*fy*r(i,j+1,0) + fx*fy*r(i+1,j+1,0);
+            const Real d = cic - p.rdata(FlockRealIdx::rhot);
+            maxdiff = amrex::max(maxdiff, std::abs(d));
+            s2 += d*d;
+            v2 += p.rdata(FlockRealIdx::rhot)*p.rdata(FlockRealIdx::rhot);
+        }
+    }
+    ParallelDescriptor::ReduceRealMax(maxdiff);
+    ParallelDescriptor::ReduceRealSum(s2);
+    ParallelDescriptor::ReduceRealSum(v2);
+    const Real n = static_cast<Real>(TotalNumberOfParticles());
+    rmsdiff = std::sqrt(s2/n);
+    rmsval  = std::sqrt(v2/n);
+}
+
+void
+FlockPC::ComputeRhoTildePairs (FlockingParams const& fp)
+{
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const Real lx = geom.ProbLength(0);
+    const Real ly = geom.ProbLength(1);
+    const Real rc = flock_kernel_cutoff(fp);
+    const Real rc2 = rc*rc;
+    const Real hmin = amrex::min(geom.CellSize(0), geom.CellSize(1));
+    if (rc > m_neighbor_cells*hmin) {
+        Abort("FlockPC::ComputeRhoTildePairs: the kernel cutoff exceeds the neighbour range");
+    }
+    const Real norm = flock_kernel_norm(fp)/static_cast<Real>(TotalNumberOfParticles());
+    const FlockingParams fp_loc = fp;
+
+    fillNeighbors();
+
+    for (ParIterType pti(*this, lev); pti.isValid(); ++pti) {
+        auto& ptile = ParticlesAt(lev, pti);
+        auto& aos = ptile.GetArrayOfStructs();
+        const int np = ptile.numRealParticles();
+        ParticleType* pstruct = aos().data();
+
+        auto check_pair = [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p1, const ParticleType& p2) noexcept
+        {
+            Real dxij = p2.pos(0) - p1.pos(0);
+            Real dyij = p2.pos(1) - p1.pos(1);
+            dxij -= lx*std::floor(dxij/lx + 0.5);
+            dyij -= ly*std::floor(dyij/ly + 0.5);
+            return (dxij*dxij + dyij*dyij < rc2);
+        };
+        amrex::NeighborList<ParticleType> nlist;
+        Box bx = pti.tilebox();
+        bx.grow(m_neighbor_cells);
+        nlist.build(ptile, bx, geom, check_pair, m_neighbor_cells);
+        auto ndata = nlist.data();
+
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
+            ParticleType& p = pstruct[i];
+            Real sum = flock_kernel_shape(0.0, fp_loc);   // the particle itself
+            for (auto const& q : ndata.getNeighbors(i)) {
+                Real dxij = q.pos(0) - p.pos(0);
+                Real dyij = q.pos(1) - p.pos(1);
+                dxij -= lx*std::floor(dxij/lx + 0.5);
+                dyij -= ly*std::floor(dyij/ly + 0.5);
+                sum += flock_kernel_shape(std::sqrt(dxij*dxij + dyij*dyij), fp_loc);
+            }
+            p.rdata(FlockRealIdx::rhot) = sum*norm;
+        });
+    }
+
+    clearNeighbors();
 }
 
 void

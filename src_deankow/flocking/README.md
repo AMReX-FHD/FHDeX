@@ -113,6 +113,74 @@ density ρ above all. So:
   - `rho`, `px`, `py`: the moments, ρ = Σ φ_k dθ and p = Σ φ_k (cos, sin)θ_k dθ.
   - With `write_particles = 1`, the particle positions and θ.
 
+## Density-dependent speed (motility-induced phase separation)
+
+Particles slow down where the smoothed density is high. Both codes use the same
+speed function s, kernel W and grid:
+
+  v(x) = v₀ · s(ρ̃(x)/ρ̄),  ρ̃ = W ⋆ ρ,  ρ = ∫φ dθ,  ρ̄ = 1/(Lx·Ly)
+
+- **Particles:** dXᵢ = v₀·s(ρ̃(Xᵢ)/ρ̄)·(cos θᵢ, sin θᵢ) dt. The θ equation is
+  unchanged.
+- **SPDE:** the x and y fluxes become φ·v(ρ̃)·(cos θ, sin θ), with ρ̃ averaged
+  from the two cells on each side of the face. The θ diffusion and θ noise are
+  unchanged: spatial motion is deterministic given ρ̃, so no new noise term
+  appears.
+
+**Speed functions** (`flock.speed_type`), with u = ρ̃/ρ̄ and λ = `flock.speed_lambda`:
+- 0: s = 1, no interaction (the default).
+- 1: s = exp(−λu).
+- 2: s = max(0, 1 − λu). Needs λ < 1.
+
+**Kernels** (`flock.kernel_type`, radius R = `flock.kernel_R`):
+
+| Type | W(r) ∝ | Ŵ(k) | Notes |
+| --- | --- | --- | --- |
+| 0 Gaussian (default) | exp(−r²/2R²) | exp(−k²R²/2) | Ŵ > 0; cut off at 4R for the pair sum |
+| 1 top-hat | 1 for r < R | 2J₁(kR)/(kR) | "neighbours within R"; negative lobe about −0.13 |
+| 2 parabolic | (1 − r²/R²)₊ | 8J₂(kR)/(kR)² | same shape as `hk` |
+| 3 bump | (1 − r²/R²)₊² | 48J₃(kR)/(kR)³ | C¹, compact; best for the pair sum |
+
+On the grid, W is sampled at the cell offsets and normalized so that
+Σ W dx dy = 1, which makes the mean of ρ̃ exactly ρ̄. `DensityConv.H/.cpp`
+does the periodic FFT convolution, in the same pattern as the `U ⋆ φ`
+convolution in `interaction`:
+- **SPDE:** W is replicated over θ, so convolving φ gives ρ̃ in every θ plane.
+- **Particles:** it convolves the deposited density.
+
+**How the particles get ρ̃** (`flock.density_method`):
+- 0, particle-mesh (default): cloud-in-cell deposit onto the grid, FFT
+  convolution, then cloud-in-cell interpolation back to each particle.
+  O(N + M log M).
+- 1, pair sum: ρ̃ᵢ = (1/N)·Σⱼ W(|xᵢ − xⱼ|) over neighbours, plus the particle
+  itself, with the continuous kernel. This is the grid-free particle model,
+  for small N. `flock.density_check = 1` prints its difference from
+  particle-mesh at the initial positions.
+
+**Linear stability.** At startup the code prints d ln s/d ln u at the mean
+density, the persistence length v/D, and the growth rate of the first four box
+modes in the diffusive limit:
+
+  σ(k) = −D_eff·k²·(1 + Ŵ(k)·d ln s/d ln u),  D_eff = v(ρ̄)²/(2D)
+
+The uniform state is unstable when 1 + Ŵ·d ln s/d ln u < 0; for exponential s
+that means λŴ(k) > 1. The formula assumes k·ℓ_p ≪ 1. At k·ℓ_p ≈ 0.6–1 it is
+about 8% off. The exact rate for the discrete θ grid is the leading
+eigenvalue of the linearized kinetic equation, and the SPDE matches that to 1%
+(see the checks below).
+
+**Example:** `exec/dean_kow/flocking/inputs_mips` (SPDE) and
+`inputs_mips_particles`:
+- 128² × 32 grid;
+- v₀ = 4, D = 10, exponential s with λ = 1.5;
+- Gaussian kernel with R = 0.03;
+- N = 10⁶, from a uniform start.
+
+**Plotfiles:**
+- SPDE: `rhot` (ρ̃) alongside `phi` and `rho`.
+- Particles: `rhot` on the grid (by particle-mesh), and a `rhot` particle
+  attribute.
+
 ## Inputs
 
 | Input | Default | Build | Meaning |
@@ -123,6 +191,12 @@ density ρ above all. So:
 | `flock.ic_type` | 0 | both | Initial density: 0 uniform; 1 1 + ic_amp·cos(2π(ic_kx x/Lx + ic_ky y/Ly))·cos(ic_m(θ − ic_theta0)); 2 Gaussian blob (ic_sigma at ic_x0, ic_y0) × (1 + ic_amp·cos(θ − ic_theta0)) |
 | `flock.ic_amp`, `ic_kx`, `ic_ky`, `ic_m`, `ic_theta0`, `ic_sigma`, `ic_x0`, `ic_y0` | 0.5, 1, 0, 1, 0, 0.1, 0.5, 0.5 | both | Initial-condition parameters. \|ic_amp\| ≤ 1 for types 1 and 2. |
 | `flock.align_K` | 0 | both | Alignment strength. Not implemented yet; must be 0. |
+| `flock.speed_type` | 0 | both | Speed function: 0 constant, 1 exp(−λu), 2 max(0, 1 − λu) |
+| `flock.speed_lambda` | 1 | both | λ; must be < 1 for speed_type 2 |
+| `flock.kernel_type` | 0 | both | Sensing kernel: 0 Gaussian, 1 top-hat, 2 parabolic, 3 bump |
+| `flock.kernel_R` | 0.05 | both | Kernel radius R (keep at least about 4 dx) |
+| `flock.density_method` | 0 | 2 | ρ̃ at the particles: 0 particle-mesh, 1 pair sum |
+| `flock.density_check` | 0 | 2 | With the pair sum: print its difference from particle-mesh at startup |
 | `geometry.prob_lo`, `prob_hi` | 0 0, 1 1 | both | x, y extent. A third entry, for θ, must be 0 and 2π. |
 | `amr.n_cell` | (required) | both | nx ny ntheta |
 | `amr.max_grid_size` | 32 / 64 | both | Grid size |
@@ -156,6 +230,24 @@ All on 64² × 32 with N = 4·10⁶ and v = D = 1, unless noted.
 - **D = 0 advection against the exact solution:** observed orders 1.99
   (centred), 1.90 (MUSCL) and 0.86 (upwind).
 - **Fluctuations:** see the table above.
+
+### Density-dependent speed
+
+- **No interaction is unchanged:** with `speed_type = 0`, both codes reproduce
+  the earlier results bit for bit (SPDE φ, and all particle histogram fields).
+- **Convolution:** ρ̃ has mean exactly ρ̄ and is identical in every θ plane.
+  A cos(2πx) density mode is damped by 0.951975, against the exact Gaussian
+  Ŵ = 0.951850 at R = 3.2 dx.
+- **Particle-mesh vs pair sum:** bump kernel, N = 2·10⁴, 64² grid, same
+  particles. The rms relative difference is 1.4% at R = 2.6 dx, 0.15% at
+  5.1 dx and 0.017% at 10.2 dx.
+- **Linear growth rates:** deterministic centred SPDE, mode k = 2π, v₀ = 4,
+  D = 10, R = 0.03, against the leading kinetic eigenvalue:
+
+| λ | SPDE | Kinetic eigenvalue | Diffusive-limit formula |
+| --- | --- | --- | --- |
+| 0.8 (stable) | −1.448 | −1.462 | −1.365 |
+| 1.5 (unstable) | +0.684 | +0.686 | +0.745 |
 
 ## Alignment interaction, later
 

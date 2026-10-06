@@ -82,6 +82,8 @@ AmrCoreFlock::ReadParameters ()
     const RealBox& rb = Geom(0).ProbDomain();
     fp.xlo = rb.lo(0);  fp.lx = rb.length(0);
     fp.ylo = rb.lo(1);  fp.ly = rb.length(1);
+    rhobar = 1.0/(fp.lx*fp.ly);
+    print_mips_stability(fp);
 
     {
         ParmParse pp;
@@ -129,6 +131,19 @@ AmrCoreFlock::DefineLevel (const BoxArray& ba, const DistributionMapping& dm)
     phi_new.define(ba, dm, 1, nghost);
     phi_old.setVal(0.0);
     phi_new.setVal(0.0);
+
+    rhot.define(ba, dm, 1, 1);
+    rhot.setVal(rhobar);
+    dconv.define(Geom(0), ba, dm, fp);
+    amrex::Print() << "Sensing kernel: discrete / continuous normalization = "
+                   << dconv.discrete_over_continuous() << "\n";
+}
+
+void
+AmrCoreFlock::UpdateRhoTilde (MultiFab const& phi)
+{
+    if (fp.speed_type == 0) { return; }
+    dconv.apply(phi, rhot);
 }
 
 void
@@ -254,11 +269,11 @@ AmrCoreFlock::PrintDiagnostics () const
 }
 
 void
-AmrCoreFlock::WritePlotFile () const
+AmrCoreFlock::WritePlotFile ()
 {
     const std::string& plotfilename = amrex::Concatenate(plot_file, step_count, 6);
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
-    MultiFab mf(phi_new.boxArray(), phi_new.DistributionMap(), 2, 0);
+    MultiFab mf(phi_new.boxArray(), phi_new.DistributionMap(), 3, 0);
     MultiFab::Copy(mf, phi_new, 0, 0, 1, 0);
 
     // rho(x, y) = sum_k phi(x, y, theta_k) dtheta, stored in every theta plane.
@@ -290,7 +305,15 @@ AmrCoreFlock::WritePlotFile () const
     }
     mf.ParallelCopy(col, 0, 1, 1);
 
-    WriteSingleLevelPlotfile(plotfilename, mf, {"phi", "rho"}, Geom(0), t_new, step_count);
+    // rho_tilde = W * rho of the current state, the same in every theta plane
+    // (written for any speed_type, as a diagnostic)
+    {
+        MultiFab rt(phi_new.boxArray(), phi_new.DistributionMap(), 1, 1);
+        dconv.apply(phi_new, rt);
+        MultiFab::Copy(mf, rt, 0, 2, 1, 0);
+    }
+
+    WriteSingleLevelPlotfile(plotfilename, mf, {"phi", "rho", "rhot"}, Geom(0), t_new, step_count);
 }
 
 void

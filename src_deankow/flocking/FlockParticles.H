@@ -10,6 +10,7 @@
 
 #include "FlockingParams.H"
 #include "FlockPC.H"
+#include "DensityConv.H"
 
 // Driver for the 2D particle version of the flocking model. Reads the same
 // x, y geometry and amr.n_cell as the SPDE; the theta histogram has
@@ -29,6 +30,10 @@ private:
     void ReadParameters ();
     void WritePlotFile ();
 
+    // rhot at every particle from the current positions: particle-mesh
+    // (density_method 0) or direct pair sum (1)
+    void UpdateRhoTilde ();
+
     FlockingParams fp;
 
     amrex::Geometry geom;
@@ -36,6 +41,12 @@ private:
     amrex::DistributionMapping dmap;
     std::unique_ptr<FlockPC> pc;
     amrex::MultiFab hist;
+
+    // particle-mesh smoothed density: CIC deposit rho_grid, rt_grid = W * rho_grid
+    DensityConv dconv;
+    amrex::MultiFab rho_grid;
+    amrex::MultiFab rt_grid;
+    amrex::Real rhobar = 1.0;
 
     int n_theta_bins = 32;
     amrex::Real t_new = 0.0;

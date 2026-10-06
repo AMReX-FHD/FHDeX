@@ -51,6 +51,15 @@ def load_particles(p):
     return h, phi
 
 
+def load_field(p, h, name, dim):
+    """A 2D field [ny, nx] from a plotfile, or None if it is not there. In 3D
+    the field is the same in every theta plane, so plane 0 is returned."""
+    if name not in h["varnames"]:
+        return None
+    d = read_level0(p, h)[h["varnames"].index(name)]
+    return d[0] if dim == 3 else d
+
+
 def moments(phi, dth):
     nth = phi.shape[0]
     th = (np.arange(nth) + 0.5) * dth
@@ -115,6 +124,9 @@ def main():
     print("  px(x,y)         %.4e" % rel_l2(pxp, pxs, pnorm))
     print("  py(x,y)         %.4e" % rel_l2(pyp, pys, pnorm))
     print("  psi(theta)      %.4e" % rel_l2(mp, ms))
+    rts, rtp = load_field(args.spde, hs, "rhot", 3), load_field(args.particles, hp, "rhot", 2)
+    if rts is not None and rtp is not None:
+        print("  rhot(x,y)       %.4e   (smoothed density W * rho)" % rel_l2(rtp, rts))
     a_s = (ps * mode).sum() * dv
     a_p = (pp * mode).sum() * dv
     print("mode projection A    SPDE %.6e   particles %.6e   difference %.3e"

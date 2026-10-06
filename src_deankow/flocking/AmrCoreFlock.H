@@ -8,6 +8,7 @@
 #include <AMReX_MultiFab.H>
 
 #include "FlockingParams.H"
+#include "DensityConv.H"
 
 // Flocking SPDE on (x, y, theta), with theta = z in [0, 2 pi), periodic in all
 // three directions, single level:
@@ -44,10 +45,14 @@ private:
     // one time step of size dt (AdvancePhiAtLevel.cpp)
     void AdvancePhi (amrex::Real dt);
 
+    // rhot = W * phi, the smoothed spatial density that sets the speed; only
+    // recomputed when the speed depends on it (speed_type != 0)
+    void UpdateRhoTilde (amrex::MultiFab const& phi);
+
     amrex::Real EstTimeStep () const;
 
     void PrintDiagnostics () const;
-    void WritePlotFile () const;
+    void WritePlotFile ();
     void WriteCheckpointFile () const;
     void ReadCheckpointFile ();
 
@@ -57,6 +62,12 @@ private:
     amrex::MultiFab phi_old;
     amrex::MultiFab phi_new;
     static constexpr int nghost = 2;
+
+    // smoothed density rho_tilde (1 ghost cell), its mean 1/(Lx Ly), and the
+    // FFT convolution with the sensing kernel
+    amrex::MultiFab rhot;
+    amrex::Real rhobar = 1.0;
+    DensityConv dconv;
 
     amrex::Real t_new = 0.0;
     amrex::Real dt_last = 0.0;

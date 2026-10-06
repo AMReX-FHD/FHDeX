@@ -6,8 +6,10 @@
 #include "FlockingParams.H"
 
 // Deterministic fluxes (x, y advection; theta diffusion and turning) from phi,
-// whose ghost cells must be filled.
-void compute_det_fluxes (amrex::MultiFab const& phi,
+// whose ghost cells must be filled. rhot is the smoothed spatial density
+// rho_tilde (one ghost cell) that sets the speed; rhobar is its mean.
+void compute_det_fluxes (amrex::MultiFab const& phi, amrex::MultiFab const& rhot,
+                         amrex::Real rhobar,
                          amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& flux,
                          amrex::Geometry const& geom, FlockingParams const& fp,
                          int adv_order, int limiter);

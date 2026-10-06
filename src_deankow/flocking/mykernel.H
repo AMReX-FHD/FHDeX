@@ -54,24 +54,30 @@ amrex::Real upwind_flux (amrex::Real u, amrex::Real m2, amrex::Real m, amrex::Re
     return (u >= 0.0) ? u*m : u*p;
 }
 
-// x face (i-1/2, j, k): u = v cos(theta_k)
+// x face (i-1/2, j, k): u = v s(rho_tilde_face/rho_bar) cos(theta_k), with the
+// smoothed density rho_tilde averaged from the two adjacent cells (s = 1 for
+// speed_type 0)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_x (int i, int j, int k, amrex::Array4<amrex::Real> const& fx,
                      amrex::Array4<amrex::Real const> const& phi,
+                     amrex::Array4<amrex::Real const> const& rhot, amrex::Real rhobar_inv,
                      amrex::Real theta, FlockingParams const& fp, int adv_order, int limiter)
 {
-    const amrex::Real u = fp.speed*std::cos(theta);
+    const amrex::Real u = fp.speed*std::cos(theta)
+        * flock_speed_factor(0.5*(rhot(i-1,j,k) + rhot(i,j,k))*rhobar_inv, fp);
     fx(i,j,k) = upwind_flux(u, phi(i-2,j,k), phi(i-1,j,k), phi(i,j,k), phi(i+1,j,k),
                             adv_order, limiter);
 }
 
-// y face (i, j-1/2, k): u = v sin(theta_k)
+// y face (i, j-1/2, k): u = v s(rho_tilde_face/rho_bar) sin(theta_k)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_y (int i, int j, int k, amrex::Array4<amrex::Real> const& fy,
                      amrex::Array4<amrex::Real const> const& phi,
+                     amrex::Array4<amrex::Real const> const& rhot, amrex::Real rhobar_inv,
                      amrex::Real theta, FlockingParams const& fp, int adv_order, int limiter)
 {
-    const amrex::Real u = fp.speed*std::sin(theta);
+    const amrex::Real u = fp.speed*std::sin(theta)
+        * flock_speed_factor(0.5*(rhot(i,j-1,k) + rhot(i,j,k))*rhobar_inv, fp);
     fy(i,j,k) = upwind_flux(u, phi(i,j-2,k), phi(i,j-1,k), phi(i,j,k), phi(i,j+1,k),
                             adv_order, limiter);
 }

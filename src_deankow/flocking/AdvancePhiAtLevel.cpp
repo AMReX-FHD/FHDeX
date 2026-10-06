@@ -24,7 +24,8 @@ AmrCoreFlock::AdvancePhi (Real dt)
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         flux[d].define(amrex::convert(ba, IntVect::TheDimensionVector(d)), dm, 1, 0);
     }
-    compute_det_fluxes(phi_old, flux, Geom(0), fp, adv_order, limiter);
+    UpdateRhoTilde(phi_old);
+    compute_det_fluxes(phi_old, rhot, rhobar, flux, Geom(0), fp, adv_order, limiter);
 
     MultiFab sflux;
     if (dorand) {
@@ -47,7 +48,8 @@ AmrCoreFlock::AdvancePhi (Real dt)
         phi_new.FillBoundary(Geom(0).periodicity());
 
         // corrector: average the deterministic fluxes, reuse the noise
-        compute_det_fluxes(phi_new, flux1, Geom(0), fp, adv_order, limiter);
+        UpdateRhoTilde(phi_new);
+        compute_det_fluxes(phi_new, rhot, rhobar, flux1, Geom(0), fp, adv_order, limiter);
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             MultiFab::LinComb(flux[d], 0.5, flux[d], 0, 0.5, flux1[d], 0, 0, 1, 0);
         }
