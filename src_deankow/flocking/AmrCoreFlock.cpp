@@ -258,9 +258,39 @@ AmrCoreFlock::WritePlotFile () const
 {
     const std::string& plotfilename = amrex::Concatenate(plot_file, step_count, 6);
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
-    MultiFab mf(phi_new.boxArray(), phi_new.DistributionMap(), 1, 0);
+    MultiFab mf(phi_new.boxArray(), phi_new.DistributionMap(), 2, 0);
     MultiFab::Copy(mf, phi_new, 0, 0, 1, 0);
-    WriteSingleLevelPlotfile(plotfilename, mf, {"phi"}, Geom(0), t_new, step_count);
+
+    // rho(x, y) = sum_k phi(x, y, theta_k) dtheta, stored in every theta plane.
+    // A box need not span all of theta, so copy phi to a layout whose boxes
+    // are whole theta columns, sum there, and copy back.
+    const Box& domain = Geom(0).Domain();
+    IntVect col_size = maxGridSize(0);
+    col_size[2] = domain.length(2);
+    BoxArray cba(domain);
+    cba.maxSize(col_size);
+    DistributionMapping cdm(cba);
+    MultiFab col(cba, cdm, 1, 0);
+    col.ParallelCopy(phi_new, 0, 0, 1);
+
+    const Real dth = Geom(0).CellSize(2);
+    const int klo = domain.smallEnd(2);
+    const int khi = domain.bigEnd(2);
+    for (MFIter mfi(col); mfi.isValid(); ++mfi) {
+        auto const& c = col.array(mfi);
+        Box xy = mfi.validbox();
+        xy.setRange(2, klo, 1);
+        amrex::ParallelFor(xy, [=] AMREX_GPU_DEVICE (int i, int j, int) noexcept
+        {
+            Real rho = 0.0;
+            for (int k = klo; k <= khi; ++k) { rho += c(i,j,k); }
+            rho *= dth;
+            for (int k = klo; k <= khi; ++k) { c(i,j,k) = rho; }
+        });
+    }
+    mf.ParallelCopy(col, 0, 1, 1);
+
+    WriteSingleLevelPlotfile(plotfilename, mf, {"phi", "rho"}, Geom(0), t_new, step_count);
 }
 
 void

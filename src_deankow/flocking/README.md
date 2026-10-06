@@ -74,6 +74,12 @@ The fluxes are finite-volume fluxes on cell faces:
 **Time step:** dt = `adv.cfl` / (v(1/dx + 1/dy) + 2D/dθ²). This is the
 positivity limit of the upwind scheme at cfl = 1.
 
+**Plotfile:** the SPDE plotfile has two variables:
+- `phi`: φ(x, y, θ).
+- `rho`: the spatial density ρ(x, y) = Σ_k φ(x, y, θ_k)·dθ, the integral over
+  θ. It is the same in every θ plane, so it can be viewed alongside `phi` on
+  the 3D grid and compared directly with the particle plotfile's `rho`.
+
 **Which advection to use:**
 
 | Scheme | Advection accuracy (blob, L1 error order) | Fluctuations from a uniform start (var / Poisson) | Positivity |
