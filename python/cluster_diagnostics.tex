@@ -1,0 +1,322 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\emergencystretch=3em
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+\title{\code{cluster\_diagnostics.py}: cluster statistics and radial\\
+distribution functions for 2D AMReX plotfiles}
+\author{FHDeX}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Overview}
+
+\code{cluster\_diagnostics.py} (in \code{FHDeX/python}) post-processes a sequence of
+2D AMReX plotfiles, written for the Dean--Kawasaki runs in
+\code{exec/dean\_kow/interaction} (for example \code{inputs\_fv\_pp\_merge} and
+\code{inputs\_fv\_hk\_cluster}). For each plotfile it
+\begin{enumerate}
+  \item finds the clusters in the density field and measures each one's mass,
+        centre, size and peak density;
+  \item matches them to the clusters in the previous plotfile, giving each
+        cluster a stable id and logging mergers, splits, new clusters and
+        clusters that dissolve;
+  \item accumulates two radial distribution functions: $g(r)$ of the density
+        field and $g(r)$ of the cluster centres.
+\end{enumerate}
+The results are whitespace-separated text tables with \code{\#} header lines.
+The script needs only Python~3 and numpy. It reuses the plotfile reader in
+\code{stack\_plotfiles\_time.py}, which must be in the same directory.
+
+\paragraph{Usage.}
+\begin{verbatim}
+python3 cluster_diagnostics.py plt_pp_* --num-part 327680 -o diag
+python3 cluster_diagnostics.py plt_pp_* --num-part 327680 -o diag \
+        --t-range 0.02 0.03 --rmax 0.4
+\end{verbatim}
+Plotfiles are sorted by the step number in their headers, not by file name.
+All of them must have the same domain and cell size.
+
+\section{Assumptions and limitations}
+
+\begin{itemize}
+  \item \textbf{2D, periodic domain.} Clusters may wrap across the boundaries,
+        and all distances use the minimum-image convention. The plotfile
+        header does not record periodicity, so the script assumes it.
+  \item \textbf{Level 0 only.} Finer levels are ignored, with a warning.
+  \item \textbf{Density field only.} The plotfiles contain no particle
+        positions, so both $g(r)$ are computed from the density variable
+        (\code{phi0} by default).
+  \item \textbf{Touching clusters count as one.} Two clusters become one as soon
+        as the density between them exceeds the threshold. This is the
+        definition of a merger used here; clusters are not split at density
+        saddles.
+  \item \textbf{Total mass includes negative densities.} At low particle counts
+        per cell $\phi$ can be slightly negative between clusters. The total
+        mass $\sum\phi\,\Delta V$, used for \code{-{}-mmin} and the mass fraction,
+        includes those values, so the mass fraction in clusters can slightly
+        exceed 1.
+\end{itemize}
+
+\section{Definitions}
+
+Let the domain be $[x_{\mathrm{lo}}, x_{\mathrm{lo}}+L_x)\times[y_{\mathrm{lo}}, y_{\mathrm{lo}}+L_y)$
+with cells of size $\Delta x\times\Delta y$, area $\Delta V = \Delta x\,\Delta y$
+and centres $\mathbf{x}_i$, and let $\phi_i$ be the density in cell $i$. The
+minimum-image displacement in direction $d$ is
+\begin{equation}
+  \operatorname{mi}_d(a) = \Bigl(a + \tfrac12 L_d\Bigr) \bmod L_d \;-\; \tfrac12 L_d
+  \in \bigl[-\tfrac12 L_d,\ \tfrac12 L_d\bigr).
+\end{equation}
+
+\subsection{Cluster}
+
+With the mean density $\bar\phi = \sum_i \phi_i\,\Delta V/(L_xL_y)$ and the
+threshold factor $c$ (\code{-{}-threshold}), a cluster is a set of cells connected
+through shared faces, including across the periodic boundaries, in which
+\begin{equation}
+  \phi_i > c\,\bar\phi .
+\end{equation}
+It is kept only if its mass $M = \sum_{i\in C}\phi_i\,\Delta V$ is at least
+$m_{\min}$ (\code{-{}-mmin}) times the total mass. For each cluster $C$, with
+weights $w_i = \phi_i\,\Delta V$:
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}lL@{}}
+\toprule
+Quantity & Definition \\
+\midrule
+mass $M$ & $\sum_{i\in C} w_i$ \\
+centre $x_c$ (and $y_c$) &
+  Circular mean in each direction,
+  $x_c = \dfrac{L_x}{2\pi}\operatorname{atan2}\!\Bigl(\sum w_i\sin\tfrac{2\pi x_i}{L_x},\
+  \sum w_i\cos\tfrac{2\pi x_i}{L_x}\Bigr) \bmod L_x$. Correct for clusters that
+  straddle the boundary. \\
+$R_g$ & Radius of gyration,
+  $R_g^2 = \sum w_i\,|\mathbf{d}_i|^2/M$ with
+  $\mathbf{d}_i = \bigl(\operatorname{mi}_x(x_i - x_c),\ \operatorname{mi}_y(y_i - y_c)\bigr)$ \\
+peak & $\max_{i\in C}\phi_i$ \\
+ncells & number of cells in $C$ \\
+wide & 1 if some cell has $|d_{i,x}| \ge 0.45\,L_x$ or $|d_{i,y}| \ge 0.45\,L_y$.
+  The minimum image, and so the centre and $R_g$, are then ambiguous; this
+  mainly happens for a single cluster that fills the box. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Tracking between frames}
+
+For consecutive plotfiles with old clusters $b$ and new clusters $a$, let
+$O_{ba} = \sum_{i\in b\cap a}\phi^{\mathrm{old}}_i\,\Delta V$ be the part of
+the old cluster's mass, at the old time, in cells that now belong to $a$.
+\begin{enumerate}
+  \item \textbf{Matching.} Old cluster $b$ is assigned to
+        $\arg\max_a O_{ba}$ if $\max_a O_{ba} > 0.1\,M_b$. Otherwise it is
+        assigned to the new cluster with the nearest centre (minimum image),
+        provided that distance is at most \code{-{}-search-radius}. The
+        fallback catches the end of a merger, when a small cluster falls into
+        a large one within one frame and its old cells no longer overlap
+        anything.
+  \item \textbf{Merger.} A new cluster $a$ with two or more old clusters
+        assigned is a merger, provided $M_a \ge 0.7\sum_{b\to a} M_b$.
+        Assigned old clusters that would break this condition are treated as
+        dissolved instead, starting with the farthest.
+  \item \textbf{Split.} An old cluster with $O_{ba} > 0.1\,M_b$ for two or more
+        new clusters $a$ is a split.
+  \item \textbf{Formed and dissolved.} A new cluster with no old cluster
+        assigned, and not split off one, is formed. An old cluster assigned to
+        nothing, and not split, is dissolved.
+  \item \textbf{Ids.} A new cluster takes the id of its most massive assigned
+        old cluster. Formed clusters and pieces split off get new ids, so ids
+        are never reused.
+\end{enumerate}
+The thresholds 0.1 and 0.7 are fixed in the code
+(\code{track(frac=0.1, mass\_keep=0.7)}). Tracking needs plotfiles close enough
+in time that clusters move less than about their own size between frames,
+apart from the final plunge of a merger.
+
+\subsection{\texorpdfstring{Density-field $g(r)$}{Density-field g(r)}}
+
+From the cell particle counts $n_i = \phi_i\,N\,\Delta V$, with
+$N$ = \code{-{}-num-part}, $M$ the number of cells and $N_{\mathrm{tot}} = \sum_i n_i$:
+\begin{align}
+  G(\boldsymbol{\Delta}) &= \sum_i n_i\,n_{i+\boldsymbol{\Delta}}
+     - \delta_{\boldsymbol{\Delta},0}\sum_i n_i , \\
+  g(\boldsymbol{\Delta}) &= \frac{M\,G(\boldsymbol{\Delta})}{N_{\mathrm{tot}}(N_{\mathrm{tot}}-1)} .
+\end{align}
+$G$ is the periodic autocorrelation, computed by FFT, with the self pairs
+removed at $\boldsymbol{\Delta}=0$. A Poisson (ideal gas) field gives
+$g = 1$ at every $\boldsymbol{\Delta}$, including $\boldsymbol{\Delta}=0$. Each
+lattice displacement $\boldsymbol{\Delta}$ is wrapped componentwise into
+$[-M_d/2, M_d/2)$, so $r = |(\Delta_x\Delta x,\ \Delta_y\Delta y)|$ is the
+minimum-image distance. The value of $g(r)$ in a bin $[r_k, r_k+\Delta r)$ is
+the average of $g(\boldsymbol{\Delta})$ over the displacement vectors that fall
+in it. This normalizes by the exact number of lattice vectors per shell rather
+than by $2\pi r\,\Delta r$. The result is averaged over the frames in
+\code{-{}-t-range}. $N$ enters only through the self-pair correction, which has
+relative size $1/N$.
+
+\subsection{\texorpdfstring{Cluster-centre $g(r)$}{Cluster-centre g(r)}}
+
+For every frame in \code{-{}-t-range} with $n_c\ge 2$ clusters, the minimum-image
+distances between all pairs of cluster centres are histogrammed, counting each
+pair once. With domain area $A = L_xL_y$,
+\begin{equation}
+  g(r_k) = \frac{\sum_{\text{frames}} \#\{\text{pairs with } r\in[r_k, r_k+\Delta r)\}}
+                {\sum_{\text{frames}} \tfrac12 n_c(n_c-1)\,\pi\bigl((r_k+\Delta r)^2 - r_k^2\bigr)/A} .
+\end{equation}
+The annulus area is exact for $r \le L/2$, because every such annulus lies
+inside the minimum-image cell. Pair counts and expected counts are summed over
+frames before dividing, because single frames often hold only about ten
+clusters.
+
+\section{Options}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l l L@{}}
+\toprule
+Option & Default & Meaning \\
+\midrule
+\code{plotfiles} & (required) & 2D plotfile directories, e.g.\ \code{plt\_pp\_*} \\
+\code{-{}-num-part N} & (required) & \code{num\_part} of the run; converts $\phi$ to particle counts for the field $g(r)$ \\
+\code{-{}-var NAME} & \code{phi0} & plotfile variable used as the density \\
+\code{-{}-threshold C} & 5 & cluster cells have $\phi > C\,\bar\phi$ \\
+\code{-{}-mmin F} & 0.01 & smallest cluster kept, as a fraction of the total mass \\
+\code{-{}-every K} & 1 & use every $K$-th plotfile, after sorting by step \\
+\code{-{}-rmax R} & $L/2$ & range of both $g(r)$; values above $L/2$ (shortest side) are reduced to $L/2$ with a warning \\
+\code{-{}-dr D} & $\Delta x$ & bin width of the field $g(r)$; with $D\le\Delta x$ the first bin holds only $\boldsymbol{\Delta}=0$ \\
+\code{-{}-dr-clusters D} & $L/50$ & bin width of the cluster-centre $g(r)$ \\
+\code{-{}-search-radius R} & $L/4$ & largest distance a centre may move between frames and still be matched when its old cells overlap no new cluster \\
+\code{-{}-t-range T0 T1} & all frames & time window for both $g(r)$ averages; cluster statistics and tracking always use every frame \\
+\code{-{}-rdf-per-frame} & off & also write the field $g(r)$ of each frame in the window \\
+\code{-o DIR}, \code{-{}-output DIR} & \code{cluster\_diag} & output directory, created if needed; existing files are overwritten \\
+\bottomrule
+\end{tabularx}
+\end{center}
+The script also prints one line per frame with the cluster count, the mass
+fraction in clusters and the events since the previous frame.
+
+\section{Output files}
+
+Times are plotfile times; lengths and positions are in the plotfile's physical
+units. Masses are $\sum\phi\,\Delta V$, a fraction of the total, because the
+codes normalize $\phi$ to integrate to 1.
+
+\subsection*{\code{summary.txt}: one line per plotfile}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L@{}}
+\toprule
+Column & Meaning \\
+\midrule
+\code{t}, \code{step} & time and step \\
+\code{nclusters} & number of clusters \\
+\code{mass\_fraction} & total mass in clusters / total mass \\
+\code{largest\_mass} & mass of the largest cluster (0 if none) \\
+\code{merges}, \code{splits} & merger and split events since the previous plotfile \\
+\code{forms}, \code{dissolves} & clusters formed and dissolved since the previous plotfile \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection*{\code{clusters.txt}: one line per cluster per plotfile, sorted by id}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L@{}}
+\toprule
+Column & Meaning \\
+\midrule
+\code{t}, \code{step} & time and step \\
+\code{id} & cluster id, stable across frames \\
+\code{mass} & cluster mass $M$ \\
+\code{xc}, \code{yc} & centre of mass, in $[\text{prob\_lo}, \text{prob\_hi})$ \\
+\code{Rg} & radius of gyration \\
+\code{peak} & largest $\phi$ in the cluster \\
+\code{ncells} & number of cells \\
+\code{wide} & 1 if the cluster spans about half the box or more ($x_c$, $y_c$, $R_g$ unreliable) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+To follow one cluster, filter by id, e.g.\ \code{awk '\$3==4' clusters.txt}.
+
+\subsection*{\code{events.txt}: one line per merger or split}
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L@{}}
+\toprule
+Column & Meaning \\
+\midrule
+\code{t}, \code{step} & time and step of the first plotfile in which the event shows \\
+\code{type} & \code{merge} or \code{split} \\
+\code{old\_ids} & comma-separated ids before the event: the merging clusters, or the cluster that split \\
+\code{old\_masses} & their masses at the previous plotfile \\
+\code{new\_ids} & id(s) after the event: the merged cluster, or the pieces of the split \\
+\code{new\_masses} & their masses \\
+\bottomrule
+\end{tabularx}
+\end{center}
+Formed and dissolved clusters appear only as counts in \code{summary.txt}.
+
+\subsection*{\texorpdfstring{\code{rdf\_field.txt}: density-field $g(r)$}{rdf_field.txt}}
+The first header line gives the number of frames, the time window,
+\code{num\_part}, $\Delta r$ and $r_{\max}$. Then one line per non-empty bin:
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L@{}}
+\toprule
+Column & Meaning \\
+\midrule
+\code{r} & mean distance of the lattice displacements in the bin \\
+\code{g} & $g(r)$ averaged over the frames in the window \\
+\code{ndisplacements} & number of lattice displacements in the bin \\
+\code{g(t=...)} & with \code{-{}-rdf-per-frame}, one column per frame \\
+\bottomrule
+\end{tabularx}
+\end{center}
+The first bin, at $r=0$, is the same-cell value; in clustered states it is
+large because of the cluster's own density.
+
+\subsection*{\texorpdfstring{\code{rdf\_clusters.txt}: cluster-centre $g(r)$}{rdf_clusters.txt}}
+The first header line gives the number of frames, the time window, $\Delta r$
+and $r_{\max}$. Then one line per bin:
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l L@{}}
+\toprule
+Column & Meaning \\
+\midrule
+\code{r\_lo}, \code{r\_hi} & bin edges \\
+\code{g} & $\sum$ pairs $/ \sum$ expected (0 where nothing is expected) \\
+\code{pairs} & cluster pairs in the bin, summed over frames \\
+\code{expected} & ideal-gas expectation for the bin, summed over frames \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\code{pairs} shows how much each bin's $g$ rests on; with a few clusters per
+frame, bins with only a handful of pairs are noisy.
+
+\section{Example}
+
+The \code{inputs\_fv\_pp\_merge} run ($256^2$, \code{num\_part} $=327680$,
+seed 11) gives:
+\begin{itemize}
+  \item clusters from $t\approx 0.014$, ten of them by $t\approx 0.018$;
+  \item nine mergers between $t\approx 0.027$ and $0.036$, ending in one
+        cluster with 96--99\% of the mass;
+  \item with \code{-{}-t-range 0.02 0.03}, a cluster-centre $g(r)$ with almost
+        no pairs below $r\approx 0.2$ and a peak over $0.24$--$0.36$ (expected
+        spacing about $0.32$);
+  \item a field $g(r)$ of about 14 at $r=0$, a dip to about 0.2 near
+        $r\approx 0.13$, and a second peak of about 1.5 at $r\approx 0.3$.
+\end{itemize}
+The cluster tracks can be viewed in space--time by stacking the same plotfiles
+with \code{stack\_\allowbreak plotfiles\_\allowbreak time.py}.
+
+\end{document}
