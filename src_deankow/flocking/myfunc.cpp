@@ -61,6 +61,26 @@ void compute_stoch_flux (MultiFab const& phi, MultiFab& sflux_z, Geometry const&
     }
 }
 
+void compute_stoch_flux_given (MultiFab const& phi, MultiFab const& w, MultiFab& sflux_z,
+                               Geometry const& geom, FlockingParams const& fp, Real dt)
+{
+    const auto dx = geom.CellSizeArray();
+    const Real dv = dx[0]*dx[1]*dx[2];
+    const Real sd = std::sqrt(2.0*fp.diff_coeff/(fp.num_part*dv*dt));
+    MultiFab::Copy(sflux_z, w, 0, 0, 1, 0);
+    sflux_z.mult(sd, 0, 1);
+
+    for (MFIter mfi(sflux_z, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        auto const& p  = phi.const_array(mfi);
+        auto const& sz = sflux_z.array(mfi);
+        amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            scale_stoch_flux_theta(i, j, k, sz, p);
+        });
+    }
+}
+
 void apply_fluxes (MultiFab const& phi_old, MultiFab& phi_new,
                  Array<MultiFab, AMREX_SPACEDIM> const& flux, Geometry const& geom, Real dt)
 {

@@ -97,9 +97,11 @@ AmrCoreFlock::ReadParameters ()
         pp.query("diag_int", diag_int);
         if (adv_order < 0 || adv_order > 2) { Abort("adv_order must be 0 (centred), 1 (upwind) or 2 (MUSCL)"); }
         if (limiter != 0 && limiter != 1) { Abort("limiter must be 0 (minmod) or 1 (MC)"); }
-        if (time_integrator != 0 && time_integrator != 1) { Abort("time_integrator must be 0 (Euler-Maruyama) or 1 (Heun)"); }
+        if (time_integrator < 0 || time_integrator > 2) {
+            Abort("time_integrator must be 0 (Euler-Maruyama), 1 (Heun) or 2 (stochastic RK3)");
+        }
         if (adv_order == 0 && time_integrator == 0) {
-            Abort("adv_order = 0 (centred advection) is unstable with forward Euler; use time_integrator = 1");
+            Abort("adv_order = 0 (centred advection) is unstable with forward Euler; use time_integrator = 2 (or 1)");
         }
     }
     {

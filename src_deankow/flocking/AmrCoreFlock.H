@@ -76,7 +76,7 @@ private:
     // discretization
     int adv_order = 1;        // 0: centred, 1: first-order upwind, 2: MUSCL
     int limiter = 0;          // MUSCL limiter: 0 minmod, 1 MC
-    int time_integrator = 0;  // 0: Euler-Maruyama, 1: Heun (deterministic part)
+    int time_integrator = 0;  // 0: Euler-Maruyama, 1: Heun (deterministic part), 2: stochastic RK3
     int dorand = 1;           // 0: no noise (deterministic mean-field equation)
     amrex::Real cfl = 0.5;
 

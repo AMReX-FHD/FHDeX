@@ -14,9 +14,10 @@
 //
 //   2D build: dst(x) = sum_x' W(x - x') src(x') dx dy, with src the spatial
 //             density on the grid (the particle-mesh rho_tilde)
-//   3D build: W is the same in every theta plane, so
-//             dst(x, theta) = sum_{x', theta'} W(x - x') src(x', theta') dx dy dtheta
-//             = rho_tilde(x), the same in every theta plane, with src = phi
+//   3D build: dst(x, theta) = sum_x' W(x - x') rho(x') dx dy = rho_tilde(x), the
+//             same in every theta plane, with src = phi and
+//             rho = sum_theta phi dtheta: phi is integrated over theta first
+//             and the FFT convolution is done on the x-y plane only
 //
 // W is sampled at the cell offsets (with periodic wrap) and normalized so that
 // sum W dx dy = 1 exactly; the mean of rho_tilde is then the mean of rho.
@@ -39,6 +40,11 @@ public:
 private:
 
     amrex::Geometry m_geom;
+    amrex::BoxArray m_ba;                 // layout of the fields passed to apply
+    amrex::DistributionMapping m_dm;
+    amrex::BoxArray m_flat_ba;            // 3D: the boxes of m_ba flattened to z = 0
+    amrex::BoxArray m_plane_ba;           // layout of the x-y plane the FFT works on
+    amrex::DistributionMapping m_plane_dm;
     std::unique_ptr<amrex::FFT::R2C<amrex::Real, amrex::FFT::Direction::forward>>  m_fwd;
     std::unique_ptr<amrex::FFT::R2C<amrex::Real, amrex::FFT::Direction::backward>> m_bwd;
     amrex::MultiFab  m_tmp;

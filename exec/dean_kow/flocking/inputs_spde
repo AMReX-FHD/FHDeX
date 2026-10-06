@@ -11,9 +11,12 @@ dorand          = 1        # 0: deterministic mean-field equation
 # flux is skew-symmetric and reproduces the particle (Poisson) fluctuations;
 # upwind and MUSCL add numerical diffusion with no matching noise, which
 # damps the fluctuations (about 0.5x in phi and 0.05x in rho). Centred needs
-# time_integrator = 1 and is not positivity preserving.
+# time_integrator 1 or 2 and is not positivity preserving.
 adv_order       = 0
 limiter         = 0        # MUSCL limiter: 0 minmod, 1 MC
-time_integrator = 1        # 0 Euler-Maruyama, 1 Heun for the deterministic part
-adv.cfl         = 0.25     # fraction of the upwind positivity limit
+# 0 Euler-Maruyama, 1 Heun for the deterministic part, 2 stochastic RK3.
+# RK3 is stable for centred advection; at cfl 0.5 its fluctuations are exactly
+# Poisson, at cfl 1 the rho variance is about 4% low.
+time_integrator = 2
+adv.cfl         = 0.5      # fraction of the upwind positivity limit
 diag_int        = 10       # print mass and min phi every n steps

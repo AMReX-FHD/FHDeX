@@ -18,6 +18,10 @@ code (ρ in the write-up):
 φ is normalized to integrate to 1 over [0, Lx) × [0, Ly) × [0, 2π). All
 directions are periodic.
 
+`MODEL.md` (and the LaTeX version `MODEL.tex`) describes the model in more
+detail: the particle and SPDE formulations, the diffusive limit, the linear
+stability of the uniform state, and the choice of sensing kernel.
+
 ## Two builds from one directory
 
 | Build | What | Executable |
@@ -45,7 +49,7 @@ resolved relative to the directory the code is run from.
 | `FlockingParams.H` | both | `FlockingParams`, `read_flocking_params`, the initial density `flocking_ic` |
 | `main.cpp` | both | driver: the SPDE for DIM = 3, the particles for DIM = 2 |
 | `AmrCoreFlock.H/.cpp` | 3 | single-level `AmrCore` class: setup, time loop, time step, plotfiles, checkpoint/restart |
-| `AdvancePhiAtLevel.cpp` | 3 | one time step (Euler–Maruyama or Heun) |
+| `AdvancePhiAtLevel.cpp` | 3 | one time step (Euler–Maruyama, Heun or stochastic RK3) |
 | `myfunc.H/.cpp` | 3 | deterministic fluxes, noise flux, flux update |
 | `mykernel.H` | 3 | face-flux and update kernels |
 | `FlockPC.H/.cpp` | 2 | particle container (NeighborParticleContainer with a θ attribute): sampling, Euler–Maruyama step, θ histogram |
@@ -70,6 +74,19 @@ The fluxes are finite-volume fluxes on cell faces:
 - 0: Euler–Maruyama.
 - 1: Heun for the deterministic fluxes, with the noise built once from φⁿ and
   used in both stages.
+- 2: the three-stage stochastic SSP-RK3 of Delong, Griffith, Vanden-Eijnden
+  and Donev (Phys. Rev. E 87, 033302, 2013):
+  - stages: u₁ = φⁿ + Δt·R(φⁿ, W₁), u₂ = ¾φⁿ + ¼(u₁ + Δt·R(u₁, W₂)),
+    φⁿ⁺¹ = ⅓φⁿ + ⅔(u₂ + Δt·R(u₂, W₃));
+  - noise: Wᵢ = W_A + βᵢW_B, from two unit-variance fields drawn once per step,
+    with β₁ = (2√2 + √3)/5, β₂ = (−4√2 + 3√3)/5, β₃ = (√2 − 2√3)/10, so that
+    W₁/6 + W₂/6 + 2W₃/3 = W_A;
+  - √φ and ρ̃ are evaluated at each stage.
+
+  It is third order for the deterministic part (measured 3.04) and stable for
+  centred advection up to |λΔt| = √3. At cfl = 0.5 the fluctuations are exactly
+  Poisson; at cfl = 1 the ρ variance is about 4% low and at 1.4 about 6% low.
+  On `inputs_mips` at cfl = 1 it is 2.4× faster than Heun at cfl = 0.25.
 
 **Time step:** dt = `adv.cfl` / (v(1/dx + 1/dy) + 2D/dθ²). This is the
 positivity limit of the upwind scheme at cfl = 1.
@@ -84,7 +101,7 @@ positivity limit of the upwind scheme at cfl = 1.
 
 | Scheme | Advection accuracy (blob, L1 error order) | Fluctuations from a uniform start (var / Poisson) | Positivity |
 | --- | --- | --- | --- |
-| centred + Heun | 2nd (1.99) | φ: 1.00, ρ: 1.00 | not guaranteed |
+| centred + Heun (cfl 0.25) or RK3 (cfl 0.5) | 2nd (1.99) | φ: 1.00, ρ: 1.00 | not guaranteed |
 | upwind + Euler–Maruyama | 1st (0.86) | φ: 0.49, ρ: 0.04 | yes, cfl ≤ 1 |
 | MUSCL (MC) + Heun | 2nd (1.90) | φ: 0.42, ρ: 0.07 | not guaranteed with Heun |
 
@@ -93,7 +110,8 @@ covariance, because the advection is skew-adjoint. Only the centred flux keeps
 that property after discretization. Upwind and limited fluxes add numerical
 diffusion without matching noise, which damps the fluctuations, the spatial
 density ρ above all. So:
-- **Stochastic runs:** use centred + Heun, the default in `inputs_spde`.
+- **Stochastic runs:** use centred advection with RK3, the default in `inputs_spde`
+  (cfl 0.5) and `inputs_mips` (cfl 1).
 - **Deterministic mean-field runs with sharp features:** use MUSCL or upwind
   (`inputs_compare_det` uses MUSCL + Heun).
 - **Not allowed:** centred advection with forward Euler, which the code rejects.
@@ -209,7 +227,7 @@ eigenvalue of the linearized kinetic equation, and the SPDE matches that to 1%
 | `dorand` | 1 | 3 | 0 turns the noise off, giving the deterministic mean-field equation |
 | `adv_order` | 1 | 3 | 0 centred, 1 upwind, 2 MUSCL (`inputs_spde` uses 0) |
 | `limiter` | 0 | 3 | MUSCL limiter: 0 minmod, 1 MC |
-| `time_integrator` | 0 | 3 | 0 Euler–Maruyama, 1 Heun (`inputs_spde` uses 1) |
+| `time_integrator` | 0 | 3 | 0 Euler–Maruyama, 1 Heun, 2 stochastic RK3 (`inputs_spde` and `inputs_mips` use 2) |
 | `diag_int` | 1 | 3 | Print the mass and min φ every n steps |
 | `amr.chk_int`, `amr.chk_file`, `amr.restart` | off | 3 | Checkpoint and restart |
 | `n_theta_bins` | ntheta | 2 | Number of θ histogram bins |

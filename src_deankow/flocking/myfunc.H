@@ -20,6 +20,12 @@ void compute_stoch_flux (amrex::MultiFab const& phi, amrex::MultiFab& sflux_z,
                          amrex::Geometry const& geom, FlockingParams const& fp,
                          amrex::Real dt);
 
+// Stochastic theta flux from phi for a given unit-variance noise field w on
+// the theta faces: sflux_z = sqrt(2 D/(N dV dt)) w sqrt(phi_face).
+void compute_stoch_flux_given (amrex::MultiFab const& phi, amrex::MultiFab const& w,
+                               amrex::MultiFab& sflux_z, amrex::Geometry const& geom,
+                               FlockingParams const& fp, amrex::Real dt);
+
 // phi_new = phi_old - dt * div(flux)
 void apply_fluxes (amrex::MultiFab const& phi_old, amrex::MultiFab& phi_new,
                  amrex::Array<amrex::MultiFab, AMREX_SPACEDIM> const& flux,
