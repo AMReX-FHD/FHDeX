@@ -160,7 +160,8 @@ speed function s, kernel W and grid:
 | 3 bump | (1 − r²/R²)₊² | 48J₃(kR)/(kR)³ | C¹, compact; best for the pair sum |
 
 On the grid, W is sampled at the cell offsets and normalized so that
-Σ W dx dy = 1, which makes the mean of ρ̃ exactly ρ̄. `DensityConv.H/.cpp`
+Σ W dx dy = 1, which makes the mean of ρ̃ exactly ρ̄. The exact discrete steps
+are in `MODEL.md` (section 5, "How ρ̃ is computed in the SPDE"). `DensityConv.H/.cpp`
 does the periodic FFT convolution, in the same pattern as the `U ⋆ φ`
 convolution in `interaction`:
 - **SPDE:** W is replicated over θ, so convolving φ gives ρ̃ in every θ plane.

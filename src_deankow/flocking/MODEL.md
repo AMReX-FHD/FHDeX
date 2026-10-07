@@ -278,12 +278,54 @@ stability depends on W only through Ŵ(k). Four kernels are available
 - **θ faces:** −D ∂θφ (centred), plus the noise √(2Dφ_face/(N ΔV Δt))·Z,
   with Z ~ N(0, 1).
 
-**ρ̃:** a periodic FFT convolution of φ with W, replicated over θ
-(`DensityConv`): φ is integrated over θ and convolved on the x–y plane by a 2D
-FFT. It is recomputed for each stage of the time integrator. The options are
-Euler–Maruyama (`time_integrator = 0`), Heun (1), or the stochastic SSP-RK3 of
-Delong et al. (2013) (2). RK3 is stable for centred advection and third order
-for the deterministic part.
+**How ρ̃ is computed in the SPDE** (`DensityConv.cpp`). In the continuum,
+ρ̃(x) = ∫ W(x − x′) ρ(x′) dx′ with ρ = ∫ φ dθ. On the grid, with
+nx × ny × nθ cells, Δθ = 2π/nθ, and φ normalized so that
+Σ φ ΔxΔyΔθ = 1, the steps are:
+
+1. **Integrate over θ.** ρ_ij = Σ_k φ_ijk Δθ, the spatial density on the
+   x–y plane (`ReduceToPlaneMF`, times Δθ).
+2. **Sample and normalize the kernel.** For each cell offset (a, b), with
+   a = −nx/2, …, nx/2 − 1 and b likewise (the nearest periodic image):
+
+     w_ab = W_shape(√((aΔx)² + (bΔy)²)),  W_ab = w_ab / (Σ_a′b′ w_a′b′ ΔxΔy)
+
+   W_shape is the unnormalized shape of `flock.kernel_type`, with the
+   Gaussian cut off at 4R. The discrete normalization Σ W_ab ΔxΔy = 1
+   replaces the continuous one. The code prints the ratio of the two at
+   startup; it is 1 when R ≳ 4Δx. This is done once, at setup, and the 2D FFT
+   Ŵ_d of W_ab is stored.
+3. **Convolve periodically.**
+
+     ρ̃_ij = Σ_a Σ_b W_ab ρ_(i−a mod nx),(j−b mod ny) ΔxΔy
+
+   This is a circular convolution, done as ρ̃ = IFFT(Ŵ_d · FFT(ρ)) with
+   real-to-complex 2D FFTs on the x–y plane. The inverse is scaled by
+   ΔxΔy/(nx ny). In Fourier space, ρ̃̂(k) = Ŵ_d(k) ρ̂(k), with Ŵ_d(0) = 1.
+4. **Copy into every θ plane.** ρ̃_ijk = ρ̃_ij for all k. The periodic ghost
+   cells (one layer) are then filled.
+5. **Face values for the speed.** On the x face (i − ½, j, k):
+
+     u = ρ̃_(i−½),j / ρ̄,  ρ̃_(i−½),j = ½(ρ̃_(i−1),j + ρ̃_ij),  ρ̄ = 1/(Lx Ly)
+
+   The face velocity is v₀ s(u) cos θ_k, and the y faces are the same with
+   sin θ_k. ρ̃ is averaged before s is applied, not s(ρ̃) after.
+
+**Properties:**
+- **Mass:** the discrete normalization makes the mean of ρ̃ exactly the mean
+  of ρ, which is ρ̄.
+- **No θ dependence:** W does not depend on θ, so only the θ-integral of φ
+  enters. A 2D FFT pair per evaluation replaces a 3D one.
+- **Kernel range:** the support of W (4R for the Gaussian, R for the others)
+  must be below L/2, so that each offset has a single periodic image.
+
+**When ρ̃ is recomputed:** from the current state at every stage of the time
+integrator. It is computed from φⁿ for Euler–Maruyama (`time_integrator = 0`);
+from φⁿ and then the predictor for Heun (1); and from φⁿ, u₁ and u₂ for the
+stochastic SSP-RK3 of Delong et al. (2013) (2). RK3 is stable for centred
+advection and third order for the deterministic part. With `speed_type = 0`
+(s ≡ 1), ρ̃ is not needed and is skipped during the step. It is still
+computed from the current φ for the `rhot` plotfile component.
 
 **Time step:** dt = cfl/(v₀(1/dx + 1/dy) + 2D/dθ²). This is the positivity
 limit of upwind with forward Euler; v₀ bounds the speed because s ≤ 1. The

@@ -343,13 +343,71 @@ heading. The fluxes are:
         $\sqrt{2D\phi_{\mathrm{face}}/(N\,\Delta V\,\Delta t)}\,Z$ with
         $Z\sim N(0,1)$.
 \end{itemize}
-$\rt$ is a periodic FFT convolution of $\phi$ with $W$, replicated over
-$\theta$ (\code{DensityConv}): $\phi$ is integrated over $\theta$ and convolved on
-the $x$--$y$ plane by a 2D FFT. It is recomputed for each stage of the time
-integrator. The options are Euler--Maruyama (\code{time\_integrator = 0}),
-Heun (1), or the stochastic SSP-RK3 of Delong, Griffith, Vanden-Eijnden and
-Donev (2013) (2). RK3 is stable for centred advection and third order for the
-deterministic part.
+\subparagraph{How $\rt$ is computed in the SPDE} (\code{DensityConv.cpp}).
+In the continuum $\rt(\mathbf x)=\int W(\mathbf x-\mathbf x')\rho(\mathbf x')\,d\mathbf x'$
+with $\rho=\int\phi\,d\theta$. On a grid of $n_x\times n_y\times n_\theta$ cells,
+with $\Delta\theta=2\pi/n_\theta$ and $\phi$ normalized so that
+$\sum\phi\,\Delta x\Delta y\Delta\theta=1$:
+\begin{enumerate}
+  \item \textbf{Integrate over $\theta$:}
+        $\rho_{ij}=\sum_k\phi_{ijk}\,\Delta\theta$ (\code{ReduceToPlaneMF}).
+  \item \textbf{Sample and normalize the kernel.} For cell offsets $(a,b)$,
+        $a=-n_x/2,\dots,n_x/2-1$ and likewise $b$ (the nearest periodic
+        image),
+        \begin{equation}
+          w_{ab}=W_{\mathrm{shape}}\Bigl(\sqrt{(a\Delta x)^2+(b\Delta y)^2}\Bigr),\qquad
+          W_{ab}=\frac{w_{ab}}{\sum_{a'b'}w_{a'b'}\,\Delta x\Delta y},
+        \end{equation}
+        with $W_{\mathrm{shape}}$ the unnormalized shape of
+        \code{flock.kernel\_type} (the Gaussian cut off at $4R$). The discrete
+        normalization $\sum W_{ab}\Delta x\Delta y=1$ replaces the continuous
+        one. The code prints the ratio of the two at startup; it is 1 when
+        $R\gtrsim4\Delta x$. This is done once, at setup, and the 2D FFT
+        $\Wh_d$ of $W_{ab}$ is stored.
+  \item \textbf{Convolve periodically:}
+        \begin{equation}
+          \rt_{ij}=\sum_{a}\sum_{b}W_{ab}\,
+          \rho_{(i-a)\bmod n_x,\,(j-b)\bmod n_y}\,\Delta x\Delta y ,
+        \end{equation}
+        a circular convolution done as
+        $\rt=\mathrm{IFFT}\bigl(\Wh_d\cdot\mathrm{FFT}(\rho)\bigr)$ with
+        real-to-complex 2D FFTs on the $x$--$y$ plane, the inverse scaled by
+        $\Delta x\Delta y/(n_xn_y)$. In Fourier space
+        $\hat{\rt}(\mathbf k)=\Wh_d(\mathbf k)\hat\rho(\mathbf k)$, with
+        $\Wh_d(0)=1$.
+  \item \textbf{Copy into every $\theta$ plane:} $\rt_{ijk}=\rt_{ij}$ for all
+        $k$, and fill the periodic ghost cells (one layer).
+  \item \textbf{Face values for the speed.} On the $x$ face $(i-\tfrac12,j,k)$,
+        \begin{equation}
+          u=\frac{\rt_{i-1/2,j}}{\rb},\qquad
+          \rt_{i-1/2,j}=\tfrac12\bigl(\rt_{i-1,j}+\rt_{ij}\bigr),\qquad
+          \rb=\frac1{L_xL_y},
+        \end{equation}
+        and the face velocity is $v_0\,s(u)\cos\theta_k$; the $y$ faces are
+        the same with $\sin\theta_k$. $\rt$ is averaged before $s$ is applied.
+\end{enumerate}
+Properties:
+\begin{itemize}[nosep]
+  \item the discrete normalization makes the mean of $\rt$ exactly the mean of
+        $\rho$, which is $\rb$;
+  \item $W$ does not depend on $\theta$, so only the $\theta$-integral of $\phi$
+        enters, and a 2D FFT pair per evaluation replaces a 3D one;
+  \item the support of $W$ ($4R$ for the Gaussian, $R$ for the others) must be
+        below $L/2$, so that each offset has a single periodic image.
+\end{itemize}
+
+\subparagraph{When $\rt$ is recomputed.} From the current state at every stage
+of the time integrator:
+\begin{itemize}[nosep]
+  \item from $\phi^n$ for Euler--Maruyama (\code{time\_integrator = 0});
+  \item from $\phi^n$ and then the predictor for Heun (1);
+  \item from $\phi^n$, $u_1$ and $u_2$ for the stochastic SSP-RK3 of Delong,
+        Griffith, Vanden-Eijnden and Donev (2013) (2). RK3 is stable for
+        centred advection and third order for the deterministic part.
+\end{itemize}
+With \code{speed\_type = 0} ($s\equiv1$), $\rt$ is not needed and is skipped
+during the step. It is still computed from the current $\phi$ for the
+\code{rhot} plotfile component.
 
 The time step is $\Delta t = \mathrm{cfl}/\bigl(v_0(1/\Delta x+1/\Delta y)
 + 2D/\Delta\theta^2\bigr)$, the positivity limit of upwind with forward
