@@ -147,9 +147,9 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                // Get the wavevector
                int ki = i;
                int kj = j;
-               if (j >= ny/2) kj = ny - j;
+               if (j > ny/2) kj = j - ny;
                int kk = k;
-               if (k >= nz/2) kk = nz - k;
+               if (k > nz/2) kk = k - nz;
 
                // Gradient Operators
                GxR = (cos(2.0*M_PI*ki/nx)-1.0)/dx[0];
