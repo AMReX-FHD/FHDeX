@@ -221,6 +221,7 @@ option & default & meaning \\
 \code{-{}-top-modes K} & 12 & \code{order.txt} \code{top\_share}: largest modes on the $S(k)$ peak shell \\
 \code{-{}-sf-full} & off & write the full $S(\mathbf k)$, averaged over the window, as the plotfile \code{sf\_full\_avg} \\
 \code{-{}-sf-full-per-frame} & off & also write the full $S(\mathbf k)$ of each frame as \code{sf\_full\_<step>} \\
+\code{-{}-cluster-plotfiles} & off & for each frame in \code{-{}-t-range}, write \code{plt\_clusters\_<step>} marking the cluster cells \\
 \code{-o DIR} & \code{cluster\_diag\_3d} & output directory \\
 \bottomrule
 \end{tabularx}
@@ -242,6 +243,10 @@ with a \code{zc} column added:
         \code{-{}-sf-full-per-frame}): the full $S(\mathbf k)$ as a plotfile on
         the 3D $k$ grid, $k=0$ at the centre, components \code{S} and
         \code{log10S} (33~MB at $128^3$)
+  \item \code{plt\_clusters\_<step>} (with \code{-{}-cluster-plotfiles}): for
+        each frame in \code{-{}-t-range}, \code{<var>\_masked} ($-1$ in cells
+        of kept clusters, the value of \code{-{}-var} elsewhere) and
+        \code{cluster\_id} (the tracked id, 0 outside), on the source grid
 \end{itemize}
 
 \section{Checks}

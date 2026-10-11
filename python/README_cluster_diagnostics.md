@@ -209,6 +209,7 @@ largest modes (default 6).
 | `--top-modes K` | 6 | `order.txt` top_share: number of largest modes on the S(k) peak shell |
 | `--sf-full` | off | Write the full S(**k**) on the k grid, averaged over the frames in `--t-range`, as the plotfile `sf_full_avg` |
 | `--sf-full-per-frame` | off | Also write the full S(**k**) of each frame in the window as `sf_full_<step>` |
+| `--cluster-plotfiles` | off | For each frame in `--t-range`, write the plotfile `plt_clusters_<step>` marking the cluster cells (see below) |
 | `-o DIR`, `--output DIR` | `cluster_diag` | Output directory, created if needed. Existing files are overwritten. |
 
 The script also prints one line per frame with the cluster count, the mass
@@ -362,6 +363,24 @@ the k grid, in the same layout as the in-code `plt_SF_mag`:
 Averaging over frames is fine as long as the crystal does not rotate, since S
 does not change when the pattern translates. Shell-averaging `sf_full_avg`
 reproduces `sf.txt`.
+
+### plt_clusters_<step>: cluster cells marked on the grid
+
+With `--cluster-plotfiles`, each frame in `--t-range` gets a plotfile on the
+same grid, geometry, time and step as its source plotfile. It has two
+components:
+
+| Component | Value |
+| --- | --- |
+| `<var>_masked` (e.g. `phi0_masked`) | −1 in every cell of a kept cluster; elsewhere the value of `--var` |
+| `cluster_id` | the tracked cluster id (as in `clusters.txt`) in cluster cells; 0 elsewhere |
+
+- **What counts as a cluster cell:** only cells of clusters that pass
+  `--mmin`. Cells above the threshold in lighter regions keep their density.
+- **Viewing:** since φ ≥ 0, a colour map starting at −1, or a contour at
+  −0.5, shows the clusters directly over the background density.
+- **Size:** 16 bytes per cell (33 MB at 128³), so restrict frames with
+  `--t-range` or `--every`.
 
 ## Example
 
