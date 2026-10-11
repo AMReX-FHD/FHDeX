@@ -256,6 +256,7 @@ Option & Default & Meaning \\
 \code{-{}-top-modes K} & 6 & \code{order.txt} \code{top\_share}: largest modes on the $S(k)$ peak shell \\
 \code{-{}-sf-full} & off & write the full $S(\mathbf k)$, averaged over the window, as the plotfile \code{sf\_full\_avg} \\
 \code{-{}-sf-full-per-frame} & off & also write the full $S(\mathbf k)$ of each frame as \code{sf\_full\_<step>} \\
+\code{-{}-cluster-plotfiles} & off & for each frame in \code{-{}-t-range}, write \code{plt\_clusters\_<step>} marking the cluster cells \\
 \code{-o DIR}, \code{-{}-output DIR} & \code{cluster\_diag} & output directory, created if needed; existing files are overwritten \\
 \bottomrule
 \end{tabularx}
@@ -413,6 +414,22 @@ plotfile on the $k$ grid, in the layout of the in-code \code{plt\_SF\_mag}.
   \item \textbf{Size:} 16 bytes per cell (33~MB at $128^3$).
 \end{itemize}
 Shell-averaging \code{sf\_full\_avg} reproduces \code{sf.txt}.
+
+\subsection*{\texorpdfstring{\code{plt\_clusters\_<step>}: cluster cells marked on the grid}{plt_clusters plotfiles}}
+With \code{-{}-cluster-plotfiles}, each frame in \code{-{}-t-range} gets a
+plotfile on the grid, geometry, time and step of its source plotfile, with two
+components:
+\begin{itemize}[nosep]
+  \item \code{<var>\_masked} (e.g.\ \code{phi0\_masked}): $-1$ in every cell of
+        a kept cluster, and the value of \code{-{}-var} elsewhere;
+  \item \code{cluster\_id}: the tracked id of \code{clusters.txt} in cluster
+        cells, and 0 elsewhere.
+\end{itemize}
+Only cells of clusters that pass \code{-{}-mmin} are marked; cells above the
+threshold in lighter regions keep their density. Since $\phi\ge0$, a colour
+map starting at $-1$, or a contour at $-0.5$, shows the clusters over the
+background. Each file is 16 bytes per cell (33~MB at $128^3$), so restrict the
+frames with \code{-{}-t-range} or \code{-{}-every}.
 
 \section{Example}
 

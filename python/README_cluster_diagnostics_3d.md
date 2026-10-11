@@ -233,6 +233,7 @@ shell in its `--top-modes` largest modes (default 12).
 | `--top-modes K` | 12 | `order.txt` top_share: number of largest modes on the S(k) peak shell |
 | `--sf-full` | off | Write the full S(**k**) on the k grid, averaged over the frames in `--t-range`, as the plotfile `sf_full_avg` |
 | `--sf-full-per-frame` | off | Also write the full S(**k**) of each frame in the window as `sf_full_<step>` |
+| `--cluster-plotfiles` | off | For each frame in `--t-range`, write the plotfile `plt_clusters_<step>` marking the cluster cells (see below) |
 | `-o DIR`, `--output DIR` | `cluster_diag_3d` | output directory, created if needed; files are overwritten |
 
 ## Output files
@@ -255,6 +256,11 @@ in the plotfile's units, and masses are Σφ ΔV, a fraction of the total.
   `t step nclusters q4 q6 Q4_global Q6_global kpeak nmodes PR top_share`. The
   columns q4 and q6 are local means, Q4_global and Q6_global are global, and
   the S(k) columns are as in 2D.
+- **`plt_clusters_<step>`** (with `--cluster-plotfiles`): for each frame in
+  `--t-range`, a plotfile on the source grid with `<var>_masked`, which is −1
+  in cells of kept clusters and the value of `--var` elsewhere, and
+  `cluster_id`, the tracked id (0 outside clusters). It is 33 MB at 128³; see
+  the 2D README.
 - **`sf_full_avg`, `sf_full_<step>`** (with `--sf-full` or
   `--sf-full-per-frame`): the full S(**k**) as a plotfile on the 3D k grid,
   with k = 0 at the centre and components `S` and `log10S`. It is 33 MB at
