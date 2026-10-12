@@ -1,0 +1,480 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\e}{\mathbf{e}}
+\newcommand{\rt}{\tilde\rho}
+\newcommand{\rb}{\bar\rho}
+\newcommand{\Wh}{\hat W}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\emergencystretch=3em
+
+\title{The flocking model in \code{src\_deankow/flocking}:\\
+formulation, stability and sensing kernels}
+\author{FHDeX}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent This note describes the model solved by the codes in
+\code{src\_deankow/flocking}:
+\begin{itemize}[nosep]
+  \item active Brownian particles moving at a speed that can depend on the
+        local smoothed density;
+  \item the Dean--Kawasaki SPDE for their empirical density;
+  \item the linear stability of the uniform state;
+  \item the choice of sensing kernel.
+\end{itemize}
+\code{README.md} in the same directory covers the code layout, inputs and
+numerical checks in detail. The density is written $\phi$ in the code; it is
+$\rho$ in \code{src\_deankow/flocking.pdf}.
+
+\section{Particle model}
+
+$N$ particles move in the periodic box $[0,L_x)\times[0,L_y)$. Each particle
+has a position $\mathbf{X}_i$ and a heading $\theta_i\in[0,2\pi)$:
+\begin{equation}
+  d\mathbf{X}_i = v(\mathbf{X}_i)\,\e(\theta_i)\,dt, \qquad
+  \e(\theta) = (\cos\theta, \sin\theta), \qquad
+  d\theta_i = \sqrt{2D}\,dW_i ,
+\end{equation}
+with independent standard Brownian motions $W_i$ and rotational diffusivity
+$D$ (\code{diff\_coeff}). The speed is
+\begin{equation}
+  v(\mathbf{x}) = v_0\, s\bigl(\rt(\mathbf{x})/\rb\bigr), \qquad
+  \rt(\mathbf{x}) = \frac{1}{N}\sum_j W(\mathbf{x}-\mathbf{X}_j), \qquad
+  \int W\,dA = 1 ,
+\end{equation}
+with self-propulsion speed $v_0$ (\code{flock.speed}), a dimensionless speed
+function $s(u)\le 1$, a sensing kernel $W$ of range $R$, and
+$\rb = 1/(L_xL_y)$ the mean of $\rt$.
+\begin{itemize}
+  \item With $s\equiv 1$ the particles are independent active Brownian
+        particles.
+  \item With $s$ decreasing they slow down in crowded regions, which can lead
+        to motility-induced phase separation (MIPS).
+\end{itemize}
+Positions are moved deterministically given the headings; all the noise is in
+$\theta$. The coupling is mean-field: each particle contributes $W/N$ to
+$\rt$.
+
+\paragraph{Scales.}
+\begin{itemize}
+  \item Persistence time $1/D$: a particle loses memory of its heading on this
+        time.
+  \item Persistence length $\ell_p = v/D$: the distance travelled before the
+        heading decorrelates.
+  \item Long-time diffusivity $D_{\mathrm{eff}} = v^2/(2D)$ in 2D: on scales
+        $\gg\ell_p$, a particle at constant speed $v$ random-walks with this
+        diffusivity.
+\end{itemize}
+The dimensionless groups are $L/\ell_p$, $R/\ell_p$, the speed-function
+parameter $\lambda$, and $N$, which sets the size of fluctuations.
+
+\section{Phase-space density}
+
+Let
+\begin{equation}
+  \phi(\mathbf{x},\theta,t) = \frac1N\sum_i
+     \delta\bigl(\mathbf{x}-\mathbf{X}_i(t)\bigr)\,\delta\bigl(\theta-\theta_i(t)\bigr),
+  \qquad \iint\phi\,d\theta\,d\mathbf{x} = 1 ,
+\end{equation}
+with spatial density $\rho = \int\phi\,d\theta$, polarization
+$\mathbf{p} = \int\e(\theta)\,\phi\,d\theta$, and smoothed density
+$\rt = W\star\rho$. In the code, $\phi$ is a cell-averaged field on a 3D grid
+$(x,y,\theta)$, with $\theta$ the $z$ direction.
+
+\subsection{Mean-field (kinetic) equation}
+As $N\to\infty$, $\phi$ obeys the nonlinear Fokker--Planck equation
+\begin{equation}
+  \partial_t\phi = D\,\partial_{\theta\theta}\phi
+     - \nabla_{\mathbf{x}}\cdot\bigl(v(\rt)\,\e(\theta)\,\phi\bigr),
+  \qquad v(\rt) = v_0\,s(\rt/\rb).
+  \label{eq:kinetic}
+\end{equation}
+
+\subsection{Dean--Kawasaki SPDE}
+For finite $N$, Itô's formula applied to the empirical measure gives,
+formally (Dean 1996; Müller, von Renesse and Zimmer 2025),
+\begin{equation}
+  d\phi = D\,\partial_{\theta\theta}\phi\,dt
+    - \nabla_{\mathbf{x}}\cdot\bigl(v(\rt)\,\e(\theta)\,\phi\bigr)\,dt
+    + N^{-1/2}\,\partial_\theta\bigl(\sqrt{2D\phi}\,dB\bigr),
+  \label{eq:dk}
+\end{equation}
+where $B$ is space--angle--time white noise. For a test function
+$f(\mathbf{x},\theta)$,
+\begin{equation}
+  d\langle\phi,f\rangle = \bigl\langle\phi,\ v\,\e\cdot\nabla_{\mathbf{x}}f
+      + D\,\partial_{\theta\theta}f\bigr\rangle\,dt
+    + \frac1N\sum_i\sqrt{2D}\,\partial_\theta f(\mathbf{X}_i,\theta_i)\,dW_i ,
+\end{equation}
+and the martingale term has quadratic variation
+$(2D/N)\langle\phi,(\partial_\theta f)^2\rangle\,dt$. That is exactly the
+conservative noise in \eqref{eq:dk}.
+\begin{itemize}
+  \item There is no noise in $\mathbf{x}$, because the spatial motion is
+        deterministic given the headings.
+  \item The interaction adds no noise: it acts only through $v(\rt)$, itself
+        a functional of $\phi$.
+\end{itemize}
+The noise conserves mass at each spatial point: it moves probability in
+$\theta$ only.
+
+\subsection{Moment equations and the diffusive limit}
+The $\theta$-moments of \eqref{eq:kinetic} are
+\begin{equation}
+  \partial_t\rho = -\nabla\cdot(v\,\mathbf{p}), \qquad
+  \partial_t\mathbf{p} = -D\,\mathbf{p}
+     - \nabla\cdot\Bigl(v\int\e\,\e^{\mathsf T}\phi\,d\theta\Bigr).
+\end{equation}
+On length scales $\gg\ell_p$ and time scales $\gg 1/D$, the polarization
+relaxes quickly and $\int\e\e^{\mathsf T}\phi\,d\theta\approx(\rho/2)\,I$.
+Then $\mathbf{p}\approx-\nabla(v\rho)/(2D)$ and
+\begin{equation}
+  \partial_t\rho = \nabla\cdot\Bigl(\frac{v}{2D}\,\nabla(v\rho)\Bigr).
+\end{equation}
+For a local speed $v(\rho)$ this is
+\begin{equation}
+  \partial_t\rho = \nabla\cdot\Bigl(D_{\mathrm{eff}}(\rho)
+     \Bigl[1+\frac{d\ln v}{d\ln\rho}\Bigr]\nabla\rho\Bigr),
+  \qquad D_{\mathrm{eff}}(\rho) = \frac{v(\rho)^2}{2D}.
+\end{equation}
+The collective diffusivity turns negative when $d\ln v/d\ln\rho<-1$. That is
+the spinodal condition for MIPS (Tailleur and Cates 2008; Cates and Tailleur
+2015). Particles accumulate where they are slow, and if they slow down fast
+enough with density, the accumulation runs away.
+
+\section{Linear stability of the uniform state}
+
+The uniform state $\phi_0 = \rb/(2\pi)$ is stationary for any $s$ and $W$.
+With $u = \rt/\rb$, define at the mean density $u=1$
+\begin{equation}
+  v_1 = v_0\,s(1), \qquad
+  g = \left.\frac{d\ln s}{d\ln u}\right|_{u=1} = \frac{s'(1)}{s(1)} .
+\end{equation}
+Perturbing $\phi=\phi_0+\delta\phi$ gives $\delta\rt = W\star\delta\rho$ and
+$\delta v = v_1\,g\,\delta\rt/\rb$.
+
+\subsection{Exact (kinetic) dispersion relation}
+Take a mode $e^{i\mathbf{k}\cdot\mathbf{x}}$ with $\mathbf{k}$ along $x$, and
+write $\delta\phi = \sum_m a_m e^{im\theta}$, so that $\delta\rho = 2\pi a_0$.
+The linearized equation is
+\begin{equation}
+  \partial_t\delta\phi = D\,\partial_{\theta\theta}\delta\phi
+     - ik\,v_1\cos\theta\,\bigl[\delta\phi + g\,\Wh(k)\,a_0\bigr],
+\end{equation}
+with $\Wh$ the 2D Fourier transform of $W$. In harmonics,
+\begin{align}
+  \partial_t a_0 &= -\tfrac{ikv_1}{2}\,(a_1+a_{-1}),\\
+  \partial_t a_{\pm1} &= -D\,a_{\pm1}
+      - \tfrac{ikv_1}{2}\bigl[(1+g\Wh(k))\,a_0 + a_{\pm2}\bigr],\\
+  \partial_t a_m &= -Dm^2 a_m - \tfrac{ikv_1}{2}\,(a_{m-1}+a_{m+1}),
+      \qquad |m|\ge2 .
+\end{align}
+The interaction enters only through the $m=0\to\pm1$ coupling, multiplied by
+$1+g\Wh(k)$. The growth rate $\sigma(k)$ is the eigenvalue of this
+tridiagonal system with the largest real part; it can also be written as a
+continued fraction. The SPDE resolves $\theta$ with $n_\theta$ cells, so the
+code's exact rate is the leading eigenvalue of the same operator with
+$\partial_{\theta\theta}$ replaced by the $n_\theta$-point second difference.
+
+\subsection{Diffusive limit}
+For $k\ell_1\ll1$, with $\ell_1 = v_1/D$, the harmonics with $|m|\ge2$ are
+negligible and $a_{\pm1}\approx-(ikv_1/2D)(1+g\Wh)\,a_0$. That gives
+\begin{equation}
+  \boxed{\ \sigma(k) = -D_{\mathrm{eff}}\,k^2\,\bigl(1+g\,\Wh(k)\bigr),
+  \qquad D_{\mathrm{eff}} = \frac{v_1^2}{2D}\ }
+\end{equation}
+which is the Fourier form of the diffusive limit above with the nonlocal
+speed. The uniform state is unstable at $k$ when $1+g\Wh(k)<0$.
+\begin{itemize}
+  \item \textbf{Onset.} $\Wh(0)=1$, so long waves go unstable first. The
+        onset is $g=-1$: $d\ln v/d\ln\rho=-1$ at the mean density.
+  \item \textbf{Unstable band.} For a decreasing $\Wh$ (Gaussian) the band is
+        $0<k<k_c$ with $\Wh(k_c)=-1/g$. The sensing range sets the
+        short-wavelength cutoff, $k_c\sim1/R$.
+  \item \textbf{Fastest mode.} $\sigma$ is largest where
+        $k^2(-1-g\Wh(k))$ peaks. That sets the initial domain spacing, which
+        later coarsens in the nonlinear regime.
+  \item \textbf{Mass conservation.} $\sigma\to0$ as $k\to0$, and the $k=0$
+        mode (total mass) is neutral.
+  \item \textbf{Kinetic corrections.} At $k\ell_1\approx0.5$--$1$ the
+        diffusive formula overestimates the growth, because finite
+        persistence lags the response. The startup printout reports the
+        diffusive rates and $k\ell_p$ for the first four box modes.
+\end{itemize}
+
+\subsection{Speed functions}
+\begin{center}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\code{speed\_type} & $s(u)$ & $s(1)$ & $g$ & long-wave instability \\
+\midrule
+0 & $1$ & $1$ & $0$ & never (independent particles) \\
+1 & $e^{-\lambda u}$ & $e^{-\lambda}$ & $-\lambda$ & $\lambda>1$ \\
+2 & $\max(0,1-\lambda u)$, $\lambda<1$ & $1-\lambda$ & $-\lambda/(1-\lambda)$ & $\lambda>1/2$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{itemize}
+  \item \textbf{Exponential:} stays positive at any density. Stronger
+        $\lambda$ also lowers the speed at the mean density,
+        $v_1 = v_0e^{-\lambda}$, which reduces $D_{\mathrm{eff}}$ and slows
+        the dynamics.
+  \item \textbf{Linear:} stops particles completely at $u=1/\lambda$. It
+        needs $\lambda<1$, so that the mean-density speed is positive.
+\end{itemize}
+
+\subsection{Checks of the code against the theory}
+The deterministic SPDE (\code{dorand = 0}, centred advection) was run with
+$v_0=4$, $D=10$, a Gaussian kernel with $R=0.03$, and mode $k=2\pi$. Its
+measured growth rates compare as follows:
+\begin{center}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+$\lambda$ & SPDE & kinetic eigenvalue (32-point $\theta$) & diffusive limit \\
+\midrule
+0.8 (stable) & $-1.448$ & $-1.462$ & $-1.365$ \\
+1.5 (unstable) & $+0.684$ & $+0.686$ & $+0.745$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+$k\ell_1$ is 1.1 and 0.56 for these two runs. The SPDE matches the kinetic
+theory to 1\%; the diffusive formula is 6--9\% off at these $k\ell_1$.
+
+\subsection{The non-interacting case}
+With $s\equiv1$ the equation is linear, and every perturbation decays. The
+$\theta$ harmonics damp at rates $Dm^2$. Spatial structure relaxes
+diffusively with $D_{\mathrm{eff}}$ on scales $\gg\ell_p$, and ballistically
+below $\ell_p$.
+
+The fluctuations are Poisson. The stationary covariance of the linear SPDE is
+\begin{equation}
+  \langle\delta\phi(\mathbf{x},\theta)\,\delta\phi(\mathbf{x}',\theta')\rangle
+  = \frac{\phi_0}{N}\,\delta(\mathbf{x}-\mathbf{x}')\,\delta(\theta-\theta') :
+\end{equation}
+the $\theta$ diffusion and $\theta$ noise balance, and the advection
+$-\e\cdot\nabla_{\mathbf{x}}$ is skew-adjoint, so it neither creates nor
+destroys variance.
+
+The discretization must keep this property. Centred advection does, and the
+code reproduces Poisson statistics (variance ratio 1.00). Upwind and limited
+(MUSCL) fluxes add numerical diffusion without matching noise. They damp the
+spatial density variance to about 5\% of the correct value. This is why the
+stochastic inputs use centred advection with the stochastic RK3 integrator.
+
+\section{Choice of sensing kernel}
+
+$W$ is radially symmetric, periodic, and normalized to $\int W\,dA=1$; by the
+dispersion relation, stability depends on $W$ only through $\Wh(k)$. Four
+kernels are available (\code{flock.kernel\_type}, radius
+$R$ = \code{flock.kernel\_R}):
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}lllL@{}}
+\toprule
+type & $W(r)\propto$ (normalization) & $\Wh(k)$ & properties \\
+\midrule
+0 Gaussian & $e^{-r^2/2R^2}$ \ $(1/2\pi R^2)$ & $e^{-k^2R^2/2}$ & $C^\infty$; $\Wh>0$, monotone; cut off at $4R$ for the pair sum \\
+1 top-hat & $1$, $r<R$ \ $(1/\pi R^2)$ & $2J_1(kR)/(kR)$ & discontinuous; ``neighbours within $R$''; lobe down to about $-0.13$ \\
+2 parabolic & $1-r^2/R^2$, $r<R$ \ $(2/\pi R^2)$ & $8J_2(kR)/(kR)^2$ & continuous, kink at $R$; same shape as \code{hk} \\
+3 bump & $(1-r^2/R^2)^2$, $r<R$ \ $(3/\pi R^2)$ & $48J_3(kR)/(kR)^3$ & $C^1$, compact; small lobes \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{itemize}
+  \item \textbf{Onset is kernel-independent.} It is set by $g$ at $k\to0$,
+        because $\Wh(0)=1$ for every kernel.
+  \item \textbf{The unstable band and fastest mode depend on the kernel.}
+        They follow from $1+g\Wh(k)<0$. Larger $R$ narrows the band toward
+        long waves and gives larger initial domains.
+  \item \textbf{Negative lobes.} For a decreasing $s$ ($g<0$), a negative
+        $\Wh$ makes $1+g\Wh>1$, so the lobes of the compact kernels are
+        stabilizing. They cannot create a finite-wavelength instability, but
+        would matter for an increasing speed function ($g>0$). The Gaussian
+        gives the cleanest long-wave instability.
+  \item \textbf{Grid resolution.} On the grid, $W$ is sampled at the cell
+        offsets and normalized discretely, $\sum W\,\Delta x\,\Delta y=1$, so
+        that the mean of $\rt$ is exactly $\rb$. A $\cos kx$ mode is then
+        damped by the discrete transform, which matches $\Wh$ to
+        $O((\Delta x/R)^2)$ for smooth kernels. Measured: 0.951975 against
+        0.951850 for the Gaussian at $R=3.2\,\Delta x$. Keep $R$ at about
+        $4\,\Delta x$ or more; the top-hat, with its edge, needs more.
+  \item \textbf{Particles: particle-mesh vs pair sum.} Particle-mesh uses a
+        cloud-in-cell deposit, the discrete $W$, and cloud-in-cell
+        interpolation, which adds about one cell of smoothing. Against the
+        exact pair sum (bump kernel, same particles), the rms difference is
+        1.4\% at $R=2.6\,\Delta x$, 0.15\% at $5.1\,\Delta x$ and 0.017\% at
+        $10.2\,\Delta x$: about $(\Delta x/R)^3$.
+  \item \textbf{Cost of the pair sum.} It grows like $N\pi R^2/A$ neighbours
+        per particle, so compact kernels keep it bounded. The Gaussian's $4R$
+        cutoff costs about $16\times$ the neighbours of a compact kernel of the
+        same $R$.
+\end{itemize}
+\paragraph{Recommendations.}
+\begin{itemize}
+  \item SPDE and particle-mesh runs: the Gaussian, for its positive, monotone
+        $\Wh$ and its smoothness.
+  \item Pair-sum particle runs: the bump.
+  \item Comparison with ``neighbours within $R$'' models in the literature:
+        the top-hat.
+\end{itemize}
+
+\section{Numerical formulation}
+
+\paragraph{SPDE} (3D build; \code{AmrCoreFlock}, \code{mykernel.H}). A
+finite-volume scheme on $(x,y,\theta)$ cells, with $\theta_k$ the cell-centre
+heading. The fluxes are:
+\begin{itemize}
+  \item $x$, $y$ faces: advection $\phi\,v_{\mathrm{face}}(\cos\theta_k,\sin\theta_k)$,
+        with $v_{\mathrm{face}} = v_0\,s\bigl(\tfrac12(\rt_L+\rt_R)/\rb\bigr)$.
+        The flux is centred (\code{adv\_order = 0}), first-order upwind (1),
+        or limited MUSCL (2).
+  \item $\theta$ faces: $-D\,\partial_\theta\phi$ (centred), plus the noise
+        $\sqrt{2D\phi_{\mathrm{face}}/(N\,\Delta V\,\Delta t)}\,Z$ with
+        $Z\sim N(0,1)$.
+\end{itemize}
+\subparagraph{How $\rt$ is computed in the SPDE} (\code{DensityConv.cpp}).
+In the continuum $\rt(\mathbf x)=\int W(\mathbf x-\mathbf x')\rho(\mathbf x')\,d\mathbf x'$
+with $\rho=\int\phi\,d\theta$. On a grid of $n_x\times n_y\times n_\theta$ cells,
+with $\Delta\theta=2\pi/n_\theta$ and $\phi$ normalized so that
+$\sum\phi\,\Delta x\Delta y\Delta\theta=1$:
+\begin{enumerate}
+  \item \textbf{Integrate over $\theta$:}
+        $\rho_{ij}=\sum_k\phi_{ijk}\,\Delta\theta$ (\code{ReduceToPlaneMF}).
+  \item \textbf{Sample and normalize the kernel.} For cell offsets $(a,b)$,
+        $a=-n_x/2,\dots,n_x/2-1$ and likewise $b$ (the nearest periodic
+        image),
+        \begin{equation}
+          w_{ab}=W_{\mathrm{shape}}\Bigl(\sqrt{(a\Delta x)^2+(b\Delta y)^2}\Bigr),\qquad
+          W_{ab}=\frac{w_{ab}}{\sum_{a'b'}w_{a'b'}\,\Delta x\Delta y},
+        \end{equation}
+        with $W_{\mathrm{shape}}$ the unnormalized shape of
+        \code{flock.kernel\_type} (the Gaussian cut off at $4R$). The discrete
+        normalization $\sum W_{ab}\Delta x\Delta y=1$ replaces the continuous
+        one. The code prints the ratio of the two at startup; it is 1 when
+        $R\gtrsim4\Delta x$. This is done once, at setup, and the 2D FFT
+        $\Wh_d$ of $W_{ab}$ is stored.
+  \item \textbf{Convolve periodically:}
+        \begin{equation}
+          \rt_{ij}=\sum_{a}\sum_{b}W_{ab}\,
+          \rho_{(i-a)\bmod n_x,\,(j-b)\bmod n_y}\,\Delta x\Delta y ,
+        \end{equation}
+        a circular convolution done as
+        $\rt=\mathrm{IFFT}\bigl(\Wh_d\cdot\mathrm{FFT}(\rho)\bigr)$ with
+        real-to-complex 2D FFTs on the $x$--$y$ plane, the inverse scaled by
+        $\Delta x\Delta y/(n_xn_y)$. In Fourier space
+        $\hat{\rt}(\mathbf k)=\Wh_d(\mathbf k)\hat\rho(\mathbf k)$, with
+        $\Wh_d(0)=1$.
+  \item \textbf{Copy into every $\theta$ plane:} $\rt_{ijk}=\rt_{ij}$ for all
+        $k$, and fill the periodic ghost cells (one layer).
+  \item \textbf{Face values for the speed.} On the $x$ face $(i-\tfrac12,j,k)$,
+        \begin{equation}
+          u=\frac{\rt_{i-1/2,j}}{\rb},\qquad
+          \rt_{i-1/2,j}=\tfrac12\bigl(\rt_{i-1,j}+\rt_{ij}\bigr),\qquad
+          \rb=\frac1{L_xL_y},
+        \end{equation}
+        and the face velocity is $v_0\,s(u)\cos\theta_k$; the $y$ faces are
+        the same with $\sin\theta_k$. $\rt$ is averaged before $s$ is applied.
+\end{enumerate}
+Properties:
+\begin{itemize}[nosep]
+  \item the discrete normalization makes the mean of $\rt$ exactly the mean of
+        $\rho$, which is $\rb$;
+  \item $W$ does not depend on $\theta$, so only the $\theta$-integral of $\phi$
+        enters, and a 2D FFT pair per evaluation replaces a 3D one;
+  \item the support of $W$ ($4R$ for the Gaussian, $R$ for the others) must be
+        below $L/2$, so that each offset has a single periodic image.
+\end{itemize}
+
+\subparagraph{When $\rt$ is recomputed.} From the current state at every stage
+of the time integrator:
+\begin{itemize}[nosep]
+  \item from $\phi^n$ for Euler--Maruyama (\code{time\_integrator = 0});
+  \item from $\phi^n$ and then the predictor for Heun (1);
+  \item from $\phi^n$, $u_1$ and $u_2$ for the stochastic SSP-RK3 of Delong,
+        Griffith, Vanden-Eijnden and Donev (2013) (2). RK3 is stable for
+        centred advection and third order for the deterministic part.
+\end{itemize}
+With \code{speed\_type = 0} ($s\equiv1$), $\rt$ is not needed and is skipped
+during the step. It is still computed from the current $\phi$ for the
+\code{rhot} plotfile component.
+
+The time step is $\Delta t = \mathrm{cfl}/\bigl(v_0(1/\Delta x+1/\Delta y)
++ 2D/\Delta\theta^2\bigr)$, the positivity limit of upwind with forward
+Euler; $v_0$ bounds the speed because $s\le1$. The $\theta$-diffusion term
+grows like $n_\theta^2$, so with fine $\theta$ grids an implicit $\theta$
+diffusion would be the next improvement.
+
+\paragraph{Particles} (2D build; \code{FlockPC}).
+\begin{itemize}
+  \item Euler--Maruyama: the position is advanced with the speed and heading
+        at the start of the step, and $\theta \mathrel{+}= \sqrt{2D\Delta t}\,Z$.
+  \item $\rt$ comes from particle-mesh (\code{density\_method = 0}) or the
+        pair sum (1).
+\end{itemize}
+The particle histogram over $\theta$ bins on the SPDE grid is compared cell
+for cell with the SPDE by \code{python/flocking\_compare.py}.
+
+\section{Parameter regimes}
+
+MIPS requires:
+\begin{itemize}
+  \item $L\gg\ell_1 = v_1/D$, so the box holds many persistence lengths;
+  \item $g<-1$, for example $\lambda>1$ for the exponential;
+  \item $R$ small enough that the unstable band contains several box modes,
+        but at least about $4\,\Delta x$;
+  \item $N$ large enough that a kernel area holds many particles,
+        $N\pi R^2/A\gg1$.
+\end{itemize}
+The example \code{inputs\_mips} uses $v_0=4$, $D=10$, $\lambda=1.5$, a
+Gaussian kernel with $R=0.03$, a $128^2\times32$ grid and $N=10^6$. That
+gives $v_1\approx0.89$, $\ell_1\approx0.09$, and box modes 1--4 unstable.
+Starting from uniform, both codes form dense, slow domains about a third of
+the box apart. By $t\approx3$ about 26\% of the area has $\rt>1.5\rb$ and
+about 55\% has $\rt<0.5\rb$.
+
+\section{Outlook: alignment}
+
+Flocking proper adds a turning rate to the heading equation,
+\begin{equation}
+  d\theta_i = \omega(\mathbf{X}_i,\theta_i)\,dt + \sqrt{2D}\,dW_i, \qquad
+  \omega = -K\,\operatorname{Im}\bigl(e^{-i\theta}(W\star P)(\mathbf{x})\bigr),
+  \qquad P = \int e^{i\theta}\phi\,d\theta ,
+\end{equation}
+which is a Vicsek/Kuramoto alignment. In the SPDE this is a $\theta$-advection
+term $-\partial_\theta(\omega\phi)$. The kernel already has a slot for it in
+the $\theta$ flux, and $\omega$ needs one more FFT convolution of the first
+$\theta$-moment. Mean-field theory then predicts:
+\begin{itemize}
+  \item an isotropic-to-polar transition near $K\rb/2\approx D$, with the
+        exact threshold depending on how $K$ is normalized;
+  \item travelling bands near the transition;
+  \item giant number fluctuations in the ordered phase.
+\end{itemize}
+These are a natural next test of whether the SPDE reproduces finite-$N$
+effects.
+
+\begin{thebibliography}{9}
+\bibitem{dean} D.~S.~Dean, Langevin equation for the density of a system of
+  interacting Langevin processes, \emph{J. Phys. A} \textbf{29}, L613 (1996).
+\bibitem{tc08} J.~Tailleur and M.~E.~Cates, Statistical mechanics of
+  interacting run-and-tumble bacteria, \emph{Phys. Rev. Lett.} \textbf{100},
+  218103 (2008).
+\bibitem{ct15} M.~E.~Cates and J.~Tailleur, Motility-induced phase separation,
+  \emph{Annu. Rev. Condens. Matter Phys.} \textbf{6}, 219 (2015).
+\bibitem{mrz} Müller, von Renesse and Zimmer (2025), as cited in
+  \code{src\_deankow/flocking.pdf}, for the Dean--Kawasaki equation of this
+  active-particle model.
+\end{thebibliography}
+
+\end{document}

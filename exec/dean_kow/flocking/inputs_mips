@@ -1,0 +1,31 @@
+# Motility-induced phase separation: speed v = speed * exp(-lambda rho_tilde/rho_bar),
+# rho_tilde = Gaussian-smoothed spatial density. Uniform start; the noise seeds
+# the instability.
+#   SPDE:      ./main3d.gnu.MPI.ex inputs_mips
+#   particles: ./main2d.gnu.MPI.ex inputs_mips
+FILE = inputs_common
+
+amr.n_cell        = 128 128 32
+amr.max_grid_size = 32
+
+num_part          = 1.e6
+diff_coeff        = 10.0        # D: persistence length v/D ~ 0.09 at the mean density
+flock.speed       = 4.0         # v0
+flock.ic_type     = 0           # uniform
+
+flock.speed_type  = 1           # s = exp(-lambda u)
+flock.speed_lambda = 1.5        # d ln s/d ln u = -1.5 < -1: unstable
+flock.kernel_type = 0           # Gaussian
+flock.kernel_R    = 0.03        # about 4 dx
+flock.density_method = 0        # particles: particle-mesh
+
+stop_time         = 3.0
+amr.plot_dt       = 0.25
+
+# SPDE (3D build)
+amr.plot_file     = plt_mips_
+dorand            = 1
+adv_order         = 0           # centred: correct fluctuations
+time_integrator   = 2           # stochastic RK3
+adv.cfl           = 1.0         # 2.4x faster than Heun at 0.25; rho variance ~4% low
+diag_int          = 2000

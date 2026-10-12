@@ -11,6 +11,11 @@ functions, writing plain text tables to the output directory:
   events.txt         one line per merger or split
   rdf_field.txt      pair correlation g(r) of the density field
   rdf_clusters.txt   g(r) of the cluster centres of mass
+  sf.txt             shell-averaged structure factor S(k) of the density field
+  plt_clusters_*     with --cluster-plotfiles: the density with cluster cells
+                     set to -1, and the tracked cluster id of each cell
+  order.txt          per frame: hexatic bond order psi6 of the cluster centres
+                     (local and global) and Bragg-spot statistics of S(k)
 
 A cluster is a face-connected region (wrapping across the periodic
 boundaries) where phi > threshold * mean(phi), kept if its mass is at least
@@ -25,6 +30,13 @@ g(r) bins minimum-image distances between centres and is normalized by the
 ideal-gas pair count in each annulus, accumulated over all frames. Both are
 limited to r <= L/2, where every annulus lies inside the minimum-image cell.
 
+A regular cluster lattice and an amorphous packing can have the same g(r),
+which only measures distances. The bond order psi6_i = <exp(6 i theta_ij)>
+over the nearest neighbours of each centre is 1 in a hexagonal lattice; its
+mean modulus is the local order, and the modulus of its mean the global
+(long-range) orientational order. A crystal also shows a few Bragg spots on
+the main S(k) shell instead of a ring.
+
 Example:
     python3 cluster_diagnostics.py plt_pp_* --num-part 327680 -o diag
 """
@@ -36,7 +48,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from stack_plotfiles_time import read_header, read_level0  # noqa: E402
+from stack_plotfiles_time import read_header, read_level0, write_plotfile  # noqa: E402
 
 
 def label_periodic(mask):
@@ -197,6 +209,40 @@ def track(lab_old, old, phi_old, lab_new, new, dv, lengths, search_radius, next_
     return events, next_id, counts
 
 
+def neighbours(xs, lengths, nn, rcut=None):
+    """Bonds from each cluster centre to its nn nearest neighbours (minimum
+    image), or to every neighbour closer than rcut if rcut is set. Returns the
+    centre index of each bond and the bond vectors x_j - x_i."""
+    nc, dim = xs.shape
+    d = xs[None, :, :] - xs[:, None, :]
+    for a in range(dim):
+        d[..., a] = min_image(d[..., a], lengths[a])
+    r = np.sqrt((d*d).sum(axis=-1))
+    np.fill_diagonal(r, np.inf)
+    if rcut:
+        i, j = np.nonzero(r < rcut)
+    else:
+        k = min(nn, nc - 1)
+        j = np.argsort(r, axis=1)[:, :k].ravel()
+        i = np.repeat(np.arange(nc), k)
+    return i, d[i, j]
+
+
+def hexatic(clusters, lengths, nn, rcut=None):
+    """Bond-orientational order psi6_i = (1/n_i) sum_j exp(6 i theta_ij) of each
+    cluster over its neighbour bonds (NaN for a cluster without neighbours)."""
+    nc = len(clusters)
+    if nc < 2:
+        return np.full(nc, np.nan + 0j)
+    xs = np.array([[c["x"], c["y"]] for c in clusters])
+    i, d = neighbours(xs, lengths, nn, rcut)
+    e = np.exp(6j*np.arctan2(d[:, 1], d[:, 0]))
+    nb = np.bincount(i, minlength=nc).astype(float)
+    nb[nb == 0] = np.nan
+    return (np.bincount(i, weights=e.real, minlength=nc)
+            + 1j*np.bincount(i, weights=e.imag, minlength=nc))/nb
+
+
 class FieldRDF:
     """Pair correlation g(r) of cell counts, binned over minimum-image displacements."""
 
@@ -222,6 +268,72 @@ class FieldRDF:
         gb = np.bincount(self.bins, weights=g[self.inside], minlength=len(self.count))
         self.frames.append(gb / np.maximum(self.count, 1))
         return self.frames[-1]
+
+
+class StructureFactor:
+    """Shell-averaged static structure factor S(k) = |n_hat(k)|^2 / N_tot of the
+    cell counts n, for k != 0 (a Poisson field gives S = 1).
+
+    Wave vectors come from fftfreq, so index i > n/2 is the negative wavenumber
+    i - n, and k_d = 2 pi (index)/L_d. Shell j holds the modes with |k| in
+    [(j - 1/2) dk, (j + 1/2) dk); only complete shells, up to the smallest
+    Nyquist wavenumber pi/dx_d, are kept. Each shell is normalized by its exact
+    number of modes."""
+
+    def __init__(self, shape, h, dk):
+        # shape and h (cell sizes) in array-axis order
+        kmag2 = np.zeros(shape)
+        for ax, (n, hh) in enumerate(zip(shape, h)):
+            k = 2*np.pi*np.fft.fftfreq(n, d=hh)
+            sh = [1]*len(shape)
+            sh[ax] = n
+            kmag2 = kmag2 + k.reshape(sh)**2
+        kmag = np.sqrt(kmag2)
+        knyq = min(np.pi/hh for hh in h)
+        jmax = int(np.floor(knyq/dk - 0.5))
+        bins = np.rint(kmag/dk).astype(np.int64)
+        self.valid = (kmag > 0) & (bins >= 1) & (bins <= jmax)
+        self.bins = bins[self.valid]
+        self.count = np.bincount(self.bins, minlength=jmax + 1)
+        self.k = np.bincount(self.bins, weights=kmag[self.valid], minlength=jmax + 1)/np.maximum(self.count, 1)
+        self.dk = dk
+        self.shape, self.h = tuple(shape), tuple(h)
+        self.frames = []
+
+    def add(self, n, keep=True, ntop=6):
+        """S(k) of one frame, kept for the shell average if keep. Returns the
+        peak-shell statistics of the frame (see peak_shell)."""
+        f = np.fft.fftn(n)
+        s = (f.real**2 + f.imag**2)/n.sum()
+        self.last = s
+        sv = s[self.valid]
+        sb = np.bincount(self.bins, weights=sv, minlength=len(self.count))/np.maximum(self.count, 1)
+        if keep:
+            self.frames.append(sb)
+        return self.peak_shell(sv, sb, ntop)
+
+    def full_shifted(self):
+        """S of the last frame on the full k grid, shifted so that k = 0 is at
+        index n//2 (indices above n/2 of the FFT become negative wavenumbers),
+        with the k = 0 mode set to 0."""
+        s = self.last.copy()
+        s.flat[0] = 0.0
+        return np.fft.fftshift(s)
+
+    def peak_shell(self, sv, sb, ntop):
+        """Bragg spots or a ring: on the shell with the largest mean S, the mean
+        |k|, the number of modes n, the participation ratio
+        PR = (sum S)^2/(n sum S^2) (about (number of spots)/n for a crystal,
+        O(1) for an isotropic ring), and the share of the shell's S in its ntop
+        largest modes."""
+        j = 1 + int(np.argmax(sb[1:]))
+        on = sv[self.bins == j]
+        tot = on.sum()
+        if tot <= 0.0:                              # a uniform field
+            return self.k[j], len(on), np.nan, np.nan
+        pr = tot*tot/(len(on)*(on*on).sum())
+        top = np.sort(on)[::-1][:ntop].sum()/tot
+        return self.k[j], len(on), pr, top
 
 
 class ClusterRDF:
@@ -252,6 +364,17 @@ class ClusterRDF:
         self.expected += 0.5 * nc * (nc - 1) * self.shell / self.area
 
 
+def write_sf_full(out, sk, sfac, t, step):
+    """Write a shifted full S(k) as a plotfile on the k grid: cell centres at
+    k_d = 2 pi (i - n_d//2)/L_d, so cell size 2 pi/L_d. Components S and
+    log10 S (0 where S = 0, i.e. at k = 0)."""
+    nx = sfac.shape[::-1]
+    dk = [2*np.pi/(n*hh) for n, hh in zip(sfac.shape, sfac.h)][::-1]
+    plo = [-(n//2 + 0.5)*d for n, d in zip(nx, dk)]
+    logs = np.log10(np.where(sk > 0, sk, 1.0))
+    write_plotfile(out, np.stack([sk, logs]), ["S", "log10S"], plo, dk, t, step)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -274,6 +397,26 @@ def main():
                     help="time window for the RDF averages (default: all frames)")
     ap.add_argument("--rdf-per-frame", action="store_true",
                     help="also write the field g(r) of every frame in the window")
+    ap.add_argument("--dk", type=float,
+                    help="structure-factor shell width (default: 2 pi / L, the smallest box wavenumber)")
+    ap.add_argument("--sf-per-frame", action="store_true",
+                    help="also write the shell-averaged S(k) of every frame in the window")
+    ap.add_argument("--sf-full", action="store_true",
+                    help="write the full S(k) on the k grid, averaged over the frames in the window, "
+                         "as the plotfile sf_full_avg (k = 0 at the centre)")
+    ap.add_argument("--sf-full-per-frame", action="store_true",
+                    help="also write the full S(k) of each frame in the window as sf_full_<step>")
+    ap.add_argument("--cluster-plotfiles", action="store_true",
+                    help="for each frame in --t-range, write the plotfile plt_clusters_<step> with "
+                         "<var>_masked (-1 in cells of a kept cluster, else the value of --var) "
+                         "and cluster_id (the tracked id, 0 outside clusters)")
+    ap.add_argument("--nn", type=int, default=6,
+                    help="bond order: number of nearest neighbours of each cluster (default 6)")
+    ap.add_argument("--nn-cut", type=float,
+                    help="bond order: use all neighbours closer than this instead of --nn, "
+                         "e.g. the first minimum of the cluster g(r)")
+    ap.add_argument("--top-modes", type=int, default=6,
+                    help="order.txt top_share: number of largest modes on the S(k) peak shell (default 6)")
     ap.add_argument("-o", "--output", default="cluster_diag", help="output directory")
     args = ap.parse_args()
     if args.every < 1 or args.threshold <= 0.0 or args.mmin < 0.0:
@@ -307,6 +450,7 @@ def main():
     dr = args.dr if args.dr else min(dx)
     drc = args.dr_clusters if args.dr_clusters else min(lengths) / 50.0
     frdf = FieldRDF(shape, dx, dr, rmax)
+    sfac = StructureFactor(shape, (dx[1], dx[0]), args.dk if args.dk else 2*np.pi/max(lengths))
     crdf = ClusterRDF(lengths, drc, rmax)
     t0, t1 = args.t_range if args.t_range else (-np.inf, np.inf)
     search_radius = args.search_radius if args.search_radius else 0.25 * min(lengths)
@@ -316,10 +460,16 @@ def main():
     fcl = open(os.path.join(args.output, "clusters.txt"), "w")
     fev = open(os.path.join(args.output, "events.txt"), "w")
     fsum.write("# t step nclusters mass_fraction largest_mass merges splits forms dissolves\n")
-    fcl.write("# t step id mass xc yc Rg peak ncells wide\n")
+    fcl.write("# t step id mass xc yc Rg peak ncells wide psi6\n")
+    ford = open(os.path.join(args.output, "order.txt"), "w")
+    ford.write("# bond order over %s; S(k) peak shell, top_share over the %d largest modes\n"
+               % ("neighbours closer than %g" % args.nn_cut if args.nn_cut else
+                  "the %d nearest neighbours" % args.nn, args.top_modes))
+    ford.write("# t step nclusters psi6_local psi6_global kpeak nmodes PR top_share\n")
     fev.write("# t step type old_ids old_masses new_ids new_masses\n")
 
     lab_old, old, phi_old, next_id, times = None, [], None, 1, []
+    sf_sum, sf_step = None, 0
     for h, p in files:
         if h["domain"] != h0["domain"] or h["dx"] != h0["dx"]:
             sys.exit("%s: domain or dx differs from %s" % (p, files[0][1]))
@@ -332,22 +482,44 @@ def main():
         lab_old, old, phi_old = lab, clusters, phi
 
         t = h["time"]
+        psi = hexatic(clusters, lengths, args.nn, args.nn_cut)
+        for c, p6 in zip(clusters, psi):
+            c["psi6"] = abs(p6)
+        keep = t0 <= t <= t1
+        ncount = phi * args.num_part * dv
+        kp, nmodes, pr, top = sfac.add(ncount, keep, args.top_modes)
+        if keep and (args.sf_full or args.sf_full_per_frame):
+            sk = sfac.full_shifted()
+            if args.sf_full:
+                sf_sum = sk if sf_sum is None else sf_sum + sk
+                sf_step = h["step"]
+            if args.sf_full_per_frame:
+                write_sf_full(os.path.join(args.output, "sf_full_%07d" % h["step"]), sk, sfac, t, h["step"])
+        ok = ~np.isnan(psi)
+        ford.write("%.10g %d %d %.6f %.6f %.8g %d %.6g %.6f\n"
+                   % (t, h["step"], len(clusters), np.abs(psi[ok]).mean() if ok.any() else np.nan,
+                      abs(psi[ok].mean()) if ok.any() else np.nan, kp, nmodes, pr, top))
         largest = max((c["mass"] for c in clusters), default=0.0)
         fsum.write("%.10g %d %d %.6f %.6f %d %d %d %d\n"
                    % (t, h["step"], len(clusters), frac_in, largest, counts["merge"],
                       counts["split"], counts["form"], counts["dissolve"]))
         for c in sorted(clusters, key=lambda c: c["id"]):
-            fcl.write("%.10g %d %d %.6g %.8f %.8f %.6g %.6g %d %d\n"
+            fcl.write("%.10g %d %d %.6g %.8f %.8f %.6g %.6g %d %d %.6f\n"
                       % (t, h["step"], c["id"], c["mass"], c["x"], c["y"], c["rg"],
-                         c["peak"], c["ncells"], int(c["wide"])))
+                         c["peak"], c["ncells"], int(c["wide"]), c["psi6"]))
         for kind, oid, om, nid, nm in events:
             fmt = lambda v: ",".join(str(e) for e in v) if isinstance(v, list) else str(v)
             fmtm = lambda v: ",".join("%.4g" % e for e in v) if isinstance(v, list) else "%.4g" % v
             fev.write("%.10g %d %s %s %s %s %s\n"
                       % (t, h["step"], kind, fmt(oid), fmtm(om), fmt(nid), fmtm(nm)))
 
-        if t0 <= t <= t1:
-            frdf.add(phi * args.num_part * dv)
+        if keep and args.cluster_plotfiles:
+            ids = np.array([0] + [c["id"] for c in clusters], dtype=float)
+            write_plotfile(os.path.join(args.output, "plt_clusters_%07d" % h["step"]),
+                           np.stack([np.where(lab > 0, -1.0, phi), ids[lab]]),
+                           [args.var + "_masked", "cluster_id"], plo, dx, t, h["step"])
+        if keep:
+            frdf.add(ncount)
             crdf.add(clusters)
             times.append(t)
         print("t = %.5g step %d: %d clusters, %.3f of the mass in clusters, %s"
@@ -356,9 +528,13 @@ def main():
     fsum.close()
     fcl.close()
     fev.close()
+    ford.close()
 
     if not times:
         sys.exit("no frames in --t-range")
+    if args.sf_full:
+        write_sf_full(os.path.join(args.output, "sf_full_avg"), sf_sum/len(times), sfac, times[-1], sf_step)
+        print("wrote %s/sf_full_avg (full S(k) averaged over %d frames)" % (args.output, len(times)))
     gf = np.mean(frdf.frames, axis=0)
     with open(os.path.join(args.output, "rdf_field.txt"), "w") as f:
         f.write("# field g(r) over %d frames, t in [%g, %g], num_part = %g, dr = %g, rmax = %g\n"
@@ -372,6 +548,19 @@ def main():
             if args.rdf_per_frame:
                 f.write("".join(" %.8g" % g[b] for g in frdf.frames))
             f.write("\n")
+    with open(os.path.join(args.output, "sf.txt"), "w") as f:
+        f.write("# shell-averaged structure factor S(k) = |n_hat|^2/N over %d frames, t in [%g, %g],"
+                " num_part = %g, dk = %g\n" % (len(times), times[0], times[-1], args.num_part, sfac.dk))
+        f.write("# k(mean over shell) S nmodes" +
+                ("".join(" S(t=%.6g)" % t for t in times) if args.sf_per_frame else "") + "\n")
+        sm = np.mean(sfac.frames, axis=0)
+        for j in range(1, len(sm)):
+            if sfac.count[j] == 0:
+                continue
+            f.write("%.8g %.8g %d" % (sfac.k[j], sm[j], sfac.count[j]))
+            if args.sf_per_frame:
+                f.write("".join(" %.8g" % s[j] for s in sfac.frames))
+            f.write("\n")
     with open(os.path.join(args.output, "rdf_clusters.txt"), "w") as f:
         f.write("# cluster-centre g(r) over %d frames, t in [%g, %g], dr = %g, rmax = %g\n"
                 % (len(times), times[0], times[-1], drc, rmax))
@@ -380,7 +569,7 @@ def main():
             g = crdf.pairs[b] / crdf.expected[b] if crdf.expected[b] > 0 else 0.0
             f.write("%.8g %.8g %.8g %d %.6g\n" % (crdf.edges[b], crdf.edges[b + 1], g,
                                                  crdf.pairs[b], crdf.expected[b]))
-    print("wrote %s/{summary,clusters,events,rdf_field,rdf_clusters}.txt" % args.output)
+    print("wrote %s/{summary,clusters,events,rdf_field,rdf_clusters,sf,order}.txt" % args.output)
 
 
 if __name__ == "__main__":

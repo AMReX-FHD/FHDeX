@@ -168,6 +168,10 @@ AmrCoreAdv::Evolve ()
         if (drift_diag_int > 0 && (step+1) % drift_diag_int == 0) {
             PrintDriftDiagnostics(step+1);
         }
+        if (struct_fact_int > 0 && step+1 > n_steps_skip
+            && (step+1 - n_steps_skip) % struct_fact_int == 0) {
+            StructFactSample();
+        }
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -177,6 +181,7 @@ AmrCoreAdv::Evolve ()
         if (plot_int > 0 && (step+1) % plot_int == 0) {
             last_plot_file_step = step+1;
             WritePlotFile();
+            WriteStructFact();
         }
 
         if (chk_int > 0 && (step+1) % chk_int == 0) {
@@ -197,6 +202,7 @@ AmrCoreAdv::Evolve ()
     if (plot_int > 0 && istep[0] > last_plot_file_step) {
         WritePlotFile();
     }
+    WriteStructFact();
 }
 
 // initializes multilevel data
@@ -238,9 +244,110 @@ AmrCoreAdv::InitData ()
         ReadCheckpointFile();
         InitFFTLevel0();
     }
+    if (struct_fact_int > 0) { InitStructFact(); }
     if (plot_int > 0) {
         WritePlotFile();
     }
+}
+
+void
+AmrCoreAdv::InitStructFact ()
+{
+    // S(k) = |n_hat(k)|^2 / N with cell counts n = phi N dV; StructFact
+    // accumulates |FFT(phi)|^2 / M and multiplies by 1/var_scaling, so
+    // var_scaling = 1/(N dV V) makes a Poisson field give S = 1
+    const auto dx = Geom(0).CellSizeArray();
+    const Real cellvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
+    Real domvol = 1.0;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) { domvol *= Geom(0).ProbLength(d); }
+    const Vector<std::string> names {"phi"};
+    const Vector<Real> var_scaling {1.0/(num_part*cellvol*domvol)};
+    structFact.define(grids[0], dmap[0], names, var_scaling);
+    sf_nsamples = 0;
+    amrex::Print() << "Structure factor: sampled every " << struct_fact_int
+                   << " steps after step " << n_steps_skip << "\n";
+}
+
+void
+AmrCoreAdv::StructFactSample ()
+{
+    MultiFab mf(grids[0], dmap[0], 1, 0);
+    MultiFab::Copy(mf, phi_new[0], 0, 0, 1, 0);
+    structFact.FortStructure(mf);
+    ++sf_nsamples;
+}
+
+void
+AmrCoreAdv::WriteStructFact ()
+{
+    if (struct_fact_int <= 0 || sf_nsamples == 0 || istep[0] == sf_last_write_step) { return; }
+    sf_last_write_step = istep[0];
+
+    // shifted S(k) on the k-space grid (plt_SF_mag...), leaves cov_mag finalized
+    structFact.WritePlotFile(istep[0], t_new[0], "plt_SF");
+
+    // Shell average. After the shift, index i holds wavenumber index i - n/2,
+    // k_d = 2 pi (i - n_d/2)/L_d. Shell j holds |k| in [(j-1/2)dk, (j+1/2)dk)
+    // with dk = 2 pi/max L, up to the smallest Nyquist wavenumber.
+    const Box& domain = Geom(0).Domain();
+    GpuArray<int,AMREX_SPACEDIM> center;
+    GpuArray<Real,AMREX_SPACEDIM> kfac;
+    Real lmax = 0.0, knyq = std::numeric_limits<Real>::max();
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        center[d] = domain.length(d)/2;
+        kfac[d] = 2.0*amrex::Math::pi<Real>()/Geom(0).ProbLength(d);
+        lmax = amrex::max(lmax, Geom(0).ProbLength(d));
+        knyq = amrex::min(knyq, amrex::Math::pi<Real>()/Geom(0).CellSize(d));
+    }
+    const Real dk = 2.0*amrex::Math::pi<Real>()/lmax;
+    const int jmax = static_cast<int>(std::floor(knyq/dk - 0.5));
+    if (jmax < 1) { return; }
+
+    Gpu::DeviceVector<Real> ssum(jmax+1, 0.0), ksum(jmax+1, 0.0);
+    Gpu::DeviceVector<int> scnt(jmax+1, 0);
+    Real* sp = ssum.dataPtr();
+    Real* kp = ksum.dataPtr();
+    int* cp = scnt.dataPtr();
+    for (MFIter mfi(structFact.cov_mag); mfi.isValid(); ++mfi) {
+        auto const& s = structFact.cov_mag.const_array(mfi);
+        amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            const int idx[3] = {i, j, k};
+            Real k2 = 0.0;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                const Real kd = kfac[d]*(idx[d] - center[d]);
+                k2 += kd*kd;
+            }
+            const Real kmag = std::sqrt(k2);
+            const int b = static_cast<int>(std::floor(kmag/dk + 0.5));
+            if (kmag > 0.0 && b >= 1 && b <= jmax) {
+                amrex::HostDevice::Atomic::Add(&sp[b], s(i,j,k,0));
+                amrex::HostDevice::Atomic::Add(&kp[b], kmag);
+                amrex::HostDevice::Atomic::Add(&cp[b], 1);
+            }
+        });
+    }
+    Gpu::HostVector<Real> sh(jmax+1), kh(jmax+1);
+    Gpu::HostVector<int> ch(jmax+1);
+    Gpu::copy(Gpu::deviceToHost, ssum.begin(), ssum.end(), sh.begin());
+    Gpu::copy(Gpu::deviceToHost, ksum.begin(), ksum.end(), kh.begin());
+    Gpu::copy(Gpu::deviceToHost, scnt.begin(), scnt.end(), ch.begin());
+    ParallelDescriptor::ReduceRealSum(sh.dataPtr(), jmax+1);
+    ParallelDescriptor::ReduceRealSum(kh.dataPtr(), jmax+1);
+    ParallelDescriptor::ReduceIntSum(ch.dataPtr(), jmax+1);
+
+    if (ParallelDescriptor::IOProcessor()) {
+        const std::string fname = amrex::Concatenate("sf_kshell_", istep[0], 7) + ".txt";
+        std::ofstream f(fname);
+        f.precision(10);
+        f << "# shell-averaged structure factor S(k) = |n_hat|^2/N of phi over " << sf_nsamples
+          << " samples, t = " << t_new[0] << ", dk = " << dk << "\n";
+        f << "# k(mean over shell) S nmodes\n";
+        for (int b = 1; b <= jmax; ++b) {
+            if (ch[b] > 0) { f << kh[b]/ch[b] << " " << sh[b]/ch[b] << " " << ch[b] << "\n"; }
+        }
+    }
+    amrex::Print() << "Wrote structure factor (" << sf_nsamples << " samples) at step " << istep[0] << "\n";
 }
 
 void AmrCoreAdv::MakeFBA(const BoxArray& ba)
@@ -1225,6 +1332,8 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.query("neg_diag_int", neg_diag_int);
         pp.query("drift_diag_int", drift_diag_int);
         pp.query("drift_cfl", drift_cfl);
+        pp.query("struct_fact_int", struct_fact_int);
+        pp.query("n_steps_skip", n_steps_skip);
         if (drift_cfl < 0.) {
             Abort("drift_cfl must be >= 0 (0 = off)");
         }

@@ -1575,8 +1575,8 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) {
-                    vel(i,j,k) = fac*vel(-i-1,j,k);
-                    mom(i,j,k) = fac*mom(-i-1,j,k);
+                    vel(i,j,k) = fac*vel(2*dom.smallEnd(0)-i-1,j,k);
+                    mom(i,j,k) = fac*mom(2*dom.smallEnd(0)-i-1,j,k);
                 }
             });
         }
@@ -1605,8 +1605,8 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) {
-                    vel(i,j,k) = fac*vel(i,-j-1,k);
-                    mom(i,j,k) = fac*mom(i,-j-1,k);
+                    vel(i,j,k) = fac*vel(i,2*dom.smallEnd(1)-j-1,k);
+                    mom(i,j,k) = fac*mom(i,2*dom.smallEnd(1)-j-1,k);
                 }
             });
         }
@@ -1635,8 +1635,8 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) {
-                    vel(i,j,k) = fac*vel(i,j,-k-1);
-                    mom(i,j,k) = fac*mom(i,j,-k-1);
+                    vel(i,j,k) = fac*vel(i,j,2*dom.smallEnd(2)-k-1);
+                    mom(i,j,k) = fac*mom(i,j,2*dom.smallEnd(2)-k-1);
                 }
             });
         }
