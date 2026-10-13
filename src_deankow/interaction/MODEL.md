@@ -14,7 +14,7 @@ and `hk`, both attractive and repulsive cases are treated.
 
 `README.md` lists the inputs, and `STABILITY.md` has more detail on the
 linear stability and the time step. All numbers below are for 2D and the
-unit periodic box. They come from the representative parameter sets in §2.3.
+unit periodic box. They come from the representative parameter sets in §2.4.
 
 ## 1. Model
 
@@ -91,9 +91,188 @@ N^(−1/2). Nonlinear clusters appear once the fastest mode has grown to O(1):
   t_form ≈ ln(√N) / σ_max = (ln N)/(2σ_max)
 
 This holds up to an O(1)/σ_max correction for the initial transient and the
-saturation level. The time grows only logarithmically with N.
+saturation level. The time grows only logarithmically with N. Near the onset
+of a repulsive cluster crystal this estimate fails, because the quadratic
+nonlinearity takes over before the fastest mode reaches O(1) (§2.2).
 
-### 2.2 Number of clusters
+### 2.2 Hexagons near and above threshold
+
+In 2D the onset of a cluster crystal is not a smooth (supercritical)
+bifurcation. Three critical modes at 120° feed each other through the
+quadratic part of the drift, which makes the bifurcation transcritical.
+Hexagonal cluster lattices then exist for D somewhat above D_crit, and near
+threshold the clusters form much faster than σ_max predicts. This is the
+mean-field form of the first-order freezing of GEM-α cluster crystals (Mladek
+et al. 2006): D_crit is the spinodal of the uniform fluid, not the freezing
+point. `MODEL.tex` has the full derivation.
+
+**Amplitude equations.** Write φ = μ₀(1 + u). The only nonlinearity is
+μ₀∇·(u∇(U⋆u)), with Fourier form
+
+  N_k = Σ_{p+q=k} B(p,q) u_p u_q,  B(p,q) = −(μ₀/2)[(k·q)Û(q) + (k·p)Û(p)]
+
+Take three critical modes |k_j| = k_c with k₁ + k₂ + k₃ = 0, and slave the
+damped modes at 2k_c and √3k_c. Then
+
+  dA₁/dt = σA₁ + γA₂*A₃* − [g|A₁|² + h(|A₂|² + |A₃|²)]A₁
+
+and cyclically for A₂ and A₃, with σ = k_c²(D_crit − D) and, writing Û_c, Û_√3 and Û_2 for Û at
+k_c, √3k_c and 2k_c (μ₀ = 1 here):
+
+- γ = k_c²|Û_c|
+- g = k_c² Û_c (Û_c/2 − Û_2)/(D + Û_2)
+- h = k_c² Û_c (Û_c − 3Û_√3)/(2(D + Û_√3))
+
+When Û is negligible at √3k_c and 2k_c and D ≈ D_crit, these reduce to
+g = h = γ/2.
+
+**Consequences** (standard roll–hexagon analysis, Ciliberto et al. 1990):
+- **Hexagons exist above threshold.** They exist for
+  σ > σ_SN = −γ²/4(g+2h) = −γ/6, that is up to
+  **D_SN = (7/6) D_crit**. The amplitude is A = 1/3 at the saddle-node and
+  2/3 at D_crit.
+- **Bistability.** Between D_crit and D_SN both the uniform state and the
+  hexagon lattice are stable. The unstable branch,
+  A_u = [γ − √(γ² + 4σ(g+2h))]/2(g+2h) ≈ |σ|/γ, is the barrier the noise must
+  cross.
+- **Clusters, not holes.** γ > 0 selects density peaks at the lattice points
+  rather than a honeycomb of holes.
+- **No stripes.** With h ≈ g, stripes are never stable.
+- **Fast onset.** For 0 < σ ≪ γ, the triad dominates once A > A_c = σ/γ. After
+  that, dA/dt ≈ γA² blows up in a time of about 1/(γA₀), independent of σ.
+- **Dimension.** In 1D there are no triads, so D_crit is a sharp onset. In 3D
+  the bcc reciprocal vectors form triads, so the transition is again
+  first-order (Alexander and McTague 1978), and more strongly so (see
+  *Three dimensions* below).
+
+**Numbers for gema (ε = 666, R = 0.1, α = 3).** The critical box mode is
+(8,0), with k_c = 16π and D_crit = 0.5472. Then Û_c = −0.5472,
+Û_√3 = 0.0033 and Û_2 = −0.0037, which give
+
+  γ = 1383, g = 687, h = 700, and D_SN = 0.638 = 1.166 D_crit (amplitude equations)
+
+These were checked against the full deterministic equation, solved
+pseudo-spectrally on a cell holding two clusters of the |k| = 16π hexagonal
+lattice:
+- **Stripes.** At small σ > 0, A = √(σ/g) with a measured g of 688 to 697,
+  against the predicted 687.
+- **Hexagon branch.** Continued upward in D from a clustered state, it stays
+  stable to **D_SN = 0.648 ± 0.002 = 1.18 D_crit**, and then decays to the
+  uniform state. At D_crit the first harmonic is 0.71, against the predicted
+  2/3, even though φ_max/μ₀ ≈ 13 there.
+- **Free energy.** F_hex < F_uni = Û(0)/2 up to D_F ≈ 0.639 = 1.17 D_crit.
+  The lattice is the global minimum below D_F and metastable from D_F to
+  D_SN. This compares one fixed lattice with the uniform state and ignores
+  coexistence.
+
+| D | D/D_crit | φ_max/μ₀ | A(k₁) | (F_hex − F_uni)/area |
+|---|---|---|---|---|
+| 0.5 | 0.914 | 16 | 0.764 | -0.1656 |
+| 0.54 | 0.987 | 13.6 | 0.721 | -0.1061 |
+| 0.55 | 1.005 | 13 | 0.709 | -0.0925 |
+| 0.56 | 1.023 | 12.4 | 0.695 | -0.0795 |
+| 0.58 | 1.060 | 11.2 | 0.664 | -0.0552 |
+| 0.6 | 1.096 | 9.98 | 0.627 | -0.0335 |
+| 0.62 | 1.133 | 8.62 | 0.579 | -0.0146 |
+| 0.63 | 1.151 | 7.85 | 0.547 | -0.0064 |
+| 0.64 | 1.170 | 6.94 | 0.505 | +0.0007 |
+| 0.645 | 1.179 | 6.37 | 0.476 | +0.0038 |
+| 0.6475 | 1.183 | 6.01 | 0.456 | +0.0052 |
+| 0.65 | 1.188 | decays to uniform | | |
+
+**Comparison with the noisy runs.** Five 2D runs with this kernel on 128²
+(`_new_2d_10*` in `exec/dean_kow/interaction`) start from a uniform state,
+all with D < D_crit. A sixth, `_new_2d_10_sdt`, repeats D = 0.46 with
+`adv.cfl` = 0.03125 and gives the same rate and final state. "Onset" is when the shell mean of S reaches 10⁴. The
+linear prediction solves dS/dt = 2σS + 2k²D from S = 0.
+
+| D | σ | N/cell | A_c = σ/γ | fitted rate/σ | onset | linear | clusters |
+|---|---|---|---|---|---|---|---|
+| 0.4165 | 330 | 20 | 0.24 | 0.9 | 0.014 | 0.012 | 56 |
+| 0.46 | 220 | 10 | 0.16 | 1.0 | 0.021 | 0.017 | 56 |
+| 0.503 | 112 | 20 | 0.08 | 1.3 | 0.025 | 0.030 | 53 |
+| 0.54 | 18.2 | 20 | 0.013 | 2.1 | 0.066 | 0.135 | 56 |
+| 0.545 | 5.6 | 20 | 0.004 | 7.6 | 0.061 | 0.334 | 56 |
+
+The noise builds the per-mode amplitude A = √(S/N) to about 0.01 by
+t ≈ 0.01.
+- **Far from threshold** (A_c ≫ 0.01), linear theory works.
+- **Near threshold**, the triad takes over at once, and onset is set by
+  1/(γA₀) ≈ 0.07, not by 1/σ. That is why D = 0.54 and 0.545 form clusters at
+  nearly the same time.
+
+**Prediction for D > D_crit.** The fluid holds S_eq = 1/(1 − Λ) on the
+critical shell, so the per-mode noise amplitude is about
+A_noise ≈ [N(1 − Λ)]^(−1/2). With N = 327680:
+- at D = 0.56: A_noise ≈ 0.012 against A_u ≈ 0.024, so nucleation is likely;
+- at D = 0.60: 0.006 against 0.12, so nucleation is very rare.
+
+A clustered state restarted at any D < D_SN should persist. That hysteresis
+is the test of the first-order picture, and it holds: a noisy 128² run
+restarted from a hexagonal state at D = 0.64 (1.17 D_crit) kept its lattice.
+These are mean-field estimates; the noise also renormalizes D_SN and D_F.
+
+**Three dimensions.** For gema with ε = 4509, R = 0.1 and α = 3
+(`inputs_fv_3d`), k_c = 53.7 (k_cR = 5.37) and D_crit = 0.3012. The same
+reduction applies to any lattice of equal-amplitude modes on the critical
+shell: dA/dt = σA + γ_eff A² − G A³, so
+D_SN = D_crit + γ_eff²/(4G k_c²). D_SN and D_F are in units of D_crit.
+
+| lattice | modes | γ_eff | G | amplitude eqs. D_SN | full equation |
+|---|---|---|---|---|---|
+| bcc | 12 ⟨110⟩ | 1737 | 2036 | 1.43 | D_SN ≈ 1.48, D_F ≈ 1.44 |
+| hexagonal rods | 6 | 869 | 1310 | 1.17 | — |
+| fcc | 8 ⟨111⟩ | 0 | −9127 | see below | D_F ≈ 1.39, D_SN > 1.39 |
+| sc, lamellae | 6, 2 | 0 | > 0 | 1 (supercritical) | — |
+
+- **bcc.** Its first reciprocal shell, the 12 ⟨110⟩ vectors, contains many
+  triads, so it has the largest quadratic coefficient. This is the
+  Alexander–McTague argument for bcc near a weakly first-order freezing.
+- **fcc.** Its first shell, ⟨111⟩, has no triads, but ⟨111⟩ + ⟨11−1⟩ gives
+  ⟨200⟩, at 1.155 k_c. There Û = −0.189, 63% of the minimum, so that mode is
+  nearly unstable and enters through a small denominator. That makes G large
+  and negative. A correct treatment keeps both shells active, and the
+  one-shell amplitude equation says nothing about fcc.
+- **Full equation.** The same pseudo-spectral continuation was run on cubic
+  cells holding 2 (bcc) or 4 (fcc) clusters. The bcc cell has |G₁₁₀| = k_c.
+  The fcc spacing was varied; its free energy is lowest when
+  |G₁₁₁| ≈ k_c/1.05.
+  - bcc stays stable to D = 0.44 and decays at 0.45, so
+    **D_SN ≈ 0.445 = 1.48 D_crit**. The amplitude equations predicted 1.43.
+  - Its free energy crosses the uniform value at D_F ≈ 0.432 = 1.44 D_crit.
+  - fcc crosses earlier, at D_F ≈ 0.418, and still exists at 0.42.
+  - bcc has the lower free energy at every D tested, from 0.25 to 0.43, by
+    about 0.02 per unit volume.
+
+  At D = 0.25 the clusters are only about two cells wide
+  (φ_max/μ₀ ≈ 190), so the low-D free energies are less accurate.
+
+| D | D/D_crit | bcc φ_max/μ₀ | bcc ΔF | fcc ΔF (spacing ×1.05) |
+|---|---|---|---|---|
+| 0.25 | 0.83 | 187 | −0.508 | −0.489 |
+| 0.30 | 1.00 | 128 | −0.338 | −0.317 |
+| 0.36 | 1.20 | 82 | −0.163 | −0.138 |
+| 0.39 | 1.30 | 65 | −0.088 | −0.062 |
+| 0.42 | 1.39 | 48 | −0.023 | +0.004 |
+| 0.43 | 1.43 | 42 | −0.004 | — |
+| 0.44 | 1.46 | 36 | +0.013 | — |
+| 0.45 | 1.49 | bcc decays to uniform | | |
+
+So in 3D the transition is more strongly first-order than in 2D: the
+cluster crystal survives to about 1.5 D_crit, against 1.18 D_crit in 2D. The
+mean-field equilibrium crystal is bcc.
+
+The noisy 3D runs at D = 0.25 (0.83 D_crit) are a deep quench. The whole
+critical shell grows at once, in every orientation, and the result is
+amorphous (q₆ ≈ 0.42, Q₆ ≈ 0.07). Two routes should favour bcc order:
+- anneal a clustered state at D_crit < D < D_F, for example D ≈ 0.38 to 0.42,
+  where the crystal is still the minimum and the clusters are broader;
+- quench only just below D_crit, where the triad selects the pattern.
+
+The clusters are also only about one 128³ cell wide at D = 0.25, against
+about two at D = 0.4.
+
+### 2.3 Number of clusters
 
 The fastest-growing mode sets the initial spacing λ = 2π/|k_max|. Its
 nonlinear pattern breaks into blobs on a lattice:
@@ -113,7 +292,7 @@ self-consistent well C(r) ≈ m U(r) around the cluster:
 - **Flat core** (`gema` with α > 2, where U ≈ U(0) + |ε|(r/R)^α):
   r_c ≈ R (D/(m|ε|))^(1/α).
 
-### 2.3 Representative parameter sets
+### 2.4 Representative parameter sets
 
 | Case | Parameters | D | N | Source |
 | --- | --- | --- | --- | --- |
@@ -124,7 +303,7 @@ self-consistent well C(r) ≈ m U(r) around the cluster:
 | morse | ε_att = 200, ε_rep = 100, R_att = 0.1, R_rep = 0.05, r_e = 0 | 0.5 | 81920 | — |
 | pp | ε = −7300, R = 0.45, a = 0.27, α = 1, β = 0.02 | 1 | 327680 | `inputs_fv_pp_merge` |
 
-### 2.4 Merging mechanisms
+### 2.5 Merging mechanisms
 
 Three mechanisms merge clusters, with very different time scales.
 
@@ -158,7 +337,7 @@ This is independent of N and present in the mean-field PDE; it is the
 dynamical metastability of Gerber et al. Differences in mass enter through
 the exponent, e^(Δm|U(0)|/D).
 
-### 2.5 Splitting
+### 2.6 Splitting
 
 - **Attractive kernels.** Splitting a cluster of mass m into two halves out of
   each other's range costs a total interaction energy N(m/2)²|U(0)|. The
@@ -232,6 +411,8 @@ routinely.
 - **Stability.** Û(0) > 0, so there is no long-wave instability. For α > 2
   the transform has a negative lobe: its minimum is −0.029·Û(0) at kR = 5.03.
   The uniform state is unstable for D < D_crit = μ₀|Û_min| = 0.55 at ε = 666.
+  The bifurcation is transcritical: a clustered lattice survives up to
+  D_SN ≈ 0.65, and is the free-energy minimum up to D_F ≈ 0.64 (§2.2).
 - **Formation.** At D = 0.25, σ_max ≈ 760 at k ≈ 8·2π, so t_form ≈ 0.0075.
   Near D_crit the growth rate vanishes like (D_crit − D)·k*², and t_form
   diverges.
@@ -297,8 +478,15 @@ routinely.
   Û(0) < 0, giving long-wave demixing, or Û > 0 everywhere, which is stable.
   There is no cluster crystal.
   - At the code defaults (ε_att = 1, ε_rep = 0.5) Û(0) = −0.055, which is
-    stable for any D ≳ 0.06.
-  - With ε_att = 200, ε_rep = 100: Û(0) = −10.5 and Λ ≈ 21.
+    stable for any D ≳ 0.06. In the unit box, where the longest growing
+    wave is |k| = 2π, the threshold is lower: D_crit = 0.031.
+  - With ε_att = 200, ε_rep = 100 (the set here): Û(0) = −11.0, so
+    D_crit = 11.0 and μ₀|Û(0)|/D = 22 at D = 0.5 in an infinite domain. In the unit
+    box the discrete minimum over k ≠ 0 is Û·ΔV = −6.33 at |k| = 2π, so
+    D_crit = 6.3 and Λ = 12.7 (Λ as defined in §2.1, from the discrete minimum). These are the values the code prints at
+    startup (128²).
+  - Û, and so D_crit, scales linearly with ε; the inputs-file example
+    (ε_att = 2, ε_rep = 1) gives D_crit = 0.11 (infinite) and 0.063 (box).
 - **Formation.** Since Û(k) ≈ Û(0) + c k², growth peaks at a finite
   k_max² ≈ (|μ₀Û(0)| − D)/(2c), where c reflects the range R_att. Here the
   fastest mode is (1,1), with σ ≈ 283 and t_form ≈ 0.02.
@@ -367,3 +555,10 @@ routinely.
   *Formation of clusters and coarsening in weakly interacting diffusions*,
   arXiv:2510.17629: the hk and pp potentials, coalescence ∝ N and mass
   exchange ∝ e^(γℓΔm).
+- B. M. Mladek, D. Gottwald, G. Kahl, M. Neumann and C. N. Likos,
+  *Phys. Rev. Lett.* 96, 045701 (2006): first-order freezing of GEM-α
+  cluster crystals.
+- S. Ciliberto, P. Coullet, J. Lega, E. Pampaloni and C. Pérez-García,
+  *Phys. Rev. Lett.* 65, 2370 (1990): roll–hexagon amplitude equations.
+- M. C. Cross and P. C. Hohenberg, *Rev. Mod. Phys.* 65, 851 (1993).
+- S. Alexander and J. McTague, *Phys. Rev. Lett.* 41, 702 (1978).
