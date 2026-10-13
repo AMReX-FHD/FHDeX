@@ -67,3 +67,11 @@ exec/lib_hydro/cmake/dist
 exec/lib_hydro/demo/dist
 
 
+
+## Local notes kept out of the repository
+python/*.tex
+python/*.md
+src_deankow/interaction/*.tex
+src_deankow/interaction/*.md
+src_deankow/flocking/*.tex
+src_deankow/flocking/*.md
