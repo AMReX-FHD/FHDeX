@@ -38,7 +38,8 @@ void RK3stepStag(MultiFab& cu,
     std::array< MultiFab, AMREX_SPACEDIM > faceflux_res; // MFab for storing fluxes (face-based) from reservoir update
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         cumom_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
-        faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
+        // one ghost layer: ResetReservoirFluxes averages neighbouring faces (j-1, k-1) onto edges
+        faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 1);
     }
     // Reservoir stuff
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
