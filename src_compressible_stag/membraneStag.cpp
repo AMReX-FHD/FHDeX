@@ -13,6 +13,12 @@ void doMembraneStag(MultiFab& cons,
 {
     BL_PROFILE_VAR("doMembraneStag()",doMembraneStag);
 
+#ifdef AMREX_USE_GPU
+    // doLangevin/applyEffusion loop on the host over Array4 views of device memory and draw
+    // host random numbers; they have not been ported to GPU.
+    amrex::Abort("doMembraneStag: membrane routines are not ported to GPU");
+#endif
+
     faceflux[0].setVal(0.0); // set mass flux to zero
 
     doLangevin(cons,prim,faceflux,geom,dt);
