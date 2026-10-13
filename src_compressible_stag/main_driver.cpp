@@ -283,6 +283,9 @@ void main_driver(const char* argv)
         if (membrane_cell % max_grid_size[0] != 0) {
             Abort("membrane_cell must be a multiple of max_grid_size[0] so the membrane face lies on a box boundary");
         }
+#ifdef AMREX_USE_GPU
+        Abort("membrane_cell >= 0: doLangevin/applyEffusion run on the host over device data and are not ported to GPU");
+#endif
     }
 
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies
