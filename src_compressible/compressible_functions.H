@@ -529,6 +529,29 @@ void CholeskyDecomp( GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
     Real sum1 = 0.;
     int ising;
 
+    // The diffusion matrix is positive semi-definite and exactly singular (mass conservation gives
+    // M*(1,...,1) = 0). In finite precision the pivot that should be zero comes out as a rounding
+    // residue of either sign, and a positive residue would be accepted as a pivot (sqrt of the
+    // residue ~ sqrt(eps) relative amplitude), producing a spurious noise term that does not
+    // conserve mass. The LAST pivot is the singular direction, so a last pivot smaller than tol
+    // times the largest diagonal entry of the matrix is treated as zero. The scale is the largest
+    // diagonal (not the species' own) because the rounding error in the last pivot is set by the
+    // largest entries (~eps*max M_ii), which can far exceed a trace species' own diagonal.
+    // A genuinely nonzero last pivot (e.g. constant_transport = 1, where the matrix is built from
+    // rhobar but assembled with the cell Yk and is not exactly singular) is far above this and kept.
+    // Earlier pivots keep the plain "<= 0" test: they are genuine, can be small for a trace species
+    // ordered last (pivot ~ Y_trace), and zeroing one would shift its variance to the last row, an
+    // unbalanced noise term that does not sum to zero over species. Zeroing only the last pivot
+    // keeps sum_k F_k = 0 (its column of L is empty). For regular matrices and for N = 2 the
+    // factorization is otherwise unchanged.
+    // The smallest usable minority fraction in float (~6e-8) is set by the Yk >= 1 / Yk <= 0
+    // checks in TransportCoeffs, not by this tolerance.
+    const Real tol = Real(100.)*std::numeric_limits<Real>::epsilon();
+    Real maxdiag = 0.;
+    for (int i=0; i<nspecies; ++i) {
+        maxdiag = amrex::max(maxdiag, a[i*nspecies+i]); // before a is overwritten by the factor
+    }
+
     for (int i=0; i<nspecies; ++i) {
         ising = 0;
 
@@ -540,7 +563,8 @@ void CholeskyDecomp( GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
             }
 
             if (i == j) {
-                if (sum1 <= Real(0.)) {
+                const Real tol_i = (i == nspecies-1) ? tol*maxdiag : Real(0.);
+                if (sum1 <= amrex::max(Real(0.), tol_i)) {
                     p[i] = 0.;
                     ising = 1;
                 } else {
