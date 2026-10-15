@@ -20,12 +20,14 @@ Long NumCellsTransverse (int dir)
 // Sum components incomp..incomp+ncomp-1 of mf_in over the planes transverse to dir.
 // Returns a host vector of size n_cells[dir]*ncomp indexed [r*ncomp + n], reduced
 // over all MPI ranks. Runs on the device when built for GPU.
-Vector<Real> SumOverPlanes (const MultiFab& mf_in, int dir, int incomp, int ncomp)
+// Each bin receives Ny*Nz (or similar) values, so the sums are accumulated in double:
+// float atomics lose up to eps*n relative accuracy and are order-dependent.
+Vector<double> SumOverPlanes (const MultiFab& mf_in, int dir, int incomp, int ncomp)
 {
     const int npts = n_cells[dir];
 
-    Gpu::DeviceVector<Real> d_sum(npts*ncomp, Real(0.));
-    Real* psum = d_sum.data();
+    Gpu::DeviceVector<double> d_sum(npts*ncomp, 0.0);
+    double* psum = d_sum.data();
 
     for (MFIter mfi(mf_in, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.tilebox();
@@ -33,12 +35,12 @@ Vector<Real> SumOverPlanes (const MultiFab& mf_in, int dir, int incomp, int ncom
         amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             int r = (dir == 0) ? i : ((dir == 1) ? j : k);
-            Gpu::Atomic::AddNoRet(&psum[r*ncomp + n], mf(i,j,k,incomp+n));
+            Gpu::Atomic::AddNoRet(&psum[r*ncomp + n], static_cast<double>(mf(i,j,k,incomp+n)));
         });
     }
     Gpu::streamSynchronize();
 
-    Vector<Real> h_sum(npts*ncomp);
+    Vector<double> h_sum(npts*ncomp);
     Gpu::copy(Gpu::deviceToHost, d_sum.begin(), d_sum.end(), h_sum.begin());
 
     // sum over all processors
@@ -58,10 +60,10 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
 
     const Real h = geom.CellSize(dir);
 
-    Vector<Real> sum = SumOverPlanes(mf_in, dir, incomp, ncomp);
+    Vector<double> sum = SumOverPlanes(mf_in, dir, incomp, ncomp);
 
     // divide by the number of cells in each transverse plane
-    const Real navg_inv = Real(1.) / Real(NumCellsTransverse(dir));
+    const double navg_inv = 1.0 / static_cast<double>(NumCellsTransverse(dir));
 
     if (ParallelDescriptor::IOProcessor()) {
         std::string filename = amrex::Concatenate(file_prefix,step,9);
@@ -72,7 +74,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
         for (int r=0; r<npts; ++r) {
             outfile << prob_lo[dir] + (r+Real(0.5))*h << " ";
             for (int n=0; n<ncomp; ++n) {
-                outfile << sum[r*ncomp + n]*navg_inv << " ";
+                outfile << Real(sum[r*ncomp + n]*navg_inv) << " ";
             }
             outfile << std::endl;
         }
@@ -92,11 +94,12 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
     // number of points in the averaging direction
     const int npts = n_cells[dir];
 
-    Vector<Real> average = SumOverPlanes(mf_in, dir, incomp, ncomp);
+    Vector<double> sum = SumOverPlanes(mf_in, dir, incomp, ncomp);
 
-    // divide by the number of cells in each transverse plane
-    const Real navg_inv = Real(1.) / Real(NumCellsTransverse(dir));
-    for (auto& a : average) { a *= navg_inv; }
+    // divide by the number of cells in each transverse plane (in double), then convert to Real
+    const double navg_inv = 1.0 / static_cast<double>(NumCellsTransverse(dir));
+    Vector<Real> average(sum.size());
+    for (std::size_t m=0; m<sum.size(); ++m) { average[m] = Real(sum[m]*navg_inv); }
 
     // copy the profile to the device and broadcast it into mf_out
     Gpu::DeviceVector<Real> d_average(npts*ncomp);
@@ -162,13 +165,13 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
     // sum_domain is the region actually summed over; ReduceToPlane intersects each box with it
     // and collapses the dir index to 0 regardless of its range
     Box sum_domain(domain);
-    Real ninv;
+    double ninv;
     if (slablo != -1 && slabhi != 99999) {
         sum_domain.setSmall(dir, slablo);
         sum_domain.setBig(dir, slabhi);
-        ninv = Real(1.)/(slabhi-slablo+1);
+        ninv = 1.0/(slabhi-slablo+1);
     } else {
-        ninv = Real(1.)/(domain.length(dir));
+        ninv = 1.0/(domain.length(dir));
     }
 
     MultiFab mf_onecomp(mf.boxArray(), mf.DistributionMap(), 1, 0);
@@ -178,13 +181,27 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
         // copy a component of mf into mf_onecomp
         MultiFab::Copy(mf_onecomp,mf,incomp+n,0,1,0);
 
-        // sum up
+        // sum up, accumulating in double (column sums of fields with a large mean lose the
+        // O(1/sqrt(Nz)) averaged fluctuation to float summation error)
         auto const& ma = mf_onecomp.const_arrays();
-        auto fab = ReduceToPlane<ReduceOpSum,Real>(dir, sum_domain, mf_onecomp,
-          [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
+        auto fabd = ReduceToPlane<ReduceOpSum,double>(dir, sum_domain, mf_onecomp,
+          [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> double
           {
-              return ma[box_no](i,j,k); // data at (i,j,k) of Box box_no
+              return static_cast<double>(ma[box_no](i,j,k)); // data at (i,j,k) of Box box_no
           });
+
+        // divide by number of cells in column (in double) to create average, then convert to Real
+        FArrayBox fab(fabd.box(), 1);
+        {
+            auto const& src = fabd.const_array();
+            auto const& dst = fab.array();
+            const double ninv_d = ninv;
+            amrex::ParallelFor(fabd.box(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                dst(i,j,k) = Real(src(i,j,k)*ninv_d);
+            });
+            Gpu::streamSynchronize();
+        }
 
         Box dom2d = fab.box();
         Vector<Box> bv(ParallelDescriptor::NProcs(),dom2d);
@@ -197,9 +214,6 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
         MultiFab mftmp(ba, dm, 1, 0, MFInfo().SetAlloc(false));
         mftmp.setFab(ParallelDescriptor::MyProc(),
                      FArrayBox(fab.box(), 1, fab.dataPtr()));
-
-        // divide by number of cells in column to create average
-        mftmp.mult(ninv);
 
         BoxArray ba2(dom2d);
 

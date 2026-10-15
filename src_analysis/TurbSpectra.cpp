@@ -25,7 +25,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
 
     Box domain = geom.Domain();
     auto npts = domain.numPts();
-    Real sqrtnpts = std::sqrt(npts);
+    Real sqrtnpts = Real(std::sqrt(static_cast<double>(npts)));
 
     amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
 
@@ -51,9 +51,11 @@ void TurbSpectrumScalar(const MultiFab& variables,
             const Box& bx = mfi.validbox();
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real re = spectral(i,j,k).real();
-                Real im = spectral(i,j,k).imag();
-                data(i,j,k,comp_gpu) = (re*re + im*im)/(sqrtnpts_gpu*sqrtnpts_gpu*scaling_i_gpu);
+                // normalize by sqrt(N) before squaring: the unnormalized k=0 amplitude ~ N*mean
+                // squared can exceed FLT_MAX
+                Real re = spectral(i,j,k).real()/sqrtnpts_gpu;
+                Real im = spectral(i,j,k).imag()/sqrtnpts_gpu;
+                data(i,j,k,comp_gpu) = (re*re + im*im)/scaling_i_gpu;
             });
         }
 
@@ -82,7 +84,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 
     Box domain = geom.Domain();
     auto npts = domain.numPts();
-    Real sqrtnpts = std::sqrt(npts);
+    Real sqrtnpts = Real(std::sqrt(static_cast<double>(npts)));
 
     // get box array and distribution map of vel
     DistributionMapping dm = vel.DistributionMap();
@@ -306,9 +308,9 @@ void IntegrateKScalar(const MultiFab& cov_mag,
 {
     int npts = n_cells[0]/2;
 
-    Gpu::DeviceVector<Real> phisum_device(npts, 0);
+    Gpu::DeviceVector<double> phisum_device(npts, 0);
     Gpu::DeviceVector<int>  phicnt_device(npts, 0);
-    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
+    double* phisum_ptr = phisum_device.dataPtr();  // pointer to data
     int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
     int comp_gpu = comp;
@@ -336,7 +338,7 @@ void IntegrateKScalar(const MultiFab& cov_mag,
                 if ( dist <=  n_cells[0]/2-0.5) {
                     dist = dist+0.5;
                     int cell = int(dist);
-                    amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov(i,j,k,comp_gpu));
+                    amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), static_cast<double>(cov(i,j,k,comp_gpu)));
                     amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
                 }
             }
@@ -346,7 +348,7 @@ void IntegrateKScalar(const MultiFab& cov_mag,
         });
     }
 
-    Gpu::HostVector<Real> phisum_host(npts);
+    Gpu::HostVector<double> phisum_host(npts);
     Gpu::HostVector<int>  phicnt_host(npts);
     Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
     Gpu::copyAsync(Gpu::deviceToHost, phicnt_device.begin(), phicnt_device.end(), phicnt_host.begin());
@@ -382,9 +384,9 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
 {
     int npts = n_cells[0]/2;
 
-    Gpu::DeviceVector<Real> phisum_device(npts, 0);
+    Gpu::DeviceVector<double> phisum_device(npts, 0);
     Gpu::DeviceVector<int>  phicnt_device(npts, 0);
-    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
+    double* phisum_ptr = phisum_device.dataPtr();  // pointer to data
     int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
     int comp_gpu = comp;
@@ -412,7 +414,7 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
                 if ( dist <=  n_cells[0]/2-0.5) {
                     dist = dist+0.5;
                     int cell = int(dist);
-                    amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov(i,j,k,comp_gpu));
+                    amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), static_cast<double>(cov(i,j,k,comp_gpu)));
                     amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
                 }
             }
@@ -422,7 +424,7 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
         });
     }
 
-    Gpu::HostVector<Real> phisum_host(npts);
+    Gpu::HostVector<double> phisum_host(npts);
     Gpu::HostVector<int>  phicnt_host(npts);
     Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
     Gpu::copyAsync(Gpu::deviceToHost, phicnt_device.begin(), phicnt_device.end(), phicnt_host.begin());

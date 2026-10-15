@@ -25,7 +25,7 @@ void main_driver(const char* argv)
     BL_PROFILE_VAR("main_driver()",main_driver);
 
     // store the current time so we can later compute total run time.
-    Real strt_time = ParallelDescriptor::second();
+    double strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
 
@@ -248,6 +248,11 @@ void main_driver(const char* argv)
     spatialCross.setVal(0.0);
     spatialCrossAv.setVal(0.0);
 
+    // Kahan compensation terms for the running statistics (see stats.cpp).
+    // Not checkpointed; restarting them from zero costs at most an ulp per accumulator.
+    MultiFab statsKahan(ba,dmap,statsKahanNComp(),0);
+    statsKahan.setVal(0.0);
+
     // external source term - currently only chemistry source considered for nreaction>0
     MultiFab source(ba,dmap,nvars,ngc);
     source.setVal(0.0);
@@ -351,12 +356,12 @@ void main_driver(const char* argv)
                      rho_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
         p0 = 884.147e3;
-        dProb = (AMREX_SPACEDIM==2) ? Real(1.)/(n_cells[0]*n_cells[1]) : Real(1.)/(n_cells[0]*n_cells[1]*n_cells[2]);
+        dProb = (AMREX_SPACEDIM==2) ? Real(1./(double(n_cells[0])*double(n_cells[1]))) : Real(1./(double(n_cells[0])*double(n_cells[1])*double(n_cells[2])));
         rho0 = molmass[0] / avogadro * p0 / (k_B * T_init[0]);
         nu0 = Real(0.185);
     }
 
-    Real time = 0;
+    double time = 0; // kept in double so that time + dt does not lose dt to float rounding
 
     int step;
     int statsCount = 1;
@@ -576,7 +581,7 @@ void main_driver(const char* argv)
         }
 
         // timer
-        Real ts1 = ParallelDescriptor::second();
+        double ts1 = ParallelDescriptor::second();
 
         // sample surface chemistry (via either surfchem_mui or MFsurfchem)
 #ifdef MUI
@@ -612,7 +617,7 @@ void main_driver(const char* argv)
         }
 
         // timer
-        Real ts2 = ParallelDescriptor::second() - ts1;
+        double ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
         if (step%100 == 0) {
             amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
@@ -622,14 +627,14 @@ void main_driver(const char* argv)
         if (step > n_steps_skip && stats_int > 0 && step%stats_int == 0) {
 
             // timer
-            Real t1 = ParallelDescriptor::second();
+            double t1 = ParallelDescriptor::second();
 
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
-                          spatialCross, miscStats, miscVals, statsCount, dx);
+                          spatialCross, miscStats, miscVals, statsKahan, statsCount, dx);
             statsCount++;
 
             // timer
-            Real t2 = ParallelDescriptor::second() - t1;
+            double t2 = ParallelDescriptor::second() - t1;
             ParallelDescriptor::ReduceRealMax(t2);
             if (step%100 == 0) {
                 amrex::Print() << "evaluateStats time " << t2 << " seconds\n";
@@ -643,7 +648,7 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
 
             // timer
-            Real t1 = ParallelDescriptor::second();
+            double t1 = ParallelDescriptor::second();
 
             /*
               yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
@@ -661,7 +666,7 @@ void main_driver(const char* argv)
             if (n_ads_spec>0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 
             // timer
-            Real t2 = ParallelDescriptor::second() - t1;
+            double t2 = ParallelDescriptor::second() - t1;
             ParallelDescriptor::ReduceRealMax(t2);
             amrex::Print() << "WritePlotFile time " << t2 << " seconds\n";
 
@@ -691,13 +696,13 @@ void main_driver(const char* argv)
         if (chk_int > 0 && step > 0 && step%chk_int == 0) {
 
             // timer
-            Real t1 = ParallelDescriptor::second();
+            double t1 = ParallelDescriptor::second();
 
             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
                             cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
 
             // timer
-            Real t2 = ParallelDescriptor::second() - t1;
+            double t2 = ParallelDescriptor::second() - t1;
             ParallelDescriptor::ReduceRealMax(t2);
             amrex::Print() << "WriteCheckPoint time " << t2 << " seconds\n";
         }
@@ -706,7 +711,7 @@ void main_driver(const char* argv)
         if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
             // timer
-            Real t1 = ParallelDescriptor::second();
+            double t1 = ParallelDescriptor::second();
 
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
@@ -728,7 +733,7 @@ void main_driver(const char* argv)
             }
 
             // timer
-            Real t2 = ParallelDescriptor::second() - t1;
+            double t2 = ParallelDescriptor::second() - t1;
             ParallelDescriptor::ReduceRealMax(t2);
             amrex::Print() << "StructFact snapshot time " << t2 << " seconds\n";
         }
@@ -737,7 +742,7 @@ void main_driver(const char* argv)
         if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
 
             // timer
-            Real t1 = ParallelDescriptor::second();
+            double t1 = ParallelDescriptor::second();
 
             structFactPrim.WritePlotFile(step,time,"plt_SF_prim");
             structFactCons.WritePlotFile(step,time,"plt_SF_cons");
@@ -747,7 +752,7 @@ void main_driver(const char* argv)
             }
 
             // timer
-            Real t2 = ParallelDescriptor::second() - t1;
+            double t2 = ParallelDescriptor::second() - t1;
             ParallelDescriptor::ReduceRealMax(t2);
             amrex::Print() << "StructFact plotfile time " << t2 << " seconds\n";
         }
@@ -756,7 +761,7 @@ void main_driver(const char* argv)
         if (turbForcing == 1) {
 
             // timer
-            Real t1 = ParallelDescriptor::second();
+            double t1 = ParallelDescriptor::second();
 
             // FORM 1: <rho/rho0 du_i/dx_i du_i/dx_i>
 
@@ -891,7 +896,7 @@ void main_driver(const char* argv)
                     << std::endl;
 
             // timer
-            Real t2 = ParallelDescriptor::second() - t1;
+            double t2 = ParallelDescriptor::second() - t1;
             ParallelDescriptor::ReduceRealMax(t2);
             amrex::Print() << "Energy dissipation compute time " << t2 << " seconds\n";
 
@@ -926,7 +931,7 @@ void main_driver(const char* argv)
     }
 
     // timer
-    Real stop_time = ParallelDescriptor::second() - strt_time;
+    double stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
 }

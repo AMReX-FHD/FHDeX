@@ -76,7 +76,11 @@ void MembraneFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
                    MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,
+                   MultiFab& statsKahan,
                    const int steps, const Real* dx);
+
+// number of components of the statsKahan MultiFab passed to evaluateStats
+int statsKahanNComp ();
 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux,
                 const Geometry& geom, const Real* dx, const Real dt);
@@ -106,7 +110,7 @@ void yzAverage(const MultiFab& consMean,
                MultiFab& spatialCrossAv);
 
 void WriteCheckPoint(int step,
-                     const Real time,
+                     const double time,
                      int statsCount,
                      const Geometry& geom,
                      const MultiFab& cu,
@@ -121,7 +125,7 @@ void WriteCheckPoint(int step,
                      const MultiFab& kappa);
 
 void ReadCheckPoint(int& step,
-                     Real& time,
+                     double& time,
                      int& statsCount,
                      Geometry& geom,
                      MultiFab& cu,
@@ -1313,7 +1317,8 @@ void IdealMixtureTransportGIO (/*int iloc, int jloc, int kloc,*/
     kT = k_B*temperature;
     for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
-            Dbin[i*nspecies+j] = (Real(3.0)/Real(16.0))*std::sqrt(Real(2.0)*pi*kT*kT*kT/mu(i,j))/(pressure*pi*diam(i,j)*diam(i,j));
+            // kT*sqrt(kT/mu) rather than sqrt(kT^3/mu): kT^3 ~ 1e-40 (cgs) is below FLT_MIN
+            Dbin[i*nspecies+j] = (Real(3.0)/Real(16.0))*kT*std::sqrt(Real(2.0)*pi*kT/mu(i,j))/(pressure*pi*diam(i,j)*diam(i,j));
         }
     }
 

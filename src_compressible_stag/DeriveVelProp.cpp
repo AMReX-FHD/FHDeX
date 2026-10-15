@@ -20,9 +20,10 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 {
     BL_PROFILE_VAR("GetTurbQty()",GetTurbQty);
 
-    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] :
-                                       n_cells[0]*n_cells[1]*n_cells[2];
-    dProb = 1./dProb;
+    // number of cells formed in double (the int product overflows above ~1290^3 cells)
+    const double ncells_d = (AMREX_SPACEDIM==2) ? double(n_cells[0])*double(n_cells[1]) :
+                                                  double(n_cells[0])*double(n_cells[1])*double(n_cells[2]);
+    Real dProb = Real(1./ncells_d);
 
     // Setup temp MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > macTemp;
@@ -124,37 +125,28 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     }
     CCInnerProd(ccTemp,0,ccTemp,0,ccTempDiv,temp); // store (\sum_i du_i/dx_i)^2 MFab
 
-    // Compute Velocity gradient moment sum
-    // 2nd moment
-    ccTemp.setVal(0.0);
-    ccTempA.setVal(0.0);
+    // Compute Velocity gradient moment sums.
+    // Moments are formed and summed in double: (du/dx)^4 per cell can exceed 1e32 in cgs
+    // turbulence, so the float sum (and pow(<(du/dx)^2>,2) below) would overflow.
+    // <\sum_i (du_i/dx_i)^p> = \sum_i <(du_i/dx_i)^p>, so the component means give the sums directly.
+    GpuArray<double,3> gU2 = {0.,0.,0.};
+    GpuArray<double,3> gU3 = {0.,0.,0.};
+    GpuArray<double,3> gU4 = {0.,0.,0.};
+    double avg_mom2 = 0., avg_mom3 = 0., avg_mom4 = 0.;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        CCMoments(gradU,d,ccTempA,2,gradU2[d]);
-        MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
-        gradU2[d] *= dProb; // <(du_i/dx_i)^2> each component
+        gU2[d] = SumPowDouble(gradU,d,2)/ncells_d; // <(du_i/dx_i)^2> each component
+        gU3[d] = SumPowDouble(gradU,d,3)/ncells_d; // <(du_i/dx_i)^3> each component
+        gU4[d] = SumPowDouble(gradU,d,4)/ncells_d; // <(du_i/dx_i)^4> each component
+        gradU2[d] = Real(gU2[d]);
+        gradU3[d] = Real(gU3[d]);
+        gradU4[d] = Real(gU4[d]);
+        avg_mom2 += gU2[d]; // <\sum_i (du_i/dx_i)^2>
+        avg_mom3 += gU3[d]; // <\sum_i (du_i/dx_i)^3>
+        avg_mom4 += gU4[d]; // <\sum_i (du_i/dx_i)^4>
     }
-    Real avg_mom2 = ComputeSpatialMean(ccTemp, 0); // <\sum_i (du_i/dx_i)^2>
-
-    // 3rd moment
-    ccTemp.setVal(0.0);
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        CCMoments(gradU,d,ccTempA,3,gradU3[d]);
-        MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
-        gradU3[d] *= dProb; // <(du_i/dx_i)^3> each component
-    }
-    Real avg_mom3 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^3>
-
-    // 4th moment
-    ccTemp.setVal(0.0);
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        CCMoments(gradU,d,ccTempA,4,gradU4[d]);
-        MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
-        gradU4[d] *= dProb; // <(du_i/dx_i)^4> each component
-    }
-    Real avg_mom4 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^4>
 
     // Taylor Microscale
-    taylor_len = std::sqrt(3.0)*u_rms/std::sqrt(avg_mom2); // from Wang et al., JFM, 2012
+    taylor_len = Real(std::sqrt(3.0)*u_rms/std::sqrt(avg_mom2)); // from Wang et al., JFM, 2012
 
     // Taylor Reynolds Number & Turbulent Mach number
     Real rho_avg = ComputeSpatialMean(prim, 0);
@@ -167,14 +159,14 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     //Real skew2 = gradU3[1]/pow(gradU2[1],1.5); // <(du_2/dx_2)^3>/<(du_2/dx_2)^2>^1.5
     //Real skew3 = gradU3[2]/pow(gradU2[2],1.5); // <(du_3/dx_3)^3>/<(du_3/dx_3)^2>^1.5
     // <\sum_i (du_i/dx_i)^3> / (\sum_i <(du_i/dx_i)^2>^1.5)
-    skew = avg_mom3/(std::pow(gradU2[0],Real(1.5)) + std::pow(gradU2[1],Real(1.5)) + std::pow(gradU2[2],Real(1.5)));
+    skew = Real(avg_mom3/(std::pow(gU2[0],1.5) + std::pow(gU2[1],1.5) + std::pow(gU2[2],1.5)));
 
     // Kurtosis
     //Real kurt1 = gradU4[0]/pow(gradU2[0],2); // <(du_1/dx_1)^4>/<(du_1/dx_1)^2>^2
     //Real kurt2 = gradU4[1]/pow(gradU2[1],2); // <(du_2/dx_2)^4>/<(du_2/dx_2)^2>^2
     //Real kurt3 = gradU4[2]/pow(gradU2[2],2); // <(du_3/dx_3)^4>/<(du_3/dx_3)^2>^2
     // <\sum_i (du_i/dx_i)^4> / (\sum_i <(du_i/dx_i)^2>^2)
-    kurt =  avg_mom4/(std::pow(gradU2[0],Real(2)) + std::pow(gradU2[1],Real(2)) + std::pow(gradU2[2],Real(2)));
+    kurt =  Real(avg_mom4/(gU2[0]*gU2[0] + gU2[1]*gU2[1] + gU2[2]*gU2[2]));
 
     // Compute \omega (curl)
     ComputeCurlFaceToEdge(vel,curlU,geom);

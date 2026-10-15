@@ -34,7 +34,7 @@ void main_driver(const char* argv)
     BL_PROFILE_VAR("main_driver()",main_driver);
 
     // store the current time so we can later compute total run time.
-    Real strt_time = ParallelDescriptor::second();
+    double strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
 
@@ -78,7 +78,7 @@ void main_driver(const char* argv)
 #endif
 
     int step_start, statsCount;
-    amrex::Real time;
+    double time; // kept in double so that time + dt does not lose dt to float rounding
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
@@ -296,6 +296,9 @@ void main_driver(const char* argv)
     int ncross = 37+nspecies+3;
     MultiFab spatialCrossMF;
     Vector<Real> spatialCrossVec(n_cells[0]*ncross, 0.0);
+
+    // Kahan compensation terms for the running statistics (see statsStag.cpp)
+    StatsKahan statsKahan;
 
     // make BoxArray and Geometry
     BoxArray ba;
@@ -525,13 +528,15 @@ void main_driver(const char* argv)
     Vector<Real> var_scaling_prim;
     var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
     for (int d=0; d<var_scaling_prim.size(); ++d) {
-        var_scaling_prim[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
+        if (scale_SF_with_dVol) var_scaling_prim[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
+        else var_scaling_prim[d] = Real(1.);
     }
     Vector<Real> var_scaling_cons;
     // scale SF results by inverse cell volume
     var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
     for (int d=0; d<var_scaling_cons.size(); ++d) {
-        var_scaling_cons[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
+        if (scale_SF_with_dVol) var_scaling_cons[d] = Real(1.)/(dx[0]*dx[1]*dx[2]);
+        else var_scaling_cons[d] = Real(1.);
     }
 
     Vector<Real> surfcov_var_scaling;
@@ -857,6 +862,34 @@ void main_driver(const char* argv)
 
     } // else restart/non-restart
 
+    // Kahan compensation terms are not checkpointed; restarting them from zero
+    // costs at most an ulp per accumulator
+    if (plot_means) {
+        statsKahan.cuMeans.define(ba,dmap,nvars,ngc); // mean density is updated in the ghost region as well
+        statsKahan.primMeans.define(ba,dmap,nprimvars+3,0);
+        if (nspec_surfcov>0) statsKahan.surfcovMeans.define(ba,dmap,nspec_surfcov,0);
+    }
+    if ((plot_vars) or (plot_covars)) {
+        statsKahan.cuVars.define(ba,dmap,nvars,0);
+        statsKahan.primVars.define(ba,dmap,nprimvars+5,0);
+        statsKahan.coVars.define(ba,dmap,26,0);
+        if (plot_mom4) statsKahan.mom4.define(ba,dmap,nvars+1,0);
+        if (nspec_surfcov>0) statsKahan.surfcovVars.define(ba,dmap,nspec_surfcov,0);
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            statsKahan.velVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            statsKahan.cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        }
+    }
+    if (plot_cross) {
+        if (do_1D) {
+            statsKahan.spatialCrossMF.define(ba,dmap,(all_correl) ? ncross*5 : ncross,0);
+        }
+        else if (!do_2D) {
+            statsKahan.spatialCrossVec.resize(n_cells[0]*ncross);
+        }
+    }
+    statsKahan.setVal0();
+
 #if defined(TURB)
     if (turbForcing >= 1) {
         MFTurbVel.define(ba, dmap, 3, 0);
@@ -1094,7 +1127,7 @@ void main_driver(const char* argv)
     for (int step=step_start;step<=max_step;++step) {
 
         // timer
-        Real ts1 = ParallelDescriptor::second();
+        double ts1 = ParallelDescriptor::second();
 
         // sample surface chemistry
 #if defined(MUI)
@@ -1194,14 +1227,14 @@ void main_driver(const char* argv)
         }
 
         // timer
-        Real ts2 = ParallelDescriptor::second() - ts1;
+        double ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2, ParallelDescriptor::IOProcessorNumber());
         if (step%100 == 0) {
             amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
         }
 
         // timer
-        Real aux1 = ParallelDescriptor::second();
+        double aux1 = ParallelDescriptor::second();
 
         // reset statistics after n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
@@ -1242,6 +1275,8 @@ void main_driver(const char* argv)
                 spatialCrossVec.assign(spatialCrossVec.size(), 0.0);
             }
 
+            statsKahan.setVal0();
+
             amrex::Print() << "Resetting stat collection." << std::endl;
 
             statsCount = 1;
@@ -1253,20 +1288,20 @@ void main_driver(const char* argv)
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3, mom4,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                                spatialCrossMF, ncross, statsCount, geom);
+                                spatialCrossMF, ncross, statsKahan, statsCount, geom);
         }
         else if (do_2D) {
             evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3, mom4,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
-                                spatialCrossMF, ncross, statsCount, geom);
+                                spatialCrossMF, ncross, statsKahan, statsCount, geom);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel,
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars, mom3, mom4,
                                 surfcov, surfcovMeans, surfcovVars, surfcovcoVars,
                                 dataSliceMeans_xcross, spatialCrossVec, ncross, domain,
-                                statsCount, geom);
+                                statsKahan, statsCount, geom);
         }
         statsCount++;
         if (step%100 == 0) {
@@ -1755,7 +1790,7 @@ void main_driver(const char* argv)
         }
 
         // timer
-        Real aux2 = ParallelDescriptor::second() - aux1;
+        double aux2 = ParallelDescriptor::second() - aux1;
         ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
         if (step%100 == 0) {
             amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
@@ -1803,7 +1838,7 @@ void main_driver(const char* argv)
 #endif
 
     // timer
-    Real stop_time = ParallelDescriptor::second() - strt_time;
+    double stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time, ParallelDescriptor::IOProcessorNumber());
     amrex::Print() << "Run time = " << stop_time << std::endl;
 }

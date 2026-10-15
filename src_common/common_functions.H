@@ -129,6 +129,10 @@ void SqrtMF(MultiFab& MF);
 ///////////////////////////
 // in ComputeBasicStats.cpp
 
+// sums accumulated in double (independent of Real); reduced over MPI ranks unless local
+double SumDouble (const MultiFab& mf, int comp, bool local=false);
+double SumPowDouble (const MultiFab& mf, int comp, int power, double shift=0.0, bool local=false);
+
 Real ComputeSpatialMean(MultiFab& mf, const int& incomp);
 
 Real ComputeSpatialVariance(MultiFab& mf, const int& incomp);
