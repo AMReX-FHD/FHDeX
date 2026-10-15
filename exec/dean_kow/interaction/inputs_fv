@@ -19,6 +19,9 @@ dorand = 1.
 num_part = 20480.
 num_part = 327680.
 num_part = 81920.
+num_part = 16384.
+num_part = 163840.
+num_part = 327680.
 
 # SPDE discretization options (defaults reproduce the original scheme)
 #noise_avg_type  = 1       # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
@@ -107,6 +110,7 @@ amr.grid_eff = 0.96
 # *****************************************************************
 adv.cfl            = 0.01    # CFL constraint
 adv.cfl            = 0.03125    # CFL constraint
+adv.cfl            = 0.1    # CFL constraint
 
 # *****************************************************************
 # Should we reflux at coarse-fine boundaries?
@@ -122,12 +126,12 @@ adv.phierr = 10.
 # Plotfile name and frequency
 # *****************************************************************
 amr.plot_file  = plt_fv_   # root name of plot file
-amr.plot_int   =  4000    # number of timesteps between plot files
+amr.plot_int   =  1000    # number of timesteps between plot files
                         # if negative then no plot files will be written
 
 # *****************************************************************
 # Checkpoint name and frequency
 # *****************************************************************
-amr.chk_file = chk      # root name of checkpoint file
-amr.chk_int  = -1       # number of timesteps between checkpoint files
+amr.chk_file = chk_fv_      # root name of checkpoint file
+amr.chk_int  = 10000       # number of timesteps between checkpoint files
                         # if negative then no checkpoint files will be written

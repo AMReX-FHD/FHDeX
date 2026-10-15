@@ -5,6 +5,17 @@ void InitConsVarStag(MultiFab& cons,
                      std::array< MultiFab, AMREX_SPACEDIM >& momStag,
                      const amrex::Geometry& geom) {
 
+    // some problem types hard-code the number of species or the cell index of a discontinuity
+    if ((prob_type == 2 || prob_type == 102) && nspecies != 4) {
+        Abort("InitConsVarStag: prob_type = 2 and 102 require nspecies = 4");
+    }
+    if ((prob_type == 5 || prob_type == 106 || prob_type == 107) && nspecies != 2) {
+        Abort("InitConsVarStag: prob_type = 5, 106 and 107 require nspecies = 2");
+    }
+    if ((prob_type == 104 || prob_type == 105 || prob_type == 106) && n_cells[0] <= 15) {
+        Abort("InitConsVarStag: prob_type = 104-106 place the discontinuity at i = 15 and require n_cells[0] > 15");
+    }
+
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
 

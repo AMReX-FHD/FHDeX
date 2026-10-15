@@ -14,6 +14,8 @@ accumulates two radial distribution functions, writing plain text tables:
   rdf_field.txt      pair correlation g(r) of the density field
   rdf_clusters.txt   g(r) of the cluster centres of mass
   sf.txt             shell-averaged structure factor S(k) of the density field
+  plt_clusters_*     with --cluster-plotfiles: the density with cluster cells
+                     set to -1, and the tracked cluster id of each cell
   order.txt          per frame: Steinhardt bond order q4, q6 of the cluster
                      centres (local and global) and Bragg-spot statistics of S(k)
 
@@ -452,6 +454,10 @@ def main():
                          "as the plotfile sf_full_avg (k = 0 at the centre)")
     ap.add_argument("--sf-full-per-frame", action="store_true",
                     help="also write the full S(k) of each frame in the window as sf_full_<step>")
+    ap.add_argument("--cluster-plotfiles", action="store_true",
+                    help="for each frame in --t-range, write the plotfile plt_clusters_<step> with "
+                         "<var>_masked (-1 in cells of a kept cluster, else the value of --var) "
+                         "and cluster_id (the tracked id, 0 outside clusters)")
     ap.add_argument("--nn", type=int, default=12,
                     help="bond order: number of nearest neighbours of each cluster (default 12)")
     ap.add_argument("--nn-cut", type=float,
@@ -565,6 +571,11 @@ def main():
             fev.write("%.10g %d %s %s %s %s %s\n"
                       % (t, h["step"], kind, fmt(oid), fmtm(om), fmt(nid), fmtm(nm)))
 
+        if keep and args.cluster_plotfiles:
+            ids = np.array([0] + [c["id"] for c in clusters], dtype=float)
+            write_plotfile(os.path.join(args.output, "plt_clusters_%07d" % h["step"]),
+                           np.stack([np.where(lab > 0, -1.0, phi), ids[lab]]),
+                           [args.var + "_masked", "cluster_id"], plo, dx, t, h["step"])
         if keep:
             frdf.add(ncount)
             crdf.add(clusters)

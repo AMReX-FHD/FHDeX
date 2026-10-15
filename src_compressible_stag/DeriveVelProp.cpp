@@ -240,10 +240,15 @@ void GetTurbQtyDecomp(const MultiFab& vel_decomp_in, // contains 6 components fo
     vel_decomp.ParallelCopy(vel_decomp_in,0,0,6);
     vel_decomp.FillBoundary(geom.periodicity());
 
+    // sum_unique(...,geom.periodicity()) counts each face once: n_cells faces in a periodic
+    // direction, n_cells+1 in a non-periodic one (same convention as GetTurbQty)
     Vector<Real> dProb(3);
-    dProb[0] = 1.0/(double(n_cells[0]+1)*double(n_cells[1])*double(n_cells[2]));
-    dProb[1] = 1.0/(double(n_cells[1]+1)*double(n_cells[2])*double(n_cells[0]));
-    dProb[2] = 1.0/(double(n_cells[2]+1)*double(n_cells[0])*double(n_cells[1]));
+    for (int d=0; d<3; ++d) {
+        Real nf = Real(n_cells[d]) + (geom.isPeriodic(d) ? Real(0.) : Real(1.));
+        Real n1 = Real(n_cells[(d+1)%3]);
+        Real n2 = Real(n_cells[(d+2)%3]);
+        dProb[d] = 1.0/(nf*n1*n2);
+    }
 
     // Setup temp MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > gradU;

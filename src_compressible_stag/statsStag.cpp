@@ -7,6 +7,19 @@
 // for accumulators with nonzero expectation); see RunningMean.H
 #include "RunningMean.H"
 
+namespace {
+// Sum a device vector across MPI ranks through a host copy (MPI cannot be assumed to accept
+// device pointers).
+void ReduceDeviceVectorSum (amrex::Gpu::DeviceVector<Real>& v, int n)
+{
+    amrex::Gpu::HostVector<Real> h(n);
+    amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, v.begin(), v.begin()+n, h.begin());
+    amrex::Gpu::streamSynchronize();
+    ParallelDescriptor::ReduceRealSum(h.data(), n);
+    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, h.begin(), h.end(), v.begin());
+    amrex::Gpu::streamSynchronize();
+}
+}
 
 ///////////////////////////////////////////
 // Evaluate Stats for the 3D case /////////
@@ -202,7 +215,7 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         if (all_correl == 0) { // for a specified cross_cell
             amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
             GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,cross_cell);
-            ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
+            ReduceDeviceVectorSum(data_xcross,nstats*n_cells[1]*n_cells[2]);
 
             // Update Spatial Correlations
             EvaluateSpatialCorrelations1D(spatialCross1D,kahan.spatialCrossMF,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,0);
@@ -218,7 +231,7 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             for (int i=0; i<5; ++i) {
                 amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
                 GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,x_star[i]);
-                ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
+                ReduceDeviceVectorSum(data_xcross,nstats*n_cells[1]*n_cells[2]);
                 EvaluateSpatialCorrelations1D(spatialCross1D,kahan.spatialCrossMF,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,i);
             }
         }
