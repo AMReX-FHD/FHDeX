@@ -528,10 +528,12 @@ void RK3stepStag(MultiFab& cu,
                 Real aF_z_p = turbvf_z_o(i,j,k+1);
                 Real aF_z_m = turbvf_z_o(i,j,k);
 
-                cup_fab(i,j,k,4) += dt * 0.5 * (  aF_x_p*momx(i+1,j,k) + aF_x_m*momx(i,j,k)
-                                                + aF_y_p*momy(i,j+1,k) + aF_y_m*momy(i,j,k)
-                                                + aF_z_p*momz(i,j,k+1) + aF_z_m*momz(i,j,k) );
-                cup_fab(i,j,k,4) -= dt * energy_in; // remove the average input energy from random turbulent forcing
+                // local forcing work minus the average input energy, applied as one increment so the
+                // float rounding differs per cell instead of being identical in every cell
+                cup_fab(i,j,k,4) += dt * ( 0.5 * (  aF_x_p*momx(i+1,j,k) + aF_x_m*momx(i,j,k)
+                                                  + aF_y_p*momy(i,j+1,k) + aF_y_m*momy(i,j,k)
+                                                  + aF_z_p*momz(i,j,k+1) + aF_z_m*momz(i,j,k) )
+                                           - energy_in );
             }
 #endif
         });
@@ -858,10 +860,12 @@ void RK3stepStag(MultiFab& cu,
                 Real aF_z_p = turbvf_z(i,j,k+1);
                 Real aF_z_m = turbvf_z(i,j,k);
 
-                cup2_fab(i,j,k,4) += 0.25 * dt * 0.5 * (  aF_x_p*mompx(i+1,j,k) + aF_x_m*mompx(i,j,k)
-                                                        + aF_y_p*mompy(i,j+1,k) + aF_y_m*mompy(i,j,k)
-                                                        + aF_z_p*mompz(i,j,k+1) + aF_z_m*mompz(i,j,k) );
-                cup2_fab(i,j,k,4) -= 0.25 * dt * energyp_in; // remove the average input energy from random turbulent forcing
+                // local forcing work minus the average input energy, applied as one increment so the
+                // float rounding differs per cell instead of being identical in every cell
+                cup2_fab(i,j,k,4) += 0.25 * dt * ( 0.5 * (  aF_x_p*mompx(i+1,j,k) + aF_x_m*mompx(i,j,k)
+                                                          + aF_y_p*mompy(i,j+1,k) + aF_y_m*mompy(i,j,k)
+                                                          + aF_z_p*mompz(i,j,k+1) + aF_z_m*mompz(i,j,k) )
+                                                   - energyp_in );
             }
 #endif
         });
@@ -1196,11 +1200,12 @@ void RK3stepStag(MultiFab& cu,
                 Real aF_z_p = 0.5*(turbvf_z_o(i,j,k+1) + turbvf_z(i,j,k+1));
                 Real aF_z_m = 0.5*(turbvf_z_o(i,j,k)   + turbvf_z(i,j,k)  );
 
-                cu_fab(i,j,k,4) += (2./3.) * dt * 0.5 * (  aF_x_p*momp2x(i+1,j,k) + aF_x_m*momp2x(i,j,k)
-                                                         + aF_y_p*momp2y(i,j+1,k) + aF_y_m*momp2y(i,j,k)
-                                                         + aF_z_p*momp2z(i,j,k+1) + aF_z_m*momp2z(i,j,k) );
-
-                cu_fab(i,j,k,4) -= (2./3.) * dt * energyp2_in; // remove the average input energy from random turbulent forcing
+                // local forcing work minus the average input energy, applied as one increment so the
+                // float rounding differs per cell instead of being identical in every cell
+                cu_fab(i,j,k,4) += (2./3.) * dt * ( 0.5 * (  aF_x_p*momp2x(i+1,j,k) + aF_x_m*momp2x(i,j,k)
+                                                           + aF_y_p*momp2y(i,j+1,k) + aF_y_m*momp2y(i,j,k)
+                                                           + aF_z_p*momp2z(i,j,k+1) + aF_z_m*momp2z(i,j,k) )
+                                                    - energyp2_in );
             }
 #endif
         });
