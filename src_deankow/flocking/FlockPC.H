@@ -10,15 +10,17 @@ struct FlockRealIdx
 {
     enum {
         theta = 0,   // direction of travel, in [0, 2 pi)
-        rhot,        // smoothed density rho_tilde at the particle (sets the speed)
+        qx,          // smoothed polarization Q = G_R * p at the particle
+        qy,          //   (sets the turning rate)
         ncomps
     };
 };
 
 // 2D particles with a direction theta:
-//   dX = v (cos theta, sin theta) dt,  dtheta = sqrt(2 D) dW
+//   dX = v (cos theta, sin theta) dt,
+//   dtheta = eps (cos theta Q_y - sin theta Q_x) dt + sqrt(2 D) dW
 // A NeighborParticleContainer, as interaction's StochasticPC, so that the
-// alignment interaction can later loop over neighbours.
+// alignment can loop over neighbours (align_method 1).
 class FlockPC
     : public amrex::NeighborParticleContainer<FlockRealIdx::ncomps, 0, 0, 0>
 {
@@ -37,27 +39,33 @@ public:
     // drawn from f(x, y, .) by rejection.
     void InitParticles (FlockingParams const& fp, int nq = 64);
 
-    // One Euler-Maruyama step: position with the start-of-step theta and speed
-    // v s(rhot/rho_bar), then theta += sqrt(2 D dt) Z, wrapped into [0, 2 pi).
-    void Advance (amrex::Real dt, FlockingParams const& fp, amrex::Real rhobar);
+    // One Euler-Maruyama step: position at speed v with the start-of-step
+    // theta, then theta += omega dt + sqrt(2 D dt) Z with the turning rate
+    // omega = eps (cos theta Q_y - sin theta Q_x) from the qx, qy attributes,
+    // wrapped into [0, 2 pi).
+    void Advance (amrex::Real dt, FlockingParams const& fp);
 
-    // Cloud-in-cell deposit of the particles onto rho (one ghost cell), as a
-    // density normalized to integrate to 1 over the plane.
-    void DepositCIC (amrex::MultiFab& rho) const;
+    // Cloud-in-cell deposit of the polarization (cos theta, sin theta) onto p
+    // (2 components, one ghost cell), as a density normalized like phi:
+    // p = (1/(N dx dy)) sum_i (cos, sin)(theta_i) CIC weight.
+    void DepositPolarizationCIC (amrex::MultiFab& p) const;
 
-    // Cloud-in-cell interpolation of rt (ghost cells filled) into each
-    // particle's rhot attribute.
-    void InterpolateCIC (amrex::MultiFab const& rt);
+    // Cloud-in-cell interpolation of q (2 components, ghost cells filled) into
+    // each particle's qx, qy attributes.
+    void InterpolateCIC (amrex::MultiFab const& q);
 
-    // rhot_i = (1/N) sum_j W(|x_i - x_j|) over neighbours (and j = i) with the
-    // continuous kernel: the grid-free particle model. Needs neighbor_cells to
-    // cover the kernel cutoff.
-    void ComputeRhoTildePairs (FlockingParams const& fp);
+    // Q_i = (1/N) sum_j G(|x_i - x_j|/R) (cos, sin)(theta_j) over neighbours
+    // (and j = i) with the continuous kernel: the grid-free particle model.
+    // Needs neighbor_cells to cover the kernel cutoff 1.1 R.
+    void ComputeAlignPairs (FlockingParams const& fp);
 
-    // Compare each particle's rhot attribute with the CIC interpolation of rt:
-    // returns max |diff|, rms diff and rms rhot over all particles.
-    void CompareWithCIC (amrex::MultiFab const& rt, amrex::Real& maxdiff,
+    // Compare each particle's qx, qy with the CIC interpolation of q: returns
+    // max |diff|, rms diff and rms |Q| over all particles.
+    void CompareWithCIC (amrex::MultiFab const& q, amrex::Real& maxdiff,
                          amrex::Real& rmsdiff, amrex::Real& rmsval) const;
+
+    // eps max_i |Q_i|, the bound on the turning rate
+    amrex::Real MaxTurningRate (FlockingParams const& fp) const;
 
     // Fill hist (on this container's grid) with the particle density per theta
     // bin: component k (k < ntheta) is count/(N dx dy dtheta), an estimate of

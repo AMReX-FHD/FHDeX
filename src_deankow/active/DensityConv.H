@@ -1,5 +1,5 @@
-#ifndef FLOCK_DENSITY_CONV_H_
-#define FLOCK_DENSITY_CONV_H_
+#ifndef ACTIVE_DENSITY_CONV_H_
+#define ACTIVE_DENSITY_CONV_H_
 
 #include <memory>
 
@@ -7,7 +7,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
-#include "FlockingParams.H"
+#include "ActiveParams.H"
 
 // Periodic convolution with the sensing kernel W(x, y) by FFT, on level 0,
 // following the U * phi convolution of src_deankow/interaction.
@@ -26,7 +26,7 @@ class DensityConv
 public:
 
     void define (amrex::Geometry const& geom, amrex::BoxArray const& ba,
-                 amrex::DistributionMapping const& dm, FlockingParams const& fp);
+                 amrex::DistributionMapping const& dm, ActiveParams const& fp);
 
     bool defined () const { return static_cast<bool>(m_fwd); }
 

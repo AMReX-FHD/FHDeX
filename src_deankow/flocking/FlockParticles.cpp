@@ -80,7 +80,7 @@ FlockParticles::ReadParameters ()
     fp.xlo = lo[0];  fp.lx = hi[0] - lo[0];
     fp.ylo = lo[1];  fp.ly = hi[1] - lo[1];
     rhobar = 1.0/(fp.lx*fp.ly);
-    print_mips_stability(fp);
+    print_align_stability(fp, rhobar);
 
     if (dt_fixed <= 0.0) {
         const Real h = amrex::min(geom.CellSize(0), geom.CellSize(1));
@@ -96,35 +96,35 @@ FlockParticles::InitData ()
 {
     // the pair sum needs neighbour cells covering the kernel cutoff
     int ncells = 1;
-    if (fp.speed_type != 0 && fp.density_method == 1) {
+    if (fp.align_method == 1) {
         const Real hmin = amrex::min(geom.CellSize(0), geom.CellSize(1));
-        ncells = amrex::max(1, static_cast<int>(std::ceil(flock_kernel_cutoff(fp)/hmin)));
-        amrex::Print() << "Pair-sum density: " << ncells << " neighbour cells\n";
+        ncells = amrex::max(1, static_cast<int>(std::ceil(flock_align_cutoff(fp)/hmin)));
+        amrex::Print() << "Pair-sum alignment: " << ncells << " neighbour cells\n";
     }
     pc = std::make_unique<FlockPC>(geom, dmap, grids, ncells);
     pc->InitParticles(fp);
-    hist.define(grids, dmap, n_theta_bins + 4, 0);
+    hist.define(grids, dmap, n_theta_bins + 5, 0);
 
-    rho_grid.define(grids, dmap, 1, 1);
-    rt_grid.define(grids, dmap, 1, 1);
-    dconv.define(geom, grids, dmap, fp);
-    amrex::Print() << "Sensing kernel: discrete / continuous normalization = "
-                   << dconv.discrete_over_continuous() << "\n";
+    pol_grid.define(grids, dmap, 2, 1);
+    q_grid.define(grids, dmap, 2, 1);
+    aconv.define(geom, grids, dmap, fp);
+    amrex::Print() << "Alignment kernel: discrete / continuous integral of G = "
+                   << aconv.discrete_over_continuous() << " (the grid kernel is rescaled to the continuous one)\n";
 
-    // with the pair sum, optionally compare it with the particle-mesh rho_tilde
-    // at the initial positions
-    int density_check = 0;
+    // with the pair sum, optionally compare it with the particle-mesh Q at the
+    // initial positions
+    int align_check = 0;
     {
         ParmParse pp("flock");
-        pp.query("density_check", density_check);
+        pp.query("align_check", align_check);
     }
-    if (density_check && fp.speed_type != 0 && fp.density_method == 1) {
-        pc->ComputeRhoTildePairs(fp);
-        pc->DepositCIC(rho_grid);
-        dconv.apply(rho_grid, rt_grid);
+    if (align_check && fp.align_method == 1) {
+        pc->ComputeAlignPairs(fp);
+        pc->DepositPolarizationCIC(pol_grid);
+        aconv.apply(pol_grid, q_grid);
         Real maxdiff, rmsdiff, rmsval;
-        pc->CompareWithCIC(rt_grid, maxdiff, rmsdiff, rmsval);
-        amrex::Print() << "Density check (particle-mesh vs pair sum at the particles): rms rho_tilde = "
+        pc->CompareWithCIC(q_grid, maxdiff, rmsdiff, rmsval);
+        amrex::Print() << "Alignment check (particle-mesh vs pair sum at the particles): rms Q = "
                        << rmsval << " rms diff = " << rmsdiff << " (relative " << rmsdiff/rmsval
                        << ") max diff = " << maxdiff << "\n";
     }
@@ -146,8 +146,16 @@ FlockParticles::Evolve ()
         dt = amrex::min(dt, stop_time - cur_time);
         dt = amrex::min(dt, next_plot_time - cur_time);
 
-        UpdateRhoTilde();
-        pc->Advance(dt, fp, rhobar);
+        UpdateAlignment();
+        if (fp.align_eps != 0.0 && !warned_dt) {
+            const Real wdt = pc->MaxTurningRate(fp)*dt;
+            if (wdt > 0.2) {
+                amrex::Print() << "WARNING: max turning angle per step eps max|Q| dt = " << wdt
+                               << " > 0.2; reduce particle_dt or adv.cfl\n";
+                warned_dt = true;
+            }
+        }
+        pc->Advance(dt, fp);
 
         cur_time += dt;
         t_new = cur_time;
@@ -169,15 +177,15 @@ FlockParticles::Evolve ()
 }
 
 void
-FlockParticles::UpdateRhoTilde ()
+FlockParticles::UpdateAlignment ()
 {
-    if (fp.speed_type == 0) { return; }
-    if (fp.density_method == 1) {
-        pc->ComputeRhoTildePairs(fp);
+    if (fp.align_eps == 0.0) { return; }
+    if (fp.align_method == 1) {
+        pc->ComputeAlignPairs(fp);
     } else {
-        pc->DepositCIC(rho_grid);
-        dconv.apply(rho_grid, rt_grid);
-        pc->InterpolateCIC(rt_grid);
+        pc->DepositPolarizationCIC(pol_grid);
+        aconv.apply(pol_grid, q_grid);
+        pc->InterpolateCIC(q_grid);
     }
 }
 
@@ -186,11 +194,11 @@ FlockParticles::WritePlotFile ()
 {
     pc->DepositHistogram(hist, n_theta_bins);
 
-    // rho_tilde on the grid by particle-mesh (CIC deposit, W convolution), as a
-    // diagnostic for any speed_type and density_method
-    pc->DepositCIC(rho_grid);
-    dconv.apply(rho_grid, rt_grid);
-    MultiFab::Copy(hist, rt_grid, 0, n_theta_bins + 3, 1, 0);
+    // Q on the grid by particle-mesh (CIC deposit of the polarization, G
+    // convolution), as a diagnostic for any align_eps and align_method
+    pc->DepositPolarizationCIC(pol_grid);
+    aconv.apply(pol_grid, q_grid);
+    MultiFab::Copy(hist, q_grid, 0, n_theta_bins + 3, 2, 0);
 
     Vector<std::string> varnames;
     for (int k = 0; k < n_theta_bins; ++k) {
@@ -201,13 +209,14 @@ FlockParticles::WritePlotFile ()
     varnames.push_back("rho");
     varnames.push_back("px");
     varnames.push_back("py");
-    varnames.push_back("rhot");
+    varnames.push_back("Qx");
+    varnames.push_back("Qy");
 
     const std::string& plotfilename = amrex::Concatenate(plot_file, step_count, 6);
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
     WriteSingleLevelPlotfile(plotfilename, hist, varnames, geom, t_new, step_count);
     if (write_particles) {
-        const Vector<std::string> real_names {"theta", "rhot"};
+        const Vector<std::string> real_names {"theta", "qx", "qy"};
         const Vector<std::string> int_names;
         pc->WritePlotFile(plotfilename, "particles", real_names, int_names);
     }

@@ -1,0 +1,10 @@
+# Deterministic SPDE (mean-field Fokker-Planck equation) for comparison with
+# the particle histogram:  ./main3d.gnu.MPI.ex inputs_compare_det
+FILE = inputs_spde
+
+dorand          = 0
+adv_order       = 2
+limiter         = 1
+time_integrator = 1
+adv.cfl         = 0.4
+amr.plot_file   = plt_det_

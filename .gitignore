@@ -75,3 +75,5 @@ src_deankow/interaction/*.tex
 src_deankow/interaction/*.md
 src_deankow/flocking/*.tex
 src_deankow/flocking/*.md
+src_deankow/active/*.tex
+src_deankow/active/*.md
