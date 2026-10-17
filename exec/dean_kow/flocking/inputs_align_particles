@@ -1,0 +1,6 @@
+# Particle version of inputs_align:  make DIM=2; mpirun -np 4 ./main2d.gnu.MPI.ex inputs_align_particles
+FILE = inputs_align
+amr.plot_file     = plt_align_part_
+flock.align_method = 0          # 0 particle-mesh, 1 pair sum
+write_particles   = 0
+adv.cfl           = 0.5

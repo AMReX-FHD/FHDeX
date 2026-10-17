@@ -83,7 +83,7 @@ AmrCoreFlock::ReadParameters ()
     fp.xlo = rb.lo(0);  fp.lx = rb.length(0);
     fp.ylo = rb.lo(1);  fp.ly = rb.length(1);
     rhobar = 1.0/(fp.lx*fp.ly);
-    print_mips_stability(fp);
+    print_align_stability(fp, rhobar);
 
     {
         ParmParse pp;
@@ -134,18 +134,29 @@ AmrCoreFlock::DefineLevel (const BoxArray& ba, const DistributionMapping& dm)
     phi_old.setVal(0.0);
     phi_new.setVal(0.0);
 
-    rhot.define(ba, dm, 1, 1);
-    rhot.setVal(rhobar);
-    dconv.define(Geom(0), ba, dm, fp);
-    amrex::Print() << "Sensing kernel: discrete / continuous normalization = "
-                   << dconv.discrete_over_continuous() << "\n";
+    qalign.define(ba, dm, 2, 1);
+    qalign.setVal(0.0);
+    aconv.define(Geom(0), ba, dm, fp);
+    amrex::Print() << "Alignment kernel: discrete / continuous integral of G = "
+                   << aconv.discrete_over_continuous() << " (the grid kernel is rescaled to the continuous one)\n";
 }
 
 void
-AmrCoreFlock::UpdateRhoTilde (MultiFab const& phi)
+AmrCoreFlock::UpdateAlignment (MultiFab const& phi)
 {
-    if (fp.speed_type == 0) { return; }
-    dconv.apply(phi, rhot);
+    if (fp.align_eps == 0.0) { return; }
+    aconv.apply(phi, qalign);
+    // |omega| = eps |cos(theta) Q_y - sin(theta) Q_x| <= eps |Q|
+    MultiFab qmag(qalign.boxArray(), qalign.DistributionMap(), 1, 0);
+    for (MFIter mfi(qmag, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        auto const& q = qalign.const_array(mfi);
+        auto const& m = qmag.array(mfi);
+        amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            m(i,j,k) = std::sqrt(q(i,j,k,0)*q(i,j,k,0) + q(i,j,k,1)*q(i,j,k,1));
+        });
+    }
+    omega_max = fp.align_eps*qmag.max(0);
 }
 
 void
@@ -215,10 +226,13 @@ Real
 AmrCoreFlock::EstTimeStep () const
 {
     // Forward Euler with first-order upwind advection and centred theta
-    // diffusion keeps phi >= 0 when dt*(v/dx + v/dy + 2D/dtheta^2) <= 1; use
-    // the fraction cfl of that (cfl <= 0.5 for MUSCL).
+    // diffusion keeps phi >= 0 when
+    //   dt*(v/dx + v/dy + 2D/dtheta^2 + max|omega|/dtheta) <= 1;
+    // use the fraction cfl of that (cfl <= 0.5 for MUSCL). max|omega| is the
+    // bound eps max|Q| from the start of the step.
     const auto dxinv = Geom(0).InvCellSizeArray();
-    const Real rate = fp.speed*(dxinv[0] + dxinv[1]) + 2.0*fp.diff_coeff*dxinv[2]*dxinv[2];
+    const Real rate = fp.speed*(dxinv[0] + dxinv[1]) + 2.0*fp.diff_coeff*dxinv[2]*dxinv[2]
+                    + omega_max*dxinv[2];
     return (rate > 0.0) ? cfl/rate : std::numeric_limits<Real>::max();
 }
 
@@ -232,6 +246,7 @@ AmrCoreFlock::Evolve ()
 
     for (int step = step_count; step < max_step && cur_time < stop_time*(1.0 - 1.e-12); ++step)
     {
+        UpdateAlignment(phi_new);
         Real dt = EstTimeStep();
         dt = amrex::min(dt, stop_time - cur_time);
         dt = amrex::min(dt, next_plot_time - cur_time);
@@ -275,22 +290,24 @@ AmrCoreFlock::WritePlotFile ()
 {
     const std::string& plotfilename = amrex::Concatenate(plot_file, step_count, 6);
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
-    MultiFab mf(phi_new.boxArray(), phi_new.DistributionMap(), 3, 0);
+    MultiFab mf(phi_new.boxArray(), phi_new.DistributionMap(), 6, 0);
     MultiFab::Copy(mf, phi_new, 0, 0, 1, 0);
 
-    // rho(x, y) = sum_k phi(x, y, theta_k) dtheta, stored in every theta plane.
-    // A box need not span all of theta, so copy phi to a layout whose boxes
-    // are whole theta columns, sum there, and copy back.
+    // rho(x, y) = sum_k phi(x, y, theta_k) dtheta and the polarization
+    // p(x, y) = sum_k phi (cos, sin)(theta_k) dtheta, stored in every theta
+    // plane. A box need not span all of theta, so copy phi to a layout whose
+    // boxes are whole theta columns, sum there, and copy back.
     const Box& domain = Geom(0).Domain();
     IntVect col_size = maxGridSize(0);
     col_size[2] = domain.length(2);
     BoxArray cba(domain);
     cba.maxSize(col_size);
     DistributionMapping cdm(cba);
-    MultiFab col(cba, cdm, 1, 0);
+    MultiFab col(cba, cdm, 3, 0);
     col.ParallelCopy(phi_new, 0, 0, 1);
 
-    const Real dth = Geom(0).CellSize(2);
+    const Real dth  = Geom(0).CellSize(2);
+    const Real thlo = Geom(0).ProbLo(2);
     const int klo = domain.smallEnd(2);
     const int khi = domain.bigEnd(2);
     for (MFIter mfi(col); mfi.isValid(); ++mfi) {
@@ -299,23 +316,32 @@ AmrCoreFlock::WritePlotFile ()
         xy.setRange(2, klo, 1);
         amrex::ParallelFor(xy, [=] AMREX_GPU_DEVICE (int i, int j, int) noexcept
         {
-            Real rho = 0.0;
-            for (int k = klo; k <= khi; ++k) { rho += c(i,j,k); }
-            rho *= dth;
-            for (int k = klo; k <= khi; ++k) { c(i,j,k) = rho; }
+            Real rho = 0.0, px = 0.0, py = 0.0;
+            for (int k = klo; k <= khi; ++k) {
+                const Real th = thlo + (k+0.5)*dth;
+                rho += c(i,j,k);
+                px  += c(i,j,k)*std::cos(th);
+                py  += c(i,j,k)*std::sin(th);
+            }
+            for (int k = klo; k <= khi; ++k) {
+                c(i,j,k,0) = rho*dth;
+                c(i,j,k,1) = px*dth;
+                c(i,j,k,2) = py*dth;
+            }
         });
     }
-    mf.ParallelCopy(col, 0, 1, 1);
+    mf.ParallelCopy(col, 0, 1, 3);
 
-    // rho_tilde = W * rho of the current state, the same in every theta plane
-    // (written for any speed_type, as a diagnostic)
+    // Q = G_R * p of the current state, the same in every theta plane
+    // (written for any align_eps, as a diagnostic)
     {
-        MultiFab rt(phi_new.boxArray(), phi_new.DistributionMap(), 1, 1);
-        dconv.apply(phi_new, rt);
-        MultiFab::Copy(mf, rt, 0, 2, 1, 0);
+        MultiFab q(phi_new.boxArray(), phi_new.DistributionMap(), 2, 1);
+        aconv.apply(phi_new, q);
+        MultiFab::Copy(mf, q, 0, 4, 2, 0);
     }
 
-    WriteSingleLevelPlotfile(plotfilename, mf, {"phi", "rho", "rhot"}, Geom(0), t_new, step_count);
+    WriteSingleLevelPlotfile(plotfilename, mf, {"phi", "rho", "px", "py", "Qx", "Qy"},
+                             Geom(0), t_new, step_count);
 }
 
 void
