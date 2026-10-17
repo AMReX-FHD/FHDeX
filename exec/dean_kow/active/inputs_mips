@@ -10,14 +10,14 @@ amr.max_grid_size = 32
 
 num_part          = 1.e6
 diff_coeff        = 10.0        # D: persistence length v/D ~ 0.09 at the mean density
-flock.speed       = 4.0         # v0
-flock.ic_type     = 0           # uniform
+active.speed       = 4.0         # v0
+active.ic_type     = 0           # uniform
 
-flock.speed_type  = 1           # s = exp(-lambda u)
-flock.speed_lambda = 1.5        # d ln s/d ln u = -1.5 < -1: unstable
-flock.kernel_type = 0           # Gaussian
-flock.kernel_R    = 0.03        # about 4 dx
-flock.density_method = 0        # particles: particle-mesh
+active.speed_type  = 1           # s = exp(-lambda u)
+active.speed_lambda = 1.5        # d ln s/d ln u = -1.5 < -1: unstable
+active.kernel_type = 0           # Gaussian
+active.kernel_R    = 0.03        # about 4 dx
+active.density_method = 0        # particles: particle-mesh
 
 stop_time         = 3.0
 amr.plot_dt       = 0.25
