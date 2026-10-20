@@ -1,0 +1,83 @@
+app_style   cooxidation
+seed        1000
+
+dimension   2
+boundary    p p p
+lattice     sq/4n 1.0
+
+variable    xhi    equal 3.12e-08
+variable    lat_const_x  equal ${xhi}
+variable    lat_const_y  equal ${xhi}
+variable    n1x          equal 300
+variable    n1y          equal 300
+variable    dxFHD        equal ${n1x}*${lat_const_x}
+variable    dyFHD        equal ${n1y}*${lat_const_y}
+
+variable    n2x equal 16
+variable    n2y equal 16
+variable    Lx  equal ${dxFHD}*${n2x}
+variable    Ly  equal ${dyFHD}*${n2y}
+
+region      sys_domain block 0 ${Lx} 0 ${Ly} -${xhi} ${xhi}
+create_box  sys_domain
+
+read_sites  data.strips
+
+variable    Trun   equal 1.0e-12
+variable    nstep  equal 12000000
+variable    Tsite  equal ${nstep}*${Trun}/1
+variable    steps  equal ${nstep}+1
+
+solve_style tree
+sector      yes tstop ${Trun}
+
+temperature 600.
+
+variable    lat_off_x   equal ${lat_const_x}/2
+variable    lat_off_y   equal ${lat_const_y}/2
+
+amrex_fhd_lattice_size   ${dxFHD}     ${dyFHD}
+amrex_kmc_lattice_offset ${lat_off_x} ${lat_off_y}
+
+###########################
+
+# i1:       1 (siteA) 2 (siteB) 3 (siteC)
+# i2:       0 (vac) 1 (spec1) 2 (spec2) 3 (spec3)
+# i3 - i5:  ac1-ac3 = number of adsorption events of the species at the site
+# i6 - i8:  dc1-dc3 = number of desoprtion events of the species at the site
+# d1 - d3:  pressure1-3 = partial pressure of the fluid cell right above the site 
+# d4:       temperature
+
+set         i1 value 1                                 # all siteA
+set         i2 value 0                                 # all vac
+set         i2 value 1 fraction 5.486488e-01           # equilibrium spec 1
+set         i2 value 2 fraction 4.742816e-01 if i2 = 0 # equilibrium spec 2
+
+event       3 siteA vac   1.978431e+02 spec1 FHD spec1   # adsorption of spec1 (rate const)
+event       4 siteA spec1 4.623143e+07 vac   FHD spec1   # desorption of spec1
+
+event       5 siteA siteA vac   vac   1.850983e+02 spec2 spec2 FHD spec2  # adsorption of spec2 (rate const)
+event       6 siteA siteA spec2 spec2 1.075580e+08 vac   vac   FHD spec2  # desorption of spec2
+
+###########################
+
+stats       ${Trun}
+dump        2 sites ${Tsite} Values*.txt id site i1 i2
+
+diag_style  cooxidation stats yes list vac spec1 spec2
+
+amrex_init_agg
+amrex_push_agg 0 one occ1 occ2
+
+variable ts loop ${steps}
+label ts_loop
+    # MPI_FETCH
+    amrex_fetch_agg ${ts} pressure1 pressure2 temp
+
+    # RUN KMC
+    run ${Trun} pre no post no
+
+    # MPI_PUSH
+    amrex_push_agg ${ts} ac1 dc1 ac2 dc2 occ1 occ2
+next ts 
+jump in.kmc_amrex ts_loop
