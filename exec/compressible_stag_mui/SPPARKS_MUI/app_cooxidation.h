@@ -61,14 +61,14 @@ class AppCooxidation : public AppLattice {
   // hence different in each cell and we do not use propensity variable
   // adding desorption reactions is exactly same as the first-order reaction case
   int none,ntwo,nads,ndes,ndissocads,nassocdes,nreaction,rxnsumcount;
-  double *srate,*drate,*adsrate,*ads_beta,*dads_beta,*desrate,*dadsrate,*adesrate,*rxnrate; // beta implementation
-  bool ads_is_rate,dads_is_rate;
+  double *srate,*drate,*adsrate,*desrate,*dadsrate,*adesrate,*rxnrate;
+  bool *ads_is_rate,*dads_is_rate;
   double *spropensity,*dpropensity,*adespropensity,*rxnpropensity;
   int *stype,**dtype,*adstype,*destype,**dadstype,**adestype,**rxntype;
   int *sinput,**dinput,*adsinput,*desinput,**dadsinput,**adesinput,**rxninput;
   int *soutput,**doutput,*adsoutput,*desoutput,**dadsoutput,**adesoutput,**rxnoutput;
   int *scount,*dcount,*adscount,*descount,*dadscount,*adescount,*rxncount;
-  int *dadsadsorbate,*adesdesorbate,*reactionsorbate;
+  int *adsadsorbate,*dadsadsorbate,*adesdesorbate,*reactionsorbate;
 
   struct Event {           // one event for an owned site
     int style;             // reaction style

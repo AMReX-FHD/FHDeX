@@ -37,6 +37,8 @@ enum{VACANCY,SPEC1,SPEC2,SPEC3}; // removed ZERO and moved VACANCY to first item
 
 #define DELTAEVENT 100000
 
+static const double BETA = -0.5; // temperature exponent of FHD-fed adsorption rates: k p (T/T0)^BETA
+
 /* ---------------------------------------------------------------------- */
 
 AppCooxidation::AppCooxidation(SPPARKS *spk, int narg, char **arg) :
@@ -66,12 +68,11 @@ AppCooxidation::AppCooxidation(SPPARKS *spk, int narg, char **arg) :
   maxevent = 0;
   firstevent = NULL;
 
-  ads_is_rate = false;
-  dads_is_rate = false;
+  ads_is_rate = dads_is_rate = NULL;
 
   // reaction lists
   none = ntwo = nads = ndes = ndissocads = nassocdes = nreaction = rxnsumcount = 0;
-  srate = drate = adsrate = ads_beta = dads_beta = desrate = dadsrate = adesrate = rxnrate = NULL; // beta implementation
+  srate = drate = adsrate = desrate = dadsrate = adesrate = rxnrate = NULL;
   spropensity = dpropensity = adespropensity = rxnpropensity = NULL;   // no adspropensity/dadspropensity/despropensity
   stype = sinput = soutput = NULL;
   dtype = dinput = doutput = NULL;
@@ -81,7 +82,7 @@ AppCooxidation::AppCooxidation(SPPARKS *spk, int narg, char **arg) :
   adestype = adesinput = adesoutput = NULL;
   rxntype = rxninput = rxnoutput = NULL;
   scount = dcount = adscount = descount = dadscount = adescount = rxncount = NULL;
-  dadsadsorbate = adesdesorbate = reactionsorbate = NULL;
+  adsadsorbate = dadsadsorbate = adesdesorbate = reactionsorbate = NULL;
 
 #if defined(USE_AMREX_MPMD)
   ads_wall_dir = 2;
@@ -106,8 +107,8 @@ AppCooxidation::~AppCooxidation()
   memory->destroy(srate);
   memory->destroy(drate);
   memory->destroy(adsrate);
-  memory->destroy(ads_beta);
-  memory->destroy(dads_beta);
+  memory->destroy(ads_is_rate);
+  memory->destroy(dads_is_rate);
   memory->destroy(desrate);
   memory->destroy(dadsrate);
   memory->destroy(adesrate);
@@ -144,6 +145,7 @@ AppCooxidation::~AppCooxidation()
   memory->destroy(dadscount);
   memory->destroy(adescount);
   memory->destroy(rxncount);
+  memory->destroy(adsadsorbate);
   memory->destroy(dadsadsorbate);
   memory->destroy(adesdesorbate);
   memory->destroy(reactionsorbate);
@@ -224,14 +226,15 @@ void AppCooxidation::input_app(char *command, int narg, char **arg)
       ntwo++;
 
     } else if (rstyle == 3) {   // adsorption
-      if (narg < 5 || narg > 7) error->all(FLERR,"Illegal event command");
-      if (narg == 6) {
-        if (strcmp(arg[5],"rate") == 0) ads_is_rate = true;
-        else error->all(FLERR,"Illegal event command");
-      }
-      ads_beta[nads] = 0.;
-      if (narg == 7) { // beta implementation
-        if (strcmp(arg[5],"beta") == 0) ads_beta[nads] = atof(arg[6]);
+      if (narg != 5 && narg != 7) error->all(FLERR,"Illegal event command");
+      ads_is_rate[nads] = true;
+      adsadsorbate[nads] = -1;
+      if (narg == 7) { // FHD-fed: rate constant x pressure x (T/T0)^BETA
+        if (strcmp(arg[5],"FHD") != 0) error->all(FLERR,"Illegal event command");
+        ads_is_rate[nads] = false;
+        if (strcmp(arg[6],"spec1") == 0) adsadsorbate[nads] = SPEC1;
+        else if (strcmp(arg[6],"spec2") == 0) adsadsorbate[nads] = SPEC2;
+        else if (strcmp(arg[6],"spec3") == 0) adsadsorbate[nads] = SPEC3;
         else error->all(FLERR,"Illegal event command");
       }
       if (strcmp(arg[1],"siteA") == 0) adstype[nads] = SITEA;
@@ -285,14 +288,15 @@ void AppCooxidation::input_app(char *command, int narg, char **arg)
       ndes++;
 
     } else if (rstyle == 5) { // disassociative adsorption
-      if (narg < 9 || narg > 11) error->all(FLERR,"Illegal event command");
-      if (narg == 10) {
-        if (strcmp(arg[9],"rate") == 0) dads_is_rate = true;
-        else error->all(FLERR,"Illegal event command");
-      }
-      dads_beta[ndissocads] = 0.;
-      if (narg == 11) { // beta implementation
-        if (strcmp(arg[9],"beta") == 0) dads_beta[ndissocads] = atof(arg[10]);
+      if (narg != 8 && narg != 10) error->all(FLERR,"Illegal event command");
+      dads_is_rate[ndissocads] = true;
+      dadsadsorbate[ndissocads] = -1;
+      if (narg == 10) { // FHD-fed: rate constant x pressure x (T/T0)^BETA
+        if (strcmp(arg[8],"FHD") != 0) error->all(FLERR,"Illegal event command");
+        dads_is_rate[ndissocads] = false;
+        if (strcmp(arg[9],"spec1") == 0) dadsadsorbate[ndissocads] = SPEC1;
+        else if (strcmp(arg[9],"spec2") == 0) dadsadsorbate[ndissocads] = SPEC2;
+        else if (strcmp(arg[9],"spec3") == 0) dadsadsorbate[ndissocads] = SPEC3;
         else error->all(FLERR,"Illegal event command");
       }
       if (strcmp(arg[1],"siteA") == 0) dadstype[ndissocads][0] = SITEA;
@@ -333,14 +337,6 @@ void AppCooxidation::input_app(char *command, int narg, char **arg)
       else if (strcmp(arg[7],"spec3") == 0) dadsoutput[ndissocads][1] = SPEC3;
       else if (strcmp(arg[7],"vac") == 0)
         error->all(FLERR,"rstyle=5 only allows vac->spec1/2/3");
-      if (strcmp(arg[8],"spec1") == 0) dadsadsorbate[ndissocads] = SPEC1;
-      else if (strcmp(arg[8],"spec2") == 0) dadsadsorbate[ndissocads] = SPEC2;
-      else if (strcmp(arg[8],"spec3") == 0) dadsadsorbate[ndissocads] = SPEC3;
-      else if (strcmp(arg[8],"vac") == 0)
-        error->all(FLERR,"rstyle=5 only allows adsorption of spec1/2/3");
-
-      else error->all(FLERR,"Illegal event command");
-
       ndissocads++;
 
     } else if (rstyle == 6) { // associative desorption
@@ -703,12 +699,12 @@ double AppCooxidation::site_propensity_full(int i)
   for (m = 0; m < nads; m++) {
     if (type[i] != adstype[m] || element[i] != adsinput[m]) continue;
 
-    if (ads_is_rate) adspropensity = adsrate[m];
+    if (ads_is_rate[m]) adspropensity = adsrate[m];
     else
     {
-      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*pressure1[i]*pow(tempratio,ads_beta[m]); // beta
-      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*pressure2[i]*pow(tempratio,ads_beta[m]);
-      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*pressure3[i]*pow(tempratio,ads_beta[m]);
+      if (adsadsorbate[m]==SPEC1) adspropensity = adsrate[m]*pressure1[i]*pow(tempratio,BETA);
+      else if (adsadsorbate[m]==SPEC2) adspropensity = adsrate[m]*pressure2[i]*pow(tempratio,BETA);
+      else if (adsadsorbate[m]==SPEC3) adspropensity = adsrate[m]*pressure3[i]*pow(tempratio,BETA);
     }
 
     add_event(i,3,m,adspropensity,-1);
@@ -736,11 +732,11 @@ double AppCooxidation::site_propensity_full(int i)
     for (m = 0; m < ndissocads; m++) {
       if (type[i] != dadstype[m][0] || element[i] != dadsinput[m][0]) continue;
       if (type[j] != dadstype[m][1] || element[j] != dadsinput[m][1]) continue;
-      if (dads_is_rate) dadspropensity = dadsrate[m];
+      if (dads_is_rate[m]) dadspropensity = dadsrate[m];
       else {
-        if (dadsadsorbate[m]==SPEC1) dadspropensity = dadsrate[m]*pressure1[i]*pow(tempratio,dads_beta[m]);
-        else if (dadsadsorbate[m]==SPEC2) dadspropensity = dadsrate[m]*pressure2[i]*pow(tempratio,dads_beta[m]);
-        else if (dadsadsorbate[m]==SPEC3) dadspropensity = dadsrate[m]*pressure3[i]*pow(tempratio,dads_beta[m]);
+        if (dadsadsorbate[m]==SPEC1) dadspropensity = dadsrate[m]*pressure1[i]*pow(tempratio,BETA);
+        else if (dadsadsorbate[m]==SPEC2) dadspropensity = dadsrate[m]*pressure2[i]*pow(tempratio,BETA);
+        else if (dadsadsorbate[m]==SPEC3) dadspropensity = dadsrate[m]*pressure3[i]*pow(tempratio,BETA);
       }
       add_event(i,5,m,dadspropensity,j);
       proball += dadspropensity;
@@ -965,7 +961,8 @@ void AppCooxidation::grow_reactions(int rstyle)
   } else if (rstyle == 3) {
     int n = nads + 1;
     memory->grow(adsrate,n,"app/cooxidation:adsrate");
-    memory->grow(ads_beta,n,"app/cooxidation:ads_beta");
+    memory->grow(ads_is_rate,n,"app/cooxidation:ads_is_rate");
+    memory->grow(adsadsorbate,n,"app/cooxidation:adsadsorbate");
     memory->grow(adstype,n,"app/cooxidation:adstype");
     memory->grow(adsinput,n,"app/cooxidation:adsinput");
     memory->grow(adsoutput,n,"app/cooxidation:adsoutput");
@@ -980,7 +977,7 @@ void AppCooxidation::grow_reactions(int rstyle)
   } else if (rstyle == 5) {
     int n = ndissocads + 1;
     memory->grow(dadsrate,n,"app/cooxidation:dadsrate");
-    memory->grow(dads_beta,n,"app/cooxidation:dads_beta");
+    memory->grow(dads_is_rate,n,"app/cooxidation:dads_is_rate");
     dadstype = memory->grow(dadstype,n,2,"app/cooxidation:dadstype");
     dadsinput = memory->grow(dadsinput,n,2,"app/cooxidation:dadsinput");
     dadsoutput = memory->grow(dadsoutput,n,2,"app/cooxidation:dadsoutput");
@@ -1414,19 +1411,25 @@ void AppCooxidation::amrex_fetch_agg(int narg, char **arg)
             double tempratio = temp[rep]/temperature;
             for (int m = 0; m < nads; m++) {
                 double p;
-                if (adsoutput[m] == SPEC1) p = pressure1[rep];
-                else if (adsoutput[m] == SPEC2) p = pressure2[rep];
-                else p = pressure3[rep];
-                adsprop_cell[m*nlocalFHDcell+c] =
-                    ads_is_rate ? adsrate[m] : adsrate[m]*p*pow(tempratio,ads_beta[m]);
+                if (ads_is_rate[m]) adsprop_cell[m*nlocalFHDcell+c] = adsrate[m];
+                else {
+                    double p;
+                    if (adsadsorbate[m] == SPEC1) p = pressure1[rep];
+                    else if (adsadsorbate[m] == SPEC2) p = pressure2[rep];
+                    else p = pressure3[rep];
+                    adsprop_cell[m*nlocalFHDcell+c] = adsrate[m]*p*pow(tempratio,BETA);
+                }
             }
             for (int m = 0; m < ndissocads; m++) {
                 double p;
-                if (dadsadsorbate[m] == SPEC1) p = pressure1[rep];
-                else if (dadsadsorbate[m] == SPEC2) p = pressure2[rep];
-                else p = pressure3[rep];
-                dadsprop_cell[m*nlocalFHDcell+c] =
-                    dads_is_rate ? dadsrate[m] : dadsrate[m]*p*pow(tempratio,dads_beta[m]);
+                if (dads_is_rate[m]) dadsprop_cell[m*nlocalFHDcell+c] = dadsrate[m];
+                else {
+                    double p;
+                    if (dadsadsorbate[m] == SPEC1) p = pressure1[rep];
+                    else if (dadsadsorbate[m] == SPEC2) p = pressure2[rep];
+                    else p = pressure3[rep];
+                    dadsprop_cell[m*nlocalFHDcell+c] = dadsrate[m]*p*pow(tempratio,BETA);
+                }
             }
         }
 
