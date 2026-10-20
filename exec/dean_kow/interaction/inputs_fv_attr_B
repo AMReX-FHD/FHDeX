@@ -1,0 +1,100 @@
+# *****************************************************************
+# Attractive gema, 2D, design B: more initial clusters, Brownian merging
+#   alpha = 3, R = 0.035, eps = -5469: Lambda = |Uhat(0)|/D ~ 38 at D = 0.5
+#   expected: ~90-95 clusters at spacing ~2.9R, t_form ~ 2e-4;
+#   merging by Brownian coalescence, t ~ N/(8 D n^2) ~ 3 here
+#   (cluster radius ~ 0.007 = 1.8 cells at 256^2)
+# *****************************************************************
+max_step  = 2000000
+
+seed = 0
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+diff_coeff = 0.5
+alg_type = 0
+dorand = 1.
+num_part = 163840.       # 2.5 per cell; Brownian merging time scales with N
+
+# SPDE discretization options (defaults reproduce the original scheme)
+drift_cfl       = 0.5     # also limit dt*sum_d max|grad(C+V_ext)|/dx_d <= drift_cfl (0 = off)
+
+# *****************************************************************
+# Are we restarting from an existing checkpoint file?
+# *****************************************************************
+#amr.restart  = chk_fv_100000 # restart from this checkpoint file
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0  0.0
+geometry.prob_hi     =  1.0  1.0  1.0
+geometry.is_periodic =  1    1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+amr.n_cell          = 256 256
+amr.max_grid_size_x = 64 64 64
+amr.max_grid_size_y = 64 64 64
+
+amr.max_level       = 0
+amr.use_particles   = 0      # Turn particles on or off
+amr.ref_ratio       = 1
+
+# Interaction potential (ip_ prefix)
+amr.use_int_pot = 1        # 1 = on, 0 = off
+amr.ip_type     = gema     # gema: ip_eps*exp(-(r/ip_R)^ip_alpha)
+amr.ip_eps      = -5469.
+amr.ip_R        = 0.035
+amr.ip_alpha    = 3.       # gema only
+
+# External potential (ep_ prefix)
+amr.use_ext_pot = 0        # 1 = on, 0 = off
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+amr.blocking_factor_z = 8
+
+amr.regrid_int      = 100000000  # how often to regrid
+
+amr.n_error_buf = 0 0
+amr.grid_eff = 0.96
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.1    # CFL constraint
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  if phi < phierr at level 0, then refine
+# *****************************************************************
+adv.phierr = 10.
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt_fv_   # root name of plot file
+amr.plot_int   =  2000     # dt ~ 7.6e-7 before clustering: ~1.5e-3 in time
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk_fv_      # root name of checkpoint file
+amr.chk_int  = 100000

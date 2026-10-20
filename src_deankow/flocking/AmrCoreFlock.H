@@ -8,11 +8,13 @@
 #include <AMReX_MultiFab.H>
 
 #include "FlockingParams.H"
-#include "DensityConv.H"
+#include "AlignConv.H"
 
 // Flocking SPDE on (x, y, theta), with theta = z in [0, 2 pi), periodic in all
 // three directions, single level:
-//   dphi = D d_theta^2 phi dt - div_x(phi g(theta)) dt + N^(-1/2) d_theta(sqrt(2 D phi) dB)
+//   dphi = D d_theta^2 phi dt - div_x(phi g(theta)) dt + d_theta(phi d_theta V) dt
+//          + N^(-1/2) d_theta(sqrt(2 D phi) dB),
+// with V = F * phi the alignment potential (FlockingParams.H)
 class AmrCoreFlock
     : public amrex::AmrCore
 {
@@ -45,9 +47,10 @@ private:
     // one time step of size dt (AdvancePhiAtLevel.cpp)
     void AdvancePhi (amrex::Real dt);
 
-    // rhot = W * phi, the smoothed spatial density that sets the speed; only
-    // recomputed when the speed depends on it (speed_type != 0)
-    void UpdateRhoTilde (amrex::MultiFab const& phi);
+    // qalign = G_R * p(phi), the smoothed polarization that sets the turning
+    // rate, and omega_max = eps max |Q|, a bound on |omega|; only recomputed
+    // when the alignment is on (align_eps > 0)
+    void UpdateAlignment (amrex::MultiFab const& phi);
 
     amrex::Real EstTimeStep () const;
 
@@ -63,11 +66,13 @@ private:
     amrex::MultiFab phi_new;
     static constexpr int nghost = 2;
 
-    // smoothed density rho_tilde (1 ghost cell), its mean 1/(Lx Ly), and the
-    // FFT convolution with the sensing kernel
-    amrex::MultiFab rhot;
+    // smoothed polarization Q_x, Q_y (1 ghost cell), the bound eps max |Q| on
+    // the turning rate, the mean density 1/(Lx Ly), and the FFT convolution
+    // with the alignment kernel
+    amrex::MultiFab qalign;
+    amrex::Real omega_max = 0.0;
     amrex::Real rhobar = 1.0;
-    DensityConv dconv;
+    AlignConv aconv;
 
     amrex::Real t_new = 0.0;
     amrex::Real dt_last = 0.0;

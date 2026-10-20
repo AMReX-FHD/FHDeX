@@ -12,7 +12,7 @@ using namespace amrex;
 
 void
 DensityConv::define (Geometry const& geom, BoxArray const& ba, DistributionMapping const& dm,
-                     FlockingParams const& fp)
+                     ActiveParams const& fp)
 {
     m_geom = geom;
     m_ba = ba;
@@ -52,7 +52,7 @@ DensityConv::define (Geometry const& geom, BoxArray const& ba, DistributionMappi
     const auto dx = geom.CellSizeArray();
     const Real lx = geom.ProbLength(0);
     const Real ly = geom.ProbLength(1);
-    const FlockingParams fp_loc = fp;
+    const ActiveParams fp_loc = fp;
     MultiFab wk(pba, pdm, 1, 0);
     for (MFIter mfi(wk); mfi.isValid(); ++mfi) {
         auto const& w = wk.array(mfi);
@@ -62,15 +62,15 @@ DensityConv::define (Geometry const& geom, BoxArray const& ba, DistributionMappi
             Real y = j*dx[1];
             if (x + 0.5*dx[0] > 0.5*lx) { x -= lx; }
             if (y + 0.5*dx[1] > 0.5*ly) { y -= ly; }
-            w(i,j,k) = flock_kernel_shape(std::sqrt(x*x + y*y), fp_loc);
+            w(i,j,k) = active_kernel_shape(std::sqrt(x*x + y*y), fp_loc);
         });
     }
 
     // normalize: sum over the plane of W dx dy = 1
     const Real plane_sum = wk.sum(0)*dx[0]*dx[1];
-    if (plane_sum <= 0.0) { Abort("DensityConv: the kernel has no support on the grid; increase flock.kernel_R"); }
+    if (plane_sum <= 0.0) { Abort("DensityConv: the kernel has no support on the grid; increase active.kernel_R"); }
     wk.mult(1.0/plane_sum, 0, 1);
-    m_norm_ratio = plane_sum*flock_kernel_norm(fp);
+    m_norm_ratio = plane_sum*active_kernel_norm(fp);
 
     m_fwd->forward(wk, m_what);
 }

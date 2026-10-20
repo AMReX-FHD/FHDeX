@@ -13,11 +13,19 @@
 // Model and initial-condition parameters shared by the SPDE (3D build: x, y,
 // theta = z) and the particle code (2D build: theta is a particle attribute).
 //
-// Particles:  dX_i = g(theta_i) dt,  dtheta_i = sqrt(2 D) dW_i,
+// Particles:  dX_i = g(theta_i) dt,  dtheta_i = omega(X_i, theta_i) dt + sqrt(2 D) dW_i,
 //             g(theta) = v (cos theta, sin theta)
 // SPDE:       dphi = D d_theta^2 phi dt - div_x(phi g(theta)) dt
-//                    + N^(-1/2) d_theta( sqrt(2 D phi) dB )
+//                    + d_theta( phi d_theta V ) dt + N^(-1/2) d_theta( sqrt(2 D phi) dB )
 // phi is normalized to integrate to 1 over [0,Lx) x [0,Ly) x [0,2 pi).
+//
+// Alignment: V = F * phi (convolution in x, y and theta) with the kernel
+//   F(x, theta) = eps H(theta) G(|x|/R),  H(theta) = -cos(theta),
+// so that V(x, theta) = -eps (cos(theta) Q_x + sin(theta) Q_y), with
+// Q = G_R * p the kernel-smoothed polarization p = int phi (cos, sin)(theta) dtheta,
+// and the turning rate is omega = -d_theta V = eps (cos(theta) Q_y - sin(theta) Q_x).
+// G is not normalized: G = 1 for s < 0.9, 0 for s > 1.1, and the C1 smooth step
+// 75 (1.1 - s)^2 - 250 (1.1 - s)^3 in between (s = r/R).
 //
 // Read from the "flock." ParmParse namespace, except num_part and diff_coeff,
 // which have no prefix as in the other src_deankow codes.
@@ -42,22 +50,12 @@ struct FlockingParams
     // domain extent in x, y (theta always spans [0, 2 pi))
     amrex::Real xlo = 0.0, ylo = 0.0, lx = 1.0, ly = 1.0;
 
-    // alignment (flocking) interaction, not implemented yet: must stay 0
-    amrex::Real align_K    = 0.0;
-
-    // density-dependent speed v = speed * s(u), u = rho_tilde/rho_bar, with
-    // rho_tilde = W * rho the kernel-smoothed spatial density
-    //   speed_type 0: s = 1;  1: s = exp(-lambda u);  2: s = max(0, 1 - lambda u)
-    int         speed_type   = 0;
-    amrex::Real speed_lambda = 1.0;
-    //   kernel_type 0: Gaussian exp(-r^2/2R^2) (cut off at 4R for the pair sum)
-    //               1: top-hat (r < R);  2: parabolic (1 - r^2/R^2)_+
-    //               3: bump (1 - r^2/R^2)_+^2
-    int         kernel_type  = 0;
-    amrex::Real kernel_R     = 0.05;
-    // particles only: 0 particle-mesh (CIC deposit, FFT, CIC interpolation),
-    //                 1 direct pair sum over neighbours
-    int         density_method = 0;
+    // alignment interaction F = eps H(theta) G(r/R); eps = 0 switches it off
+    amrex::Real align_eps  = 0.0;
+    amrex::Real align_R    = 0.1;
+    // particles only: Q at the particles by 0 particle-mesh (CIC deposit of the
+    // polarization, FFT convolution with G, CIC interpolation) or 1 direct pair sum
+    int         align_method = 0;
 };
 
 constexpr amrex::Real flock_two_pi = amrex::Real(2.0)*amrex::Real(3.14159265358979323846264338327950288);
@@ -93,87 +91,66 @@ inline amrex::Real flocking_ic_max (FlockingParams const& fp)
     return 1.0;
 }
 
-// Speed factor s(u), u = rho_tilde / rho_bar
+// Alignment kernel profile G(s), s = r/R: 1 for s < 0.9, 0 for s > 1.1, and the
+// C1 smooth step 3 t^2 - 2 t^3 with t = 5 (1.1 - s) in between
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-amrex::Real flock_speed_factor (amrex::Real u, FlockingParams const& fp) noexcept
+amrex::Real flock_align_G (amrex::Real s) noexcept
 {
-    if (fp.speed_type == 1) { return std::exp(-fp.speed_lambda*u); }
-    if (fp.speed_type == 2) { return amrex::max(amrex::Real(0.0), amrex::Real(1.0) - fp.speed_lambda*u); }
-    return 1.0;
+    if (s <= 0.9) { return 1.0; }
+    if (s >= 1.1) { return 0.0; }
+    const amrex::Real u = 1.1 - s;
+    return 75.0*u*u - 250.0*u*u*u;
 }
 
-// Kernel shape W(r) up to normalization, zero beyond flock_kernel_cutoff
+// Cutoff radius of the alignment kernel
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-amrex::Real flock_kernel_shape (amrex::Real r, FlockingParams const& fp) noexcept
+amrex::Real flock_align_cutoff (FlockingParams const& fp) noexcept
 {
-    const amrex::Real q = r/fp.kernel_R;
-    if (fp.kernel_type == 0) { return (q < 4.0) ? std::exp(-0.5*q*q) : 0.0; }
-    if (q >= 1.0) { return 0.0; }
-    if (fp.kernel_type == 1) { return 1.0; }
-    if (fp.kernel_type == 2) { return 1.0 - q*q; }
-    return (1.0 - q*q)*(1.0 - q*q);
+    return 1.1*fp.align_R;
 }
 
+// int G(|x|/R) dx dy = 2 pi R^2 int_0^1.1 s G(s) ds = 2 pi R^2 (0.405 + 0.1 - 0.004)
+//                    = 1.002 pi R^2
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-amrex::Real flock_kernel_cutoff (FlockingParams const& fp) noexcept
+amrex::Real flock_align_G_integral (FlockingParams const& fp) noexcept
 {
-    return (fp.kernel_type == 0) ? 4.0*fp.kernel_R : fp.kernel_R;
+    return 1.002*0.5*flock_two_pi*fp.align_R*fp.align_R;
 }
 
-// Continuous normalization: W = norm * shape integrates to 1 over the plane
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-amrex::Real flock_kernel_norm (FlockingParams const& fp) noexcept
+// 2D Fourier transform of G(|x|/R): 2 pi R^2 int_0^1.1 s G(s) J0(k R s) ds
+inline amrex::Real flock_align_G_hat (amrex::Real k, FlockingParams const& fp)
 {
-    const amrex::Real a = 0.5*flock_two_pi*fp.kernel_R*fp.kernel_R;   // pi R^2
-    if (fp.kernel_type == 0) { return 1.0/(2.0*a*(1.0 - std::exp(-8.0))); }
-    if (fp.kernel_type == 1) { return 1.0/a; }
-    if (fp.kernel_type == 2) { return 2.0/a; }
-    return 3.0/a;
+    const int n = 2200;
+    const amrex::Real h = 1.1/n;
+    amrex::Real sum = 0.0;
+    for (int m = 0; m < n; ++m) {
+        const amrex::Real s = (m + 0.5)*h;
+        sum += s*flock_align_G(s)*std::cyl_bessel_j(0.0, k*fp.align_R*s);
+    }
+    return flock_two_pi*fp.align_R*fp.align_R*sum*h;
 }
 
-// 2D Fourier transform of the normalized (untruncated) kernel
-inline amrex::Real flock_kernel_hat (amrex::Real k, FlockingParams const& fp)
+// Linear stability of the uniform isotropic state against polarization: for
+// p ~ exp(i k.x), the alignment alone gives the rate eps rho_bar G_hat(k)/2 - D.
+// At k = 0 this is exact (the polar transition is at eps_c = 2 D/(rho_bar int G));
+// at k > 0 self-propulsion couples p to the density and the rate is an estimate.
+inline void print_align_stability (FlockingParams const& fp, amrex::Real rhobar)
 {
-    const amrex::Real q = k*fp.kernel_R;
-    if (fp.kernel_type == 0) { return std::exp(-0.5*q*q); }
-    if (q < 1.e-6) { return 1.0; }
-    if (fp.kernel_type == 1) { return 2.0*std::cyl_bessel_j(1.0, q)/q; }
-    if (fp.kernel_type == 2) { return 8.0*std::cyl_bessel_j(2.0, q)/(q*q); }
-    return 48.0*std::cyl_bessel_j(3.0, q)/(q*q*q);
-}
-
-// d ln s / d ln u at the mean density u = 1
-inline amrex::Real flock_dlns_dlnu (FlockingParams const& fp)
-{
-    if (fp.speed_type == 1) { return -fp.speed_lambda; }
-    if (fp.speed_type == 2) { return -fp.speed_lambda/(1.0 - fp.speed_lambda); }
-    return 0.0;
-}
-
-// Linear stability of the uniform state in the diffusive limit (k l_p << 1):
-// sigma(k) = -D_eff k^2 (1 + W_hat(k) dln s/dln u), D_eff = v(rho_bar)^2/(2 D)
-inline void print_mips_stability (FlockingParams const& fp)
-{
-    if (fp.speed_type == 0) { return; }
-    const amrex::Real g = flock_dlns_dlnu(fp);
-    const amrex::Real v1 = fp.speed*flock_speed_factor(1.0, fp);
-    const amrex::Real deff = (fp.diff_coeff > 0.0) ? v1*v1/(2.0*fp.diff_coeff) : 0.0;
-    const amrex::Real lp = (fp.diff_coeff > 0.0) ? v1/fp.diff_coeff : 0.0;
+    const amrex::Real gint = flock_align_G_integral(fp);
+    const amrex::Real epsc = 2.0*fp.diff_coeff/(rhobar*gint);
+    amrex::Print() << "Alignment: eps = " << fp.align_eps << " R = " << fp.align_R
+                   << " int G = " << gint << " threshold eps_c = 2 D/(rho_bar int G) = " << epsc
+                   << " (eps/eps_c = " << ((epsc > 0.0) ? fp.align_eps/epsc : 0.0) << ")\n";
+    if (fp.align_eps == 0.0) { return; }
     const amrex::Real kbox = flock_two_pi/amrex::max(fp.lx, fp.ly);
-    amrex::Print() << "Density-dependent speed: speed_type = " << fp.speed_type
-                   << " lambda = " << fp.speed_lambda << " kernel_type = " << fp.kernel_type
-                   << " kernel_R = " << fp.kernel_R << "\n"
-                   << "  at the mean density: v = " << v1 << " dln s/dln u = " << g
-                   << " (long-wave instability when < -1)\n"
-                   << "  persistence length v/D = " << lp << " (box " << fp.lx << " x " << fp.ly
-                   << "), D_eff = v^2/(2D) = " << deff << "\n";
-    for (int n = 1; n <= 4; ++n) {
+    for (int n = 0; n <= 4; ++n) {
         const amrex::Real k = n*kbox;
-        const amrex::Real wh = flock_kernel_hat(k, fp);
-        amrex::Print() << "  box mode " << n << ": k = " << k << " W_hat = " << wh
-                       << " diffusive-limit growth rate = " << -deff*k*k*(1.0 + wh*g)
-                       << ((1.0 + wh*g < 0.0) ? "  -> UNSTABLE" : "  -> stable")
-                       << " (k l_p = " << k*lp << ")\n";
+        const amrex::Real gh = flock_align_G_hat(k, fp);
+        const amrex::Real rate = 0.5*fp.align_eps*rhobar*gh - fp.diff_coeff;
+        amrex::Print() << "  mode " << n << ": k = " << k << " G_hat = " << gh
+                       << " polarization rate eps rho_bar G_hat/2 - D = " << rate
+                       << ((rate > 0.0) ? "  -> grows" : "  -> decays")
+                       << ((n == 0) ? " (exact)" : " (alignment only)") << "\n";
     }
 }
 
@@ -195,12 +172,17 @@ inline void read_flocking_params (FlockingParams& fp)
     pp.query("ic_sigma", fp.ic_sigma);
     pp.query("ic_x0", fp.ic_x0);
     pp.query("ic_y0", fp.ic_y0);
-    pp.query("align_K", fp.align_K);
-    pp.query("speed_type", fp.speed_type);
-    pp.query("speed_lambda", fp.speed_lambda);
-    pp.query("kernel_type", fp.kernel_type);
-    pp.query("kernel_R", fp.kernel_R);
-    pp.query("density_method", fp.density_method);
+    pp.query("align_eps", fp.align_eps);
+    pp.query("align_R", fp.align_R);
+    pp.query("align_method", fp.align_method);
+    for (const char* key : {"speed_type", "speed_lambda", "kernel_type", "kernel_R",
+                            "density_method", "density_check", "align_K"}) {
+        if (pp.contains(key)) {
+            amrex::Abort(std::string("flock.") + key + " is no longer used: the flocking code has a"
+                         " constant speed and the alignment kernel (flock.align_eps, flock.align_R);"
+                         " the density-dependent speed is in src_deankow/active");
+        }
+    }
 
     if (fp.num_part <= 0.0) { amrex::Abort("num_part must be set to a positive value"); }
     if (fp.diff_coeff < 0.0) { amrex::Abort("diff_coeff must be >= 0"); }
@@ -209,15 +191,9 @@ inline void read_flocking_params (FlockingParams& fp)
     if (fp.ic_type == 2 && (std::abs(fp.ic_amp) > 1.0 || fp.ic_sigma <= 0.0)) {
         amrex::Abort("flock.ic_type 2 needs |ic_amp| <= 1 and ic_sigma > 0");
     }
-    if (fp.align_K != 0.0) { amrex::Abort("flock.align_K: the alignment interaction is not implemented yet"); }
-    if (fp.speed_type < 0 || fp.speed_type > 2) { amrex::Abort("flock.speed_type must be 0, 1 or 2"); }
-    if (fp.speed_lambda < 0.0) { amrex::Abort("flock.speed_lambda must be >= 0"); }
-    if (fp.speed_type == 2 && fp.speed_lambda >= 1.0) {
-        amrex::Abort("flock.speed_type 2 needs speed_lambda < 1, so that the speed is positive at the mean density");
-    }
-    if (fp.kernel_type < 0 || fp.kernel_type > 3) { amrex::Abort("flock.kernel_type must be 0, 1, 2 or 3"); }
-    if (fp.kernel_R <= 0.0) { amrex::Abort("flock.kernel_R must be positive"); }
-    if (fp.density_method != 0 && fp.density_method != 1) { amrex::Abort("flock.density_method must be 0 or 1"); }
+    if (fp.align_eps < 0.0) { amrex::Abort("flock.align_eps must be >= 0"); }
+    if (fp.align_R <= 0.0) { amrex::Abort("flock.align_R must be positive"); }
+    if (fp.align_method != 0 && fp.align_method != 1) { amrex::Abort("flock.align_method must be 0 or 1"); }
 
     amrex::Print() << "Flocking: v = " << fp.speed << " D = " << fp.diff_coeff
                    << " N = " << fp.num_part << " ic_type = " << fp.ic_type << "\n";

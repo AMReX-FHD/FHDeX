@@ -49,10 +49,14 @@ class StructFact {
 
 public:
 
-    // Vector containing running sums of real and imaginary components
+    // Running averages (over nsamples) of real and imaginary components
     // of inner products (covariances) of DFTs
     MultiFab cov_real;
     MultiFab cov_imag;
+
+    // Kahan compensation for cov_real (nonzero expectation; swamps in single precision).
+    // Not checkpointed; restarting it from zero costs at most an ulp.
+    MultiFab cov_real_k;
 
     // Vector of MultiFabs containing final magnitude of covariances
     MultiFab cov_mag;

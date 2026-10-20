@@ -87,8 +87,15 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
         spec_mass_cross[n] = 0.0;
     }
 
+    // A face can see thousands of particle crossings per step. Summing m ~ 1e-23 per particle in
+    // single precision accumulates a biased O(N*eps) error, so count particles as integers and
+    // accumulate momentum, energy and the Poisson timer in double; cast once at the end.
+    amrex::GpuArray<int,MAX_SPECIES> num_cross;
+    amrex::GpuArray<double,3> mom_cross_d = {0.0, 0.0, 0.0};
+    double en_cross_d = 0.0;
+
     amrex::GpuArray<amrex::Real,MAX_SPECIES> particle_rate;
-    amrex::GpuArray<amrex::Real,MAX_SPECIES> timer;
+    amrex::GpuArray<double,MAX_SPECIES> timer;
     amrex::GpuArray<amrex::Real,MAX_SPECIES> thermal_speed;
     amrex::GpuArray<amrex::Real,MAX_SPECIES> speed_ratio;
     amrex::GpuArray<bool,MAX_SPECIES> stop_flag;
@@ -111,6 +118,7 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
             }
         }
         timer[n] = 0.0;
+        num_cross[n] = 0;
         stop_flag[n] = false;
     }
 
@@ -124,24 +132,23 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
             if (!stop_flag[n]) {
 
                 // normal component
-                mass_cross += mass[n]; // add a particle crossing for total mass
-                spec_mass_cross[n] += mass[n]; // add a particle crossing for species mass
+                num_cross[n] += 1; // add a particle crossing for (species) mass
                 vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],false,0.0,engine); // get random velocity
-                mom_cross[0] += mass[n]*vel_rand; // add a particle crossing for total momentum
-                en_cross  += Real(0.5)*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
+                mom_cross_d[0] += double(mass[n])*vel_rand; // add a particle crossing for total momentum
+                en_cross_d  += 0.5*double(mass[n])*vel_rand*vel_rand; // add a particle crossing for total energy
 
                 // tangential component 1
                 if (dim >= 2) {
                     vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],true,VT1,engine); // get random velocity
-                    mom_cross[1] += mass[n]*vel_rand; // add a particle crossing for total momentum
-                    en_cross  += Real(0.5)*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
+                    mom_cross_d[1] += double(mass[n])*vel_rand; // add a particle crossing for total momentum
+                    en_cross_d  += 0.5*double(mass[n])*vel_rand*vel_rand; // add a particle crossing for total energy
                 }
 
                 // tangential component 2
                 if (dim == 3) {
                     vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],true,VT2,engine); // get random velocity
-                    mom_cross[2] += mass[n]*vel_rand; // add a particle crossing for total momentum
-                    en_cross  += Real(0.5)*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
+                    mom_cross_d[2] += double(mass[n])*vel_rand; // add a particle crossing for total momentum
+                    en_cross_d  += 0.5*double(mass[n])*vel_rand*vel_rand; // add a particle crossing for total energy
                 }
             }
         }
@@ -150,12 +157,24 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
         for (int n=0;n<nspec;++n) { // update dt for each species
             if (!stop_flag[n]) {
                 amrex::Real rn   = amrex::Random(engine);
-                timer[n]         = timer[n] - std::log(rn)/(particle_rate[n]);
-                if (timer[n] >= dt) stop_flag[n] = true;
+                timer[n]         = timer[n] - std::log(double(rn))/double(particle_rate[n]);
+                if (timer[n] >= double(dt)) stop_flag[n] = true;
             }
             stop = stop and stop_flag[n];
         }
     }
+
+    double mass_cross_d = 0.0;
+    for (int n=0;n<nspec;++n) {
+        double spec_mass_d = num_cross[n]*double(mass[n]);
+        spec_mass_cross[n] = amrex::Real(spec_mass_d);
+        mass_cross_d += spec_mass_d;
+    }
+    mass_cross = amrex::Real(mass_cross_d);
+    for (int n=0;n<3;++n) {
+        mom_cross[n] = amrex::Real(mom_cross_d[n]);
+    }
+    en_cross = amrex::Real(en_cross_d);
 }
 
 #endif

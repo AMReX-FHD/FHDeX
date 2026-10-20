@@ -2,6 +2,13 @@
 #include "compressible_functions_stag.H"
 #include "common_functions.H"
 
+#include <limits>
+
+namespace {
+    // tolerance for "wall mass/mole fractions sum to 1": 1e-10 in double, a few ulps in single precision
+    const amrex::Real frac_sum_tol = std::max(amrex::Real(1.e-10), amrex::Real(100.)*std::numeric_limits<amrex::Real>::epsilon());
+}
+
 void SetupBCStag() {
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_vel_lo[i] == -1) {
@@ -27,9 +34,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_x_lo[ns];
           sumy = sumy + bc_Yk_x_lo[ns];
        }
-       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
+       if (amrex::Math::abs(sumx-1) < frac_sum_tol) {
            GetMassfrac(bc_Xk_x_lo,bc_Yk_x_lo);;
-       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
+       } else if (amrex::Math::abs(sumy-1) < frac_sum_tol) {
            GetMolfrac(bc_Yk_x_lo,bc_Xk_x_lo);
        }
        else {
@@ -68,9 +75,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_x_hi[ns];
           sumy = sumy + bc_Yk_x_hi[ns];
        }
-       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
+       if (amrex::Math::abs(sumx-1) < frac_sum_tol) {
           GetMassfrac(bc_Xk_x_hi,bc_Yk_x_hi);
-       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
+       } else if (amrex::Math::abs(sumy-1) < frac_sum_tol) {
           GetMolfrac(bc_Yk_x_hi,bc_Xk_x_hi);
        } else {
            Abort("SetupCWallStag: hi-x; mass or mole fractions do not sum to 1");
@@ -109,9 +116,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_y_lo[ns];
           sumy = sumy + bc_Yk_y_lo[ns];
        }
-       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
+       if (amrex::Math::abs(sumx-1) < frac_sum_tol) {
           GetMassfrac(bc_Xk_y_lo,bc_Yk_y_lo);
-       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
+       } else if (amrex::Math::abs(sumy-1) < frac_sum_tol) {
           GetMolfrac(bc_Yk_y_lo,bc_Xk_y_lo);
        } else {
            Abort("SetupCWallStag: lo-y; mass or mole fractions do not sum to 1");
@@ -149,9 +156,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_y_hi[ns];
           sumy = sumy + bc_Yk_y_hi[ns];
        }
-       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
+       if (amrex::Math::abs(sumx-1) < frac_sum_tol) {
           GetMassfrac(bc_Xk_y_hi,bc_Yk_y_hi);
-       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
+       } else if (amrex::Math::abs(sumy-1) < frac_sum_tol) {
           GetMolfrac(bc_Yk_y_hi,bc_Xk_y_hi);
        } else {
            Abort("SetupCWallStag: hi-y; mass or mole fractions do not sum to 1");
@@ -190,9 +197,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_z_lo[ns];
           sumy = sumy + bc_Yk_z_lo[ns];
        }
-       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
+       if (amrex::Math::abs(sumx-1) < frac_sum_tol) {
           GetMassfrac(bc_Xk_z_lo,bc_Yk_z_lo);
-       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
+       } else if (amrex::Math::abs(sumy-1) < frac_sum_tol) {
           GetMolfrac(bc_Yk_z_lo,bc_Xk_z_lo);
        } else {
            Abort("SetupCWallStag: lo-z; mass or mole fractions do not sum to 1");
@@ -230,9 +237,9 @@ void SetupCWallStag() {
           sumx = sumx + bc_Xk_z_hi[ns];
           sumy = sumy + bc_Yk_z_hi[ns];
        }
-       if (amrex::Math::abs(sumx-1) < Real(1.e-10)) {
+       if (amrex::Math::abs(sumx-1) < frac_sum_tol) {
           GetMassfrac(bc_Xk_z_hi,bc_Yk_z_hi);
-       } else if (amrex::Math::abs(sumy-1) < Real(1.e-10)) {
+       } else if (amrex::Math::abs(sumy-1) < frac_sum_tol) {
           GetMolfrac(bc_Yk_z_hi,bc_Xk_z_hi);
        } else {
            Abort("SetupCWallStag: hi-z; mass or mole fractions do not sum to 1");

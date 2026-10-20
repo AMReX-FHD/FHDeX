@@ -1,4 +1,47 @@
 #include "common_functions.H"
+#include "RunningMean.H"
+
+#include <AMReX_ParReduce.H>
+
+// Sum of component comp over the valid region, accumulated in double regardless of Real.
+// MultiFab::sum accumulates in Real, which in single precision loses ~eps*sqrt(N) (or worse)
+// relative accuracy over N cells and can overflow for large summands.
+double SumDouble (const MultiFab& mf, int comp, bool local)
+{
+    BL_PROFILE_VAR("SumDouble()",SumDouble);
+
+    auto const& ma = mf.const_arrays();
+    double r = ParReduce(TypeList<ReduceOpSum>{}, TypeList<double>{}, mf, IntVect(0),
+                         [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept -> GpuTuple<double>
+                         {
+                             return { static_cast<double>(ma[b](i,j,k,comp)) };
+                         });
+    if (!local) {
+        ParallelDescriptor::ReduceRealSum(r);
+    }
+    return r;
+}
+
+// Sum of (mf(comp) - shift)^power over the valid region; the power is formed in double inside
+// the reduction, so e.g. 4th moments of large gradients do not overflow float.
+double SumPowDouble (const MultiFab& mf, int comp, int power, double shift, bool local)
+{
+    BL_PROFILE_VAR("SumPowDouble()",SumPowDouble);
+
+    auto const& ma = mf.const_arrays();
+    double r = ParReduce(TypeList<ReduceOpSum>{}, TypeList<double>{}, mf, IntVect(0),
+                         [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept -> GpuTuple<double>
+                         {
+                             double x = static_cast<double>(ma[b](i,j,k,comp)) - shift;
+                             double p = 1.0;
+                             for (int n=0; n<power; ++n) { p *= x; }
+                             return { p };
+                         });
+    if (!local) {
+        ParallelDescriptor::ReduceRealSum(r);
+    }
+    return r;
+}
 
 Real ComputeSpatialMean(MultiFab& mf, const int& incomp)
 {
@@ -6,7 +49,7 @@ Real ComputeSpatialMean(MultiFab& mf, const int& incomp)
 
     Long npts = mf.boxArray().numPts();
 
-    Real average = mf.sum(incomp) / Real(npts);
+    Real average = Real(SumDouble(mf, incomp) / static_cast<double>(npts));
 
     return average;
 
@@ -18,25 +61,10 @@ Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
 
     Long npts = mf.boxArray().numPts();
 
-    Real average = mf.sum(incomp) / Real(npts);
+    // two-pass variance, both passes accumulated in double
+    double average = SumDouble(mf, incomp) / static_cast<double>(npts);
 
-    BoxArray ba = mf.boxArray();
-    DistributionMapping dmap = mf.DistributionMap();
-
-    // MultiFab with one component and no ghost cells
-    MultiFab temp(ba, dmap, 1, 0);
-
-    // set temp to the average
-    temp.setVal(average);
-
-    // subtract mf from temp; "temp = temp - mf"
-    MultiFab::Subtract(temp,mf,incomp,0,1,0);
-
-    // square the contents of temp
-    MultiFab::Multiply(temp,temp,0,0,1,0);
-
-    // compute the variance
-    Real variance = temp.sum(0) / Real(npts-1);
+    Real variance = Real(SumPowDouble(mf, incomp, 2, average) / static_cast<double>(npts-1));
 
     return variance;
 }
@@ -46,8 +74,9 @@ void ComputeBasicStats(MultiFab & instant, MultiFab & means,
 {
     BL_PROFILE_VAR("ComputeBasicStats()",ComputeBasicStats);
 
-    const Real stepsInv = 1.0/steps;
-    const int stepsMinusOne = steps-1;
+    // increment-form running mean (see RunningMean.H); (mean*(steps-1) + x)/steps swamps
+    // the new sample in single precision
+    const Real stepsInv = Real(1.0/static_cast<double>(steps));
 
     for ( MFIter mfi(instant); mfi.isValid(); ++mfi ) {
 
@@ -58,7 +87,7 @@ void ComputeBasicStats(MultiFab & instant, MultiFab & means,
 
         amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            means_data(i,j,k,outcomp) = (means_data(i,j,k,outcomp)*stepsMinusOne + instant_data(i,j,k,incomp))*stepsInv;
+            runningMean(means_data(i,j,k,outcomp), instant_data(i,j,k,incomp), stepsInv);
         });
 
     }
@@ -100,5 +129,5 @@ Real MaskedSum(const MultiFab & inFab,int comp, const Periodicity& period)
     auto mask = tmpmf.OverlapMask(period);
     MultiFab::Divide(tmpmf, *mask, 0, 0, 1, 0);
 
-    return tmpmf.sum(0, 0);
+    return Real(SumDouble(tmpmf, 0));
 }

@@ -6,7 +6,13 @@
 
 #include "rng_functions.H"
 
-
+// Results of the expressions that use rk_w2 (a double) are evaluated in double.
+// With PRECISION=FLOAT they are cast back to Real (float) before being stored; otherwise left as they are.
+#if defined(AMREX_USE_FLOAT)
+#define RK_CAST_REAL(x) static_cast<amrex::Real>(x)
+#else
+#define RK_CAST_REAL(x) (x)
+#endif
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
              MultiFab& prim, MultiFab& source,
@@ -23,6 +29,9 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
     BL_PROFILE_VAR("RK3step()",RK3step);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    // RK3 final-stage weight, evaluated in double (stays exact-to-1e-16 even when Real is float)
+    const double rk_w2 = 2./3.;
 
     /////////////////////////////////////////////////////
     // Initialize white noise fields
@@ -265,7 +274,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cup2_fab(i,j,k,n) = Real(0.25)*( Real(3.0)* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
+            // increment form of (3/4)*cu + (1/4)*(cup + ...): returns cu exactly when nothing changes, in any precision
+            cup2_fab(i,j,k,n) = cu_fab(i,j,k,n) + Real(0.25)*( cup_fab(i,j,k,n) - cu_fab(i,j,k,n) - dt *
                                        ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                                       + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
                                                       + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
@@ -369,12 +379,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cu_fab(i,j,k,n) = (Real(2.)/Real(3.)) *( Real(0.5)* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
+            // increment form of (1/3)*cu + (2/3)*(cup2 + ...): returns cu exactly when nothing changes, in any precision
+            cu_fab(i,j,k,n) = RK_CAST_REAL(cu_fab(i,j,k,n)
+                                + rk_w2 *( cup2_fab(i,j,k,n) - cu_fab(i,j,k,n) - dt *
                                     (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                                      + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
                                                      + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
                                                                                                             )
-                                    + dt*source_fab(i,j,k,n) );
+                                    + dt*source_fab(i,j,k,n) ));
 
         });
 
@@ -402,14 +414,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
 
         amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cu_fab(i,j,k,n+1) += Real(2.)/Real(3.)* dt * cup2_fab(i,j,k,0)*grav[n];
+            cu_fab(i,j,k,n+1) = RK_CAST_REAL(cu_fab(i,j,k,n+1) + rk_w2* dt * cup2_fab(i,j,k,0)*grav[n]);
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cu_fab(i,j,k,4) += Real(2.)/Real(3.) * dt * (  grav[0]*cup2_fab(i,j,k,1)
+            cu_fab(i,j,k,4) = RK_CAST_REAL(cu_fab(i,j,k,4) + rk_w2 * dt * (  grav[0]*cup2_fab(i,j,k,1)
                                              + grav[1]*cup2_fab(i,j,k,2)
-                                             + grav[2]*cup2_fab(i,j,k,3) );
+                                             + grav[2]*cup2_fab(i,j,k,3) ));
         });
 
     }

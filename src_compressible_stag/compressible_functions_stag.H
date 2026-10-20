@@ -12,6 +12,32 @@
 using namespace amrex;
 using namespace compressible;
 
+// Kahan compensation terms for the running statistics in statsStag.cpp.
+// Each MultiFab mirrors the component layout of the accumulator it compensates;
+// only components prone to swamping in single precision are updated.
+// Members are defined only when the corresponding statistics are enabled.
+struct StatsKahan
+{
+    MultiFab cuMeans, primMeans, surfcovMeans;
+    MultiFab cuVars, primVars, coVars, mom4, surfcovVars;
+    std::array<MultiFab, AMREX_SPACEDIM> velVars, cumomVars;
+    MultiFab spatialCrossMF;      // do_1D
+    Vector<Real> spatialCrossVec; // 3D
+
+    void setVal0 ()
+    {
+        for (MultiFab* mf : {&cuMeans, &primMeans, &surfcovMeans, &cuVars, &primVars,
+                             &coVars, &mom4, &surfcovVars, &spatialCrossMF}) {
+            if (mf->ok()) mf->setVal(0.0);
+        }
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            if (velVars[d].ok())   velVars[d].setVal(0.0);
+            if (cumomVars[d].ok()) cumomVars[d].setVal(0.0);
+        }
+        spatialCrossVec.assign(spatialCrossVec.size(), 0.0);
+    }
+};
+
 void WritePlotFileStag(int step,
                        const Real time,
                        const Geometry& geom,
@@ -186,7 +212,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
 
 
 void WriteCheckPoint(int step,
-                     const amrex::Real time,
+                     const double time,
                      int statsCount,
                      const amrex::Geometry& geom,
                      const amrex::MultiFab& cu,
@@ -214,7 +240,7 @@ void WriteCheckPoint(int step,
                      TurbForcingComp& turbforce);
 
 void ReadCheckPoint(int& step,
-                    amrex::Real& time,
+                    double& time,
                     int& statsCount,
                     amrex::Geometry& geom,
                     const amrex::Box& domain,
@@ -269,6 +295,7 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
                          const amrex::Box& domain,
+                         StatsKahan& kahan,
                          const int steps,
                          const Geometry& geom);
 
@@ -285,6 +312,7 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          MultiFab& mom4,
                          MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                          MultiFab& spatialCross2D, const int ncross,
+                         StatsKahan& kahan,
                          const int steps,
                          const Geometry& geom);
 
@@ -301,6 +329,7 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          MultiFab& mom4,
                          MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                          MultiFab& spatialCross1D, const int ncross,
+                         StatsKahan& kahan,
                          const int steps,
                          const Geometry& geom);
 
@@ -311,6 +340,7 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                         MultiFab& theta, MultiFab& thetaMean,
+                        StatsKahan& kahan,
                         const int steps);
 
 void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, MultiFab& consVar,
@@ -324,6 +354,7 @@ void EvaluateVarsCoVarsMom3(const MultiFab& cons, const MultiFab& consMean, Mult
                             MultiFab& mom3,
                             MultiFab& mom4,
                             const MultiFab& theta, const MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
+                            StatsKahan& kahan,
                             const int steps);
 
 void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross,
@@ -335,16 +366,20 @@ void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross,
                     const int x_star);
 
 void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
+                                   Vector<Real>& spatialCrossK,
                                    Vector<Real>& data_xcross,
                                    amrex::Gpu::HostVector<Real>& cu_avg,
                                    amrex::Gpu::HostVector<Real>& cumeans_avg,
                                    amrex::Gpu::HostVector<Real>& prim_avg,
                                    amrex::Gpu::HostVector<Real>& primmeans_avg,
+                                   amrex::Gpu::HostVector<Real>& delcu_avg,
+                                   amrex::Gpu::HostVector<Real>& delprim_avg,
                                    const int steps,
                                    const int nstats,
                                    const int ncross);
 
 void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
+                                   MultiFab& spatialCross1DK,
                                    amrex::Gpu::DeviceVector<Real>& data_xcross,
                                    const MultiFab& consMean,
                                    const MultiFab& primMean,

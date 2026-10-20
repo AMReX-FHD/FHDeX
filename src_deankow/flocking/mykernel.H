@@ -54,45 +54,53 @@ amrex::Real upwind_flux (amrex::Real u, amrex::Real m2, amrex::Real m, amrex::Re
     return (u >= 0.0) ? u*m : u*p;
 }
 
-// x face (i-1/2, j, k): u = v s(rho_tilde_face/rho_bar) cos(theta_k), with the
-// smoothed density rho_tilde averaged from the two adjacent cells (s = 1 for
-// speed_type 0)
+// x face (i-1/2, j, k): u = v cos(theta_k)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_x (int i, int j, int k, amrex::Array4<amrex::Real> const& fx,
                      amrex::Array4<amrex::Real const> const& phi,
-                     amrex::Array4<amrex::Real const> const& rhot, amrex::Real rhobar_inv,
                      amrex::Real theta, FlockingParams const& fp, int adv_order, int limiter)
 {
-    const amrex::Real u = fp.speed*std::cos(theta)
-        * flock_speed_factor(0.5*(rhot(i-1,j,k) + rhot(i,j,k))*rhobar_inv, fp);
+    const amrex::Real u = fp.speed*std::cos(theta);
     fx(i,j,k) = upwind_flux(u, phi(i-2,j,k), phi(i-1,j,k), phi(i,j,k), phi(i+1,j,k),
                             adv_order, limiter);
 }
 
-// y face (i, j-1/2, k): u = v s(rho_tilde_face/rho_bar) sin(theta_k)
+// y face (i, j-1/2, k): u = v sin(theta_k)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_y (int i, int j, int k, amrex::Array4<amrex::Real> const& fy,
                      amrex::Array4<amrex::Real const> const& phi,
-                     amrex::Array4<amrex::Real const> const& rhot, amrex::Real rhobar_inv,
                      amrex::Real theta, FlockingParams const& fp, int adv_order, int limiter)
 {
-    const amrex::Real u = fp.speed*std::sin(theta)
-        * flock_speed_factor(0.5*(rhot(i,j-1,k) + rhot(i,j,k))*rhobar_inv, fp);
+    const amrex::Real u = fp.speed*std::sin(theta);
     fy(i,j,k) = upwind_flux(u, phi(i,j-2,k), phi(i,j-1,k), phi(i,j,k), phi(i,j+1,k),
                             adv_order, limiter);
 }
 
+// Alignment potential V = F * phi at the cell centre theta:
+//   V = -eps (cos(theta) Q_x + sin(theta) Q_y),  Q = G_R * p
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::Real align_potential (amrex::Real theta, amrex::Real qx, amrex::Real qy,
+                             FlockingParams const& fp) noexcept
+{
+    return -fp.align_eps*(std::cos(theta)*qx + std::sin(theta)*qy);
+}
+
 // theta face (i, j, k-1/2): -D d_theta phi + omega*phi_face, with the turning
-// rate omega upwinded. omega is the slot for the alignment interaction and is
-// 0 for now.
+// rate omega = -(V_k - V_{k-1})/dtheta, the discrete theta gradient of the
+// alignment potential between the two adjacent cell centres (thc is the centre
+// of cell k), upwinded. Q is the same in every theta plane.
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_theta (int i, int j, int k, amrex::Array4<amrex::Real> const& fz,
                          amrex::Array4<amrex::Real const> const& phi,
-                         amrex::Real dthinv, FlockingParams const& fp, amrex::Real omega,
-                         int adv_order, int limiter)
+                         amrex::Array4<amrex::Real const> const& q,
+                         amrex::Real thc, amrex::Real dth, amrex::Real dthinv,
+                         FlockingParams const& fp, int adv_order, int limiter)
 {
     amrex::Real f = -fp.diff_coeff*(phi(i,j,k) - phi(i,j,k-1))*dthinv;
-    if (omega != 0.0) {
+    if (fp.align_eps != 0.0) {
+        const amrex::Real qx = q(i,j,k,0), qy = q(i,j,k,1);
+        const amrex::Real omega = -(align_potential(thc, qx, qy, fp)
+                                    - align_potential(thc - dth, qx, qy, fp))*dthinv;
         f += upwind_flux(omega, phi(i,j,k-2), phi(i,j,k-1), phi(i,j,k), phi(i,j,k+1),
                          adv_order, limiter);
     }

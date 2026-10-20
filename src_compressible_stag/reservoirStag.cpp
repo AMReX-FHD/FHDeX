@@ -51,7 +51,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
         for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
 
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // valid face box: contains the domain faces, excludes transverse ghost rows
             const Box& b = bx & dom_xlo;
 
             const Array4<const Real> cons0   = cons0_in.array(mfi);
@@ -189,7 +189,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
         for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
 
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // valid face box: contains the domain faces, excludes transverse ghost rows
             const Box& b = bx & dom_xhi;
 
             const Array4<const Real> cons0   = cons0_in.array(mfi);
@@ -328,7 +328,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
         for (MFIter mfi(faceflux_res[1]); mfi.isValid(); ++mfi) {
 
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // valid face box: contains the domain faces, excludes transverse ghost rows
             const Box& b = bx & dom_ylo;
 
             const Array4<const Real> cons0   = cons0_in.array(mfi);
@@ -466,7 +466,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
         for (MFIter mfi(faceflux_res[1]); mfi.isValid(); ++mfi) {
 
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // valid face box: contains the domain faces, excludes transverse ghost rows
             const Box& b = bx & dom_yhi;
 
             const Array4<const Real> cons0   = cons0_in.array(mfi);
@@ -605,7 +605,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
         for (MFIter mfi(faceflux_res[2]); mfi.isValid(); ++mfi) {
 
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // valid face box: contains the domain faces, excludes transverse ghost rows
             const Box& b = bx & dom_zlo;
 
             const Array4<const Real> cons0   = cons0_in.array(mfi);
@@ -743,7 +743,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
         for (MFIter mfi(faceflux_res[2]); mfi.isValid(); ++mfi) {
 
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // valid face box: contains the domain faces, excludes transverse ghost rows
             const Box& b = bx & dom_zhi;
 
             const Array4<const Real> cons0   = cons0_in.array(mfi);
@@ -862,6 +862,13 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                 });
             }
         }
+    }
+
+    // ResetReservoirFluxes averages the tangential face fluxes onto edges and reads the
+    // transverse neighbour (j-1 / k-1); fill the ghost layer so that periodic neighbours are
+    // correct and non-periodic ones hold the zero set above instead of unallocated memory.
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        faceflux_res[d].FillBoundary(geom.periodicity());
     }
 }
 
@@ -1411,7 +1418,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         const Box& dom_xlo = amrex::bdryNode(dom_x, Orientation(0, Orientation::low));
 
         for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // cumom_res has no ghost cells; the ghosts of cumom are refilled by FillBoundary
             const Box& b = bx & dom_xlo;
 
             const Array4<Real>& xmom           = (cumom[0]).array(mfi);
@@ -1437,7 +1444,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         const Box& dom_xhi = amrex::bdryNode(dom_x, Orientation(0, Orientation::high));
 
         for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // cumom_res has no ghost cells; the ghosts of cumom are refilled by FillBoundary
             const Box& b = bx & dom_xhi;
 
             const Array4<Real>& xmom           = (cumom[0]).array(mfi);
@@ -1463,7 +1470,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         const Box& dom_ylo = amrex::bdryNode(dom_y, Orientation(1, Orientation::low));
 
         for (MFIter mfi(cumom[1]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // cumom_res has no ghost cells; the ghosts of cumom are refilled by FillBoundary
             const Box& b = bx & dom_ylo;
 
             const Array4<Real>& ymom           = (cumom[1]).array(mfi);
@@ -1489,7 +1496,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         const Box& dom_yhi = amrex::bdryNode(dom_y, Orientation(1, Orientation::high));
 
         for (MFIter mfi(cumom[1]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // cumom_res has no ghost cells; the ghosts of cumom are refilled by FillBoundary
             const Box& b = bx & dom_yhi;
 
             const Array4<Real>& ymom           = (cumom[1]).array(mfi);
@@ -1515,7 +1522,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         const Box& dom_zlo = amrex::bdryNode(dom_z, Orientation(2, Orientation::low));
 
         for (MFIter mfi(cumom[2]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // cumom_res has no ghost cells; the ghosts of cumom are refilled by FillBoundary
             const Box& b = bx & dom_zlo;
 
             const Array4<Real>& zmom           = (cumom[2]).array(mfi);
@@ -1541,7 +1548,7 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
         const Box& dom_zhi = amrex::bdryNode(dom_z, Orientation(2, Orientation::high));
 
         for (MFIter mfi(cumom[2]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.fabbox();
+            const Box& bx = mfi.validbox(); // cumom_res has no ghost cells; the ghosts of cumom are refilled by FillBoundary
             const Box& b = bx & dom_zhi;
 
             const Array4<Real>& zmom           = (cumom[2]).array(mfi);

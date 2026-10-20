@@ -1,0 +1,22 @@
+# Flocking (alignment) SPDE: make DIM=3; mpirun -np 4 ./main3d.gnu.MPI.ex inputs_align
+# Kernel F = eps H(theta) G(r/R), H = -cos(theta): headings turn towards the
+# local polarization smoothed over a disc of radius R. With rho_bar = 1 the
+# polar transition is at eps_c = 2 D/(rho_bar int G) = 63.5 D for R = 0.1;
+# eps = 150 is about 2.4 eps_c, so an isotropic start orders.
+FILE = inputs_common
+amr.n_cell        = 64 64 32
+num_part          = 1.e6
+diff_coeff        = 1.0         # D, rotational diffusion
+flock.speed       = 1.0         # v
+flock.ic_type     = 0           # uniform and isotropic; noise seeds the order
+flock.align_eps   = 150.0       # eps
+flock.align_R     = 0.1         # R (6.4 dx)
+stop_time         = 15.0
+amr.plot_dt       = 0.25
+amr.plot_file     = plt_align_
+seed              = 1
+dorand            = 1
+adv_order         = 0           # centred: correct fluctuations
+time_integrator   = 2           # stochastic RK3
+adv.cfl           = 0.5
+diag_int          = 200

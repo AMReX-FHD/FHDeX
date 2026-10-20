@@ -1,5 +1,6 @@
 #include "common_functions.H"
 #include "StructFact.H"
+#include "RunningMean.H"
 
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_PlotFileUtil.H"
@@ -218,9 +219,11 @@ void StructFact::define(const BoxArray& ba_in,
     cov_real.define(ba_in, dmap_in, NCOV, 0);
     cov_imag.define(ba_in, dmap_in, NCOV, 0);
     cov_mag.define(ba_in, dmap_in, NCOV, 0);
+    cov_real_k.define(ba_in, dmap_in, NCOV, 0);
     cov_real.setVal(0.0);
     cov_imag.setVal(0.0);
     cov_mag.setVal(0.0);
+    cov_real_k.setVal(0.0);
 
     cov_names.resize(NCOV);
     std::string x;
@@ -263,6 +266,11 @@ void StructFact::FortStructure(const MultiFab& variables,
     MultiFab cov_temp2;
     cov_temp2.define(cov_real.boxArray(), cov_real.DistributionMap(), 1, 0);
 
+    // cov_real/cov_imag hold running averages, updated in increment form (see RunningMean.H);
+    // a running sum divided by nsamples at the end swamps the new sample in single precision
+    const int nsamples_new = (reset == 1) ? 1 : nsamples+1;
+    const Real sampinv = Real(1.0/static_cast<double>(nsamples_new));
+
     int index = 0;
     for (int n = 0; n < NCOV; n++) {
         int i = s_pairA[n];
@@ -280,8 +288,18 @@ void StructFact::FortStructure(const MultiFab& variables,
 
         if (reset == 1) {
             MultiFab::Copy(cov_real, cov_temp2, 0, index, 1, 0);
+            cov_real_k.setVal(0.0, index, 1, 0);
         } else {
-            MultiFab::Add(cov_real, cov_temp2, 0, index, 1, 0);
+            for (MFIter mfi(cov_real,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                const Box& bx = mfi.tilebox();
+                const Array4<      Real> cr = cov_real.array(mfi);
+                const Array4<      Real> ck = cov_real_k.array(mfi);
+                const Array4<const Real> s  = cov_temp2.const_array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int ii, int jj, int kk) noexcept
+                {
+                    runningMeanKahan(cr(ii,jj,kk,index), ck(ii,jj,kk,index), s(ii,jj,kk), sampinv);
+                });
+            }
         }
 
         // Imaginary component of covariance
@@ -296,7 +314,16 @@ void StructFact::FortStructure(const MultiFab& variables,
         if (reset == 1) {
             MultiFab::Copy(cov_imag, cov_temp2, 0, index, 1, 0);
         } else {
-            MultiFab::Add(cov_imag, cov_temp2, 0, index, 1, 0);
+            // zero-expectation accumulator: plain increment form is enough
+            for (MFIter mfi(cov_imag,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                const Box& bx = mfi.tilebox();
+                const Array4<      Real> ci = cov_imag.array(mfi);
+                const Array4<const Real> s  = cov_temp2.const_array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int ii, int jj, int kk) noexcept
+                {
+                    runningMean(ci(ii,jj,kk,index), s(ii,jj,kk), sampinv);
+                });
+            }
         }
 
         index++;
@@ -313,11 +340,7 @@ void StructFact::FortStructure(const MultiFab& variables,
         VisMF::Write(cov_imag, plotname);
     }
 
-    if (reset == 1) {
-        nsamples = 1;
-    } else {
-        nsamples++;
-    }
+    nsamples = nsamples_new;
 }
 
 void StructFact::Reset() {
@@ -326,6 +349,7 @@ void StructFact::Reset() {
 
     cov_real.setVal(0.);
     cov_imag.setVal(0.);
+    cov_real_k.setVal(0.);
     nsamples = 0;
 }
 
@@ -355,9 +379,9 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     }
 
     // compute number of points in the domain and the square root
-    long npts = (AMREX_SPACEDIM == 2) ? (domain.length(0) * domain.length(1))
-                                    : (domain.length(0) * domain.length(1) * domain.length(2));
-    Real sqrtnpts = std::sqrt(npts);
+    // Box::numPts() is a Long, so this does not overflow int for > 2^31 cells
+    Long npts = domain.numPts();
+    Real sqrtnpts = Real(std::sqrt(static_cast<double>(npts)));
 
     // extract BoxArray and DistributionMapping from variables
     BoxArray ba = variables.boxArray();
@@ -404,6 +428,13 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
         // copy component "comp" into a MultiFab with one component
         MultiFab::Copy(phi, variables, comp, 0, 1, 0);
+
+        // Subtract the spatial mean (computed in double) before the transform. FFT roundoff is
+        // ~eps*||phi||, dominated by sqrt(N)*mean for fields like rho, T, rhoE; in single precision
+        // that noise floor competes with the k != 0 fluctuation modes. The k = 0 mode is restored
+        // analytically below.
+        const double phi_mean = SumDouble(phi, 0) / static_cast<double>(npts);
+        phi.plus(Real(-phi_mean), 0, 1, 0);
 
         // ForwardTransform
         my_fft.forward(phi, phi_fft);
@@ -527,6 +558,21 @@ void StructFact::ComputeFFT(const MultiFab& variables,
             }
         } // end MFIter
 
+        // restore the k = 0 mode removed with the mean: (sum of phi)/sqrt(N) = sqrt(N)*mean
+        if (phi_mean != 0.0) {
+            const IntVect k0 = domain.smallEnd();
+            const Real dc = Real(std::sqrt(static_cast<double>(npts))*phi_mean);
+            for (MFIter mfi(variables_dft_real_onegrid); mfi.isValid(); ++mfi) {
+                if (mfi.fabbox().contains(k0)) {
+                    Array4<Real> const& realpart = variables_dft_real_onegrid.array(mfi);
+                    amrex::ParallelFor(Box(k0,k0), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        realpart(i,j,k) += dc;
+                    });
+                }
+            }
+        }
+
         variables_dft_real.ParallelCopy(variables_dft_real_onegrid, 0, comp, 1);
         variables_dft_imag.ParallelCopy(variables_dft_imag_onegrid, 0, comp, 1);
     }
@@ -615,17 +661,15 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
     BL_PROFILE_VAR("StructFact::Finalize()", StructFactFinalize);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nsamples > 0, "StructFact::Finalize called with nsamples == 0");
-    Real nsamples_inv = 1.0/(Real)nsamples;
 
     ShiftFFT(cov_real_in, zero_avg);
     ShiftFFT(cov_imag_in, zero_avg);
 
-    cov_real_in.mult(nsamples_inv);
+    // cov_real/cov_imag are already running averages over nsamples
     for (int d = 0; d < NCOV; d++) {
         cov_real_in.mult(scaling[d], d, 1);
     }
 
-    cov_imag_in.mult(nsamples_inv);
     for (int d = 0; d < NCOV; d++) {
         cov_imag_in.mult(scaling[d], d, 1);
     }
@@ -745,12 +789,12 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
     int npts = n_cells[0] / 2;
     //int npts_sq = npts*npts;
 
-    Gpu::DeviceVector<Real> phisum_device(npts);
+    Gpu::DeviceVector<double> phisum_device(npts);
     Gpu::DeviceVector<int> phicnt_device(npts);
 
-    Gpu::HostVector<Real> phisum_host(npts);
+    Gpu::HostVector<double> phisum_host(npts);
 
-    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
+    double* phisum_ptr = phisum_device.dataPtr();  // pointer to data
     int* phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
     amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
@@ -792,7 +836,7 @@ void StructFact::IntegratekShells(const int& step, const std::string& name) {
                 dist = dist + 0.5;
                 int cell = int(dist);
                 for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                    amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov(i, j, k, d));
+                    amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), static_cast<double>(cov(i, j, k, d)));
 //                    phisum_large_gpu[idist]  += cov(i,j,k,d);
                 }
                 amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]), 1);
@@ -854,12 +898,12 @@ void StructFact::IntegratekShellsScalar(const int& step,
 
     int npts = n_cells[0] / 2;
 
-    Gpu::DeviceVector<Real> phisum_device(npts);
+    Gpu::DeviceVector<double> phisum_device(npts);
     Gpu::DeviceVector<int> phicnt_device(npts);
 
-    Gpu::HostVector<Real> phisum_host(npts);
+    Gpu::HostVector<double> phisum_host(npts);
 
-    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
+    double* phisum_ptr = phisum_device.dataPtr();  // pointer to data
     int* phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
     for (int var_ind = 0; var_ind < turbvars; var_ind++) {
@@ -889,7 +933,7 @@ void StructFact::IntegratekShellsScalar(const int& step,
                 if (dist <= center[0] - 0.5) {
                     dist = dist + 0.5;
                     int cell = int(dist);
-                    amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov(i, j, k, var_ind));
+                    amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), static_cast<double>(cov(i, j, k, var_ind)));
                     amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]), 1);
                 }
             });
@@ -1032,10 +1076,19 @@ void StructFact::WriteCheckPoint(const int& step,
     }
 
     // write the MultiFab data to, e.g., chk_SF00010/Level_0/
-    VisMF::Write(cov_real,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
-    VisMF::Write(cov_imag,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_imag"));
+    // cov_real/cov_imag are held as running averages; the checkpoint format stores running
+    // sums (sum = nsamples*average), so existing checkpoints remain readable
+    {
+        MultiFab cov_sum(cov_real.boxArray(), cov_real.DistributionMap(), NCOV, 0);
+        MultiFab::Copy(cov_sum, cov_real, 0, 0, NCOV, 0);
+        cov_sum.mult(Real(nsamples));
+        VisMF::Write(cov_sum,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
+        MultiFab::Copy(cov_sum, cov_imag, 0, 0, NCOV, 0);
+        cov_sum.mult(Real(nsamples));
+        VisMF::Write(cov_sum,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_imag"));
+    }
     VisMF::Write(cov_mag,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_mag"));
 }
@@ -1128,6 +1181,15 @@ void StructFact::ReadCheckPoint(std::string checkfile_base,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
     VisMF::Read(cov_imag,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_imag"));
+
+    // the checkpoint stores running sums; convert back to running averages
+    if (nsamples > 0) {
+        const Real nsamples_inv = Real(1.0/static_cast<double>(nsamples));
+        cov_real.mult(nsamples_inv);
+        cov_imag.mult(nsamples_inv);
+    }
+    cov_real_k.define(cov_real.boxArray(), cov_real.DistributionMap(), NCOV, 0);
+    cov_real_k.setVal(0.0);
     VisMF::Read(cov_mag,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_mag"));
 }

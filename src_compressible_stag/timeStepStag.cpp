@@ -10,6 +10,14 @@
 #include "rng_functions.H"
 #include <AMReX_VisMF.H>
 
+// Results of the expressions that use rk_w2 (a double) are evaluated in double.
+// With PRECISION=FLOAT they are cast back to Real (float) before being stored; otherwise left as they are.
+#if defined(AMREX_USE_FLOAT)
+#define RK_CAST_REAL(x) static_cast<amrex::Real>(x)
+#else
+#define RK_CAST_REAL(x) (x)
+#endif
+
 void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
                  MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& vel,
@@ -38,7 +46,8 @@ void RK3stepStag(MultiFab& cu,
     std::array< MultiFab, AMREX_SPACEDIM > faceflux_res; // MFab for storing fluxes (face-based) from reservoir update
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         cumom_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
-        faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
+        // one ghost layer: ResetReservoirFluxes averages neighbouring faces (j-1, k-1) onto edges
+        faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 1);
     }
     // Reservoir stuff
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,6 +71,9 @@ void RK3stepStag(MultiFab& cu,
                  cup2mom[2].setVal(0.0););
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    // RK3 final-stage weight, evaluated in double (stays exact-to-1e-16 even when Real is float)
+    const double rk_w2 = 2./3.;
 
     /////////////////////////////////////////////////////
     // Setup stochastic flux MultiFabs
@@ -332,7 +344,7 @@ void RK3stepStag(MultiFab& cu,
         geom, stoch_weights,dt);
 
     // reservoir timers
-    Real aux1, aux2, aux3, aux4, aux5, aux6;
+    double aux1, aux2, aux3, aux4, aux5, aux6; // wall-clock timers (double: MPI_Wtime does not fit in float)
 
     // add to the total continuum fluxes based on RK3 weight
     if (do_reservoir) {
@@ -361,7 +373,7 @@ void RK3stepStag(MultiFab& cu,
     amrex::Real energy_in = amrex::Real(0.0);
     if (turbForcing == 2) { // random forcing tubulence : get average energy input
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<Real> reduce_data(reduce_op);
+        ReduceData<double> reduce_data(reduce_op); // domain sum in double: subtracted from every cell, so float error would break energy balance
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -387,9 +399,9 @@ void RK3stepStag(MultiFab& cu,
                               aF_z_p*momz(i,j,k+1) + aF_z_m*momz(i,j,k) )};
             });
         }
-        energy_in = amrex::get<0>(reduce_data.value());
-        ParallelDescriptor::ReduceRealSum(energy_in);
-        energy_in = energy_in/(n_cells[0]*n_cells[1]*n_cells[2]);
+        double energy_in_d = amrex::get<0>(reduce_data.value());
+        ParallelDescriptor::ReduceRealSum(energy_in_d);
+        energy_in = amrex::Real(energy_in_d/(double(n_cells[0])*double(n_cells[1])*double(n_cells[2])));
     }
 #endif
 
@@ -516,10 +528,12 @@ void RK3stepStag(MultiFab& cu,
                 Real aF_z_p = turbvf_z_o(i,j,k+1);
                 Real aF_z_m = turbvf_z_o(i,j,k);
 
-                cup_fab(i,j,k,4) += dt * 0.5 * (  aF_x_p*momx(i+1,j,k) + aF_x_m*momx(i,j,k)
-                                                + aF_y_p*momy(i,j+1,k) + aF_y_m*momy(i,j,k)
-                                                + aF_z_p*momz(i,j,k+1) + aF_z_m*momz(i,j,k) );
-                cup_fab(i,j,k,4) -= dt * energy_in; // remove the average input energy from random turbulent forcing
+                // local forcing work minus the average input energy, applied as one increment so the
+                // float rounding differs per cell instead of being identical in every cell
+                cup_fab(i,j,k,4) += dt * ( 0.5 * (  aF_x_p*momx(i+1,j,k) + aF_x_m*momx(i,j,k)
+                                                  + aF_y_p*momy(i,j+1,k) + aF_y_m*momy(i,j,k)
+                                                  + aF_z_p*momz(i,j,k+1) + aF_z_m*momz(i,j,k) )
+                                           - energy_in );
             }
 #endif
         });
@@ -684,7 +698,7 @@ void RK3stepStag(MultiFab& cu,
     amrex::Real energyp_in = amrex::Real(0.0);
     if (turbForcing == 2) { // random forcing tubulence : get average energy input
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<Real> reduce_data(reduce_op);
+        ReduceData<double> reduce_data(reduce_op); // domain sum in double: subtracted from every cell, so float error would break energy balance
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -710,9 +724,9 @@ void RK3stepStag(MultiFab& cu,
                               aF_z_p*mompz(i,j,k+1) + aF_z_m*mompz(i,j,k) )};
             });
         }
-        energyp_in = amrex::get<0>(reduce_data.value());
-        ParallelDescriptor::ReduceRealSum(energyp_in);
-        energyp_in = energyp_in/(n_cells[0]*n_cells[1]*n_cells[2]);
+        double energyp_in_d = amrex::get<0>(reduce_data.value());
+        ParallelDescriptor::ReduceRealSum(energyp_in_d);
+        energyp_in = amrex::Real(energyp_in_d/(double(n_cells[0])*double(n_cells[1])*double(n_cells[2])));
     }
 #endif
 
@@ -763,7 +777,8 @@ void RK3stepStag(MultiFab& cu,
 
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cup2_fab(i,j,k,n) = Real(0.25)*( Real(3.0)* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
+            // increment form of (3/4)*cu + (1/4)*(cup + ...): returns cu exactly when nothing changes, in any precision
+            cup2_fab(i,j,k,n) = cu_fab(i,j,k,n) + Real(0.25)*( cup_fab(i,j,k,n) - cu_fab(i,j,k,n) - dt *
                 ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
                                + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
@@ -774,7 +789,7 @@ void RK3stepStag(MultiFab& cu,
         // momentum flux
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momp2x(i,j,k) = Real(0.25)*Real(3.0)*momx(i,j,k) + Real(0.25)*mompx(i,j,k)
+            momp2x(i,j,k) = momx(i,j,k) + Real(0.25)*(mompx(i,j,k) - momx(i,j,k))
                 -Real(0.25)*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
                 -Real(0.25)*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
                 -Real(0.25)*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
@@ -787,7 +802,7 @@ void RK3stepStag(MultiFab& cu,
 #endif
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momp2y(i,j,k) = Real(0.25)*Real(3.0)*momy(i,j,k) + Real(0.25)*mompy(i,j,k)
+            momp2y(i,j,k) = momy(i,j,k) + Real(0.25)*(mompy(i,j,k) - momy(i,j,k))
                 -Real(0.25)*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
                 -Real(0.25)*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                 -Real(0.25)*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
@@ -800,7 +815,7 @@ void RK3stepStag(MultiFab& cu,
 #endif
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momp2z(i,j,k) = Real(0.25)*Real(3.0)*momz(i,j,k) + Real(0.25)*mompz(i,j,k)
+            momp2z(i,j,k) = momz(i,j,k) + Real(0.25)*(mompz(i,j,k) - momz(i,j,k))
                 -Real(0.25)*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
                 -Real(0.25)*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
                 -Real(0.25)*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
@@ -845,10 +860,12 @@ void RK3stepStag(MultiFab& cu,
                 Real aF_z_p = turbvf_z(i,j,k+1);
                 Real aF_z_m = turbvf_z(i,j,k);
 
-                cup2_fab(i,j,k,4) += 0.25 * dt * 0.5 * (  aF_x_p*mompx(i+1,j,k) + aF_x_m*mompx(i,j,k)
-                                                        + aF_y_p*mompy(i,j+1,k) + aF_y_m*mompy(i,j,k)
-                                                        + aF_z_p*mompz(i,j,k+1) + aF_z_m*mompz(i,j,k) );
-                cup2_fab(i,j,k,4) -= 0.25 * dt * energyp_in; // remove the average input energy from random turbulent forcing
+                // local forcing work minus the average input energy, applied as one increment so the
+                // float rounding differs per cell instead of being identical in every cell
+                cup2_fab(i,j,k,4) += 0.25 * dt * ( 0.5 * (  aF_x_p*mompx(i+1,j,k) + aF_x_m*mompx(i,j,k)
+                                                          + aF_y_p*mompy(i,j+1,k) + aF_y_m*mompy(i,j,k)
+                                                          + aF_z_p*mompz(i,j,k+1) + aF_z_m*mompz(i,j,k) )
+                                                   - energyp_in );
             }
 #endif
         });
@@ -1013,7 +1030,7 @@ void RK3stepStag(MultiFab& cu,
     amrex::Real energyp2_in = amrex::Real(0.0);
     if (turbForcing == 2) { // random forcing tubulence : get average energy input
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<Real> reduce_data(reduce_op);
+        ReduceData<double> reduce_data(reduce_op); // domain sum in double: subtracted from every cell, so float error would break energy balance
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -1042,9 +1059,9 @@ void RK3stepStag(MultiFab& cu,
                               aF_z_p*momp2z(i,j,k+1) + aF_z_m*momp2z(i,j,k) )};
             });
         }
-        energyp2_in = amrex::get<0>(reduce_data.value());
-        ParallelDescriptor::ReduceRealSum(energyp2_in);
-        energyp2_in = energyp2_in/(n_cells[0]*n_cells[1]*n_cells[2]);
+        double energyp2_in_d = amrex::get<0>(reduce_data.value());
+        ParallelDescriptor::ReduceRealSum(energyp2_in_d);
+        energyp2_in = amrex::Real(energyp2_in_d/(double(n_cells[0])*double(n_cells[1])*double(n_cells[2])));
     }
 #endif
 
@@ -1094,23 +1111,25 @@ void RK3stepStag(MultiFab& cu,
 
         amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cu_fab(i,j,k,n) = (Real(2.)/Real(3.)) *( Real(0.5)* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
+            // increment form of (1/3)*cu + (2/3)*(cup2 + ...): returns cu exactly when nothing changes, in any precision
+            cu_fab(i,j,k,n) = RK_CAST_REAL(cu_fab(i,j,k,n)
+                + rk_w2 *( cup2_fab(i,j,k,n) - cu_fab(i,j,k,n) - dt *
                 (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                              + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
                              + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
                                                                                                             )
-                + dt*source_fab(i,j,k,n) );
+                + dt*source_fab(i,j,k,n) ));
 
         }); // [1:3 indices are not valuable -- momentum flux]
 
         // momentum flux
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momx(i,j,k) = (Real(2.)/Real(3.))*(Real(0.5)*momx(i,j,k) + momp2x(i,j,k))
-                -(Real(2.)/Real(3.))*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
-                -(Real(2.)/Real(3.))*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
-                -(Real(2.)/Real(3.))*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
-                +Real(0.5)*(Real(2.)/Real(3.))*dt*grav[0]*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0));
+            momx(i,j,k) = RK_CAST_REAL(momx(i,j,k) + rk_w2*(momp2x(i,j,k) - momx(i,j,k))
+                -rk_w2*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
+                -rk_w2*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
+                -rk_w2*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
+                +Real(0.5)*rk_w2*dt*grav[0]*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0)));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_x = 0.5*(turbvf_x_o(i,j,k)   + turbvf_x(i,j,k)  );
@@ -1119,11 +1138,11 @@ void RK3stepStag(MultiFab& cu,
 #endif
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momy(i,j,k) = (Real(2.)/Real(3.))*(Real(0.5)*momy(i,j,k) + momp2y(i,j,k))
-                -(Real(2.)/Real(3.))*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
-                -(Real(2.)/Real(3.))*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
-                -(Real(2.)/Real(3.))*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
-                +Real(0.5)*(2/Real(3.))*dt*grav[1]*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0));
+            momy(i,j,k) = RK_CAST_REAL(momy(i,j,k) + rk_w2*(momp2y(i,j,k) - momy(i,j,k))
+                -rk_w2*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
+                -rk_w2*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
+                -rk_w2*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
+                +Real(0.5)*rk_w2*dt*grav[1]*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0)));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_y = 0.5*(turbvf_y_o(i,j,k)   + turbvf_y(i,j,k)  );
@@ -1132,11 +1151,11 @@ void RK3stepStag(MultiFab& cu,
 #endif
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            momz(i,j,k) = (Real(2.)/Real(3.))*(Real(0.5)*momz(i,j,k) + momp2z(i,j,k))
-                -(Real(2.)/Real(3.))*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
-                -(Real(2.)/Real(3.))*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
-                -(Real(2.)/Real(3.))*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
-                +Real(0.5)*(Real(2.)/Real(3.))*dt*grav[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0));
+            momz(i,j,k) = RK_CAST_REAL(momz(i,j,k) + rk_w2*(momp2z(i,j,k) - momz(i,j,k))
+                -rk_w2*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
+                -rk_w2*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
+                -rk_w2*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
+                +Real(0.5)*rk_w2*dt*grav[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0)));
 #if defined(TURB)
             if (turbForcing > 1) {
                 Real aF_z = 0.5*(turbvf_z_o(i,j,k)   + turbvf_z(i,j,k)  );
@@ -1169,9 +1188,9 @@ void RK3stepStag(MultiFab& cu,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cu_fab(i,j,k,4) += Real(0.5) * (Real(2.)/Real(3.)) * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
+            cu_fab(i,j,k,4) = RK_CAST_REAL(cu_fab(i,j,k,4) + (Real(0.5) * rk_w2 * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
                                                     + grav[1]*(momp2y(i,j+1,k)+momp2y(i,j,k))
-                                                    + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
+                                                    + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) )));
 #if defined(TURB)
             if (turbForcing == 2) {
                 Real aF_x_p = 0.5*(turbvf_x_o(i+1,j,k) + turbvf_x(i+1,j,k));
@@ -1181,11 +1200,12 @@ void RK3stepStag(MultiFab& cu,
                 Real aF_z_p = 0.5*(turbvf_z_o(i,j,k+1) + turbvf_z(i,j,k+1));
                 Real aF_z_m = 0.5*(turbvf_z_o(i,j,k)   + turbvf_z(i,j,k)  );
 
-                cu_fab(i,j,k,4) += (2./3.) * dt * 0.5 * (  aF_x_p*momp2x(i+1,j,k) + aF_x_m*momp2x(i,j,k)
-                                                         + aF_y_p*momp2y(i,j+1,k) + aF_y_m*momp2y(i,j,k)
-                                                         + aF_z_p*momp2z(i,j,k+1) + aF_z_m*momp2z(i,j,k) );
-
-                cu_fab(i,j,k,4) -= (2./3.) * dt * energyp2_in; // remove the average input energy from random turbulent forcing
+                // local forcing work minus the average input energy, applied as one increment so the
+                // float rounding differs per cell instead of being identical in every cell
+                cu_fab(i,j,k,4) += (2./3.) * dt * ( 0.5 * (  aF_x_p*momp2x(i+1,j,k) + aF_x_m*momp2x(i,j,k)
+                                                           + aF_y_p*momp2y(i,j+1,k) + aF_y_m*momp2y(i,j,k)
+                                                           + aF_z_p*momp2z(i,j,k+1) + aF_z_m*momp2z(i,j,k) )
+                                                    - energyp2_in );
             }
 #endif
         });

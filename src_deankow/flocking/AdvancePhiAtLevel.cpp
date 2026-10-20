@@ -22,7 +22,7 @@ using namespace amrex;
 //       beta_1 = (2 sqrt2 + sqrt3)/5, beta_2 = (-4 sqrt2 + 3 sqrt3)/5,
 //       beta_3 = (sqrt2 - 2 sqrt3)/10,
 //   so that W1/6 + W2/6 + 2 W3/3 = W_A. The noise amplitude sqrt(phi) and
-//   rho_tilde are evaluated at each stage. Stable for centred advection up to
+//   the alignment field Q are evaluated at each stage. Stable for centred advection up to
 //   |lambda dt| = sqrt3 on the imaginary axis.
 // F holds the deterministic fluxes (x, y advection; theta diffusion and
 // turning), S the stochastic theta flux.
@@ -39,8 +39,8 @@ AmrCoreFlock::AdvancePhi (Real dt)
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         flux[d].define(amrex::convert(ba, IntVect::TheDimensionVector(d)), dm, 1, 0);
     }
-    UpdateRhoTilde(phi_old);
-    compute_det_fluxes(phi_old, rhot, rhobar, flux, Geom(0), fp, adv_order, limiter);
+    UpdateAlignment(phi_old);
+    compute_det_fluxes(phi_old, qalign, flux, Geom(0), fp, adv_order, limiter);
 
     MultiFab sflux;
     if (dorand && time_integrator != 2) {
@@ -67,8 +67,8 @@ AmrCoreFlock::AdvancePhi (Real dt)
         auto euler_stage = [&] (MultiFab const& u, int s, MultiFab& out)
         {
             if (s > 0) {
-                UpdateRhoTilde(u);
-                compute_det_fluxes(u, rhot, rhobar, flux, Geom(0), fp, adv_order, limiter);
+                UpdateAlignment(u);
+                compute_det_fluxes(u, qalign, flux, Geom(0), fp, adv_order, limiter);
             }
             if (dorand) {
                 MultiFab::LinComb(ws, 1.0, wa, 0, beta[s], wb, 0, 0, 1, 0);
@@ -102,8 +102,8 @@ AmrCoreFlock::AdvancePhi (Real dt)
         phi_new.FillBoundary(Geom(0).periodicity());
 
         // corrector: average the deterministic fluxes, reuse the noise
-        UpdateRhoTilde(phi_new);
-        compute_det_fluxes(phi_new, rhot, rhobar, flux1, Geom(0), fp, adv_order, limiter);
+        UpdateAlignment(phi_new);
+        compute_det_fluxes(phi_new, qalign, flux1, Geom(0), fp, adv_order, limiter);
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             MultiFab::LinComb(flux[d], 0.5, flux[d], 0, 0.5, flux1[d], 0, 0, 1, 0);
         }
