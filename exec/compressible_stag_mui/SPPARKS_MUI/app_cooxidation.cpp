@@ -63,6 +63,7 @@ AppCooxidation::AppCooxidation(SPPARKS *spk, int narg, char **arg) :
   esites = NULL;
   echeck = NULL;
   events = NULL;
+  nevents = 0;
   maxevent = 0;
   firstevent = NULL;
 
