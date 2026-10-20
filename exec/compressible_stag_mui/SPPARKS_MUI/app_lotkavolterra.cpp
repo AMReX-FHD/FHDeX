@@ -37,6 +37,8 @@ enum{VACANCY,SPEC1,SPEC2}; // VACANCY: O, SPEC1: A, SPEC2: B
 
 #define DELTAEVENT 100000
 
+static const double BETA = -0.5; // temperature exponent of FHD-fed adsorption rates: k p (T/T0)^BETA
+
 /* ---------------------------------------------------------------------- */
 
 AppLotkavolterra::AppLotkavolterra(SPPARKS *spk, int narg, char **arg) :
@@ -76,6 +78,11 @@ AppLotkavolterra::AppLotkavolterra(SPPARKS *spk, int narg, char **arg) :
   prey = predator = NULL;
 #if defined(USE_AMREX_MPMD)
   ads_wall_dir = 2;
+
+  update_full = 0; // update gas-fed prey events (0) or update all events (1)
+  bordersite = NULL;
+  cellrep = NULL;
+  preyprop_cell = NULL;
 #endif
 }
 
@@ -111,6 +118,12 @@ AppLotkavolterra::~AppLotkavolterra()
 
   memory->destroy(prey);
   memory->destroy(predator);
+
+#if defined(USE_AMREX_MPMD)
+  delete [] bordersite;
+  memory->destroy(cellrep);
+  memory->destroy(preyprop_cell);
+#endif
 }
 
 /* ---------------------------------------------------------------------- */
@@ -222,6 +235,10 @@ void AppLotkavolterra::input_app(char *command, int narg, char **arg)
     if (narg != 1) error->all(FLERR,"Illegal amrex_ads_wall_dir command");
     ads_wall_dir = atoi(arg[0]);
     if (ads_wall_dir < 0 || ads_wall_dir > 2) error->all(FLERR,"Illegal amrex_ads_wall_dir command");
+  } else if (strcmp(command,"amrex_update_full") == 0) {
+    if (narg != 1) error->all(FLERR,"Illegal amrex_update_full command");
+    update_full = atoi(arg[0]);
+    if (update_full < 0 || update_full > 1) error->all(FLERR,"Illegal amrex_update_full command");
   } else if (strcmp(command,"amrex_init_agg") == 0) {
     if (narg != 0) error->all(FLERR,"Illegal amrex_init_agg command");
     amrex_init_agg();
@@ -275,6 +292,11 @@ void AppLotkavolterra::init_app()
     echeck = new int[nlocal];
     memory->create(firstevent,nlocal,"app:firstevent");
 
+#if defined(USE_AMREX_MPMD)
+    bordersite = new int[nlocal];
+    for (int i = 0; i < nlocal; i++) bordersite[i] = 0;
+#endif
+
     // esites must be large enough for 3 sites and their 1st neighbors
 
     esites = new int[3 + 3*maxneigh];
@@ -310,14 +332,36 @@ void AppLotkavolterra::init_app()
 
 void AppLotkavolterra::setup_app()
 {
-  for (int i = 0; i < nlocal; i++) echeck[i] = 0;
+  // in ads-only update mode (amrex_update_full 0, default), event lists
+  // persist across coupling cycles (the per-cycle refresh updates only
+  // the gas-fed prey entries), so they are built from scratch only
+  // on the first setup
 
-  // clear event list
+#if defined(USE_AMREX_MPMD)
+  // sites whose event lists can be invalidated by communication (sector
+  // borders and their first neighbors) always take the full-rebuild path
 
-  nevents = 0;
-  for (int i = 0; i < nlocal; i++) firstevent[i] = -1;
-  for (int i = 0; i < maxevent; i++) events[i].next = i+1;
-  freeevent = 0;
+  if (update_full == 0)
+    for (int s = 0; s < nset; s++)
+      for (int m = 0; m < set[s].nborder; m++) {
+        int b = set[s].border[m];
+        bordersite[b] = 1;
+        for (int k = 0; k < numneigh[b]; k++)
+          if (neighbor[b][k] < nlocal) bordersite[neighbor[b][k]] = 1;
+      }
+
+  if (update_full || nevents == 0)
+#endif
+  {
+    for (int i = 0; i < nlocal; i++) echeck[i] = 0;
+
+    // clear event list
+
+    nevents = 0;
+    for (int i = 0; i < nlocal; i++) firstevent[i] = -1;
+    for (int i = 0; i < maxevent; i++) events[i].next = i+1;
+    freeevent = 0;
+  }
 
   // set propensities from rates
   // propentities for adsorption reactions will be calculated in site_propensity(i)
@@ -352,6 +396,26 @@ double AppLotkavolterra::site_energy(int i)
 
 double AppLotkavolterra::site_propensity(int i)
 {
+  // ads-only fast path for the per-cycle refresh: the configuration
+  // around i is unchanged since its event list was built (site_event
+  // rebuilds affected sites via site_propensity_full, and border sites
+  // always rebuild), so only the gas-fed prey entries need new values,
+  // inserted from the per-cell table filled at fetch.
+  // firstevent[i] >= 0 keeps never-built sites (first setup) on the
+  // full path; cellrep != NULL means the coupling was initialized
+
+#if defined(USE_AMREX_MPMD)
+  if (update_full == 0 && cellrep != NULL && firstevent[i] >= 0 && !bordersite[i])
+    return site_propensity_ads(i);
+#endif
+
+  return site_propensity_full(i);
+}
+
+/* ---------------------------------------------------------------------- */
+
+double AppLotkavolterra::site_propensity_full(int i)
+{
   clear_events(i);
   double proball = 0.0;
 
@@ -369,8 +433,8 @@ double AppLotkavolterra::site_propensity(int i)
             proball += preyrate[m];
           }
           else {
-            if (prey[m] == SPEC1) preypropensity = preyrate[m]*pressure1[i]*pow(tempratio,-0.5);
-            else if (prey[m] == SPEC2) preypropensity = preyrate[m]*pressure2[i]*pow(tempratio,-0.5);
+            if (prey[m] == SPEC1) preypropensity = preyrate[m]*pressure1[i]*pow(tempratio,BETA);
+            else if (prey[m] == SPEC2) preypropensity = preyrate[m]*pressure2[i]*pow(tempratio,BETA);
             add_event(i,1,m,preypropensity,-1,-1);
             proball += preypropensity;
           }
@@ -448,7 +512,7 @@ void AppLotkavolterra::site_event(int i, class RandomPark *random)
   int nsites = 0;
 
   int isite = i2site[i];
-  propensity[isite] = site_propensity(i);
+  propensity[isite] = site_propensity_full(i);
   esites[nsites++] = isite;
   echeck[isite] = 1;
 
@@ -456,7 +520,7 @@ void AppLotkavolterra::site_event(int i, class RandomPark *random)
     m = neighbor[i][n];
     isite = i2site[m];
     if (isite >=0 && echeck[isite] == 0) {
-      propensity[isite] = site_propensity(m);
+      propensity[isite] = site_propensity_full(m);
       esites[nsites++] = isite;
       echeck[isite] = 1;
     }
@@ -752,6 +816,19 @@ void AppLotkavolterra::amrex_init_agg ()
     imf.define(ba, dmap, 1, 0, amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
 
     mpmd_copier = std::make_unique<amrex::MPMD::Copier>(ba, dmap);
+
+    // 4. cellrep, preyprop_cell
+    //    (per-cell prey rate table; filled at each amrex_fetch_agg,
+    //     zero until the first fetch)
+
+    memory->create(cellrep,nlocalFHDcell,"app/lotkavolterra:cellrep");
+    for (int c = 0; c < nlocalFHDcell; c++) cellrep[c] = -1;
+    for (int i = 0; i < nlocal; i++)
+        if (cellrep[localFHDcell[i]] < 0) cellrep[localFHDcell[i]] = i;
+
+    memory->create(preyprop_cell,nprey*nlocalFHDcell,
+                   "app/lotkavolterra:preyprop_cell");
+    for (int k = 0; k < nprey*nlocalFHDcell; k++) preyprop_cell[k] = 0.;
 }
 
 void AppLotkavolterra::amrex_push_agg(int narg, char **arg)
@@ -862,6 +939,28 @@ void AppLotkavolterra::amrex_fetch_agg(int narg, char **arg)
           std::fflush(screen);
       }
     }
+
+    // the fetched fields are new: recompute the per-cell prey rates
+    // (pressure and temperature are constant within an FHD cell, so each
+    // (event, cell) value is computed once per cycle and the per-site
+    // refresh only inserts it; the table is allocated in amrex_init_agg,
+    // section 4)
+
+    if (update_full == 0) {
+
+        for (int c = 0; c < nlocalFHDcell; c++) {
+            int rep = cellrep[c];
+            double tempratio = temp[rep]/temperature;
+            for (int m = 0; m < nprey; m++) {
+                if (prey_is_rate[m]) preyprop_cell[m*nlocalFHDcell+c] = preyrate[m];
+                else {
+                    double p = (prey[m] == SPEC1) ? pressure1[rep] : pressure2[rep];
+                    preyprop_cell[m*nlocalFHDcell+c] = preyrate[m]*p*pow(tempratio,BETA);
+                }
+            }
+        }
+
+    }
 }
 
 void AppLotkavolterra::amrex_send_intval()
@@ -910,6 +1009,27 @@ void AppLotkavolterra::amrex_recv_dblval()
             p[idx[dir2]+idx[dir1]*len2-offset] = fab(i,j,k);
         });
     }
+}
+
+/* ----------------------------------------------------------------------
+   ads-only update: walk the existing event list of site i and update
+   only the gas-fed entries (prey, style 1) by lookup in the per-cell
+   rate table; all other entries depend only on the configuration, which
+   site_event keeps current
+------------------------------------------------------------------------- */
+
+double AppLotkavolterra::site_propensity_ads(int i)
+{
+  int c = localFHDcell[i];
+  double proball = 0.0;
+
+  for (int ev = firstevent[i]; ev >= 0; ev = events[ev].next) {
+    if (events[ev].style == 1)
+      events[ev].propensity = preyprop_cell[events[ev].which*nlocalFHDcell+c];
+    proball += events[ev].propensity;
+  }
+
+  return proball;
 }
 
 #endif
