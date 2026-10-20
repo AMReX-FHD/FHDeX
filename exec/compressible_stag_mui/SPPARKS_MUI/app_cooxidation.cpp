@@ -44,12 +44,10 @@ static const double BETA = -0.5; // temperature exponent of FHD-fed adsorption r
 AppCooxidation::AppCooxidation(SPPARKS *spk, int narg, char **arg) :
   AppLattice(spk,narg,arg)
 {
-  ninteger = 14;  // type: site type
+  ninteger = 8;   // type: site type
                   // element: site state
-                  // ac1/ac2/ac3: adsorption count
-                  // dc1/dc2/dc3: desorption count
-                  // dac1/dac2/dac3: dissociative adsorption count
-                  // adc1/adc2/adc3: associative desorption count
+                  // ac1/ac2/ac3: adsorption count into FHD species 1/2/3
+                  // dc1/dc2/dc3: desorption count into FHD species 1/2/3
   ndouble = 4;    // pressure1/pressure2/pressure3: partial pressure of the contacting FHD cell
                   // temp: temperature of the contacting FHD cell
   delpropensity = 1;
@@ -82,7 +80,7 @@ AppCooxidation::AppCooxidation(SPPARKS *spk, int narg, char **arg) :
   adestype = adesinput = adesoutput = NULL;
   rxntype = rxninput = rxnoutput = NULL;
   scount = dcount = adscount = descount = dadscount = adescount = rxncount = NULL;
-  adsadsorbate = dadsadsorbate = adesdesorbate = reactionsorbate = NULL;
+  adsadsorbate = desdesorbate = dadsadsorbate = adesdesorbate = reactionsorbate = NULL;
 
 #if defined(USE_AMREX_MPMD)
   ads_wall_dir = 2;
@@ -146,6 +144,7 @@ AppCooxidation::~AppCooxidation()
   memory->destroy(adescount);
   memory->destroy(rxncount);
   memory->destroy(adsadsorbate);
+  memory->destroy(desdesorbate);
   memory->destroy(dadsadsorbate);
   memory->destroy(adesdesorbate);
   memory->destroy(reactionsorbate);
@@ -262,7 +261,15 @@ void AppCooxidation::input_app(char *command, int narg, char **arg)
       nads++;
 
     } else if (rstyle == 4) {   // desorption
-      if (narg != 5) error->all(FLERR,"Illegal event command");
+      if (narg != 5 && narg != 7) error->all(FLERR,"Illegal event command");
+      desdesorbate[ndes] = -1;
+      if (narg == 7) { // FHD-coupled: desorbed molecule counted into this FHD species
+        if (strcmp(arg[5],"FHD") != 0) error->all(FLERR,"Illegal event command");
+        if (strcmp(arg[6],"spec1") == 0) desdesorbate[ndes] = SPEC1;
+        else if (strcmp(arg[6],"spec2") == 0) desdesorbate[ndes] = SPEC2;
+        else if (strcmp(arg[6],"spec3") == 0) desdesorbate[ndes] = SPEC3;
+        else error->all(FLERR,"Illegal event command");
+      }
       if (strcmp(arg[1],"siteA") == 0) destype[ndes] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) destype[ndes] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) destype[ndes] = SITEC;
@@ -340,7 +347,15 @@ void AppCooxidation::input_app(char *command, int narg, char **arg)
       ndissocads++;
 
     } else if (rstyle == 6) { // associative desorption
-      if (narg != 9) error->all(FLERR,"Illegal event command");
+      if (narg != 8 && narg != 10) error->all(FLERR,"Illegal event command");
+      adesdesorbate[nassocdes] = -1;
+      if (narg == 10) { // FHD-coupled: desorbed molecule counted into this FHD species
+        if (strcmp(arg[8],"FHD") != 0) error->all(FLERR,"Illegal event command");
+        if (strcmp(arg[9],"spec1") == 0) adesdesorbate[nassocdes] = SPEC1;
+        else if (strcmp(arg[9],"spec2") == 0) adesdesorbate[nassocdes] = SPEC2;
+        else if (strcmp(arg[9],"spec3") == 0) adesdesorbate[nassocdes] = SPEC3;
+        else error->all(FLERR,"Illegal event command");
+      }
       if (strcmp(arg[1],"siteA") == 0) adestype[nassocdes][0] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) adestype[nassocdes][0] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) adestype[nassocdes][0] = SITEC;
@@ -380,17 +395,18 @@ void AppCooxidation::input_app(char *command, int narg, char **arg)
         error->all(FLERR,"rstyle=6 only allows spec1/2/3->vac");
       else if (strcmp(arg[7],"vac") == 0) adesoutput[nassocdes][1] = VACANCY;
       else error->all(FLERR,"Illegal event command");
-      if (strcmp(arg[8],"spec1") == 0) adesdesorbate[nassocdes] = SPEC1;
-      else if (strcmp(arg[8],"spec2") == 0) adesdesorbate[nassocdes] = SPEC2;
-      else if (strcmp(arg[8],"spec3") == 0) adesdesorbate[nassocdes] = SPEC3;
-      else if (strcmp(arg[8],"vac") == 0)
-        error->all(FLERR,"rstyle=6 only allows desorption of spec1/2/3");
-      else error->all(FLERR,"Illegal event command");
-
       nassocdes++;
 
     } else if (rstyle == 7) { // (reaction) associative desorption
-      if (narg != 9) error->all(FLERR,"Illegal event command");
+      if (narg != 8 && narg != 10) error->all(FLERR,"Illegal event command");
+      reactionsorbate[nreaction] = -1;
+      if (narg == 10) { // FHD-coupled: produced molecule counted into this FHD species
+        if (strcmp(arg[8],"FHD") != 0) error->all(FLERR,"Illegal event command");
+        if (strcmp(arg[9],"spec1") == 0) reactionsorbate[nreaction] = SPEC1;
+        else if (strcmp(arg[9],"spec2") == 0) reactionsorbate[nreaction] = SPEC2;
+        else if (strcmp(arg[9],"spec3") == 0) reactionsorbate[nreaction] = SPEC3;
+        else error->all(FLERR,"Illegal event command");
+      }
       if (strcmp(arg[1],"siteA") == 0) rxntype[nreaction][0] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) rxntype[nreaction][0] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) rxntype[nreaction][0] = SITEC;
@@ -430,13 +446,6 @@ void AppCooxidation::input_app(char *command, int narg, char **arg)
         error->all(FLERR,"rstyle=7 only allows spec1/2/3->vac");
       else if (strcmp(arg[7],"vac") == 0) rxnoutput[nreaction][1] = VACANCY;
       else error->all(FLERR,"Illegal event command");
-      if (strcmp(arg[8],"spec1") == 0) reactionsorbate[nreaction] = SPEC1;
-      else if (strcmp(arg[8],"spec2") == 0) reactionsorbate[nreaction] = SPEC2;
-      else if (strcmp(arg[8],"spec3") == 0) reactionsorbate[nreaction] = SPEC3;
-      else if (strcmp(arg[8],"vac") == 0)
-        error->all(FLERR,"rstyle=7 only allows desorption of spec1/2/3");
-      else error->all(FLERR,"Illegal event command");
-
       nreaction++;
 
     }  else error->all(FLERR,"Illegal event command");
@@ -488,12 +497,6 @@ void AppCooxidation::grow_app()
   dc1 = iarray[5];
   dc2 = iarray[6];
   dc3 = iarray[7];
-  dac1 = iarray[8];
-  dac2 = iarray[9];
-  dac3 = iarray[10];
-  adc1 = iarray[11];
-  adc2 = iarray[12];
-  adc3 = iarray[13];
   pressure1 = darray[0];
   pressure2 = darray[1];
   pressure3 = darray[2];
@@ -531,16 +534,10 @@ void AppCooxidation::init_app()
       dc1[i] = 0;
       dc2[i] = 0;
       dc3[i] = 0;
-      dac1[i] = 0;
-      dac2[i] = 0;
-      dac3[i] = 0;
-      adc1[i] = 0;
-      adc2[i] = 0;
-      adc3[i] = 0;
     }
 
     if (domain->me == 0 && screen) {
-      fprintf(screen,"** DEBUG: ac1-ac3, dc1-dc3, dac1-dac3, adc1-adc3 initialized to zero\n");
+      fprintf(screen,"** DEBUG: ac1-ac3 and dc1-dc3 initialized to zero\n");
       fflush(screen);
     }
   }
@@ -808,38 +805,40 @@ void AppCooxidation::site_event(int i, class RandomPark *random)
   } else if (rstyle == 3) {  // adsorption case
     element[i] = adsoutput[which];
     adscount[which]++;
-    if (element[i] == SPEC1) ac1[i]++;
-    else if (element[i] == SPEC2) ac2[i]++;
-    else if (element[i] == SPEC3) ac3[i]++;
+    int adsorbate = adsadsorbate[which];
+    if (adsorbate == SPEC1) ac1[i]++;
+    else if (adsorbate == SPEC2) ac2[i]++;
+    else if (adsorbate == SPEC3) ac3[i]++;
   } else if (rstyle == 4) {  // desorption case
-    if (element[i] == SPEC1) dc1[i]++;
-    else if (element[i] == SPEC2) dc2[i]++;
-    else if (element[i] == SPEC3) dc3[i]++;
+    int desorbate = desdesorbate[which];
+    if (desorbate == SPEC1) dc1[i]++;
+    else if (desorbate == SPEC2) dc2[i]++;
+    else if (desorbate == SPEC3) dc3[i]++;
     element[i] = desoutput[which];
     descount[which]++;
   } else if (rstyle == 5) { // dissociative adsorption case
     element[i] = dadsoutput[which][0];
     element[j] = dadsoutput[which][1];
     int adsorbate = dadsadsorbate[which];
-    if (adsorbate == SPEC1) dac1[i]++;
-    else if (adsorbate == SPEC2) dac2[i]++;
-    else if (adsorbate == SPEC3) dac3[i]++;
+    if (adsorbate == SPEC1) ac1[i]++;
+    else if (adsorbate == SPEC2) ac2[i]++;
+    else if (adsorbate == SPEC3) ac3[i]++;
     dadscount[which]++;
   } else if (rstyle == 6) { // associative desorption case
     element[i] = adesoutput[which][0];
     element[j] = adesoutput[which][1];
     int desorbate = adesdesorbate[which];
-    if (desorbate == SPEC1) adc1[i]++;
-    else if (desorbate == SPEC2) adc2[i]++;
-    else if (desorbate == SPEC3) adc3[i]++;
+    if (desorbate == SPEC1) dc1[i]++;
+    else if (desorbate == SPEC2) dc2[i]++;
+    else if (desorbate == SPEC3) dc3[i]++;
     adescount[which]++;
   } else if (rstyle == 7) { // (reaction) associative desorption case
     element[i] = rxnoutput[which][0];
     element[j] = rxnoutput[which][1];
     int rxnsorbate = reactionsorbate[which];
-    if (rxnsorbate == SPEC1) adc1[i]++;
-    else if (rxnsorbate == SPEC2) adc2[i]++;
-    else if (rxnsorbate == SPEC3) adc3[i]++;
+    if (rxnsorbate == SPEC1) dc1[i]++;
+    else if (rxnsorbate == SPEC2) dc2[i]++;
+    else if (rxnsorbate == SPEC3) dc3[i]++;
     rxncount[which]++;
     rxnsumcount++;
   }
@@ -974,6 +973,7 @@ void AppCooxidation::grow_reactions(int rstyle)
     memory->grow(desinput,n,"app/cooxidation:desinput");
     memory->grow(desoutput,n,"app/cooxidation:desoutput");
     memory->grow(descount,n,"app/cooxidation:descount");
+    memory->grow(desdesorbate,n,"app/cooxidation:desdesorbate");
   } else if (rstyle == 5) {
     int n = ndissocads + 1;
     memory->grow(dadsrate,n,"app/cooxidation:dadsrate");
@@ -1246,6 +1246,14 @@ void AppCooxidation::amrex_push_agg(int narg, char **arg)
                 ac2[i] = 0;
             }
             amrex_send_intval();
+        } else if (std::strcmp(arg[k],"ac3") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += ac3[i];
+                ac3[i] = 0;
+            }
+            amrex_send_intval();
         } else if (std::strcmp(arg[k],"dc1") == 0) {
             // compute the sum over each FHD domain
             for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
@@ -1262,52 +1270,12 @@ void AppCooxidation::amrex_push_agg(int narg, char **arg)
                 dc2[i] = 0;
             }
             amrex_send_intval();
-        } else if (std::strcmp(arg[k],"dac1") == 0) {
+        } else if (std::strcmp(arg[k],"dc3") == 0) {
             // compute the sum over each FHD domain
             for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
             for (int i=0;i<nlocal;i++) {
-                intval[localFHDcell[i]] += dac1[i];
-                dac1[i] = 0;
-            }
-            amrex_send_intval();
-        } else if (std::strcmp(arg[k],"dac2") == 0) {
-            // compute the sum over each FHD domain
-            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
-            for (int i=0;i<nlocal;i++) {
-                intval[localFHDcell[i]] += dac2[i];
-                dac2[i] = 0;
-            }
-            amrex_send_intval();
-        } else if (std::strcmp(arg[k],"dac3") == 0) {
-            // compute the sum over each FHD domain
-            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
-            for (int i=0;i<nlocal;i++) {
-                intval[localFHDcell[i]] += dac3[i];
-                dac3[i] = 0;
-            }
-            amrex_send_intval();
-        } else if (std::strcmp(arg[k],"adc1") == 0) {
-            // compute the sum over each FHD domain
-            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
-            for (int i=0;i<nlocal;i++) {
-                intval[localFHDcell[i]] += adc1[i];
-                adc1[i] = 0;
-            }
-            amrex_send_intval();
-        } else if (std::strcmp(arg[k],"adc2") == 0) {
-            // compute the sum over each FHD domain
-            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
-            for (int i=0;i<nlocal;i++) {
-                intval[localFHDcell[i]] += adc2[i];
-                adc2[i] = 0;
-            }
-            amrex_send_intval();
-        } else if (std::strcmp(arg[k],"adc3") == 0) {
-            // compute the sum over each FHD domain
-            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
-            for (int i=0;i<nlocal;i++) {
-                intval[localFHDcell[i]] += adc3[i];
-                adc3[i] = 0;
+                intval[localFHDcell[i]] += dc3[i];
+                dc3[i] = 0;
             }
             amrex_send_intval();
         } else if (std::strcmp(arg[k],"occ1") == 0) {

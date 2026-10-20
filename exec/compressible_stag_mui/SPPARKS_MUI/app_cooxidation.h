@@ -49,7 +49,7 @@ class AppCooxidation : public AppLattice {
  private:
   int firsttime;
   // variables on each lattice site
-  int *type,*element,*ac1,*ac2,*ac3,*dc1,*dc2,*dc3,*dac1,*dac2,*dac3,*adc1,*adc2,*adc3;
+  int *type,*element,*ac1,*ac2,*ac3,*dc1,*dc2,*dc3;
   double *pressure1,*pressure2,*pressure3,*temp;
 
   int *esites;
@@ -68,7 +68,7 @@ class AppCooxidation : public AppLattice {
   int *sinput,**dinput,*adsinput,*desinput,**dadsinput,**adesinput,**rxninput;
   int *soutput,**doutput,*adsoutput,*desoutput,**dadsoutput,**adesoutput,**rxnoutput;
   int *scount,*dcount,*adscount,*descount,*dadscount,*adescount,*rxncount;
-  int *adsadsorbate,*dadsadsorbate,*adesdesorbate,*reactionsorbate;
+  int *adsadsorbate,*desdesorbate,*dadsadsorbate,*adesdesorbate,*reactionsorbate;
 
   struct Event {           // one event for an owned site
     int style;             // reaction style
