@@ -13,6 +13,8 @@ quadrature weight dV, and
   F_ent = D sum phi ln phi dV   (phi ln phi taken as 0 where phi <= 0),
   F_int = 1/2 sum phi C dV,     F = F_ent + F_int.
 
+With amr.ip_local_rep = a, C includes a*phi, so F_int includes a/2 sum phi^2 dV.
+
 The uniform reference with the same mass, mu = sum phi dV / V, is
 F_uni = D mu ln mu V + 1/2 mu^2 Uhat(0) dV V, the reference of
 lattice_continuation.py. F is per unit mass, in units where D is the
@@ -52,7 +54,8 @@ def mesh_kernel_hat(ker, shape, dx):
     in array (reversed) axis order."""
     xs = np.meshgrid(*[np.fft.fftfreq(n)*n*h for n, h in zip(shape, dx)], indexing="ij")
     r = np.sqrt(sum(x*x for x in xs))
-    return np.real(np.fft.fftn(ker.U(r)))*float(np.prod(dx))
+    # the local repulsion is local_rep*delta(r): a constant in Uhat dV
+    return np.real(np.fft.fftn(ker.U(r)))*float(np.prod(dx)) + ker.local_rep
 
 
 def free_energy(phi, uh_dv, D, dv):
