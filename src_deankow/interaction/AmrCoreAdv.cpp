@@ -742,6 +742,8 @@ AmrCoreAdv::ComputeInteractionStiffness ()
     // divergence has the discrete-Laplacian symbol
     //   keff^2 = sum_d 4/dx_d^2 sin^2(pi m_d/n_d)
     // so linearized about phi the operator is -keff^2 [D + phi*Uhat(k)*cellvol].
+    // The local repulsion adds ip_local_rep to Uhat(k)*cellvol at every k.
+    const Real local_rep = pot.ip_local_rep;
     ReduceOps<ReduceOpMax> reduce_op;
     ReduceData<Real> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -757,7 +759,7 @@ AmrCoreAdv::ComputeInteractionStiffness ()
                 const Real s = std::sin(pi*m[d]/nk[d]);
                 keff2 += 4.*s*s/(dx[d]*dx[d]);
             }
-            return {keff2 * amrex::max(u(i,j,k).real()*cellvol, Real(0.))};
+            return {keff2 * amrex::max(u(i,j,k).real()*cellvol + local_rep, Real(0.))};
         });
     }
     int_stiff = amrex::get<0>(reduce_data.value(reduce_op));
@@ -890,7 +892,8 @@ namespace {
 // Continuum (infinite-domain) linear stability of the uniform state mu0 for
 // the interaction kernel; see STABILITY.md. uhat_min_disc is the discrete
 // min over k != 0 of Uhat*cellvol, printed alongside for comparison; kbox is
-// the smallest nonzero wavenumber the periodic box supports.
+// the smallest nonzero wavenumber the periodic box supports. D is the
+// effective diffusivity: with amr.ip_local_rep it is diff_coeff + mu0*ip_local_rep.
 void
 PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmin,
                          Real kbox, Real uhat_min_disc)
@@ -1109,6 +1112,8 @@ AmrCoreAdv::PrintUhatMinMax ()
     }
     const Real mu0 = 1./dom_vol;
     const Real D = diff_coeff;
+    // the local repulsion adds ip_local_rep to Uhat*cellvol at every k
+    const Real local_rep = pot.ip_local_rep;
     const int nkx_i = nk[0];
     const int nky_i = nk[1];
 #if (AMREX_SPACEDIM > 2)
@@ -1130,7 +1135,7 @@ AmrCoreAdv::PrintUhatMinMax ()
 #endif
     };
 
-    // Linear growth rate about mu0: sigma(k) = -k^2 [D + mu0 * Uhat(k)*cellvol].
+    // Linear growth rate about mu0: sigma(k) = -k^2 [D + mu0 * (Uhat(k)*cellvol + ip_local_rep)].
     // k = 0 is the conserved mass and is excluded from the stability quantities.
     const Real big = std::numeric_limits<Real>::max();
 
@@ -1146,7 +1151,7 @@ AmrCoreAdv::PrintUhatMinMax ()
         {
             const Real re = u(i,j,k).real();
             const bool kzero = (i == 0 && j == 0 && k == 0);
-            const Real sigma = -kmag2_of(i,j,k) * (D + mu0*re*cellvol);
+            const Real sigma = -kmag2_of(i,j,k) * (D + mu0*(re*cellvol + local_rep));
             return {re, re, kzero ? big : re, kzero ? -big : sigma};
         });
     }
@@ -1172,7 +1177,7 @@ AmrCoreAdv::PrintUhatMinMax ()
         {
             const Real re = u(i,j,k).real();
             const bool kzero = (i == 0 && j == 0 && k == 0);
-            const Real sigma = -kmag2_of(i,j,k) * (D + mu0*re*cellvol);
+            const Real sigma = -kmag2_of(i,j,k) * (D + mu0*(re*cellvol + local_rep));
             const Long idx = (Long(i)*nky + j)*nkz + k;
             return {(re == umin) ? idx : nomatch,
                     (re == umax) ? idx : nomatch,
@@ -1220,8 +1225,14 @@ AmrCoreAdv::PrintUhatMinMax ()
     // Linear stability of the uniform state
     amrex::Print() << "Linear stability: mu0 = 1/L^d = " << mu0 << " D = " << D << "\n";
     print_k("min over k != 0,", umin_nz, idx_min_nz);
-    if (D > 0.) {
-        amrex::Print() << "  Lambda = -mu0*Uhat_min*cellvol/D = " << -mu0*umin_nz*cellvol/D
+    if (local_rep > 0.) {
+        amrex::Print() << "  local repulsion ip_local_rep = " << local_rep
+                       << ": Uhat*cellvol + ip_local_rep is used below; it acts as D -> D + mu0*ip_local_rep = "
+                       << D + mu0*local_rep << "\n";
+    }
+    if (D + mu0*local_rep > 0.) {
+        amrex::Print() << "  Lambda = -mu0*Uhat_min*cellvol/(D + mu0*ip_local_rep) = "
+                       << -mu0*umin_nz*cellvol/(D + mu0*local_rep)
                        << " (unstable if > 1)\n";
     }
     amrex::Print() << "  max growth rate sigma = " << sigmax
@@ -1232,7 +1243,8 @@ AmrCoreAdv::PrintUhatMinMax ()
     for (int d = 1; d < AMREX_SPACEDIM; ++d) { dxmin = amrex::min(dxmin, Geom(lev).CellSize(d)); }
     Real lmax = Geom(lev).ProbLength(0);
     for (int d = 1; d < AMREX_SPACEDIM; ++d) { lmax = amrex::max(lmax, Geom(lev).ProbLength(d)); }
-    PrintContinuumStability(pot, mu0, D, dxmin, 2.*amrex::Math::pi<Real>()/lmax, umin_nz*cellvol);
+    // the continuum checks see the local repulsion as the extra diffusivity mu0*ip_local_rep
+    PrintContinuumStability(pot, mu0, D + mu0*local_rep, dxmin, 2.*amrex::Math::pi<Real>()/lmax, umin_nz*cellvol);
 }
 
 // tag all cells for refinement
@@ -1688,6 +1700,11 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
         const Real cellvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
         wsum = drift_wmax * phi_new[lev].norm1(0) * cellvol
              * (AMREX_D_TERM(1./dx[0], + 1./dx[1], + 1./dx[2]));
+        // local repulsion: |ip_local_rep*(phi_i - phi_{i-1})/dx_d| <= ip_local_rep*max|phi|/dx_d
+        if (pot.ip_local_rep > 0.) {
+            wsum += pot.ip_local_rep * phi_new[lev].norminf(0)
+                  * (AMREX_D_TERM(1./(dx[0]*dx[0]), + 1./(dx[1]*dx[1]), + 1./(dx[2]*dx[2])));
+        }
     }
     if (drift_flux_type == 1) {
         // The Scharfetter-Gummel update keeps phi >= 0 when
