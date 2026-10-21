@@ -3,7 +3,6 @@ seed        1000
 
 dimension   2
 boundary    p p p
-lattice     sq/4n 1.0
 
 variable    xhi    equal 3.12e-08
 variable    lat_const_x  equal ${xhi}
@@ -18,14 +17,17 @@ variable    n2y equal 16
 variable    Lx  equal ${dxFHD}*${n2x}
 variable    Ly  equal ${dyFHD}*${n2y}
 
-region      sys_domain block 0 ${Lx} 0 ${Ly} -${xhi} ${xhi}
-create_box  sys_domain
+variable    Nx  equal ${n1x}*${n2x}
+variable    Ny  equal ${n1y}*${n2y}
 
-read_sites  data.strips
+lattice     sq/4n ${xhi}
+region      sys_domain block 0 ${Nx} 0 ${Ny} -0.5 0.5
+create_box  sys_domain
+create_sites box
 
 variable    Trun   equal 1.0e-12
 variable    nstep  equal 12000000
-variable    Tsite  equal ${nstep}*${Trun}/1
+variable    Tsite  equal ${nstep}*${Trun}/12
 variable    steps  equal ${nstep}+1
 
 solve_style tree

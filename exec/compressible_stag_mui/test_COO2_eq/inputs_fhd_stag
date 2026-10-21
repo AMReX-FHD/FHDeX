@@ -16,8 +16,8 @@ nprimvars = 10
 # number of cells in domain
 n_cells = 16 16 16
 # max number of cells in a box
-max_grid_size = 8 4 4
-max_grid_projection = 8 4
+max_grid_size = 8 8 4
+max_grid_projection = 8 8 4
 
 # Time-step control
 fixed_dt = 1.0e-12
@@ -25,8 +25,8 @@ fixed_dt = 1.0e-12
 # Controls for number of steps between actions
 
 max_step = 12000001
-plot_int = 2000000
-chk_int  = 2000000
+plot_int = 1000000
+chk_int  = 1000000
 n_steps_skip = 2000000
 
 # Structure factor
