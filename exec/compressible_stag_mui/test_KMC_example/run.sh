@@ -5,5 +5,5 @@
 #SBATCH -p pi.ckim103
 #SBATCH -t 0-03:00:00
 
-#run the application: 
+#run the application:
 srun ../SPPARKS_MUI/spk_nonmui -in in.kmc_O2 -log log.spparks
