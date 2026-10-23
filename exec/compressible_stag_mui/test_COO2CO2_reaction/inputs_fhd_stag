@@ -16,8 +16,8 @@ nprimvars = 12
 # number of cells in domain
 n_cells = 1024 128 1
 # max number of cells in a box
-max_grid_size = 128 64 1
-max_grid_projection = 128 64 1
+max_grid_size = 64 32 1
+max_grid_projection = 64 32 1
 
 # Time-step control
 fixed_dt = 1.0e-11
