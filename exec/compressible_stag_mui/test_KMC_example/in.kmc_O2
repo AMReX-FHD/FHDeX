@@ -1,0 +1,51 @@
+app_style   cooxidation
+seed        1000
+
+dimension   2
+boundary    p p p
+
+# Lattice
+variable    n1x          equal 300
+variable    n1y          equal 300
+
+lattice     sq/4n 1.0
+region      sys_domain block 0 ${n1x} 0 ${n1y} -0.5 0.5 # n1x * n1y sites
+create_box  sys_domain
+create_sites box
+
+# Setting
+variable    dt     equal 1.0e-12   # time step
+variable    nstep  equal 100       # total number of time step
+variable    Time   equal ${dt}*${nstep}
+variable    Tstat  equal ${dt}     # time step for stats
+
+solve_style tree
+sector      yes tstop ${dt}
+
+temperature 600.
+
+###########################
+
+# i1:       1 (siteA) 2 (siteB) 3 (siteC)
+# i2:       0 (vac) 1 (spec1) 2 (spec2) 3 (spec3)
+# i3 - i5:  ac1-ac3 = number of adsorption events of the species at the site
+# i6 - i8:  dc1-dc3 = number of desoprtion events of the species at the site
+# d1 - d3:  pressure1-3 = partial pressure of the fluid cell right above the site 
+# d4:       temperature
+
+set         i1 value 1                                 # all siteA
+set         i2 value 0                                 # all vac
+set         i2 value 1 fraction 4.959591e-01           # initially equilibrium
+
+event       5 siteA siteA vac   vac   1.041370e+08 spec1 spec1 # adsorption of spec1 (rate)
+event       6 siteA siteA spec1 spec1 1.075585e+08 vac   vac   # desorption of spec1
+
+###########################
+
+stats       ${Tstat}
+
+diag_style  cooxidation stats yes list vac spec1 B1 E1
+# vac, spec1: number of vacancy, species 1
+# B1, E1: number of events (adsorption, desorption)
+
+run ${Time} pre no post no

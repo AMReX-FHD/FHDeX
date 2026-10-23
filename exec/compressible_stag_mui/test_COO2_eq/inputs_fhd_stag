@@ -5,26 +5,35 @@ seed = 0
 
 # Problem specification
 prob_lo = 0.0 0.0 0.0 # physical lo coordinate
-prob_hi = 3.858e-05 3.744e-05 3.858e-05 # physical hi coordinate
+prob_hi = 1.497600e-04 1.497600e-04 1.497600e-04 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
 ngc = 2 2 2
-nvars = 9
-nprimvars = 14
+nvars = 7
+nprimvars = 10
 
 # number of cells in domain
-n_cells = 4 4 4
+n_cells = 16 16 16
 # max number of cells in a box
-max_grid_size = 4 4 1
+max_grid_size = 8 8 4
+max_grid_projection = 8 8 4
 
 # Time-step control
-fixed_dt = 1.e-12
+fixed_dt = 1.0e-11
 
 # Controls for number of steps between actions
 
-max_step = 100000
-plot_int = 100
+max_step = 12000001
+plot_int = 1000000
+chk_int  = 1000000
+n_steps_skip = 2000000
+
+# Structure factor
+ads_wall_dir = 2
+project_dir = 2
+slicepoint = 0
+struct_fact_int = 10
 
 # Multispecies toggle
 # if algorithm_type = 1, single component
@@ -53,10 +62,7 @@ prob_type = 1
 # Initial parameters
 k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
 T_init = 600
-rho0 = 7.339974e-03
-
-struct_fact_int = 0
-n_steps_skip = 0
+rho0 = 6.067372e-04
 
 # Boundary conditions:
 # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -69,32 +75,36 @@ n_steps_skip = 0
 # bc_therm: -1 = periodic
 #            1 = adiabatic
 #            2 = isothermal (set with t_lo/hi in common namelist)
-bc_vel_lo   = -1 -1 2
+bc_vel_lo   = -1 -1 1
 bc_vel_hi   = -1 -1 2
 bc_mass_lo  = -1 -1 1
-bc_mass_hi  = -1 -1 1
+bc_mass_hi  = -1 -1 3
 bc_therm_lo = -1 -1 2
 bc_therm_hi = -1 -1 2
 
 # Temperature if thermal BC specified
-t_hi = 600 600 600
+t_hi = 600 600 600 
 t_lo = 600 600 600
+
+bc_Yk_z_hi = 0.50 0.50  # for reservoir boundary condition
 
 #Kinetic species info
 #--------------
-nspecies = 4
+nspecies = 2
 
-molmass = 28.01 32.00 44.01 39.95
-diameter = 3.76e-8 3.46e-8 3.30e-8 3.63e-8
-rhobar = 0.20 0.10 0.05 0.65
+molmass = 28.01 32.00
+diameter = 3.76e-8 3.46e-8
+rhobar = 0.50 0.50
 
 # Enter negative dof to use hcv & hcp values
-dof = 5 5 4 3
-hcv = -1 -1 -1 -1
-hcp = -1 -1 -1 -1
+# For 600 K
+e0 = -4.279426e+10 -3.131647e+09
+dof = 5.329852 5.723227
+hcv = -1 -1
+hcp = -1 -1
 
 plot_means = 1
 plot_vars = 1
+plot_covars = 1
 
-# surfchem_mui
-nspec_mui = 3
+nspec_mui = 2
