@@ -52,6 +52,8 @@ struct PotentialParams
     amrex::Real ip_pp_beta  = 1.0;   // pp only: tail stiffness
     amrex::Real ip_pp_a     = 0.5;   // pp only: core radius / ip_R
     amrex::Real ip_range    = 0.0;   // particle pair cutoff radius; <= 0 means no cutoff
+    amrex::Real ip_local_rep = 0.0;  // mesh only: local repulsion, C = U*phi + ip_local_rep*phi
+                                     // (a repulsive core narrower than a cell, with integral ip_local_rep)
 
     // external potential
     int         use_ext_pot = 0;
@@ -176,6 +178,7 @@ inline void read_potential_params (PotentialParams& pot)
     pp.query("ip_pp_beta", pot.ip_pp_beta);
     pp.query("ip_pp_a", pot.ip_pp_a);
     pp.query("ip_range", pot.ip_range);
+    pp.query("ip_local_rep", pot.ip_local_rep);
 
     pp.query("use_ext_pot", pot.use_ext_pot);
     pp.query("ep_alpha", pot.ep_alpha);
@@ -198,6 +201,10 @@ inline void read_potential_params (PotentialParams& pot)
             if (pot.ip_pp_beta <= 0.0) { amrex::Abort("amr.ip_pp_beta must be positive"); }
             if (pot.ip_pp_a <= 0.0 || pot.ip_pp_a >= 1.0) { amrex::Abort("amr.ip_pp_a must be in (0,1)"); }
         }
+    }
+    if (pot.ip_local_rep < 0.0) { amrex::Abort("amr.ip_local_rep must be non-negative"); }
+    if (pot.ip_local_rep > 0.0 && !pot.use_int_pot) {
+        amrex::Abort("amr.ip_local_rep requires amr.use_int_pot = 1");
     }
     // HK and PP have compact support, so their exact particle cutoff is ip_R
     if (pot.use_int_pot && (pot.ip_type == IntPotType::HK || pot.ip_type == IntPotType::PP)
@@ -228,7 +235,9 @@ inline void read_potential_params (PotentialParams& pot)
                        << " ip_pp_beta = " << pot.ip_pp_beta
                        << " ip_pp_a = " << pot.ip_pp_a;
     }
-    amrex::Print() << " ip_range = " << pot.ip_range << "\n";
+    amrex::Print() << " ip_range = " << pot.ip_range;
+    if (pot.ip_local_rep > 0.0) { amrex::Print() << " ip_local_rep = " << pot.ip_local_rep; }
+    amrex::Print() << "\n";
     amrex::Print() << "External potential: use_ext_pot = " << pot.use_ext_pot
                    << " ep_alpha = " << pot.ep_alpha
                    << " ep_beta = " << pot.ep_beta

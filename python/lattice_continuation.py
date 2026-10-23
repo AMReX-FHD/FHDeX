@@ -74,6 +74,8 @@ def main():
     args = ap.parse_args()
 
     ker = kernel_from_args(args)
+    if ker.local_rep:
+        sys.exit("amr.ip_local_rep is not supported here: the lattice sum samples U(r) in real space")
     dim = 2 if args.lattice in ("hex", "stripes") else 3
     k = 2*np.pi*args.k if args.k else ker.critical(dim)[0]
     k /= args.scale
