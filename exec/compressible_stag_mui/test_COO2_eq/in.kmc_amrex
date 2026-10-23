@@ -25,13 +25,13 @@ region      sys_domain block 0 ${Nx} 0 ${Ny} -0.5 0.5
 create_box  sys_domain
 create_sites box
 
-variable    Trun   equal 1.0e-12
+variable    dt     equal 1.0e-11
 variable    nstep  equal 12000000
-variable    Tsite  equal ${nstep}*${Trun}/12
+variable    Tsite  equal ${nstep}*${dt}/12
 variable    steps  equal ${nstep}+1
 
 solve_style tree
-sector      yes tstop ${Trun}
+sector      yes tstop ${dt}
 
 temperature 600.
 
@@ -63,7 +63,7 @@ event       6 siteA siteA spec2 spec2 1.075580e+08 vac   vac   FHD spec2  # deso
 
 ###########################
 
-stats       ${Trun}
+stats       ${dt}
 dump        2 sites ${Tsite} Values*.txt id site i1 i2
 
 diag_style  cooxidation stats yes list vac spec1 spec2
@@ -77,7 +77,7 @@ label ts_loop
     amrex_fetch_agg ${ts} pressure1 pressure2 temp
 
     # RUN KMC
-    run ${Trun} pre no post no
+    run ${dt} pre no post no
 
     # MPI_PUSH
     amrex_push_agg ${ts} ac1 dc1 ac2 dc2 occ1 occ2

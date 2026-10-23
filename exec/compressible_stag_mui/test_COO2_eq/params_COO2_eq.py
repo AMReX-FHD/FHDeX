@@ -276,7 +276,7 @@ print("dTsq*dv    (+/-25%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.75*dTsq*d
 ##########
 
 # FHD time step size
-dt = 1.e-12
+dt = 1.e-11
 
 # diameters
 d1 = 3.76e-8
