@@ -22,7 +22,7 @@ variable    Tstat  equal ${dt}     # time step for stats
 solve_style tree
 sector      yes tstop ${dt}
 
-temperature 600.
+temperature 273.
 
 ###########################
 
