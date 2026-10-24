@@ -936,19 +936,23 @@ PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmi
             amrex::Print() << "  WARNING: ip_R/dx = " << R/dxmin
                            << " < 8; the HK kernel and its ~R cluster wavelength are under-resolved\n";
         }
-    } else if (pot.ip_type == IntPotType::PP) {
+    } else if (pot.ip_type == IntPotType::PP || pot.ip_type == IntPotType::PPC1) {
         // PP is a sum of two HK paraboloids: beta times HK of radius R plus
         // (alpha-beta)*a times HK of radius a*R, so with the HK transform
         //   Uhat_HK(k; R) = eps*R^(d+1)*S(kR), S(q) = (2pi)^(d/2) J_{d/2+1}(q)/q^(d/2+1),
         // Uhat(k) = beta*Uhat_HK(k; R) + (alpha-beta)*a*Uhat_HK(k; a R).
+        // PPC1 has the same structure with each paraboloid (1-s^2)/2 replaced
+        // by (1-s^2)^2/4, whose transform is S(q) = 2 (2pi)^(d/2) J_{d/2+2}(q)/q^(d/2+2).
+        const bool c1    = (pot.ip_type == IntPotType::PPC1);
         const Real alpha = pot.ip_pp_alpha;
         const Real beta  = pot.ip_pp_beta;
         const Real a     = pot.ip_pp_a;
-        const Real nu    = d/2. + 1.;
+        const Real nu    = c1 ? d/2. + 2. : d/2. + 1.;
+        const Real pref  = c1 ? 2. : 1.;
         auto S = [=] (Real q) -> Real
         {
-            if (q < 1.e-6) { return std::pow(2.*pi, d/2.)/(std::pow(2., nu)*std::tgamma(nu+1.)); }
-            return std::pow(2.*pi, d/2.)*std::cyl_bessel_j(nu, q)/std::pow(q, nu);
+            if (q < 1.e-6) { return pref*std::pow(2.*pi, d/2.)/(std::pow(2., nu)*std::tgamma(nu+1.)); }
+            return pref*std::pow(2.*pi, d/2.)*std::cyl_bessel_j(nu, q)/std::pow(q, nu);
         };
         auto uhat_of = [=] (Real kk) -> Real
         {
@@ -969,7 +973,7 @@ PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmi
             const Real sig = -kk*kk*(D + mu0*u);
             if (sig > sig_max) { sig_max = sig; k_sig = kk; }
         }
-        amrex::Print() << "Continuum stability (PP): Uhat(0) = " << uhat0
+        amrex::Print() << "Continuum stability (" << (c1 ? "PPC1" : "PP") << "): Uhat(0) = " << uhat0
                        << "; this box (|k| >= " << kbox << "): Uhat min = " << uhat_min_box
                        << " at |k| = " << k_min_box
                        << " (discrete min over k != 0 = " << uhat_min_disc << ")";
