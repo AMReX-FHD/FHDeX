@@ -23,12 +23,18 @@ enum IntPotType : int {
     HK   = 1,  // U = ip_eps*ip_R*(1-(r/ip_R)^2)/2 for r < ip_R, 0 otherwise
     MORSE = 2, // generalized Morse: U = -ip_eps_att*exp(-(r-ip_re)/ip_R_att)
                //                        + ip_eps_rep*exp(-(r-ip_re)/ip_R_rep)
-    PP   = 3   // piecewise parabolic (Gerber et al., arXiv:2510.17629):
+    PP   = 3,  // piecewise parabolic (Gerber et al., arXiv:2510.17629):
                // U = -ip_eps*ip_R*w(r/ip_R) with, for a = ip_pp_a,
                //   w(s) = ip_pp_alpha*(s^2-a^2)/2 + ip_pp_beta*(a^2-1)/2  s <= a
                //   w(s) = ip_pp_beta*(s^2-1)/2                            a < s <= 1
                //   w(s) = 0                                               s > 1
                // ip_pp_alpha = ip_pp_beta = 1 is hk
+    PPC1 = 4   // C1 piecewise parabolic: pp with each paraboloid squared, so the
+               // force goes to zero continuously at both a*ip_R and ip_R:
+               // U = -ip_eps*ip_R*w(r/ip_R) with, for a = ip_pp_a,
+               //   w(s) = -ip_pp_beta*(1-s^2)_+^2/4 - (ip_pp_alpha-ip_pp_beta)*a^2*(1-(s/a)^2)_+^2/4
+               // Same stiffness ip_pp_alpha at r = 0 as pp, half its well depth
+               // and a third of its Uhat(0) for the same parameters
 };
 
 // Below this separation the Morse pair force is set to zero: dU/dr does not
@@ -87,6 +93,17 @@ amrex::Real ip_U (amrex::Real r, PotentialParams const& pot) noexcept
             : 0.5*pot.ip_pp_beta*(s*s - 1.0);
         return -pot.ip_eps * pot.ip_R * w;
     }
+    case IntPotType::PPC1:
+    {
+        if (r >= pot.ip_R) { return 0.0; }
+        const amrex::Real s = r/pot.ip_R;
+        const amrex::Real a = pot.ip_pp_a;
+        const amrex::Real t = 1.0 - s*s;
+        const amrex::Real c = (s < a) ? 1.0 - (s/a)*(s/a) : 0.0;
+        const amrex::Real w = -0.25*pot.ip_pp_beta*t*t
+                              - 0.25*(pot.ip_pp_alpha - pot.ip_pp_beta)*a*a*c*c;
+        return -pot.ip_eps * pot.ip_R * w;
+    }
     case IntPotType::GEMA:
     default:
         return pot.ip_eps * std::exp(-std::pow(r/pot.ip_R, pot.ip_alpha));
@@ -115,6 +132,16 @@ amrex::Real ip_dUdr_over_r (amrex::Real r, PotentialParams const& pot) noexcept
         if (r >= pot.ip_R) { return 0.0; }
         return -pot.ip_eps / pot.ip_R
                * ((r <= pot.ip_pp_a*pot.ip_R) ? pot.ip_pp_alpha : pot.ip_pp_beta);
+    case IntPotType::PPC1:
+    {
+        // d/dr of c (1 - r^2/b^2)^2 over r is -4c/b^2 (1 - r^2/b^2)
+        if (r >= pot.ip_R) { return 0.0; }
+        const amrex::Real s = r/pot.ip_R;
+        const amrex::Real a = pot.ip_pp_a;
+        amrex::Real g = pot.ip_pp_beta*(1.0 - s*s);
+        if (s < a) { g += (pot.ip_pp_alpha - pot.ip_pp_beta)*(1.0 - (s/a)*(s/a)); }
+        return -pot.ip_eps / pot.ip_R * g;
+    }
     case IntPotType::GEMA:
     default:
     {
@@ -125,7 +152,7 @@ amrex::Real ip_dUdr_over_r (amrex::Real r, PotentialParams const& pot) noexcept
 }
 
 // Magnitude scale of U: max |U| sampled on [0, rmax]. This is |U(0)| for the
-// monotone kernels (gema, hk, pp); for morse it also sees the well.
+// monotone kernels (gema, hk, pp, ppc1); for morse it also sees the well.
 inline amrex::Real ip_Uscale (PotentialParams const& pot, amrex::Real rmax)
 {
     constexpr int nsamp = 4096;
@@ -163,8 +190,10 @@ inline void read_potential_params (PotentialParams& pot)
         pot.ip_type = IntPotType::MORSE;
     } else if (ip_type_name == "pp") {
         pot.ip_type = IntPotType::PP;
+    } else if (ip_type_name == "ppc1") {
+        pot.ip_type = IntPotType::PPC1;
     } else {
-        amrex::Abort("Unknown amr.ip_type = " + ip_type_name + "; valid types are: gema, hk, morse, pp");
+        amrex::Abort("Unknown amr.ip_type = " + ip_type_name + "; valid types are: gema, hk, morse, pp, ppc1");
     }
     pp.query("ip_eps", pot.ip_eps);
     pp.query("ip_R", pot.ip_R);
@@ -196,7 +225,7 @@ inline void read_potential_params (PotentialParams& pot)
             amrex::Abort("amr.ip_R must be positive");
         }
         if (pot.ip_type == IntPotType::GEMA && pot.ip_alpha <= 0.0) { amrex::Abort("amr.ip_alpha must be positive"); }
-        if (pot.ip_type == IntPotType::PP) {
+        if (pot.ip_type == IntPotType::PP || pot.ip_type == IntPotType::PPC1) {
             if (pot.ip_pp_alpha <= 0.0) { amrex::Abort("amr.ip_pp_alpha must be positive"); }
             if (pot.ip_pp_beta <= 0.0) { amrex::Abort("amr.ip_pp_beta must be positive"); }
             if (pot.ip_pp_a <= 0.0 || pot.ip_pp_a >= 1.0) { amrex::Abort("amr.ip_pp_a must be in (0,1)"); }
@@ -206,8 +235,9 @@ inline void read_potential_params (PotentialParams& pot)
     if (pot.ip_local_rep > 0.0 && !pot.use_int_pot) {
         amrex::Abort("amr.ip_local_rep requires amr.use_int_pot = 1");
     }
-    // HK and PP have compact support, so their exact particle cutoff is ip_R
-    if (pot.use_int_pot && (pot.ip_type == IntPotType::HK || pot.ip_type == IntPotType::PP)
+    // HK, PP and PPC1 have compact support, so their exact particle cutoff is ip_R
+    if (pot.use_int_pot && (pot.ip_type == IntPotType::HK || pot.ip_type == IntPotType::PP
+                            || pot.ip_type == IntPotType::PPC1)
         && pot.ip_range <= 0.0) {
         pot.ip_range = pot.ip_R;
     }
@@ -230,7 +260,7 @@ inline void read_potential_params (PotentialParams& pot)
     if (pot.ip_type == IntPotType::GEMA) {
         amrex::Print() << " ip_alpha = " << pot.ip_alpha;
     }
-    if (pot.ip_type == IntPotType::PP) {
+    if (pot.ip_type == IntPotType::PP || pot.ip_type == IntPotType::PPC1) {
         amrex::Print() << " ip_pp_alpha = " << pot.ip_pp_alpha
                        << " ip_pp_beta = " << pot.ip_pp_beta
                        << " ip_pp_a = " << pot.ip_pp_a;
@@ -244,7 +274,7 @@ inline void read_potential_params (PotentialParams& pot)
                    << " ep_gamma = " << pot.ep_gamma << "\n";
 
     // Size of the potential dropped by the particle cutoff, relative to the
-    // scale of U (|U(0)| for gema, hk and pp)
+    // scale of U (|U(0)| for gema, hk, pp and ppc1)
     if (pot.use_int_pot && pot.ip_type == IntPotType::MORSE) {
         // range at which the attractive tail drops to 1e-5 of the scale, a
         // factor of 10 inside the 1e-4 truncation limit below
