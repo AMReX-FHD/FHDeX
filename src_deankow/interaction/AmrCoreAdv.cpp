@@ -139,6 +139,8 @@ AmrCoreAdv::Evolve ()
 {
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
+    // the run's starting step, so a restart that takes no steps writes no checkpoint
+    int last_chk_file_step = istep[0];
 
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
@@ -185,6 +187,7 @@ AmrCoreAdv::Evolve ()
         }
 
         if (chk_int > 0 && (step+1) % chk_int == 0) {
+            last_chk_file_step = step+1;
             WriteCheckpointFile();
         }
 
@@ -201,6 +204,10 @@ AmrCoreAdv::Evolve ()
 
     if (plot_int > 0 && istep[0] > last_plot_file_step) {
         WritePlotFile();
+    }
+    // a final checkpoint, so the run can be continued from where it stopped
+    if (chk_int > 0 && istep[0] > last_chk_file_step) {
+        WriteCheckpointFile();
     }
     WriteStructFact();
 }
