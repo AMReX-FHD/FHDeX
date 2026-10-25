@@ -226,7 +226,11 @@ inline void read_potential_params (PotentialParams& pot)
         }
         if (pot.ip_type == IntPotType::GEMA && pot.ip_alpha <= 0.0) { amrex::Abort("amr.ip_alpha must be positive"); }
         if (pot.ip_type == IntPotType::PP || pot.ip_type == IntPotType::PPC1) {
-            if (pot.ip_pp_alpha <= 0.0) { amrex::Abort("amr.ip_pp_alpha must be positive"); }
+            // ppc1 takes any alpha: with ip_eps < 0, alpha < 0 makes the core a
+            // repulsive bump (force pointing out of r = 0) inside the attractive tail
+            if (pot.ip_type == IntPotType::PP && pot.ip_pp_alpha <= 0.0) {
+                amrex::Abort("amr.ip_pp_alpha must be positive");
+            }
             if (pot.ip_pp_beta <= 0.0) { amrex::Abort("amr.ip_pp_beta must be positive"); }
             if (pot.ip_pp_a <= 0.0 || pot.ip_pp_a >= 1.0) { amrex::Abort("amr.ip_pp_a must be in (0,1)"); }
         }

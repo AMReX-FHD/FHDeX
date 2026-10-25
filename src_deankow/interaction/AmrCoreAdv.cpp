@@ -774,7 +774,7 @@ AmrCoreAdv::ComputeInteractionStiffness ()
     // |C_i - C_{i-1}|/dx <= max|dU/dr| * sum|phi| cellvol, so max|dU/dr| bounds
     // the interaction drift velocity per unit mass
     drift_wmax = 0.;
-    if (drift_flux_type == 1 || drift_cfl > 0.) {
+    if (drift_flux_type != 0 || drift_cfl > 0.) {
         Real lhalf = 0.5*Geom(lev).ProbLength(0);
         for (int d = 1; d < AMREX_SPACEDIM; ++d) { lhalf = amrex::min(lhalf, 0.5*Geom(lev).ProbLength(d)); }
         constexpr int nsamp = 4096;
@@ -1339,11 +1339,11 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
             Abort("noise_avg_type must be 0 (average of square roots) or 1 (smoothed Heaviside)");
         }
         pp.query("drift_flux_type", drift_flux_type);
-        if (drift_flux_type != 0 && drift_flux_type != 1) {
-            Abort("drift_flux_type must be 0 (centered) or 1 (Scharfetter-Gummel)");
+        if (drift_flux_type < 0 || drift_flux_type > 2) {
+            Abort("drift_flux_type must be 0 (centered), 1 (Scharfetter-Gummel) or 2 (hybrid)");
         }
-        if (drift_flux_type == 1 && diff_coeff <= 0.) {
-            Abort("drift_flux_type = 1 needs diff_coeff > 0");
+        if (drift_flux_type != 0 && diff_coeff <= 0.) {
+            Abort("drift_flux_type = 1 or 2 needs diff_coeff > 0");
         }
         pp.query("neg_diag_int", neg_diag_int);
         pp.query("drift_diag_int", drift_diag_int);
@@ -1700,7 +1700,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
     Real wsum = 0.;
     if (drift_measured) {
         for (int d = 0; d < AMREX_SPACEDIM; ++d) { wsum += drift_face_max[d]/dx[d]; }
-    } else if (pot.use_int_pot && (drift_flux_type == 1 || drift_cfl > 0.)) {
+    } else if (pot.use_int_pot && (drift_flux_type != 0 || drift_cfl > 0.)) {
         const Real cellvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
         wsum = drift_wmax * phi_new[lev].norm1(0) * cellvol
              * (AMREX_D_TERM(1./dx[0], + 1./dx[1], + 1./dx[2]));
@@ -1710,13 +1710,15 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
                   * (AMREX_D_TERM(1./(dx[0]*dx[0]), + 1./(dx[1]*dx[1]), + 1./(dx[2]*dx[2])));
         }
     }
-    if (drift_flux_type == 1) {
+    if (drift_flux_type != 0) {
         // The Scharfetter-Gummel update keeps phi >= 0 when
         //   dt * sum_d (2D/dx_d^2 + 2|w_d|/dx_d) <= 1
         // (the Bernoulli weights on the two faces of a cell add to at most
         // 2 + |Pe_lo| + |Pe_hi|, the worst case being flow out of both faces).
         // With dt = cfl*2/lambda that holds for cfl <= 1 when lambda includes
-        // 4*wsum.
+        // 4*wsum. The hybrid flux (drift_flux_type = 2) uses the same limit: its
+        // centered faces have |Pe| <= 2, where the centered outflow weight
+        // 1 + |Pe|/2 is below the Scharfetter-Gummel bound 1 + |Pe|.
         lambda_max += 4. * wsum;
     }
 
