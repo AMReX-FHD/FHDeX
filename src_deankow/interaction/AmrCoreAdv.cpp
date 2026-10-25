@@ -1991,9 +1991,18 @@ AmrCoreAdv::ReadCheckpointFile ()
     // read in title line
     std::getline(is, line);
 
-    // read in finest_level
-    is >> finest_level;
+    // read in finest_level. A checkpoint with more levels than amr.max_level is
+    // restarted on the first max_level+1 of them: with max_level = 0, a particle
+    // run continues as the SPDE from its level-0 phi, which AverageDown keeps
+    // equal to the particle density.
+    int chk_finest_level;
+    is >> chk_finest_level;
     GotoNextLine(is);
+    finest_level = std::min(chk_finest_level, max_level);
+    if (finest_level < chk_finest_level) {
+        amrex::Print() << "Checkpoint has finest level " << chk_finest_level
+                       << "; restarting on levels 0.." << finest_level << " only\n";
+    }
 
     // read in array of istep
     std::getline(is, line);
@@ -2001,7 +2010,8 @@ AmrCoreAdv::ReadCheckpointFile ()
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
-            istep[i++] = std::stoi(word);
+            if (i <= finest_level) { istep[i] = std::stoi(word); }
+            ++i;
         }
     }
 
@@ -2011,7 +2021,8 @@ AmrCoreAdv::ReadCheckpointFile ()
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
-            dt[i++] = std::stod(word);
+            if (i <= finest_level) { dt[i] = std::stod(word); }
+            ++i;
         }
     }
 
@@ -2021,13 +2032,15 @@ AmrCoreAdv::ReadCheckpointFile ()
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
-            t_new[i++] = std::stod(word);
+            if (i <= finest_level) { t_new[i] = std::stod(word); }
+            ++i;
         }
     }
 
     for (int lev = 0; lev <= finest_level; ++lev) {
 
-        // read in level 'lev' BoxArray from Header
+        // read in level 'lev' BoxArray from Header (the BoxArrays of any dropped
+        // levels follow and are never read)
         BoxArray ba;
         ba.readFrom(is);
         GotoNextLine(is);
@@ -2065,10 +2078,11 @@ AmrCoreAdv::ReadCheckpointFile ()
 
 #ifdef AMREX_PARTICLES
     // rebuild the grown fine BoxArray used for the particle/grid coupling
+    // with only level 0 there are no particles to restart
     if (finest_level >= 1) {
         MakeFBA(grids[1]);
+        particleData.Restart((amrex::ParGDBBase*)GetParGDB(),grown_fba,restart_chkfile);
     }
-    particleData.Restart((amrex::ParGDBBase*)GetParGDB(),grown_fba,restart_chkfile);
 #endif
 
 
