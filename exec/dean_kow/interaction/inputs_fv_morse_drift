@@ -1,0 +1,122 @@
+# *****************************************************************
+# 2D Morse clusters merging pairwise by drift, generation after generation
+# (MODEL.md section 3.10). The exponential tail pulls each cluster mainly
+# toward its nearest neighbour (the cluster-gas instability peaks at ~0.7
+# neighbour distances, not at the box scale as for the pp tail), and it
+# decays gently enough that successive generations slow by ~10-40x rather
+# than stopping.
+#   U = -eps_att exp(-r/R_att) + eps_rep exp(-r/R_rep), R_att = 0.032,
+#   R_rep = 0.016, eps_rep/R_rep = eps_att/R_att (harmonic core),
+#   |Uhat(0)| = 80, ip_local_rep = 4 = 0.05 |Uhat(0)| (D -> D + 4)
+#   Lambda_eff ~ 16, ~22 clusters ~0.23 = 7.3 R_att apart, t_form ~ 3e-4
+#   pair drift times (pair estimate, spacing x sqrt2 and mass x2 per
+#   generation): ~0.0013, ~0.016, ~0.7, ~200
+# Without ip_local_rep a cluster would be R_att/sqrt(m eps_att) ~ 0.3 cells
+# wide; the local repulsion keeps it at a few cells. Its cost: the explicit
+# step falls by about 1 + ip_local_rep*max(phi)/D.
+# *****************************************************************
+
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 3000000
+stop_time = 0.05           # two generations of drift mergers
+
+seed = 0
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+diff_coeff = 1.0           # paper uses unit diffusivity
+alg_type = 0
+dorand = 1.
+num_part = 327680.         # 5 particles per cell; Brownian motion negligible (D/N_c ~ 1e-4)
+
+# SPDE discretization options (defaults reproduce the original scheme)
+noise_avg_type  = 1        # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
+drift_flux_type = 1        # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, dt limited by measured drift)
+neg_diag_int    = 10000    # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+drift_diag_int  = 10000    # print drift CFL number and max cell Peclet number every n steps (0 = off)
+#drift_cfl       = 0.5     # also limit dt*sum_d max|grad(C+V_ext)|/dx_d <= drift_cfl (0 = off)
+
+# *****************************************************************
+# Are we restarting from an existing checkpoint file?
+# *****************************************************************
+#amr.restart  = chk_md_100000 # restart from this checkpoint file
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0
+geometry.prob_hi     =  1.0  1.0
+geometry.is_periodic =  1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+amr.n_cell          = 256 256    # dx ~ 0.0039: R_att = 8.2 cells, R_rep = 4.1 cells
+amr.max_grid_size_x = 64 64
+amr.max_grid_size_y = 64 64
+
+amr.max_level       = 0
+amr.use_particles   = 0      # Turn particles on or off
+amr.ref_ratio       = 1
+
+# Interaction potential (ip_ prefix)
+amr.use_int_pot = 1
+amr.ip_type      = morse
+amr.ip_eps_att   = 14212.   # |Uhat(0)| = 2 pi (eps_att R_att^2 - eps_rep R_rep^2) = 80
+amr.ip_eps_rep   = 7106.    # eps_rep/R_rep = eps_att/R_att: harmonic core, no cusp
+amr.ip_R_att     = 0.032    # tail at L/2: exp(-0.5/0.032) ~ 2e-7 of max|U|
+amr.ip_R_rep     = 0.016
+amr.ip_re        = 0.
+amr.ip_local_rep = 4.       # local repulsion: C = U*phi + ip_local_rep*phi (mesh only)
+
+# External potential (ep_ prefix)
+amr.use_ext_pot = 0
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+
+amr.regrid_int      = 100000000  # how often to regrid
+
+amr.n_error_buf = 0 0
+amr.grid_eff = 0.96
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.5     # fraction of the forward Euler stability limit; SG keeps phi >= 0 (deterministic part) for cfl <= 1
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  if phi < phierr at level 0, then refine
+# *****************************************************************
+adv.phierr = 10.
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt_md_   # root name of plot file
+amr.plot_int   = 5000
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk_md_  # root name of checkpoint file
+amr.chk_int  = 100000    # number of timesteps between checkpoint files

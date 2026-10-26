@@ -1,0 +1,53 @@
+app_style   lotkavolterra
+seed        1000
+
+dimension   2
+boundary    p p p
+
+# Lattice
+variable    n1x          equal 300
+variable    n1y          equal 300
+
+lattice     sq/4n 1.0
+region      sys_domain block 0 ${n1x} 0 ${n1y} -0.5 0.5 # n1x * n1y sites
+create_box  sys_domain
+create_sites box
+
+# Setting
+variable    dt     equal 1.0e-12   # time step
+variable    nstep  equal 100       # total number of time step
+variable    Time   equal ${dt}*${nstep}
+variable    Tstat  equal ${dt}     # time step for stats
+
+solve_style tree
+sector      yes tstop ${dt}
+
+temperature 273.
+
+###########################
+
+# i1:       1 (siteA)
+# i2:       0 (vac) 1 (spec1) 2 (spec2)
+# i3 - i4:  ac1-ac2 = number of adsorption events of the species at the site
+# i5 - i6:  dc1-dc2 = number of desoprtion events of the species at the site
+# d1 - d2:  pressure1-2 = partial pressure of the fluid cell right above the site 
+# d3:       temperature
+
+set         i1 value 1                                 # all siteA
+set         i2 value 0                                 # all vac
+set         i2 value 1 fraction 0.2                    # initial species 1 (0.2)
+set         i2 value 2 fraction 0.375 if i2 = 0        # initial species 2 (0.3 = 0.8 * 0.375)
+
+event       1 siteA siteA vac   spec1 2.000000e+07 spec1 spec1  # O + A -> A + A
+event       2 siteA siteA spec1 spec2 2.000000e+07 spec2 spec2  # A + B -> B + B
+event       3 siteA       spec2       6.666667e+06 vac          #     B -> E
+
+###########################
+
+stats       ${Tstat}
+
+diag_style  lotkavolterra stats yes list vac spec1 spec2 O1 A1 B1
+# vac, spec1, spec2: number of vacancy, species 1, speceis 2
+# O1, A1, B1: number of events (event 1, event 2, event 3)
+
+run ${Time} pre no post no

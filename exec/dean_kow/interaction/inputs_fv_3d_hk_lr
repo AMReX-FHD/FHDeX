@@ -1,0 +1,126 @@
+# *****************************************************************
+# 3D HK clusters with a local repulsion (amr.ip_local_rep): clusters that
+# stay resolved (MODEL.md section 3.8).
+#   hk, gamma = 1.2e5, ell = 0.1, D = 1, 128^3: |Uhat(0)| = 10.05
+#   ip_local_rep = 1.005 = 0.1 |Uhat(0)|: acts as D -> D + 1.005,
+#   Lambda = 4.9, fastest mode |k| = 4.47*2pi, sigma ~ 2750,
+#   ~60 clusters predicted, nearest neighbours ~0.27 = 2.7 ell apart
+# Without the local repulsion a 3D HK cluster narrows like m^(-1/2) and its
+# peak grows like m^(5/2). Measured to t ~ 0.0028 (8000 steps):
+#   with ip_local_rep:    68 clusters, R_g 5.4-5.7 cells, peak ~28 (max 42)
+#   ip_local_rep = 0:    104 clusters, R_g 3.5 -> 2.5 cells and shrinking,
+#                        peak ~580 (max 2200)
+#   dt ~ 1e-7 in both once clusters form; negative mass < 1e-3
+# Cost: inside a cluster the local term is a diffusion with coefficient
+# ip_local_rep*phi, so the explicit step falls by about
+# 1 + ip_local_rep*max(phi)/D.
+# Merging: neighbours are outside the range and N_c ~ 3e5 particles per
+# cluster, so Brownian coalescence (t ~ g^2 N_c/(12 D)) is far out of reach;
+# the pattern is effectively frozen. Brownian merging in 3D needs a few
+# hundred particles per cluster, which the DK mesh cannot do at 128^3
+# (num_part = 6.4e4 gives 17% negative mass); use the particle solver.
+# *****************************************************************
+
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 1000000
+stop_time = 0.1            # dt ~ 1e-7 once clusters form
+
+seed = 0
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+diff_coeff = 1.0
+alg_type = 0
+dorand = 1.
+num_part = 2.e7            # ~10 particles per cell, ~3e5 per cluster
+
+# SPDE discretization options (defaults reproduce the original scheme)
+noise_avg_type  = 1        # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
+drift_flux_type = 1        # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, dt limited by measured drift)
+neg_diag_int    = 1000     # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+#drift_diag_int  = 1000    # print drift CFL number and max cell Peclet number every n steps (0 = off)
+#drift_cfl       = 0.5     # also limit dt*sum_d max|grad(C+V_ext)|/dx_d <= drift_cfl (0 = off)
+
+# *****************************************************************
+# Are we restarting from an existing checkpoint file?
+# *****************************************************************
+#amr.restart  = chk_hk3lr_10000 # restart from this checkpoint file
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0  0.0
+geometry.prob_hi     =  1.0  1.0  1.0
+geometry.is_periodic =  1    1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+amr.n_cell          = 128 128 128    # dx ~ 0.0078: ell = 12.8 cells
+amr.max_grid_size_x = 32
+amr.max_grid_size_y = 32
+amr.max_grid_size_z = 32
+
+amr.max_level       = 0
+amr.use_particles   = 0      # Turn particles on or off
+amr.ref_ratio       = 1
+
+# Interaction potential (ip_ prefix)
+amr.use_int_pot  = 1
+amr.ip_type      = hk       # ip_eps*ip_R*(1-(r/ip_R)^2)/2 for r < ip_R
+amr.ip_eps       = -1.2e5   # = -gamma; negative is attractive
+amr.ip_R         = 0.1      # = ell
+amr.ip_local_rep = 1.005    # local repulsion: C = U*phi + ip_local_rep*phi (mesh only)
+
+# External potential (ep_ prefix)
+amr.use_ext_pot = 0
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+amr.blocking_factor_z = 2
+
+amr.regrid_int      = 100000000  # how often to regrid
+
+amr.n_error_buf = 0 0 0
+amr.grid_eff = 0.96
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.5     # fraction of the forward Euler stability limit; SG keeps phi >= 0 (deterministic part) for cfl <= 1
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  if phi < phierr at level 0, then refine
+# *****************************************************************
+adv.phierr = 10.
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt_hk3lr_   # root name of plot file
+amr.plot_int   = 2000       # ~2e-4 in time
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk_hk3lr_  # root name of checkpoint file
+amr.chk_int  = 50000       # number of timesteps between checkpoint files

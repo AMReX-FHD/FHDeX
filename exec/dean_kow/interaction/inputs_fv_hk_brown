@@ -1,0 +1,134 @@
+# *****************************************************************
+# 2D HK clusters that merge by Brownian coalescence within ~1e6 steps.
+#   Model of Gerber, Gvalani, Hairer, Pavliotis, Schlichting, arXiv:2510.17629,
+#   with ip_type = hk, ip_R = ell, ip_eps = -gamma, diff_coeff = 1.
+#
+# The mean field (pattern, cluster mass m, width, well depth) does not depend
+# on num_part; only the noise does. A cluster of N_c = num_part*m particles
+# diffuses with D/N_c, so a small num_part makes clusters random-walk fast:
+#   gamma = 6000, ell = 0.1: Lambda = 4.6, fastest torus mode (0,4), sigma ~ 1050
+#   t_form ~ ln N/(2 sigma) ~ 0.004; ~15 clusters, m ~ 0.067, N_c ~ 270
+#   nearest-neighbour distance ~ 2.8 ell, outside the range ell: no drift
+#   cluster width sigma_c = sqrt(D ell/(m gamma)) ~ 0.016 = 2 cells
+#   well depth m gamma ell/(2D) ~ 20: no evaporation or mass exchange
+#   Brownian coalescence: gap g = a - ell ~ 0.18, t ~ g^2 N_c/(8D) ~ 1,
+#   i.e. ~8e5 steps at dt ~ 1.3e-6; closer-than-average pairs merge sooner.
+#   Each merger doubles N_c and widens the gaps, so later generations are
+#   slower. All Brownian times scale linearly with num_part.
+# Only ~0.25 particles per cell on average, so the noise is switched off next
+# to nearly empty cells (noise_avg_type = 1). Negative densities still appear
+# between clusters. Measured negative mass at t ~ 0.01 (fraction of the total):
+#   num_part        1000   4000   16384   65536
+#   centered flux   -34%   -10%   -2.8%   -0.8%
+#   Scharfetter-G.  -14%    -4%   -1.2%   -0.3%
+# num_part = 4000 with drift_flux_type = 1 is the compromise used here.
+# Observed (seed 0, _hk_brown): 14 clusters at t = 0.009; six mergers, at
+#   t = 0.058, 0.107 (two), 0.18, 0.36 and 0.46, leaving 8 clusters at the end
+#   (t = 0.835 after 1e6 steps: dt falls to 6.8e-7 as clusters grow).
+#   Cluster centres diffuse with D/N_c to within 10% (MSD over lags of 0.02-0.09).
+#   Clusters wander from their initial spacing (0.21-0.28) to ~0.18, where
+#   their tails come within range, and are then pulled together by drift.
+#   Negative mass stays at about 4% of the total.
+# The uniform start is seeded only by the noise, so dorand must be 1.
+# *****************************************************************
+
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 1000000
+stop_time = 10.
+
+seed = 0
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+diff_coeff = 1.0           # paper uses unit diffusivity
+alg_type = 0
+dorand = 1.
+num_part = 4000.           # N_c ~ 270 per initial cluster; sets the Brownian time
+
+# SPDE discretization options (defaults reproduce the original scheme)
+noise_avg_type  = 1        # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
+drift_flux_type = 1        # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, dt limited by measured drift)
+neg_diag_int    = 10000    # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+#drift_diag_int  = 10000   # print drift CFL number and max cell Peclet number every n steps (0 = off)
+#drift_cfl       = 0.5     # also limit dt*sum_d max|grad(C+V_ext)|/dx_d <= drift_cfl (0 = off)
+
+# *****************************************************************
+# Are we restarting from an existing checkpoint file?
+# *****************************************************************
+#amr.restart  = chk_hkb_100000 # restart from this checkpoint file
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0
+geometry.prob_hi     =  1.0  1.0
+geometry.is_periodic =  1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+amr.n_cell          = 128 128    # dx ~ 0.0078: ell = 12.8 cells, sigma_c ~ 2 cells
+amr.max_grid_size_x = 32 32
+amr.max_grid_size_y = 32 32
+
+amr.max_level       = 0
+amr.use_particles   = 0      # Turn particles on or off
+amr.ref_ratio       = 1
+
+# Interaction potential (ip_ prefix)
+amr.use_int_pot = 1
+amr.ip_type     = hk       # ip_eps*ip_R*(1-(r/ip_R)^2)/2 for r < ip_R; ip_range defaults to ip_R
+amr.ip_eps      = -6000.   # = -gamma; negative is attractive
+amr.ip_R        = 0.1      # = ell
+
+# External potential (ep_ prefix)
+amr.use_ext_pot = 0
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+
+amr.regrid_int      = 100000000  # how often to regrid
+
+amr.n_error_buf = 0 0
+amr.grid_eff = 0.96
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.5     # fraction of the forward Euler stability limit; SG keeps phi >= 0 (deterministic part) for cfl <= 1
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  if phi < phierr at level 0, then refine
+# *****************************************************************
+adv.phierr = 10.
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt_hkb_   # root name of plot file
+amr.plot_int   = 5000       # dt ~ 1.3e-6: ~0.0065 in time, 200 plotfiles
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk_hkb_  # root name of checkpoint file
+amr.chk_int  = 100000    # number of timesteps between checkpoint files

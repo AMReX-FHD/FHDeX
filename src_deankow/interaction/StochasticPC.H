@@ -70,6 +70,9 @@ public:
 
     void InitParticles (amrex::MultiFab& phi_fine, amrex::Real num_part,
                         PotentialParams const& pot);
+    // one particle at the centre of every level-1 cell whose indices are all
+    // divisible by stride (amr.part_init_stride)
+    void InitParticlesLattice (amrex::MultiFab const& phi_fine, int stride);
     void  AddParticles (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude,
                         amrex::Real factor, amrex::Real num_part,
                         PotentialParams const& pot);

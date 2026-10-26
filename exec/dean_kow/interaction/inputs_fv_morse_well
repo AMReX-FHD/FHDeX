@@ -1,0 +1,122 @@
+# *****************************************************************
+# 2D long-wave demixing with a Morse potential that has a repulsive core
+# and an attractive well:
+#   U = -ip_eps_att*exp(-(r-ip_re)/ip_R_att) + ip_eps_rep*exp(-(r-ip_re)/ip_R_rep)
+#
+# With ip_re = 0 the constraint ip_eps_att > ip_eps_rep forces U(0) < 0.
+# The offset ip_re > 0 multiplies the amplitudes by exp(ip_re/R), so the
+# repulsive one overtakes the attractive one at r = 0. Here
+#   R_att = 2 R_rep, eps_rep = eps_att/2, re = ln 4/(1/R_rep - 1/R_att)
+# which gives U(0) = +117, U = 0 at r = 0.028, and the well bottom exactly at
+# r = re = 0.055 with depth U(re) = -(eps_att - eps_rep) = -14.7.
+#
+# Linear stability (unit box, mu0 = 1): Uhat(0) = -0.59, so D_crit = 0.59 in
+# an infinite domain. The lowest box mode is |k| = 2 pi, where Uhat = -0.50,
+# so D_crit = 0.50 here (the discrete Uhat on 256^2 gives 0.4999).
+# D_crit scales linearly with eps_att, eps_rep at fixed R_att, R_rep, re.
+# There is no finite-wavelength (cluster-crystal) instability for Morse.
+#
+# At D = 0.3 (0.6 D_crit) the fastest mode is (1,1), sigma ~ 9.8, and
+# t_form ~ ln N/(2 sigma) ~ 0.65; only box-scale modes grow, so expect a
+# few blobs that coarsen. Near D_crit growth is slow: sigma ~ 2 at D = 0.45.
+# *****************************************************************
+
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 10000000
+stop_time = 2.0            # a few times t_form at D = 0.3
+
+seed = 0
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+diff_coeff = 0.3           # D_crit = 0.50 in the unit box
+alg_type = 0
+dorand = 1.
+num_part = 327680.         # 5 particles per cell on 256^2
+
+# SPDE discretization options (defaults reproduce the original scheme)
+#noise_avg_type  = 1       # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
+#drift_flux_type = 1       # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, dt limited by measured drift)
+#neg_diag_int    = 1000    # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+#drift_diag_int  = 1000    # print drift CFL number and max cell Peclet number every n steps (0 = off)
+#drift_cfl       = 0.5     # also limit dt*sum_d max|grad(C+V_ext)|/dx_d <= drift_cfl (0 = off)
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0
+geometry.prob_hi     =  1.0  1.0
+geometry.is_periodic =  1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+amr.n_cell          = 256 256    # dx ~ 0.0039: R_rep = 5.1 cells
+amr.max_grid_size_x = 64 64
+amr.max_grid_size_y = 64 64
+
+amr.max_level       = 0
+amr.use_particles   = 0      # Turn particles on or off
+amr.ref_ratio       = 1
+
+# Interaction potential (ip_ prefix)
+amr.use_int_pot = 1
+amr.ip_type     = morse
+amr.ip_eps_att  = 29.34    # = 0.5/0.01704: sets D_crit = 0.50 in the unit box
+amr.ip_eps_rep  = 14.67    # = eps_att/2
+amr.ip_R_att    = 0.04     # |U(L/2)|/max|U| = 4e-6, no periodic-image interaction
+amr.ip_R_rep    = 0.02
+amr.ip_re       = 0.05545  # = ln 4/(1/R_rep - 1/R_att): U(0) > 0, well bottom at r = re
+#amr.ip_range   = 0.46     # particle pair cutoff (the code suggests >= 0.46; 1e-4 truncation needs 0.37); only used with particles
+
+# External potential (ep_ prefix)
+amr.use_ext_pot = 0
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+
+amr.regrid_int      = 100000000  # how often to regrid
+
+amr.n_error_buf = 0 0
+amr.grid_eff = 0.96
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.25    # fraction of the forward Euler stability limit
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  if phi < phierr at level 0, then refine
+# *****************************************************************
+adv.phierr = 10.
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt_morse_   # root name of plot file
+amr.plot_int   = 10000
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk_morse_  # root name of checkpoint file
+amr.chk_int  = 100000      # number of timesteps between checkpoint files

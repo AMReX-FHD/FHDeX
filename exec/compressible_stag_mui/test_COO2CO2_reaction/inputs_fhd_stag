@@ -5,7 +5,7 @@ seed = 0
 
 # Problem specification
 prob_lo = 0.0 0.0 0.0 # physical lo coordinate
-prob_hi = 3.60e-05 3.60e-05 3.60e-05 # physical hi coordinate
+prob_hi = 9.584640e-03 1.198080e-03 9.360000e-06 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
@@ -14,17 +14,27 @@ nvars = 8
 nprimvars = 12
 
 # number of cells in domain
-n_cells = 4 4 4
+n_cells = 1024 128 1
 # max number of cells in a box
-max_grid_size = 4 4 1
+max_grid_size = 64 32 1
+max_grid_projection = 64 32 1
 
 # Time-step control
-fixed_dt = 1.e-12
+fixed_dt = 1.0e-11
 
 # Controls for number of steps between actions
 
-max_step = 1000000
-plot_int = 100000
+max_step = 3000001
+plot_int = 1000000
+chk_int  = 1000000
+n_steps_skip = 1000000
+
+# Structure factor
+do_2D = 1
+ads_wall_dir = 1
+project_dir = 2
+slicepoint = 0
+struct_fact_int = 10
 
 # Multispecies toggle
 # if algorithm_type = 1, single component
@@ -52,11 +62,8 @@ prob_type = 1
 
 # Initial parameters
 k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
-T_init = 1000
-rho0 = 4.709662e-04
-
-struct_fact_int = 0
-n_steps_skip = 0
+T_init = 600
+rho0 = 1.203334e-03
 
 # Boundary conditions:
 # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -69,32 +76,35 @@ n_steps_skip = 0
 # bc_therm: -1 = periodic
 #            1 = adiabatic
 #            2 = isothermal (set with t_lo/hi in common namelist)
-bc_vel_lo   = -1 -1 2
-bc_vel_hi   = -1 -1 2
-bc_mass_lo  = -1 -1 1
-bc_mass_hi  = -1 -1 1
-bc_therm_lo = -1 -1 2
-bc_therm_hi = -1 -1 2
+bc_vel_lo   = -1 1 -1
+bc_vel_hi   = -1 2 -1
+bc_mass_lo  = -1 1 -1
+bc_mass_hi  = -1 3 -1
+bc_therm_lo = -1 2 -1
+bc_therm_hi = -1 2 -1
 
 # Temperature if thermal BC specified
-t_hi = 1000 1000 1000
-t_lo = 1000 1000 1000
+t_hi = 600 600 600 
+t_lo = 600 600 600
+
+bc_Yk_y_hi = 0.64 0.32 0.04  # for reservoir boundary condition
 
 #Kinetic species info
 #--------------
 nspecies = 3
 
-molmass = 28.01 32.00 39.95
-diameter = 3.76e-8 3.46e-8 3.63e-8
-rhobar = 0.05 0.05 0.90
+molmass = 28.01 32.00 44.01
+diameter = 3.76e-8 3.46e-8 3.30e-8
+rhobar = 0.64 0.32 0.04
 
 # Enter negative dof to use hcv & hcp values
-dof = 5 5 3
+# For 600 K
+e0 = -4.279426e+10 -3.131647e+09 -9.293601e+10
+dof = 5.329852 5.723227 9.382079
 hcv = -1 -1 -1
 hcp = -1 -1 -1
 
 plot_means = 1
 plot_vars = 1
 
-# surfchem_mui
-nspec_mui = 2
+nspec_mui = 3

@@ -32,6 +32,7 @@
 #ifdef USE_AMREX_MPMD
 #include "app_surfchemtest.h"
 #include "app_lotkavolterra.h"
+#include "app_cooxidation.h"
 #else
 #include "style_app.h"
 #endif
@@ -656,6 +657,7 @@ void Input::app_style()
 #ifdef USE_AMREX_MPMD
 #include "app_surfchemtest.h"
 #include "app_lotkavolterra.h"
+#include "app_cooxidation.h"
 #else
 #include "style_app.h"
 #endif

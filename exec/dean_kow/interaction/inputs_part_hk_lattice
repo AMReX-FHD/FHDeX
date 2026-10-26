@@ -1,0 +1,105 @@
+# *****************************************************************
+# 2D HK clusters with particles, started from a regular lattice.
+#   hk, gamma = 6000, ell = 0.1, D = 1 (the physics of inputs_fv_hk_brown),
+#   128^2 mesh; level 1 covers the whole domain at the same resolution
+#   (ref_ratio 1), so every particle is on level 1.
+# amr.part_init_stride = 2 puts one particle at the centre of every cell with
+# i and j both even: 64 x 64 = 4096 particles, 1/128 apart in each direction
+# from (1/256, 1/256). num_part must equal that count so the mesh density
+# (phi = count/(num_part dV)) and the 1/num_part pair forces agree.
+# With the mesh instability (Lambda = 4.6, fastest mode (0,4)) the lattice
+# should break up into ~15 clusters of ~270 particles, which then merge by
+# Brownian coalescence (cluster diffusivity D/N_c), as in _hk_brown but
+# without DK noise or negative densities.
+# The pair force is cut off at ip_range, which defaults to ip_R for hk.
+# *****************************************************************
+
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 1000000
+stop_time = 1.0
+
+seed = 0
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+diff_coeff = 1.0
+alg_type = 0
+dorand = 1.
+num_part = 4096.           # = number of lattice particles (64 x 64)
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0
+geometry.prob_hi     =  1.0  1.0
+geometry.is_periodic =  1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+amr.n_cell          = 128 128
+amr.max_grid_size_x = 32 32
+amr.max_grid_size_y = 32 32
+
+amr.max_level       = 1      # particles live on level 1
+amr.ref_ratio       = 1      # level 1 has the level-0 resolution
+amr.use_particles   = 1      # Turn particles on or off
+amr.part_init_stride = 2     # one particle at the centre of every cell with i, j even
+
+# Interaction potential (ip_ prefix)
+amr.use_int_pot = 1
+amr.ip_type     = hk       # ip_eps*ip_R*(1-(r/ip_R)^2)/2 for r < ip_R; ip_range defaults to ip_R
+amr.ip_eps      = -6000.   # = -gamma; negative is attractive
+amr.ip_R        = 0.1      # = ell
+
+# External potential (ep_ prefix)
+amr.use_ext_pot = 0
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+
+amr.regrid_int      = 100000000  # how often to regrid
+
+amr.n_error_buf = 0 0
+amr.grid_eff = 0.96
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.25    # fraction of the forward Euler stability limit
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  every cell is tagged, so level 1 covers the domain
+# *****************************************************************
+adv.phierr = 10.
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt_hkp_   # root name of plot file
+amr.plot_int   = 5000
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk_hkp_  # root name of checkpoint file
+amr.chk_int  = 100000    # number of timesteps between checkpoint files

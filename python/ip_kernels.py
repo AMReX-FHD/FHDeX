@@ -9,6 +9,11 @@ ip_U in src_deankow/interaction/Potentials.H:
   morse  U = -eps_att exp(-(r - re)/R_att) + eps_rep exp(-(r - re)/R_rep)
   pp     U = -eps R w(r/R), w(s) = alpha (s^2 - a^2)/2 + beta (a^2 - 1)/2 for s <= a,
                               beta (s^2 - 1)/2 for a < s <= 1, else 0
+  ppc1   U = -eps R w(r/R), w(s) = -beta (1 - s^2)_+^2/4 - (alpha - beta) a^2 (1 - (s/a)^2)_+^2/4
+
+amr.ip_local_rep (local_rep) adds local_rep*delta(r) to U, a repulsive core
+narrower than a cell: Uhat(k) gains the constant local_rep. U(r) itself is
+unchanged, so scripts that sample U in real space must add it themselves.
 
 Uhat(k) is the radial Fourier transform in 2D (2 pi int U J0(kr) r dr) or 3D
 (4 pi int U sin(kr)/(kr) r^2 dr), computed by quadrature. With phi normalized
@@ -59,14 +64,15 @@ class Kernel:
 
     def __init__(self, ip_type="gema", eps=666.0, R=0.1, alpha=3.0, eps_att=2.0,
                  eps_rep=1.0, R_att=0.1, R_rep=0.05, re=0.0, pp_a=0.27,
-                 pp_alpha=1.0, pp_beta=0.02):
+                 pp_alpha=1.0, pp_beta=0.02, local_rep=0.0):
         self.ip_type = ip_type
+        self.local_rep = local_rep
         self.eps, self.R, self.alpha = eps, R, alpha
         self.eps_att, self.eps_rep, self.R_att, self.R_rep, self.re = eps_att, eps_rep, R_att, R_rep, re
         self.pp_a, self.pp_alpha, self.pp_beta = pp_a, pp_alpha, pp_beta
         if ip_type == "gema":
             self.rmax = 8.0*R
-        elif ip_type in ("hk", "pp"):
+        elif ip_type in ("hk", "pp", "ppc1"):
             self.rmax = R
         elif ip_type == "morse":
             self.rmax = max(re, 0.0) + 40.0*max(R_att, R_rep)
@@ -87,15 +93,20 @@ class Kernel:
                    eps_att=get("amr.ip_eps_att", 2.0), eps_rep=get("amr.ip_eps_rep", 1.0),
                    R_att=get("amr.ip_R_att", 0.1), R_rep=get("amr.ip_R_rep", 0.05),
                    re=get("amr.ip_re", 0.0), pp_a=get("amr.ip_pp_a", 0.27),
-                   pp_alpha=get("amr.ip_pp_alpha", 1.0), pp_beta=get("amr.ip_pp_beta", 0.02))
+                   pp_alpha=get("amr.ip_pp_alpha", 1.0), pp_beta=get("amr.ip_pp_beta", 0.02),
+                   local_rep=get("amr.ip_local_rep", 0.0))
 
     def describe(self):
+        d = self._describe()
+        return d + (" local_rep=%g" % self.local_rep if self.local_rep else "")
+
+    def _describe(self):
         if self.ip_type == "gema":
             return "gema eps=%g R=%g alpha=%g" % (self.eps, self.R, self.alpha)
         if self.ip_type == "hk":
             return "hk eps=%g R=%g" % (self.eps, self.R)
-        if self.ip_type == "pp":
-            return "pp eps=%g R=%g a=%g alpha=%g beta=%g" % (self.eps, self.R, self.pp_a,
+        if self.ip_type in ("pp", "ppc1"):
+            return "%s eps=%g R=%g a=%g alpha=%g beta=%g" % (self.ip_type, self.eps, self.R, self.pp_a,
                                                             self.pp_alpha, self.pp_beta)
         return "morse eps_att=%g eps_rep=%g R_att=%g R_rep=%g re=%g" % (
             self.eps_att, self.eps_rep, self.R_att, self.R_rep, self.re)
@@ -112,6 +123,12 @@ class Kernel:
             w = np.where(s <= a, 0.5*self.pp_alpha*(s*s - a*a) + 0.5*self.pp_beta*(a*a - 1.0),
                          0.5*self.pp_beta*(s*s - 1.0))
             return np.where(r < self.R, -self.eps*self.R*w, 0.0)
+        if self.ip_type == "ppc1":
+            s, a = r/self.R, self.pp_a
+            t = np.clip(1.0 - s*s, 0.0, None)
+            c = np.clip(1.0 - (s/a)**2, 0.0, None)
+            w = -0.25*self.pp_beta*t*t - 0.25*(self.pp_alpha - self.pp_beta)*a*a*c*c
+            return -self.eps*self.R*w
         return (-self.eps_att*np.exp(-(r - self.re)/self.R_att)
                 + self.eps_rep*np.exp(-(r - self.re)/self.R_rep))
 
@@ -126,7 +143,7 @@ class Kernel:
                 val = 4*np.pi*np.trapz(u*np.sinc(k*r/np.pi)*r*r, r)
             else:
                 val = 2*np.pi*np.trapz(u*bessel_j0(k*r)*r, r)
-            self._cache[key] = val
+            self._cache[key] = val + self.local_rep
         return self._cache[key]
 
     def critical(self, dim, kmin=1.0, kmax=None, nk=301):
@@ -147,7 +164,7 @@ def add_kernel_args(ap):
     """Command-line options shared by the scripts that use a Kernel."""
     g = ap.add_argument_group("interaction potential (default: gema eps=666 R=0.1 alpha=3)")
     g.add_argument("--inputs", help="read amr.ip_* from this AMReX inputs file")
-    g.add_argument("--ip-type", default="gema", choices=["gema", "hk", "morse", "pp"])
+    g.add_argument("--ip-type", default="gema", choices=["gema", "hk", "morse", "pp", "ppc1"])
     g.add_argument("--eps", type=float, default=666.0)
     g.add_argument("--R", type=float, default=0.1)
     g.add_argument("--alpha", type=float, default=3.0, help="gema exponent")
@@ -159,6 +176,8 @@ def add_kernel_args(ap):
     g.add_argument("--pp-a", type=float, default=0.27)
     g.add_argument("--pp-alpha", type=float, default=1.0)
     g.add_argument("--pp-beta", type=float, default=0.02)
+    g.add_argument("--local-rep", type=float, default=0.0,
+                   help="amr.ip_local_rep: local repulsion, adds local_rep*delta(r) to U")
 
 
 def kernel_from_args(args):
@@ -167,4 +186,4 @@ def kernel_from_args(args):
     return Kernel(ip_type=args.ip_type, eps=args.eps, R=args.R, alpha=args.alpha,
                   eps_att=args.eps_att, eps_rep=args.eps_rep, R_att=args.R_att,
                   R_rep=args.R_rep, re=args.re, pp_a=args.pp_a, pp_alpha=args.pp_alpha,
-                  pp_beta=args.pp_beta)
+                  pp_beta=args.pp_beta, local_rep=args.local_rep)

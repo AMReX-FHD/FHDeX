@@ -130,6 +130,12 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
           const Real scaling = mesh_scale / geom[lev].Domain().d_numPts();
           C.mult(scaling, 0, 1);
 
+          // local repulsion: a repulsive core narrower than a cell, of integral
+          // ip_local_rep, adds ip_local_rep*phi to C (ip_local_rep to Uhat*cellvol)
+          if (pot.ip_local_rep > 0.) {
+              MultiFab::Saxpy(C, pot.ip_local_rep, phi_old[lev], 0, 0, 1, 0);
+          }
+
     } else {
         C.setVal(0.);
     }

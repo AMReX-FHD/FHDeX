@@ -27,6 +27,9 @@ struct ParticleData {
 
         use_particles = 0;
         pp.query("use_particles", use_particles);
+        part_init_stride = 0;
+        pp.query("part_init_stride", part_init_stride);
+        if (part_init_stride < 0) { amrex::Abort("amr.part_init_stride must be >= 0"); }
 
         pot = a_pot;
 
@@ -36,6 +39,9 @@ struct ParticleData {
             }
             if (pot.use_int_pot && pot.ip_range <= 0.0) {
                 amrex::Abort("Particles with amr.use_int_pot = 1 need amr.ip_range > 0");
+            }
+            if (pot.ip_local_rep > 0.0) {
+                amrex::Abort("amr.ip_local_rep is implemented for the mesh solver only, not for particles");
             }
         }
 
@@ -91,7 +97,11 @@ struct ParticleData {
             // **********************************************************************
             // Use this grown boxArray to hold the particles
             // **********************************************************************
-            stochastic_particles->InitParticles(phi_grown, num_part, pot);
+            if (part_init_stride > 0) {
+                stochastic_particles->InitParticlesLattice(phi_grown, part_init_stride);
+            } else {
+                stochastic_particles->InitParticles(phi_grown, num_part, pot);
+            }
 
             amrex::Print() << "Before Removal we have  " << stochastic_particles->TotalNumberOfParticles() <<
                               " stochastic particles." << std::endl;
@@ -107,6 +117,14 @@ struct ParticleData {
             stochastic_particles->Redistribute();
             amrex::Print() << "Initialized " << stochastic_particles->TotalNumberOfParticles() <<
                               " stochastic particles." << std::endl;
+            if (part_init_stride > 0 &&
+                std::abs(amrex::Real(stochastic_particles->TotalNumberOfParticles()) - num_part) > 0.5) {
+                amrex::Print() << "WARNING: amr.part_init_stride placed "
+                               << stochastic_particles->TotalNumberOfParticles()
+                               << " particles but num_part = " << num_part
+                               << "; set num_part to the particle count so the mesh and particle"
+                               << " densities and forces agree\n";
+            }
 
             // **********************************************************************
             // Define phi at level 1 from the particle count
@@ -298,6 +316,8 @@ struct ParticleData {
     std::string pp_prefix {"amr"};
 
     int use_particles;
+    int part_init_stride = 0;   // > 0: one particle at the centre of every level-1 cell
+                                //      whose indices are all divisible by it
     PotentialParams pot;
     std::unique_ptr<StochasticPC> stochastic_particles;
     amrex::Vector<std::string> particle_varnames = {"xold", "yold", "zold"};

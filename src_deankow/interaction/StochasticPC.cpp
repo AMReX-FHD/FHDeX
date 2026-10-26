@@ -18,6 +18,70 @@ StochasticPC::InitParticles (MultiFab& phi_fine, Real num_part, PotentialParams 
     AddParticles(phi_fine, BoxArray{}, factor, num_part, pot);
 }
 
+void
+StochasticPC::InitParticlesLattice (MultiFab const& phi_fine, int stride)
+{
+    BL_PROFILE("StochasticPC::InitParticlesLattice");
+    amrex::Print() << "calling InitParticlesLattice with stride " << stride << std::endl;
+
+    const int lev = 1;
+    const auto dx = Geom(lev).CellSizeArray();
+    const auto plo = Geom(lev).ProbLoArray();
+    const Box& domain = Geom(lev).Domain();
+
+    for (MFIter mfi(phi_fine); mfi.isValid(); ++mfi)
+    {
+        // only cells inside the domain: the grown boxes outside it are
+        // periodic images and would duplicate particles
+        Box tile_box = mfi.tilebox() & domain;
+        if (tile_box.isEmpty()) { continue; }
+
+        auto flat_index = FlatIndex(tile_box);
+        Gpu::DeviceVector<unsigned int> counts(tile_box.numPts()+1, 0);
+        unsigned int* pcount = counts.dataPtr();
+        amrex::ParallelFor(tile_box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            amrex::ignore_unused(k);
+            bool on_lattice = AMREX_D_TERM((i % stride == 0), && (j % stride == 0), && (k % stride == 0));
+            pcount[flat_index(i, j, k)] = on_lattice ? 1 : 0;
+        });
+
+        Gpu::DeviceVector<unsigned int> offsets(tile_box.numPts()+1, 0);
+        Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
+        unsigned int num_to_add;
+        Gpu::copy(Gpu::deviceToHost, offsets.begin() + tile_box.numPts(), offsets.end(), &num_to_add);
+        if (num_to_add == 0) { continue; }
+
+        int my_cpu = ParallelDescriptor::MyProc();
+        Long id_start = ParticleType::NextID();
+        ParticleType::NextID(id_start+num_to_add);
+
+        auto& particles = GetParticles(lev);
+        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+        auto old_size = particle_tile.GetArrayOfStructs().size();
+        particle_tile.resize(old_size + num_to_add);
+
+        ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data() + old_size;
+        unsigned int* poffset = offsets.dataPtr();
+        amrex::ParallelFor(tile_box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            auto cellid = flat_index(i, j, k);
+            for (unsigned int ip = poffset[cellid]; ip < poffset[cellid+1]; ++ip) {
+                ParticleType& p = pstruct[ip];
+                AMREX_D_TERM( Real x = plo[0] + (i + 0.5)*dx[0];,
+                              Real y = plo[1] + (j + 0.5)*dx[1];,
+                              Real z = plo[2] + (k + 0.5)*dx[2];);
+                p.id()  = ip + id_start;
+                p.cpu() = my_cpu;
+                AMREX_D_TERM( p.pos(0) = x;, p.pos(1) = y;, p.pos(2) = z;);
+                AMREX_D_TERM( p.rdata(RealIdx::xold) = x;,
+                              p.rdata(RealIdx::yold) = y;,
+                              p.rdata(RealIdx::zold) = z;);
+            }
+        });
+    }
+}
+
 // TODO(3D): this aliases phi onto RealIdx::zold. In 2D zold is an unused spare
 // real, so that is harmless, but in 3D zold IS the particle's old z position --
 // the value getOldCell() reads to decide which cell a particle came from for the
