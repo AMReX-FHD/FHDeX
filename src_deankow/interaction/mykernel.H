@@ -155,6 +155,21 @@ amrex::Real sg_flux (amrex::Real phim, amrex::Real phip, amrex::Real w,
     return diff_coeff*dxinv*(bernoulli(-pe)*phip - bernoulli(pe)*phim);
 }
 
+// Hybrid drift flux (drift_flux_type = 2): a face keeps the centered flux while
+// its cell Peclet number |w| dx/D is at most hybrid_pe_switch, where the centered
+// flux is monotone, and switches to Scharfetter-Gummel above it. The noise is
+// unchanged, so low-Peclet regions keep the centered scheme's fluctuations.
+constexpr amrex::Real hybrid_pe_switch = 2.;
+
+// whether the face uses the Scharfetter-Gummel flux
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool sg_face (int drift_flux_type, amrex::Real w, amrex::Real diff_coeff,
+              amrex::Real dxinv) noexcept
+{
+    return drift_flux_type == 1
+        || (drift_flux_type == 2 && std::abs(w) > hybrid_pe_switch*diff_coeff*dxinv);
+}
+
 // Amplitude multiplying the face noise. phimn and phipn are the (non-negative)
 // densities on either side and n_per_phi converts density to particles per cell.
 //   noise_avg_type 0: average of square roots
@@ -287,9 +302,10 @@ void compute_flux_x (int i, int j, int k,
 
              Vsubx = ext_drift_x(xloc, pot);
 
-             if (drift_flux_type == 1) {
+             if (drift_flux_type != 0) {
                 wdrift += Vsubx;
-             } else {
+             }
+             if (drift_flux_type != 1) {
                 fluxx(i,j,k,0) += phiavg * Vsubx;
              }
 
@@ -299,15 +315,16 @@ void compute_flux_x (int i, int j, int k,
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
-             if (drift_flux_type == 1) {
+             if (drift_flux_type != 0) {
                 wdrift += (C(i,j,k) - C(i-1,j,k)) * dxinv;
-             } else {
+             }
+             if (drift_flux_type != 1) {
                 fluxx(i,j,k,0) += std::max(phiavg,0.) * (C(i,j,k) - C(i-1,j,k)) * dxinv;
              }
 
           }
 
-        if (drift_flux_type == 1) {
+        if (sg_face(drift_flux_type, wdrift, diff_coeff, dxinv)) {
            fluxx(i,j,k,0) = sg_flux(phim, phip, wdrift, diff_coeff, dxinv);
         }
 
@@ -394,9 +411,10 @@ void compute_flux_y (int i, int j, int k,
 
              Vsuby = ext_drift_y(yloc, pot);
 
-             if (drift_flux_type == 1) {
+             if (drift_flux_type != 0) {
                 wdrift += Vsuby;
-             } else {
+             }
+             if (drift_flux_type != 1) {
                 fluxy(i,j,k,0) += phiavg * Vsuby;
              }
 
@@ -406,15 +424,16 @@ void compute_flux_y (int i, int j, int k,
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
-             if (drift_flux_type == 1) {
+             if (drift_flux_type != 0) {
                 wdrift += (C(i,j,k) - C(i,j-1,k)) * dyinv;
-             } else {
+             }
+             if (drift_flux_type != 1) {
                 fluxy(i,j,k,0) += std::max(phiavg,0.) * (C(i,j,k) - C(i,j-1,k)) * dyinv;
              }
 
           }
 
-        if (drift_flux_type == 1) {
+        if (sg_face(drift_flux_type, wdrift, diff_coeff, dyinv)) {
            fluxy(i,j,k,0) = sg_flux(phim, phip, wdrift, diff_coeff, dyinv);
         }
 
@@ -507,9 +526,10 @@ void compute_flux_z (int i, int j, int k,
 
              Vsubz = ext_drift_y(zloc, pot);
 
-             if (drift_flux_type == 1) {
+             if (drift_flux_type != 0) {
                 wdrift += Vsubz;
-             } else {
+             }
+             if (drift_flux_type != 1) {
                 fluxz(i,j,k,0) += phiavg * Vsubz;
              }
 
@@ -519,15 +539,16 @@ void compute_flux_z (int i, int j, int k,
 
              amrex::Real phiavg = 0.5*(phim+phip);
 
-             if (drift_flux_type == 1) {
+             if (drift_flux_type != 0) {
                 wdrift += (C(i,j,k) - C(i,j,k-1)) * dzinv;
-             } else {
+             }
+             if (drift_flux_type != 1) {
                 fluxz(i,j,k,0) += std::max(phiavg,0.) * (C(i,j,k) - C(i,j,k-1)) * dzinv;
              }
 
           }
 
-        if (drift_flux_type == 1) {
+        if (sg_face(drift_flux_type, wdrift, diff_coeff, dzinv)) {
            fluxz(i,j,k,0) = sg_flux(phim, phip, wdrift, diff_coeff, dzinv);
         }
 

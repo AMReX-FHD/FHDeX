@@ -214,7 +214,8 @@ private:
     // 1 = arithmetic average with a C0-smoothed Heaviside of the particle count
     int noise_avg_type = 0;
 
-    // drift (potential) flux: 0 = centered, 1 = Scharfetter-Gummel
+    // drift (potential) flux: 0 = centered, 1 = Scharfetter-Gummel,
+    // 2 = hybrid (centered where the face cell Peclet number <= 2, else SG)
     int drift_flux_type = 0;
 
     // bound on |grad C| per unit mass, for the Scharfetter-Gummel time step limit
@@ -250,7 +251,7 @@ private:
 
     bool NeedDriftMeasurement () const {
         return (pot.use_int_pot || pot.use_ext_pot)
-            && (drift_diag_int > 0 || drift_cfl > 0. || drift_flux_type == 1);
+            && (drift_diag_int > 0 || drift_cfl > 0. || drift_flux_type != 0);
     }
     void MeasureDrift (int lev);
     void PrintDriftDiagnostics (int step) const;

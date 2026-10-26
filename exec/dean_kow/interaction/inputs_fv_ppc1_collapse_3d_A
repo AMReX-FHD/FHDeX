@@ -1,0 +1,124 @@
+# *****************************************************************
+# 3D ppc1 collective collapse with merging, option A (128^3, core 0.08).
+# 3D partner of inputs_fv_ppc1_collapse_n50; pair with
+# inputs_fv_ppc1_driftmerge_3d_A (same core, only the tail differs).
+#   core radius 0.08 (10 cells), core Uhat(0) = -5; tail radius 0.5 (= L/2),
+#   tail Uhat(0) = -6
+#   Core and tail integrals Uhat(0) are those of the 2D pair (core -5, tail
+#   -6); the amplitude ip_eps is larger in 3D, since the same integral over a
+#   ball of radius b needs a depth ~ 105/(96 b) times the 2D one.
+# Cost is set by the number of steps: a survivor of n formation clusters has
+# peak phi ~ 47 n and max cell Pe ~ n x Pe at formation, and dt ~ 1/(ip_local_rep
+# * max phi) once merging. Equilibrium-cluster estimates below; "steps" are
+# per 0.01 of simulated time and do not depend on the number of ranks.
+#   fastest mode sigma ~ 2060 at wavelength 0.174: ~154 clusters ~0.20 apart,
+#     R/nn = 2.5
+#   cluster-gas rate k^2 |Uhat_tail(k)| 133 at the box scale (max 137)
+#   n = 1: Pe 5.9, peak 47, ~60k steps; n = 4.6: Pe 27, peak 232, ~280k steps;
+#     n = 15: Pe 81, peak 780, ~940k steps; SG faces 0.1-0.4%
+# Collapse should be clear by n ~ 5-10 per survivor; stop_time 0.06 is an
+# upper bound (2D soft B collapsed over t ~ 0.03-0.05).
+# Hybrid drift flux, smoothed-Heaviside noise.
+# *****************************************************************
+
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 10000000
+stop_time = 0.06
+
+seed = 1
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+diff_coeff = 1.0
+alg_type = 0
+dorand = 1.
+num_part = 10485760.       # 5 particles per cell on 128^3
+
+# SPDE discretization options (defaults reproduce the original scheme)
+noise_avg_type  = 1        # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
+drift_flux_type = 2        # 0: centered; 1: Scharfetter-Gummel; 2: hybrid (centered where cell Pe <= 2, SG above)
+neg_diag_int    = 1000     # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+drift_diag_int  = 1000     # print drift CFL number and max cell Peclet number every n steps (0 = off)
+#drift_cfl       = 0.5     # also limit dt*sum_d max|grad(C+V_ext)|/dx_d <= drift_cfl (0 = off)
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0  0.0
+geometry.prob_hi     =  1.0  1.0  1.0
+geometry.is_periodic =  1    1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+amr.n_cell          = 128 128 128   # dx ~ 0.0078: core radius 10 cells
+amr.max_grid_size_x = 32 32
+amr.max_grid_size_y = 32 32
+amr.max_grid_size_z = 32 32
+
+amr.max_level       = 0
+amr.use_particles   = 0      # Turn particles on or off
+amr.ref_ratio       = 1
+
+# Interaction potential (ip_ prefix)
+amr.use_int_pot = 1
+amr.ip_type      = ppc1     # C1 piecewise parabolic; ip_range defaults to ip_R
+amr.ip_eps       = -3.1878e6 # negative is attractive
+amr.ip_R         = 0.5      # tail radius: L/2
+amr.ip_pp_a      = 0.16  # core radius / ip_R: core radius 0.08
+amr.ip_pp_alpha  = 1.       # core stiffness (attractive core)
+amr.ip_pp_beta   = 1.2581e-4  # tail stiffness: tail |Uhat(0)| = 1.2 x core |Uhat(0)|
+amr.ip_local_rep = 0.5      # local repulsion: C = U*phi + ip_local_rep*phi (mesh only)
+
+# External potential (ep_ prefix)
+amr.use_ext_pot = 0
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+amr.blocking_factor_z = 2
+
+amr.regrid_int      = 100000000  # how often to regrid
+
+amr.n_error_buf = 0 0
+amr.grid_eff = 0.96
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.5     # fraction of the forward Euler stability limit; SG keeps phi >= 0 (deterministic part) for cfl <= 1
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  if phi < phierr at level 0, then refine
+# *****************************************************************
+adv.phierr = 10.
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt_cA_    # root name of plot file
+amr.plot_int   = 4000
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk_cA_   # root name of checkpoint file
+amr.chk_int  = 50000   # number of timesteps between checkpoint files
