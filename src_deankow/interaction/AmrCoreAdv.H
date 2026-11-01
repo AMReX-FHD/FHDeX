@@ -287,6 +287,8 @@ private:
     // plotfile prefix and frequency
     std::string plot_file {"plt"};
     int plot_int = -1;
+    // also plot when the time since the last plotfile reaches plot_time_int (dt unchanged)
+    amrex::Real plot_time_int = -1.0;
 
     // checkpoint prefix and frequency
     std::string chk_file {"chk"};

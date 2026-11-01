@@ -139,6 +139,8 @@ AmrCoreAdv::Evolve ()
 {
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
+    // InitData has just written a plotfile at this time (start or restart)
+    Real last_plot_time = cur_time;
     // the run's starting step, so a restart that takes no steps writes no checkpoint
     int last_chk_file_step = istep[0];
 
@@ -180,8 +182,10 @@ AmrCoreAdv::Evolve ()
             t_new[lev] = cur_time;
         }
 
-        if (plot_int > 0 && (step+1) % plot_int == 0) {
+        if ((plot_int > 0 && (step+1) % plot_int == 0) ||
+            (plot_time_int > 0. && cur_time - last_plot_time >= plot_time_int*(1. - 1.e-12))) {
             last_plot_file_step = step+1;
+            last_plot_time = cur_time;
             WritePlotFile();
             WriteStructFact();
         }
@@ -202,7 +206,7 @@ AmrCoreAdv::Evolve ()
         if (cur_time >= stop_time - 1.e-6*dt[0]) { break; }
     }
 
-    if (plot_int > 0 && istep[0] > last_plot_file_step) {
+    if ((plot_int > 0 || plot_time_int > 0.) && istep[0] > last_plot_file_step) {
         WritePlotFile();
     }
     // a final checkpoint, so the run can be continued from where it stopped
@@ -252,7 +256,7 @@ AmrCoreAdv::InitData ()
         InitFFTLevel0();
     }
     if (struct_fact_int > 0) { InitStructFact(); }
-    if (plot_int > 0) {
+    if (plot_int > 0 || plot_time_int > 0.) {
         WritePlotFile();
     }
 }
@@ -1383,6 +1387,7 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.query("regrid_int", regrid_int);
         pp.query("plot_file", plot_file);
         pp.query("plot_int", plot_int);
+        pp.query("plot_time_int", plot_time_int);
         pp.query("chk_file", chk_file);
         pp.query("chk_int", chk_int);
         pp.query("restart",restart_chkfile);
