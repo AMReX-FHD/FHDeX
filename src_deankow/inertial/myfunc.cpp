@@ -121,3 +121,26 @@ void apply_fluxes (MultiFab const& phi_old, MultiFab& phi_new,
         });
     }
 }
+
+void undo_cf_fluxes (MultiFab& phi, Array<MultiFab, AMREX_SPACEDIM> const& fsum,
+                     iMultiFab const& mask, Geometry const& geom, Real dt)
+{
+    const auto dxinv = geom.InvCellSizeArray();
+    for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        auto const& p  = phi.array(mfi);
+        auto const& m  = mask.const_array(mfi);
+        auto const& fx = fsum[0].const_array(mfi);
+        auto const& fv = fsum[1].const_array(mfi);
+        amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (m(i,j,k) != 0) { return; }
+            Real c = 0.0;
+            if (m(i-1,j,k) != 0) { c -= fx(i  ,j,k)*dxinv[0]; }   // low x face: undo +dt/dx F
+            if (m(i+1,j,k) != 0) { c += fx(i+1,j,k)*dxinv[0]; }   // high x face: undo -dt/dx F
+            if (m(i,j-1,k) != 0) { c -= fv(i,j  ,k)*dxinv[1]; }
+            if (m(i,j+1,k) != 0) { c += fv(i,j+1,k)*dxinv[1]; }
+            p(i,j,k) += dt*c;
+        });
+    }
+}

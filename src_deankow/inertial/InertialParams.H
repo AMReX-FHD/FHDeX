@@ -52,6 +52,26 @@ struct InertialParams
     // particle integrator: 0 Euler-Maruyama, 1 BAOAB (kick-drift-OU-drift-kick
     // splitting with an exact Ornstein-Uhlenbeck step for friction and noise)
     int         particle_integrator = 0;
+
+    // particle random numbers: 0 per-thread engine (ParallelForRNG), 1 counter
+    // based on (particle id, cpu, step, draw), so a particle gets the same
+    // increments on any patch or rank and runs do not depend on the
+    // decomposition
+    int         particle_rng = 0;
+
+    // hybrid: SPDE on level 0, particles on level 1 where N phi dx dv < n_refine
+    int         hybrid = 0;
+    amrex::Real n_refine = 10.0;
+    int         hybrid_nghost = -1;   // ghost ring of the particle region (default 1 EM, 2 BAOAB)
+    amrex::Real rng_seed = 0;         // folded into the counter-based random numbers
+    // testing: if tag_box_hi >= tag_box_lo (cell indices x0 v0 x1 v1), the
+    // particle region is this box instead of the density criterion
+    int tag_box[4] = {0, 0, -1, -1};
+    // sampling of v within a cell when particles are created from the SPDE:
+    // 0 uniform; 1 (default) tilted by the local equilibrium slope, density
+    // ~ exp(-v_c (v - v_low)/T) across the cell (as x uses -U'(x_c)/T);
+    // 2 linear profile from the MC-limited v slope of phi itself
+    int ghost_v_sampling = 1;
 };
 
 // Minimum-image displacement x - x0 on the periodic x domain
@@ -129,6 +149,20 @@ inline void read_inertial_params (InertialParams& ip)
     pp.query("ic_sv", ip.ic_sv);
     pp.query("run_mode", ip.run_mode);
     pp.query("particle_integrator", ip.particle_integrator);
+    pp.query("particle_rng", ip.particle_rng);
+    pp.query("hybrid", ip.hybrid);
+    pp.query("n_refine", ip.n_refine);
+    pp.query("hybrid_nghost", ip.hybrid_nghost);
+    pp.query("ghost_v_sampling", ip.ghost_v_sampling);
+    if (ip.ghost_v_sampling < 0 || ip.ghost_v_sampling > 2) {
+        amrex::Abort("inertial.ghost_v_sampling must be 0, 1 or 2");
+    }
+    {
+        amrex::Vector<int> tb;
+        if (pp.queryarr("tag_box", tb) && tb.size() == 4) {
+            for (int q = 0; q < 4; ++q) { ip.tag_box[q] = tb[q]; }
+        }
+    }
 
     if (ip.num_part <= 0.0) { amrex::Abort("num_part must be set to a positive value"); }
     if (ip.diff_coeff <= 0.0) { amrex::Abort("diff_coeff must be positive"); }
@@ -140,6 +174,13 @@ inline void read_inertial_params (InertialParams& ip)
         amrex::Abort("inertial.ic_type 1 needs ic_sx > 0 and ic_sv > 0");
     }
     if (ip.run_mode != 0 && ip.run_mode != 1) { amrex::Abort("inertial.run_mode must be 0 (SPDE) or 1 (particles)"); }
+    if (ip.hybrid) {
+        if (ip.run_mode != 0) { amrex::Abort("inertial.hybrid = 1 needs run_mode = 0 (SPDE on level 0)"); }
+        ip.particle_rng = 1;
+        if (ip.hybrid_nghost < 0) { ip.hybrid_nghost = (ip.particle_integrator == 1) ? 2 : 1; }
+        if (ip.hybrid_nghost < 1) { amrex::Abort("inertial.hybrid_nghost must be >= 1"); }
+    }
+    if (ip.particle_rng != 0 && ip.particle_rng != 1) { amrex::Abort("inertial.particle_rng must be 0 or 1"); }
     if (ip.particle_integrator != 0 && ip.particle_integrator != 1) {
         amrex::Abort("inertial.particle_integrator must be 0 (Euler-Maruyama) or 1 (BAOAB)");
     }
@@ -167,6 +208,10 @@ inline void finish_inertial_params (InertialParams& ip)
                        << ", widths " << ip.ic_sx << ", " << ip.ic_sv << ")";
     }
     amrex::Print() << "\n";
+    if (ip.hybrid) {
+        amrex::Print() << "  hybrid: particles on level 1 where N phi dx dv < " << ip.n_refine
+                       << ", ghost ring " << ip.hybrid_nghost << " cell(s), counter-based particle random numbers\n";
+    }
 }
 
 #endif

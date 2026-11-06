@@ -80,7 +80,13 @@ AmrCoreInertial::ReadParameters ()
         pp.query("chk_file", chk_file);
         pp.query("chk_int", chk_int);
         pp.query("restart", restart_chkfile);
-        if (max_level != 0) { Abort("the inertial code is single level for now: amr.max_level must be 0"); }
+        pp.query("regrid_int", regrid_int);
+        if (ip.hybrid) {
+            if (max_level != 1) { Abort("the hybrid needs amr.max_level = 1"); }
+            if (refRatio(0) != IntVect(1)) { Abort("the hybrid needs amr.ref_ratio = 1"); }
+        } else if (max_level != 0) {
+            Abort("amr.max_level must be 0 unless inertial.hybrid = 1");
+        }
     }
     {
         ParmParse pp("adv");
@@ -91,8 +97,9 @@ AmrCoreInertial::ReadParameters ()
         pp.query("fixed_dt", fixed_dt);
         pp.query("write_particles", write_particles);
     }
-    if (ip.run_mode == 1 && !restart_chkfile.empty()) {
-        Abort("restart is only implemented for the SPDE (inertial.run_mode = 0)");
+    ip.rng_seed = static_cast<Real>(seed);
+    if ((ip.run_mode == 1 || ip.hybrid) && !restart_chkfile.empty()) {
+        Abort("restart is only implemented for the pure SPDE (run_mode = 0, hybrid = 0)");
     }
 
     amrex::Print() << "  grid " << g.Domain().length(0) << " (x) x " << g.Domain().length(1)
@@ -122,6 +129,11 @@ void
 AmrCoreInertial::MakeNewLevelFromScratch (int lev, Real /*time*/, const BoxArray& ba,
                                           const DistributionMapping& dm)
 {
+    if (lev == 1) {
+        AMREX_ALWAYS_ASSERT(ip.hybrid);
+        SetupFine(ba, dm);
+        return;
+    }
     AMREX_ALWAYS_ASSERT(lev == 0);
     DefineLevel(ba, dm);
 
@@ -148,20 +160,31 @@ AmrCoreInertial::MakeNewLevelFromScratch (int lev, Real /*time*/, const BoxArray
 }
 
 void
-AmrCoreInertial::MakeNewLevelFromCoarse (int, Real, const BoxArray&, const DistributionMapping&)
+AmrCoreInertial::MakeNewLevelFromCoarse (int lev, Real, const BoxArray& ba, const DistributionMapping& dm)
 {
-    Abort("AmrCoreInertial is single level");
+    AMREX_ALWAYS_ASSERT(lev == 1 && ip.hybrid);
+    SetupFine(ba, dm);
 }
 
 void
-AmrCoreInertial::RemakeLevel (int, Real, const BoxArray&, const DistributionMapping&)
+AmrCoreInertial::RemakeLevel (int lev, Real, const BoxArray& ba, const DistributionMapping& dm)
 {
-    Abort("AmrCoreInertial is single level");
+    AMREX_ALWAYS_ASSERT(lev == 1 && ip.hybrid);
+    SetupFine(ba, dm);
 }
 
 void
-AmrCoreInertial::ClearLevel (int /*lev*/)
+AmrCoreInertial::ClearLevel (int lev)
 {
+    if (lev == 1) {
+        // the particle region disappears: its mass is already in the level-0
+        // phi (the last AverageDownParticles), so the particles just go
+        if (pc) { pc->clearParticles(); }
+        fine_ba = BoxArray();
+        BuildMask(mask0, fine_ba);
+        phi1.clear();
+        return;
+    }
     phi_old.clear();
     phi_new.clear();
     hist.clear();
@@ -169,8 +192,196 @@ AmrCoreInertial::ClearLevel (int /*lev*/)
 }
 
 void
-AmrCoreInertial::ErrorEst (int, TagBoxArray&, Real, int)
+AmrCoreInertial::ErrorEst (int lev, TagBoxArray& tags, Real, int)
 {
+    // hybrid: tag the cells holding few particles, N phi dx dv < n_refine
+    if (!ip.hybrid || lev != 0) { return; }
+    const auto dx = Geom(0).CellSizeArray();
+    const Real thresh = ip.n_refine/(ip.num_part*dx[0]*dx[1]);
+    const bool use_box = ip.tag_box[2] >= ip.tag_box[0] && ip.tag_box[3] >= ip.tag_box[1];
+    const int b0 = ip.tag_box[0], b1 = ip.tag_box[1], b2 = ip.tag_box[2], b3 = ip.tag_box[3];
+    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi) {
+        auto const& p = phi_new.const_array(mfi);
+        auto const& t = tags.array(mfi);
+        amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            const bool tag = use_box ? (i >= b0 && i <= b2 && j >= b1 && j <= b3) : (p(i,j,k) < thresh);
+            if (tag) { t(i,j,k) = TagBox::SET; }
+        });
+    }
+}
+
+void
+AmrCoreInertial::BuildMask (iMultiFab& mask, const BoxArray& fba) const
+{
+    mask.define(boxArray(0), DistributionMap(0), 1, 1);
+    mask.setVal(0);
+    if (!fba.empty()) {
+        for (MFIter mfi(mask); mfi.isValid(); ++mfi) {
+            for (auto const& is : fba.intersections(mfi.validbox())) {
+                mask[mfi].setVal<RunOn::Host>(1, is.second, 0, 1);
+            }
+        }
+    }
+    mask.FillBoundary(Geom(0).periodicity());
+}
+
+void
+AmrCoreInertial::SetupFine (const BoxArray& ba, const DistributionMapping& dm)
+{
+    const Geometry& g = Geom(0);
+    const auto dx = g.CellSizeArray();
+    const Real dv = dx[0]*dx[1];
+    const int ng = ip.hybrid_nghost;
+    const Real mass_before = phi_new.sum(0)*dv;
+
+    iMultiFab mask_new;
+    BuildMask(mask_new, ba);
+
+    // particles in cells leaving the region: their mass is already in phi
+    if (pc && pc->TotalNumberOfParticles() > 0) {
+        iMultiFab keep(pba, pdm, 1, 0);
+        keep.setVal(0);
+        keep.ParallelCopy(mask_new, 0, 0, 1, IntVect(0), IntVect(0), g.periodicity());
+        pc->RemoveWhere(keep);
+    }
+
+    // cells new to the region
+    iMultiFab newc(boxArray(0), DistributionMap(0), 1, 0);
+    const bool had = mask0.ok();
+    for (MFIter mfi(newc); mfi.isValid(); ++mfi) {
+        auto const& nc = newc.array(mfi);
+        auto const& mn = mask_new.const_array(mfi);
+        auto const& mo = had ? mask0.const_array(mfi) : mn;
+        amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            nc(i,j,k) = (mn(i,j,k) != 0 && (!had || mo(i,j,k) == 0)) ? 1 : 0;
+        });
+    }
+
+    fine_ba = ba;
+    fine_dm = dm;
+    mask0 = std::move(mask_new);
+
+    // particle layout: the region boxes, then the ghost ring (the grown boxes,
+    // periodic in x and clipped in v, without overlaps, minus the region)
+    const Box& dom = g.Domain();
+    const int nx = dom.length(0);
+    BoxList bl_grown;
+    for (int b = 0; b < ba.size(); ++b) {
+        Box gb = amrex::grow(ba[b], ng);
+        gb.setSmall(1, std::max(gb.smallEnd(1), dom.smallEnd(1)));
+        gb.setBig(1, std::min(gb.bigEnd(1), dom.bigEnd(1)));
+        for (int sh : {-nx, 0, nx}) {
+            Box sb = gb;
+            sb.shift(0, sh);
+            sb &= dom;
+            if (sb.ok()) { bl_grown.push_back(sb); }
+        }
+    }
+    BoxArray gba(std::move(bl_grown));
+    gba.removeOverlap();
+    BoxList bl_ghost;
+    for (int b = 0; b < gba.size(); ++b) { bl_ghost.join(ba.complementIn(gba[b])); }
+    BoxArray ghost_ba(std::move(bl_ghost));
+    ghost_ba.maxSize(maxGridSize(0));
+    BoxList bl_p(ba);
+    bl_p.join(ghost_ba.boxList());
+    pba = BoxArray(std::move(bl_p));
+    pdm = DistributionMapping(pba);
+    n_fine_boxes = ba.size();
+
+    if (!pc) {
+        pc = std::make_unique<InertialPC>(g, pdm, pba);
+    } else {
+        pc->SetParticleBoxArray(0, pba);
+        pc->SetParticleDistributionMap(0, pdm);
+        pc->Redistribute();
+    }
+
+    pmask.define(pba, pdm, 1, ng);
+    pmask.setVal(0);
+    pmask.ParallelCopy(mask0, 0, 0, 1, IntVect(0), IntVect(ng), g.periodicity());
+    gsel.define(pba, pdm, 1, 0);
+    for (MFIter mfi(gsel); mfi.isValid(); ++mfi) {
+        gsel[mfi].setVal<RunOn::Host>((mfi.index() >= n_fine_boxes) ? 1 : 0);
+    }
+
+    // sample particles in the new cells from phi
+    iMultiFab nsel(pba, pdm, 1, 0);
+    nsel.setVal(0);
+    nsel.ParallelCopy(newc, 0, 0, 1, IntVect(0), IntVect(0), g.periodicity());
+    MultiFab phip(pba, pdm, 1, 1);
+    phip.ParallelCopy(phi_new, 0, 0, 1, IntVect(1), IntVect(1), g.periodicity());
+    const Long added = pc->SampleCells(phip, nsel, ip);
+    pc->Redistribute();
+    regrid_sampled += added;
+
+    phi1.define(ba, dm, 1, 0);
+    AverageDownParticles();
+
+    const Real dmass = phi_new.sum(0)*dv - mass_before;
+    regrid_dmass += dmass;
+    Long ncells = 0;
+    for (int b = 0; b < ba.size(); ++b) { ncells += ba[b].numPts(); }
+    amrex::Print() << "Particle region: " << ba.size() << " boxes, " << ncells << " of "
+                   << dom.numPts() << " cells, ghost ring " << ng << ", " << pc->TotalNumberOfParticles()
+                   << " particles (" << added << " sampled in new cells), mass change " << dmass << "\n";
+}
+
+void
+AmrCoreInertial::AverageDownParticles ()
+{
+    MultiFab h(pba, pdm, 1, 0);
+    pc->DepositHistogram(h, ip.num_part);
+    phi1.ParallelCopy(h, 0, 0, 1);
+    phi_new.ParallelCopy(phi1, 0, 0, 1);
+    fill_phi_ghosts(phi_new, Geom(0));
+}
+
+void
+AmrCoreInertial::HybridStep (Real dt)
+{
+    const Geometry& g = Geom(0);
+    const auto dx = g.CellSizeArray();
+    const bool fine = HasFine();
+
+    // ghost ring: particles sampled from the start-of-step SPDE
+    if (fine) {
+        MultiFab phip(pba, pdm, 1, 1);
+        phip.ParallelCopy(phi_new, 0, 0, 1, IntVect(1), IntVect(1), g.periodicity());
+        ghost_sampled += pc->SampleCells(phip, gsel, ip);
+    }
+
+    // SPDE on all of level 0, keeping the applied face fluxes
+    Array<MultiFab, AMREX_SPACEDIM> fsum;
+    if (fine) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            fsum[d].define(amrex::convert(boxArray(0), IntVect::TheDimensionVector(d)), DistributionMap(0), 1, 0);
+            fsum[d].setVal(0.0);
+        }
+    }
+    AdvancePhi(dt, fine ? &fsum : nullptr);
+    if (!fine) { return; }
+
+    // the particles carry the mass across the region boundary
+    undo_cf_fluxes(phi_new, fsum, mask0, g, dt);
+
+    const InertialPC::MoveStats st = pc->Advance(dt, ip, step_count, false);
+    move_total.trunc_x += st.trunc_x;
+    move_total.trunc_v += st.trunc_v;
+    move_total.reflect += st.reflect;
+
+    MultiFab xfer(pba, pdm, 1, 1);
+    xfer.setVal(0.0);
+    const auto c = pc->DepositCrossings(pmask, xfer);
+    for (int q = 0; q < 4; ++q) { crossings[q] += c[q]; }
+    xfer.SumBoundary(g.periodicity());
+    xfer.mult(1.0/(ip.num_part*dx[0]*dx[1]), 0, 1);
+    phi_new.ParallelAdd(xfer, 0, 0, 1, IntVect(0), IntVect(0), g.periodicity());
+    pc->Redistribute();
+
+    AverageDownParticles();
 }
 
 void
@@ -199,7 +410,7 @@ AmrCoreInertial::EstTimeStep () const
     const Real rate = ip.vmax*dxinv[0] + (ip.gamma*ip.vmax + inertial_max_dU(ip))*dxinv[1]
                     + 2.0*ip.diff_coeff*dxinv[1]*dxinv[1];
     Real dt = cfl/rate;
-    if (ip.run_mode == 1) {
+    if (ip.run_mode == 1 || ip.hybrid) {
         // particles: keep the noise step sqrt(2 D dt) below dv/3, so a move is
         // rarely truncated to one cell
         const Real dv = Geom(0).CellSize(1);
@@ -230,10 +441,13 @@ AmrCoreInertial::Evolve ()
         dt = amrex::min(dt, stop_time - cur_time);
         dt = amrex::min(dt, next_plot_time - cur_time);
 
-        if (ip.run_mode == 0) {
+        if (ip.hybrid) {
+            if (regrid_int > 0 && step > 0 && step % regrid_int == 0) { regrid(0, cur_time); }
+            HybridStep(dt);
+        } else if (ip.run_mode == 0) {
             AdvancePhi(dt);
         } else {
-            const InertialPC::MoveStats st = pc->Advance(dt, ip);
+            const InertialPC::MoveStats st = pc->Advance(dt, ip, step);
             move_total.trunc_x += st.trunc_x;
             move_total.trunc_v += st.trunc_v;
             move_total.reflect += st.reflect;
@@ -303,9 +517,18 @@ AmrCoreInertial::PrintDiagnostics ()
     if (ip.run_mode == 0) { amrex::Print() << " min phi = " << phimin; }
     amrex::Print() << " <x-x0> = " << m[1] << " <v> = " << m[2]
                    << " <(x-x0)^2> = " << m[3] << " <v^2> = " << m[4];
-    if (ip.run_mode == 1) {
+    if (ip.run_mode == 1 || ip.hybrid) {
         amrex::Print() << " truncated x/v = " << move_total.trunc_x << "/" << move_total.trunc_v
                        << " reflected = " << move_total.reflect;
+    }
+    if (ip.hybrid) {
+        Long ncells = 0;
+        for (int b = 0; b < fine_ba.size(); ++b) { ncells += fine_ba[b].numPts(); }
+        amrex::Print() << " | particles " << (pc ? pc->TotalNumberOfParticles() : 0)
+                       << " in " << ncells << " cells, ghost sampled " << ghost_sampled
+                       << ", regrid sampled " << regrid_sampled << " (mass change " << regrid_dmass << ")"
+                       << ", entries x/v " << crossings[0] << "/" << crossings[1]
+                       << ", exits x/v " << crossings[2] << "/" << crossings[3];
     }
     amrex::Print() << "\n";
 }
@@ -316,7 +539,8 @@ AmrCoreInertial::WritePlotFile ()
     const std::string& plotfilename = amrex::Concatenate(plot_file, step_count, 6);
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
     MultiFab const& phi = Density();
-    MultiFab mf(phi.boxArray(), phi.DistributionMap(), 4, 0);
+    const int ncomp = ip.hybrid ? 5 : 4;
+    MultiFab mf(phi.boxArray(), phi.DistributionMap(), ncomp, 0);
     MultiFab::Copy(mf, phi, 0, 0, 1, 0);
 
     // moments over v, rho(x) = sum_j phi dv, mom(x) = sum_j v phi dv and
@@ -357,7 +581,20 @@ AmrCoreInertial::WritePlotFile ()
     }
     mf.ParallelCopy(col, 0, 1, 3);
 
-    WriteSingleLevelPlotfile(plotfilename, mf, {"phi", "rho", "mom", "ke"}, Geom(0), t_new, step_count);
+    if (ip.hybrid) {
+        // 1 in the particle region
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            auto const& o = mf.array(mfi);
+            auto const& m = mask0.const_array(mfi);
+            amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                o(i,j,k,4) = static_cast<Real>(m(i,j,k));
+            });
+        }
+        WriteSingleLevelPlotfile(plotfilename, mf, {"phi", "rho", "mom", "ke", "particles"}, Geom(0), t_new, step_count);
+    } else {
+        WriteSingleLevelPlotfile(plotfilename, mf, {"phi", "rho", "mom", "ke"}, Geom(0), t_new, step_count);
+    }
     if (ip.run_mode == 1 && write_particles) {
         pc->WritePlotFile(plotfilename, "particles");
     }

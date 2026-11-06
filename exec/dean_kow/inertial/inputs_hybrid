@@ -1,0 +1,12 @@
+# Hybrid: SPDE on level 0, particles on level 1 where N phi dx dv < n_refine
+#   mpirun -np 4 ./main2d.gnu.MPI.ex inputs_hybrid
+FILE = inputs_spde
+inertial.hybrid    = 1
+inertial.n_refine  = 10        # particles where a cell holds fewer than 10 particles
+amr.max_level      = 1
+amr.ref_ratio      = 1
+amr.n_error_buf    = 2         # buffer cells around the tagged region
+amr.blocking_factor = 2        # chunkier grids: raise it
+amr.grid_eff       = 0.9
+amr.regrid_int     = 100       # steps between regrids (large: fixed grids)
+amr.plot_file      = plt_hyb_

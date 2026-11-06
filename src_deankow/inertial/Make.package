@@ -9,3 +9,4 @@ CEXE_headers += AmrCoreInertial.H
 CEXE_headers += InertialPC.H
 CEXE_headers += myfunc.H
 CEXE_headers += mykernel.H
+CEXE_headers += ParticleRNG.H

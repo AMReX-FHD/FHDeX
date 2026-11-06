@@ -22,8 +22,15 @@ using namespace amrex;
 //   centred advection up to |lambda dt| = sqrt3 on the imaginary axis.
 // F holds the deterministic fluxes (x free streaming; v friction, force and
 // diffusion), S the stochastic v flux.
+//
+// If fsum is given (the hybrid), it receives the time-averaged face flux that
+// the step applied, phi^{n+1} = phi^n - dt div(fsum), noise included:
+//   Euler-Maruyama: F(phi^n) + S;  Heun: (F(phi^n) + F(phi^*))/2 + S;
+//   RK3: F_1/6 + F_2/6 + 2 F_3/3 with each stage's own noise.
+// The hybrid uses it to remove the SPDE flux across the particle-region
+// boundary.
 void
-AmrCoreInertial::AdvancePhi (Real dt)
+AmrCoreInertial::AdvancePhi (Real dt, Array<MultiFab, AMREX_SPACEDIM>* fsum)
 {
     std::swap(phi_old, phi_new);
     fill_phi_ghosts(phi_old, Geom(0));
@@ -51,6 +58,8 @@ AmrCoreInertial::AdvancePhi (Real dt)
         }
         MultiFab stage(ba, dm, 1, nghost);
 
+        const Real wstage[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
+
         // out = u + dt R(u, W_s); u must have its ghost cells filled
         auto euler_stage = [&] (MultiFab const& u, int s, MultiFab& out)
         {
@@ -59,6 +68,11 @@ AmrCoreInertial::AdvancePhi (Real dt)
                 MultiFab::LinComb(ws, 1.0, wa, 0, beta[s], wb, 0, 0, 1, 0);
                 compute_stoch_flux_given(u, ws, sflux, Geom(0), ip, dt);
                 MultiFab::Add(flux[1], sflux, 0, 0, 1, 0);
+            }
+            if (fsum) {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                    MultiFab::Saxpy((*fsum)[d], wstage[s], flux[d], 0, 0, 1, 0);
+                }
             }
             apply_fluxes(u, out, flux, Geom(0), dt);
         };
@@ -79,6 +93,9 @@ AmrCoreInertial::AdvancePhi (Real dt)
         }
         if (time_integrator == 0) {
             if (dorand) { MultiFab::Add(flux[1], sflux, 0, 0, 1, 0); }
+            if (fsum) {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) { MultiFab::Copy((*fsum)[d], flux[d], 0, 0, 1, 0); }
+            }
             apply_fluxes(phi_old, phi_new, flux, Geom(0), dt);
         } else {
             // predictor
@@ -97,6 +114,9 @@ AmrCoreInertial::AdvancePhi (Real dt)
                 MultiFab::LinComb(flux[d], 0.5, flux[d], 0, 0.5, flux1[d], 0, 0, 1, 0);
             }
             if (dorand) { MultiFab::Add(flux[1], sflux, 0, 0, 1, 0); }
+            if (fsum) {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) { MultiFab::Copy((*fsum)[d], flux[d], 0, 0, 1, 0); }
+            }
             apply_fluxes(phi_old, phi_new, flux, Geom(0), dt);
         }
     }
