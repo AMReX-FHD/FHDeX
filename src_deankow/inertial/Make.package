@@ -1,0 +1,11 @@
+CEXE_sources += main.cpp
+CEXE_sources += AmrCoreInertial.cpp
+CEXE_sources += AdvancePhi.cpp
+CEXE_sources += myfunc.cpp
+CEXE_sources += InertialPC.cpp
+
+CEXE_headers += InertialParams.H
+CEXE_headers += AmrCoreInertial.H
+CEXE_headers += InertialPC.H
+CEXE_headers += myfunc.H
+CEXE_headers += mykernel.H

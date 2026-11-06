@@ -1,0 +1,5 @@
+# Particles on the same (x, v) grid: mpirun -np 4 ./main2d.gnu.MPI.ex inputs_particles
+FILE = inputs_common
+inertial.run_mode        = 1
+amr.plot_file            = plt_part_
+inertial.write_particles = 0
