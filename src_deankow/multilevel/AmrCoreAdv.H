@@ -10,6 +10,7 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FillPatcher.H>
+#include "PotParams.H"
 
 #ifdef AMREX_USE_OMP
 #   include <omp.h>
@@ -172,6 +173,19 @@ private:
 
     int seed=0;
 
+    // external potential (adv.ext_pot, adv.pot_*), shared by the SPDE flux, the
+    // particle drift and the ghost-cell sampler
+    PotParams pot;
+
+    // initial condition (adv.ic_*)
+    ICParams ic;
+
+    // adv.tag_boxes: when given, the particle region is exactly these index boxes
+    // (for testing) instead of the cells with phi < phierr
+    amrex::Vector<amrex::Box> tag_boxes;
+
+    // level-1 grids plus the one-cell ghost ring where particles live; the ring
+    // boxes come first, then the valid boxes (see MakeFBA)
     amrex::BoxArray grown_fba;
 
     //amrex::Vector<int> bc_lo(AMREX_SPACEDIM,0);

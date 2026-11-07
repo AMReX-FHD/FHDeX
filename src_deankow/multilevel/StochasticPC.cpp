@@ -8,11 +8,9 @@
 using namespace amrex;
 
 void
-StochasticPC::InitParticles (MultiFab& phi_fine)
+StochasticPC::InitParticles (MultiFab& phi_fine, PotParams const& pot)
 {
-    amrex::Print() << "calling InitParrticles" << std::endl;
-    amrex::Real factor = -1.;
-    AddParticles(phi_fine, BoxArray{},factor);
+    AddParticles(phi_fine, BoxArray{}, pot);
 }
 
 void
@@ -53,7 +51,7 @@ StochasticPC::ColorParticlesWithPhi (MultiFab const& phi)
 }
 
 void
-StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, amrex::Real factor)
+StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, PotParams const& pot)
 {
     BL_PROFILE("StochasticPC::AddParticles");
 
@@ -143,15 +141,9 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + num_to_add;
         particle_tile.resize(new_size);
-        amrex::Print() << "INIT: NEW SIZE OF PARTICLES IN TILE BOX " << tile_box << " " << new_size << std::endl;
 
-
-        int ext_pot = 1;
-        amrex::Real alpha = .25;
-        amrex::Real beta = .75;
-        amrex::Real gamma = 5.e-4;
-        gamma = 1.1e-3;
-
+        const int  tilt  = (pot.ext_pot == 1 || pot.sampler_only == 1) ? 1 : 0;
+        const Real gamma = pot.gamma;
 
         // now fill in the data
         ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data() + old_size;
@@ -172,45 +164,27 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude, 
 #elif (AMREX_SPACEDIM == 3)
                 Real r[3] = {amrex::Random(engine), amrex::Random(engine), amrex::Random(engine)};
 #endif
-                if(factor > 0.)
+                if (tilt == 1)
                 {
-                    Real xm = plo[0] + i*dx[0];
-                    Real xp = xm + dx[0];
-                    Real ym = plo[1] + j*dx[1];
-                    Real yp = ym + dx[1];
-                    Real vpx = (xp - beta)*(xp-beta)*(xp-alpha)*(xp-alpha);
-                    Real vmx = (xm - beta)*(xm-beta)*(xm-alpha)*(xm-alpha);
-                    Real vpy = (yp - .5)*(yp - .5)*(yp - .5)*(yp - .5);
-                    Real vmy = (ym - .5)*(ym - .5)*(ym - .5)*(ym - .5);
-                    Real vsubx = (vpx - vmx)/dx[0];
-                    Real vsuby = 0.5*(vpy - vmy)/dx[1];
+                    // Boltzmann factor exp(-2 V/gamma) linearized across the cell with the
+                    // cell-averaged slope dV = (V(x+) - V(x-))/dx; sample s in [0, dx] from
+                    // the density ~ exp(-2 dV s/gamma) by inverting its CDF.
+                    const Real xm = plo[0] + i*dx[0];
+                    const Real ym = plo[1] + j*dx[1];
+                    const Real vsubx = (pot.Vx(xm + dx[0]) - pot.Vx(xm))/dx[0];
+                    const Real vsuby = (pot.Vy(ym + dx[1]) - pot.Vy(ym))/dx[1];
 
-                    Real sampx,sampy;
-
-                    if(std::abs(vsubx) >= 1.e-12)
+                    if (std::abs(vsubx) >= 1.e-12)
                     {
-                       sampx = -gamma * std::log(1. - r[0]*(1. - std::exp(-2*vsubx*dx[0]/gamma)))/(2.*vsubx);
-#ifndef AMREX_USE_GPU
-                       if( sampx < 0. || sampx > dx[0])
-                       {
-                          amrex::Print() << " offx " << sampx << " " << r[0] << " " << vsubx << std::endl;
-                       }
-#endif
-                     //  if(j == 50){
-                     //     amrex::Print() << "center " << i << " " << j << " " << sampx << " " << r[0] << " " << vsubx << std::endl;
-                     //  }
+                       Real sampx = -gamma * std::log(1. - r[0]*(1. - std::exp(-2*vsubx*dx[0]/gamma)))/(2.*vsubx);
+                       sampx = amrex::min(amrex::max(sampx, Real(0.)), dx[0]*(1. - 1.e-12));
                        r[0] = sampx / dx[0];
                     }
 
-                    if(std::abs(vsuby) >= 1.e-12)
+                    if (std::abs(vsuby) >= 1.e-12)
                     {
-                       sampy = -gamma * std::log(1. - r[1]*(1. - std::exp(-2*vsuby*dx[1]/gamma)))/(2.*vsuby);
-#ifndef AMREX_USE_GPU
-                       if( sampy < 0. || sampy > dx[1])
-                       {
-                          amrex::Print() << "offy " <<sampy << " " << r[1] << " " << vsuby << std::endl;
-                       }
-#endif
+                       Real sampy = -gamma * std::log(1. - r[1]*(1. - std::exp(-2*vsuby*dx[1]/gamma)))/(2.*vsuby);
+                       sampy = amrex::min(amrex::max(sampy, Real(0.)), dx[1]*(1. - 1.e-12));
                        r[1] = sampy / dx[1];
                     }
                 }
@@ -417,7 +391,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
 }
 
 void
-StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
+StochasticPC::AdvectWithRandomWalk (int lev, Real dt, PotParams const& pot)
 {
     BL_PROFILE("StochasticPC::AdvectWithRandomWalk");
     const auto dx = Geom(lev).CellSizeArray();
@@ -431,7 +405,7 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
 
     Real stddev = std::sqrt(dt);
 
-    int ext_pot = 0;
+    const int ext_pot = pot.ext_pot;
     // amr.on_surf = 1 applies the curved-surface drift and anisotropic diffusion below;
     // the default 0 matches the flat, isotropic level-0 SPDE in mykernel.H
     int on_surf = 0;
@@ -439,10 +413,6 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
         ParmParse pp("amr");
         pp.query("on_surf", on_surf);
     }
-    amrex::Real alpha = .25;
-    amrex::Real beta = .75;
-    amrex::Real gamma = 5.e-4;
-        gamma = 1.1e-3;
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -462,18 +432,11 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                           Real incy = amrex::RandomNormal(0.,stddev,engine);,
                           Real incz = amrex::RandomNormal(0.,stddev,engine););
 
-             if(ext_pot ==1){
-                amrex::Real xloc,yloc;
-                amrex::Real Vsubx, Vsuby;
-
-                xloc = p.pos(0);
-                yloc = p.pos(1);
-                Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
-                Vsuby = 0.5*4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
-
-                p.pos(0) += -dt*Vsubx;
-                p.pos(1) += -dt*Vsuby;
-
+             if (ext_pot == 1) {
+                // drift -grad V / gamma, folded into the increment so the total move
+                // is clipped to one cell below like the random part
+                incx += -dt*pot.dVx(p.pos(0))/pot.gamma;
+                incy += -dt*pot.dVy(p.pos(1))/pot.gamma;
              }
 
              if(on_surf == 1){

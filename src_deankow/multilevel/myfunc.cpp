@@ -12,9 +12,11 @@ void advance_phi (MultiFab& phi_old,
                   Real dt,
                   Real /*npts_scale*/,
                   Geometry const& geom,
-                  Vector<BCRec> const& BoundaryCondition)
+                  Vector<BCRec> const& BoundaryCondition,
+                  PotParams const& pot)
 {
     int Ncomp = phi_old.nComp();
+    const auto plo = geom.ProbLoArray();
 
     AMREX_D_TERM(const Real dxinv = geom.InvCellSize(0);,
                  const Real dyinv = geom.InvCellSize(1);,
@@ -64,14 +66,16 @@ void advance_phi (MultiFab& phi_old,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 compute_flux_x(i,j,k,fluxx,stochfluxx,phi,dxinv,
-                               lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp);
+                               lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp,
+                               plo[0], pot);
             });
 
         amrex::ParallelFor(ybx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 compute_flux_y(i,j,k,fluxy,stochfluxy,phi,dyinv,
-                               lo.y, hi.y, dom_lo.y, dom_hi.y, bc.lo(1), bc.hi(1),Ncomp);
+                               lo.y, hi.y, dom_lo.y, dom_hi.y, bc.lo(1), bc.hi(1),Ncomp,
+                               plo[1], pot);
             });
 #if (AMREX_SPACEDIM > 2)
         amrex::ParallelFor(zbx,

@@ -2,6 +2,7 @@
 #define STOCHASTIC_PC_H_
 
 #include <AMReX_Particles.H>
+#include "PotParams.H"
 
 struct RealIdx
 {
@@ -66,12 +67,15 @@ public:
                                    amrex::DefaultAllocator>(geom, dmap, ba)
         {}
 
-    void InitParticles (amrex::MultiFab& phi_fine);
-    void  AddParticles (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude, amrex::Real factor);
+    // Sample particles from phi in every cell of phi_fine not covered by ba_to_exclude:
+    // n = floor(phi cell_vol + U) per cell; positions uniform in the cell, or tilted
+    // by the external potential (exp(-2 dV/gamma) across the cell) when pot.ext_pot == 1.
+    void InitParticles (amrex::MultiFab& phi_fine, PotParams const& pot);
+    void  AddParticles (amrex::MultiFab& phi_fine, const amrex::BoxArray& ba_to_exclude, PotParams const& pot);
 
     void ColorParticlesWithPhi (amrex::MultiFab const& phi_fine);
 
-    void AdvectWithRandomWalk (int lev, amrex::Real dt);
+    void AdvectWithRandomWalk (int lev, amrex::Real dt, PotParams const& pot);
 
     void RemoveParticlesNotInBA (const amrex::BoxArray& ba_to_keep);
     void RefluxCrseToFine (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_for_reflux);
