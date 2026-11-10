@@ -1,0 +1,4 @@
+# Hybrid with BAOAB particles (ghost ring 2 cells)
+FILE = inputs_hybrid
+inertial.particle_integrator = 1
+amr.plot_file                = plt_hybb_

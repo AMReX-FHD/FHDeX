@@ -1,0 +1,5 @@
+# Particles with the BAOAB integrator (exact OU step for friction and noise):
+#   mpirun -np 4 ./main2d.gnu.MPI.ex inputs_particles_baoab
+FILE = inputs_particles
+inertial.particle_integrator = 1
+amr.plot_file                = plt_baoab_

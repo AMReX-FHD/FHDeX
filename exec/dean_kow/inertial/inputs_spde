@@ -1,0 +1,7 @@
+# Stochastic SPDE: make -j8; mpirun -np 4 ./main2d.gnu.MPI.ex inputs_spde
+FILE = inputs_common
+inertial.run_mode = 0
+amr.plot_file     = plt_spde_
+dorand            = 1
+adv_order         = 0      # centred x and v drift: correct fluctuations
+time_integrator   = 2      # stochastic RK3 (stable for centred advection)

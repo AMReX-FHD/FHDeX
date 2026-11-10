@@ -1,0 +1,34 @@
+# *****************************************************************
+# Parameters shared by the SPDE (inputs_spde, inputs_det) and the particles
+# (inputs_particles). All include this file with "FILE = inputs_common",
+# resolved relative to the directory the code is run from.
+# *****************************************************************
+
+# phase space: x periodic on [0, L), v in [-Vmax, Vmax] with reflecting walls
+geometry.prob_lo     =  0.0  -6.0
+geometry.prob_hi     =  1.0   6.0
+geometry.is_periodic =  1     0
+amr.n_cell           =  128   96       # dx = 1/128, dv = 0.125
+amr.max_grid_size    =  32
+amr.max_level        =  0
+
+# model (mass 1): dX = v dt, dv = -gamma v dt - U'(X) dt + sqrt(2 D) dW
+num_part         = 1.e6      # N
+diff_coeff       = 1.0       # D
+inertial.gamma   = 1.0       # T = D/gamma = 1, thermal speed 1 (walls at 6)
+inertial.pot_k   = 100.      # U = k/2 (x - 0.5)^2: sigma_x = 0.1, omega = 10
+
+# initial condition: Gaussian displaced to x = 0.7, v = 0, widths 0.05, 0.5;
+# relaxes as a damped oscillator to the equilibrium exp(-(v^2/2 + U)/T)
+inertial.ic_type = 1
+inertial.ic_x0   = 0.7
+inertial.ic_v0   = 0.0
+inertial.ic_sx   = 0.05
+inertial.ic_sv   = 0.5
+
+# run control and output, in time so both modes write at the same times
+stop_time        = 5.0
+amr.plot_dt      = 0.25
+adv.cfl          = 0.5
+seed             = 1
+diag_int         = 200

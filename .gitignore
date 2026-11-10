@@ -77,5 +77,7 @@ src_deankow/flocking/*.tex
 src_deankow/flocking/*.md
 src_deankow/active/*.tex
 src_deankow/active/*.md
+src_deankow/inertial/*.tex
+src_deankow/inertial/*.md
 src_deankow/multilevel/*.tex
 src_deankow/multilevel/*.md
