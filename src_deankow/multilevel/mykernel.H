@@ -2,168 +2,39 @@
 #define MY_KERNEL_H_
 
 #include <AMReX_FArrayBox.H>
+#include "PotParams.H"
 
+// Initial condition, in particles per cell (see ICParams in PotParams.H)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void init_phi (int i, int j, int k,
                amrex::Array4<amrex::Real> const& phi,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
-               amrex::Real /*npts_scale*/, int Ncomp)
+               ICParams const& ic, PotParams const& pot, int Ncomp)
 {
-    using amrex::Real;;
+    using amrex::Real;
     Real cellvol = dx[0]*dx[1];
-
 #if(AMREX_SPACEDIM > 2)
-    cellvol *=dx[2];
+    cellvol *= dx[2];
 #endif
 
-
-#if 0
-    Real rad = Real(0.1);
-    Real xcent = Real(0.5);
-    Real ycent = Real(0.5);
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
-
+    Real npc = ic.npc;
+    if (ic.type == 1) {
+        // Boltzmann distribution of the external potential, mean ic.npc per cell
+        const Real x = prob_lo[0] + (i + Real(0.5))*dx[0];
+        const Real y = prob_lo[1] + (j + Real(0.5))*dx[1];
+        npc = ic.npc*std::exp(-2.*pot.V(x,y)/pot.gamma)/ic.norm;
+    } else if (ic.type == 2) {
+        // step: ic.npc_in inside the index box, ic.npc outside
+        const bool inside = (i >= ic.box_lo[0] && i <= ic.box_hi[0] &&
+                             j >= ic.box_lo[1] && j <= ic.box_hi[1]
 #if (AMREX_SPACEDIM > 2)
-    Real zcent = Real(0.5);
-    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
-    Real r2 = (x*x + y*y + z*z) / (rad*rad);
-#else
-    Real z = Real(0.);
-    Real r2 = (x*x + y*y) / (rad*rad);
+                             && k >= ic.box_lo[2] && k <= ic.box_hi[2]
 #endif
-
-    // Gaussian
-    phi(i,j,k,0) = Real(1.) + std::exp(-r2);
-#endif
-
-#if 0
-    // Jump in x-direction
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0];
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1];
-    if ( x > 0.5) {
-        phi(i,j,k,0) = 1.5*npts_scale;
-    } else {
-        phi(i,j,k,0) = 0.5*npts_scale;
+                             );
+        if (inside) { npc = ic.npc_in; }
     }
-#endif
-
-#if 0
-    // Delta function
-    if (i==4 && j ==4)
-    {
-       phi(i,j,k,0) = 1./(dx[0]*dx[1]);
-    }
-    else
-    {
-       phi(i,j,k,0) = 0;;
-    }
-#endif
-
-#if 1
-    // 2D Test for multilevel
-    Real rad = Real(0.2);
-    Real xcent = Real(0.5);
-    Real ycent = Real(0.5);
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
-    Real r2 = (x*x + y*y);
-//    r2 = 4.*(x-y)*(x-y)+ .25*(x+y)*(x+y);
-#if (AMREX_SPACEDIM == 3)
-    Real zcent = Real(0.75);
-    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
-    r2 = (x*x + y*y+z*z);
-#endif
-
-//    if ( r2 < rad*rad) {
-    if (i == 50 && j == 50) {
-        phi(i,j,k,0) = 10.1/cellvol;
-    } else {
-        phi(i,j,k,0) = 10.1/cellvol;
-    }
-#endif
-        phi(i,j,k,0) = 20./cellvol;
-
-#if 0
-    // 2D Test for multilevel
-    Real rad = Real(0.4);
-    Real radi = Real(0.1);
-    Real xcent = Real(0.5);
-    Real ycent = Real(0.5);
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
-    Real r2 = (x*x + y*y);
-    r2 = 2.*(x-y)*(x-y)+ .5*(x+y)*(x+y);
-    Real r3 = 0.5*(x-y)*(x-y)+ 2.*(x+y)*(x+y);
-#if (AMREX_SPACEDIM == 3)
-    Real zcent = Real(0.5);
-    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
-    r3 = (x*x + y*y+z*z);
-    r2 = (x-.1)*(x-.1)+(y-.2)*(y-.2)+z*z;
-#endif
-
-    if ( r3 > rad*rad) {
-        //phi(i,j,k,0) = 50./cellvol;
-        phi(i,j,k,0) = 30./cellvol;
-    } else if (r2 < radi*radi) {
-        //phi(i,j,k,0) = 20./cellvol;
-        phi(i,j,k,0) = 15./cellvol;
-    } else {
-        phi(i,j,k,0) = 0./cellvol;
-    }
-    //if(std::abs(x) <= .1 && y > 0.){
-    if(x >= .3 && y > .3){
-       phi(i,j,k,0) = 0.;
-    } else {
-       phi(i,j,k,0) = 30./cellvol;
-    }
-
-//
-#endif
-#if 0
-//    int ioff = 25;
-//    int joff = 25;
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] ;
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] ;
-
-    Real value = 200./(.01 * .01);
-
-//    if( i-ioff >= 0 && i - ioff < 10 && j-joff >= 0 && j - joff < 50 ) {
-    if( x >= .25 && x < .35 && y >= .25 && y < .75 ) {
-    //if( x >= .2 && x < .3 && y >= .25 && y < .75 ) {
-       //phi(i,j,k,0) = 200./cellvol;
-       phi(i,j,k,0) = value;
-    } else {
-       phi(i,j,k,0) = 0./cellvol;
-    }
-
-//
-
-#endif
-#if 0
-
-        int ext_pot = 1;
-        amrex::Real alpha = .25;
-        amrex::Real beta = .75;
-        amrex::Real gamma = 5.e-4;
-        gamma = 1.1e-3;
-        Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] ;
-        Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] ;
-
-    if( x >= .2 && x < .4 && y >= .25 && y < .75 ) {
-        amrex::Real pot = (x-alpha)*(x-alpha)*(x-beta)*(x-beta);
-        pot += 0.5* (y-.5)*(y-.5)*(y-.5)*(y-.5);
-        pot /= gamma;
-        Real value = 20000.* 200.* std::exp(-pot);
-        phi(i,j,k,0) = value;
-    } else {
-       phi(i,j,k,0) = 0./cellvol;
-    }
-
-
-
-#endif
+    phi(i,j,k,0) = npc/cellvol;
 
     if (Ncomp == 2){
         phi(i,j,k,1) = phi(i,j,k,0);
@@ -176,17 +47,12 @@ void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxx,
                      amrex::Array4<amrex::Real> const& stochfluxx,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp,
+                     amrex::Real xlo, PotParams const& pot)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
-
-    int ext_pot = 0;
-    amrex::Real alpha = .25;
-    amrex::Real beta = .75;
-    amrex::Real gamma = 5.e-4;
-    gamma = 1.1e-3;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -272,18 +138,11 @@ void compute_flux_x (int i, int j, int k,
 
           fluxx(i,j,k,0) = 0.5*(phip-phim) * dxinv;
 
-          if(ext_pot == 1) {
-
-             amrex::Real xloc;
-             xloc = i / dxinv;
-             amrex::Real phiavg = 0.5*(phim+phip);
-
-             amrex::Real Vsubx;
-
-             Vsubx = 2.*(xloc - beta) * (xloc - alpha)* (2.*xloc - alpha - beta) / gamma;
-
-             fluxx(i,j,k,0) += phiavg * Vsubx;
-
+          if (pot.ext_pot == 1) {
+             // drift flux phi dV/dx / gamma at the face x_i
+             const amrex::Real xloc = xlo + i / dxinv;
+             const amrex::Real phiavg = 0.5*(phim+phip);
+             fluxx(i,j,k,0) += phiavg * pot.dVx(xloc) / pot.gamma;
           }
 
         if(Ncomp == 2){
@@ -300,17 +159,12 @@ void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxy,
                      amrex::Array4<amrex::Real> const& stochfluxy,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp,
+                     amrex::Real ylo, PotParams const& pot)
 {
     int coeff_index = Ncomp-1;
     amrex::Real phibdry = 0.;
     amrex::Real stofact = 1.;
-
-    int ext_pot = 0;
-    amrex::Real alpha = .25;
-    amrex::Real beta = .75;
-    amrex::Real gamma = 5.e-4;
-    gamma = 1.1e-3;
 
     amrex::Real phip,phim, phipn, phimn;
 
@@ -358,18 +212,11 @@ void compute_flux_y (int i, int j, int k,
 
         fluxy(i,j,k,0) = 0.5*(phip-phim) * dyinv;
 
-          if(ext_pot == 1) {
-
-             amrex::Real yloc;
-             yloc = j / dyinv;
-             amrex::Real phiavg = 0.5*(phip+phim);
-
-             amrex::Real Vsuby;
-
-             Vsuby =0.5* 4.*(yloc - .5)*(yloc - .5)*(yloc - .5) / gamma;
-
-             fluxy(i,j,k,0) += phiavg * Vsuby;
-
+          if (pot.ext_pot == 1) {
+             // drift flux phi dV/dy / gamma at the face y_j
+             const amrex::Real yloc = ylo + j / dyinv;
+             const amrex::Real phiavg = 0.5*(phip+phim);
+             fluxy(i,j,k,0) += phiavg * pot.dVy(yloc) / pot.gamma;
           }
 
         if(Ncomp == 2){
