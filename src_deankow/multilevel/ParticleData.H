@@ -33,8 +33,20 @@ struct ParticleData {
 
     }
 
+    // Construct the container without a level 1 (no cells were tagged at the start);
+    // MakeNewLevelFromCoarse -> regrid_particles creates the particles later.
+    void init_empty(amrex::ParGDBBase* a_gdb)
+    {
+        if (use_particles) {
+            stochastic_particles = std::make_unique<StochasticPC>(a_gdb);
+            stochastic_particles->SetParticleBoxArray(1, amrex::BoxArray{});
+            stochastic_particles->SetParticleDistributionMap(1, amrex::DistributionMapping{});
+        }
+    }
+
     void init_particles(amrex::ParGDBBase* a_gdb, const amrex::BoxArray& grown_fba,
-                        amrex::MultiFab& phi_crse, amrex::MultiFab& phi_fine)
+                        amrex::MultiFab& phi_crse, amrex::MultiFab& phi_fine,
+                        PotParams const& pot)
     {
         // Initialize stochastic particles and phi at level 1
         if (use_particles) {
@@ -65,7 +77,7 @@ struct ParticleData {
             // **********************************************************************
             // Use this grown boxArray to hold the particles
             // **********************************************************************
-            stochastic_particles->InitParticles(phi_grown);
+            stochastic_particles->InitParticles(phi_grown, pot);
 
             amrex::Print() << "Before Removal we have  " << stochastic_particles->TotalNumberOfParticles() <<
                               " stochastic particles." << std::endl;
@@ -93,17 +105,23 @@ struct ParticleData {
         }
     }
 
+    // Regrid: particles in cells that left the region go to level 0 and are
+    // dropped (their mass is already in the coarse phi); cells that entered it
+    // (not in old_fine_ba) are sampled from phi_fine. With an empty old_fine_ba
+    // this also creates level 1 from scratch mid-run. new_ungrown_dm is the
+    // DistributionMapping of phi_fine, so the new particles land on the rank
+    // that owns their box.
     void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& new_ungrown_ba,
-                          const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine)
+                          const amrex::DistributionMapping& new_ungrown_dm,
+                          const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine,
+                          PotParams const& pot)
     {
-        amrex::DistributionMapping new_ungrown_dm { new_ungrown_ba, amrex::ParallelDescriptor::NProcs() };
         stochastic_particles->SetParticleBoxArray(1, new_ungrown_ba);
         stochastic_particles->SetParticleDistributionMap(1, new_ungrown_dm);
 
         stochastic_particles->Redistribute();
         stochastic_particles->RemoveParticlesAtLevel(0);
-        amrex::Real factor = .9;
-        stochastic_particles->AddParticles(phi_fine, old_fine_ba, factor);
+        stochastic_particles->AddParticles(phi_fine, old_fine_ba, pot);
         phi_fine.setVal(0.0);
         const int lev = 1;
         const auto dx = stochastic_particles->Geom(lev).CellSizeArray();
@@ -121,9 +139,24 @@ struct ParticleData {
         stochastic_particles->SetParticleDistributionMap(1, new_dm);
     }
 
+    // Level 1 was removed: delete every particle and forget the level-1 layout
+    void clear_particles()
+    {
+        if (use_particles && stochastic_particles) {
+            stochastic_particles->clearParticles();
+            stochastic_particles->SetParticleBoxArray(1, amrex::BoxArray{});
+            stochastic_particles->SetParticleDistributionMap(1, amrex::DistributionMapping{});
+        }
+    }
+
+    amrex::Long num_particles() const
+    {
+        return (use_particles && stochastic_particles) ? stochastic_particles->TotalNumberOfParticles() : 0;
+    }
+
     void writePlotFile (const std::string& a_fname, amrex::MultiFab const& phi_fine) const
     {
-        if (use_particles) {
+        if (use_particles && phi_fine.ok()) {
             bool is_checkpoint = false;
             amrex::MultiFab phi_grown(stochastic_particles->ParticleBoxArray(1),
                                       stochastic_particles->ParticleDistributionMap(1),1,0);
@@ -158,11 +191,11 @@ struct ParticleData {
     void advance_particles(int lev, amrex::Real dt_lev, amrex::Real cell_vol,
                            amrex::MultiFab& phi_crse_old,
                            amrex::MultiFab& phi_crse_new,
-                           amrex::MultiFab& phi_fine)
+                           amrex::MultiFab& phi_fine,
+                           PotParams const& pot)
     {
-        // Update stochastic particles
-        if (use_particles) {
-            AMREX_ALWAYS_ASSERT(lev == 1);
+        // Update stochastic particles; nothing to do without a level 1
+        if (use_particles && lev == 1 && phi_fine.ok()) {
             const amrex::Geometry& geom_fine = stochastic_particles->GetParGDB()->Geom(lev);
 
             // **********************************************************************
@@ -180,15 +213,12 @@ struct ParticleData {
             // **********************************************************************
             amrex::BoxArray ba_to_exclude(phi_fine.boxArray());
 
-            amrex::Print() << "Adding particles in advance " << std::endl;
-
-            amrex::Real factor = .9;
-            stochastic_particles->AddParticles(phi_grown, ba_to_exclude,factor);
+            stochastic_particles->AddParticles(phi_grown, ba_to_exclude, pot);
 
             // **********************************************************************
             // Advect the particles in the valid region and in the ghost region
             // **********************************************************************
-            stochastic_particles->AdvectWithRandomWalk(lev, dt_lev);
+            stochastic_particles->AdvectWithRandomWalk(lev, dt_lev, pot);
 
             // **********************************************************************
             // Account for particles that went from crse --> fine BEFORE Redistribute
@@ -249,7 +279,6 @@ struct ParticleData {
             phi_fine.ParallelCopy(phi_grown,0,0,1);
 
             phi_fine.mult(1./cell_vol);
-            amrex::Print() << "Used the particle locations to define phi at level 1 " << std::endl;
         }
     }
 

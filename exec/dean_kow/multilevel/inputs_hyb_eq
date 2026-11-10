@@ -1,0 +1,45 @@
+# Hybrid equilibrium test: uniform 20 particles per cell in a periodic box, a
+# fixed 24 x 24 particle region (adv.tag_boxes), SPDE elsewhere, no potential.
+# Checks: mass conserved to round-off every step; time-averaged density and
+# cell variance equal in the particle region, the ghost ring and the SPDE
+# region. For the same test with the potential add adv.ext_pot = 1 together
+# with a periodic force: geometry.prob_lo = 0.25 0.25  geometry.prob_hi = 0.75 0.75
+# adv.pot_ky = 0 (see inputs_hyb_pot).
+#   mpirun -np 4 ./main2d.gnu.MPI.ex inputs_hyb_eq
+
+max_step  = 20000
+seed      = 1024
+amrex.fpe_trap_invalid = 1
+
+npts_scale = 1.
+alg_type   = 0
+
+geometry.prob_lo     =  0.0  0.0
+geometry.prob_hi     =  1.0  1.0
+geometry.is_periodic =  1    1
+bc_lo = 0 0
+bc_hi = 0 0
+
+amr.v               = 1
+amr.n_cell          = 64 64
+amr.max_grid_size   = 32
+amr.max_level       = 1
+amr.use_particles   = 1
+amr.ref_ratio       = 1
+amr.blocking_factor = 2
+amr.n_error_buf     = 0
+amr.grid_eff        = 1.0
+amr.regrid_int      = 1000000000      # fixed grids
+
+adv.cfl        = 0.125               # dt = cfl dx^2 / 8
+adv.do_reflux  = 1
+adv.phierr     = 10.
+adv.tag_boxes  = 20 8 43 31          # i0 j0 i1 j1: the particle region
+
+adv.ext_pot    = 0
+adv.ic_type    = 0
+adv.ic_npc     = 20.
+
+amr.plot_file  = plt_eq_
+amr.plot_int   = 500
+amr.chk_int    = -1

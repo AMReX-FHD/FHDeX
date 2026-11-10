@@ -1,0 +1,44 @@
+# Hybrid regrid test: uniform 12 particles per cell, particles where a cell
+# holds fewer than phierr = 5, regridded every 20 steps. No cell is tagged at
+# step 0; fluctuations create level 1 at the first regrid and the region then
+# changes every regrid. Checks: no abort, mass conserved exactly between
+# regrids, global mean and cell variance as in pure SPDE / pure particles.
+# For the small flicker test (level 1 appearing and disappearing) use
+#   amr.n_cell = 8 8  adv.ic_npc = 30  adv.phierr = 20  amr.regrid_int = 10
+#   mpirun -np 4 ./main2d.gnu.MPI.ex inputs_hyb_regrid
+
+max_step  = 20000
+seed      = 1024
+amrex.fpe_trap_invalid = 1
+
+npts_scale = 1.
+alg_type   = 0
+
+geometry.prob_lo     =  0.0  0.0
+geometry.prob_hi     =  1.0  1.0
+geometry.is_periodic =  1    1
+bc_lo = 0 0
+bc_hi = 0 0
+
+amr.v               = 1
+amr.n_cell          = 64 64
+amr.max_grid_size   = 32
+amr.max_level       = 1
+amr.use_particles   = 1
+amr.ref_ratio       = 1
+amr.blocking_factor = 2
+amr.n_error_buf     = 1
+amr.grid_eff        = 0.9
+amr.regrid_int      = 20
+
+adv.cfl        = 0.125
+adv.do_reflux  = 1
+adv.phierr     = 5.
+
+adv.ext_pot    = 0
+adv.ic_type    = 0
+adv.ic_npc     = 12.
+
+amr.plot_file  = plt_rg_
+amr.plot_int   = 500
+amr.chk_int    = -1
