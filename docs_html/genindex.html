@@ -5,15 +5,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; incflo 26.12-dev documentation</title>
+  <title>Index &mdash; FHDeX Documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=49da6d9f" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=e16bea5e"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -30,7 +30,7 @@
           
           
           <a href="index.html" class="icon icon-home">
-            incflo
+            FHDeX
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -40,16 +40,96 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particles.html">Tracer Particles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#what-is-fluctuating-hydrodynamics">1.1. What is fluctuating hydrodynamics?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#solver-families">1.2. Solver families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#relationship-to-amrex">1.3. Relationship to AMReX</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#repository-layout">1.4. Repository layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html">2. Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#prerequisites">2.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#downloading-the-code">2.2. Downloading the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#building-exec-hydro">2.3. Building <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#running-a-test-problem">2.4. Running a test problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#output">2.5. Output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Theory.html">3. Theory and Numerical Methods</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#fluctuating-hydrodynamics">3.1. Fluctuating hydrodynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#incompressible-flow">3.2. Incompressible flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#the-stokes-solver">3.3. The Stokes solver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#multispecies-mixtures">3.4. Multispecies mixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#compressible-flow">3.5. Compressible flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#chemistry-and-reaction-diffusion">3.6. Chemistry and reaction–diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#particle-methods">3.7. Particle methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#random-numbers">3.8. Random numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#references">3.9. References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CodeStructure.html">4. Code Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CodeStructure.html#how-an-application-is-assembled">4.1. How an application is assembled</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CodeStructure.html#source-libraries">4.2. Source libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#infrastructure">4.2.1. Infrastructure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#physics-solvers">4.2.2. Physics solvers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#particles-and-immersed-boundaries">4.2.3. Particles and immersed boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#multiscale-coupling">4.2.4. Multiscale coupling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#other-directories">4.2.5. Other directories</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Applications.html">5. Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="apps/hydro.html">5.1. <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code> – incompressible fluctuating hydrodynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/multispec.html">5.2. <code class="docutils literal notranslate"><span class="pre">exec/multispec</span></code> – low-Mach multispecies mixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/compressible_stag.html">5.3. <code class="docutils literal notranslate"><span class="pre">exec/compressible_stag</span></code> – compressible staggered-grid FHD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/reactdiff.html">5.4. <code class="docutils literal notranslate"><span class="pre">exec/reactDiff</span></code> – stochastic reaction–diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/dsmc.html">5.5. <code class="docutils literal notranslate"><span class="pre">exec/DSMC</span></code> – direct simulation Monte Carlo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/immersed_ions.html">5.6. <code class="docutils literal notranslate"><span class="pre">exec/immersedIons</span></code> – Brownian ions in a fluctuating fluid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Applications.html#other-applications">5.7. Other applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Analysis.html">6. Analysis and Output</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#plotfiles">6.1. Plotfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#structure-factors">6.2. Structure factors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#means-variances-and-correlations">6.3. Means, variances and correlations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#checkpoint-and-restart">6.4. Checkpoint and restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#python-tools">6.5. Python tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="RuntimeParameters.html">7. Runtime Parameters</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="params/common.html">7.1. <code class="docutils literal notranslate"><span class="pre">common</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/gmres.html">7.2. <code class="docutils literal notranslate"><span class="pre">gmres</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/multispec.html">7.3. <code class="docutils literal notranslate"><span class="pre">multispec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/compressible.html">7.4. <code class="docutils literal notranslate"><span class="pre">compressible</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/chemistry.html">7.5. <code class="docutils literal notranslate"><span class="pre">chemistry</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/reactDiff.html">7.6. <code class="docutils literal notranslate"><span class="pre">reactDiff</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/MFsurfchem.html">7.7. <code class="docutils literal notranslate"><span class="pre">MFsurfchem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/dsmc.html">7.8. <code class="docutils literal notranslate"><span class="pre">dsmc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/surfchem_mui.html">7.9. <code class="docutils literal notranslate"><span class="pre">surfchem_mui</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DeveloperGuide.html">8. Developer Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#adding-a-new-application">8.1. Adding a new application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#adding-a-runtime-parameter">8.2. Adding a runtime parameter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#gpu-support">8.3. GPU support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#single-precision">8.4. Single precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#style">8.5. Style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#documentation">8.6. Documentation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing to This Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#editing-a-page">Editing a page</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#runtime-parameters">Runtime parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#building-locally">Building locally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#publishing">Publishing</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -58,7 +138,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">incflo</a>
+          <a href="index.html">FHDeX</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -68,6 +148,7 @@
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Index</li>
       <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/AMReX-FHD/FHDeX/blob/main/Docs/sphinx_documentation/source/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -90,7 +171,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2017-2026, Incflo Team.</p>
+    <p>&#169; Copyright 2026, The FHDeX developers.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

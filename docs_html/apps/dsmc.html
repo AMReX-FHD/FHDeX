@@ -1,0 +1,265 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5.5. exec/DSMC – direct simulation Monte Carlo &mdash; FHDeX Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=49da6d9f" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="5.6. exec/immersedIons – Brownian ions in a fluctuating fluid" href="immersed_ions.html" />
+    <link rel="prev" title="5.4. exec/reactDiff – stochastic reaction–diffusion" href="reactdiff.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FHDeX
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../Introduction.html">1. Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Introduction.html#what-is-fluctuating-hydrodynamics">1.1. What is fluctuating hydrodynamics?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Introduction.html#solver-families">1.2. Solver families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Introduction.html#relationship-to-amrex">1.3. Relationship to AMReX</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Introduction.html#repository-layout">1.4. Repository layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../GettingStarted.html">2. Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../GettingStarted.html#prerequisites">2.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../GettingStarted.html#downloading-the-code">2.2. Downloading the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../GettingStarted.html#building-exec-hydro">2.3. Building <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../GettingStarted.html#running-a-test-problem">2.4. Running a test problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../GettingStarted.html#output">2.5. Output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../Theory.html">3. Theory and Numerical Methods</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#fluctuating-hydrodynamics">3.1. Fluctuating hydrodynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#incompressible-flow">3.2. Incompressible flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#the-stokes-solver">3.3. The Stokes solver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#multispecies-mixtures">3.4. Multispecies mixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#compressible-flow">3.5. Compressible flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#chemistry-and-reaction-diffusion">3.6. Chemistry and reaction–diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#particle-methods">3.7. Particle methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#random-numbers">3.8. Random numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Theory.html#references">3.9. References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../CodeStructure.html">4. Code Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../CodeStructure.html#how-an-application-is-assembled">4.1. How an application is assembled</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CodeStructure.html#source-libraries">4.2. Source libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CodeStructure.html#infrastructure">4.2.1. Infrastructure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CodeStructure.html#physics-solvers">4.2.2. Physics solvers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CodeStructure.html#particles-and-immersed-boundaries">4.2.3. Particles and immersed boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CodeStructure.html#multiscale-coupling">4.2.4. Multiscale coupling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CodeStructure.html#other-directories">4.2.5. Other directories</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../Applications.html">5. Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="hydro.html">5.1. <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code> – incompressible fluctuating hydrodynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multispec.html">5.2. <code class="docutils literal notranslate"><span class="pre">exec/multispec</span></code> – low-Mach multispecies mixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compressible_stag.html">5.3. <code class="docutils literal notranslate"><span class="pre">exec/compressible_stag</span></code> – compressible staggered-grid FHD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reactdiff.html">5.4. <code class="docutils literal notranslate"><span class="pre">exec/reactDiff</span></code> – stochastic reaction–diffusion</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">5.5. <code class="docutils literal notranslate"><span class="pre">exec/DSMC</span></code> – direct simulation Monte Carlo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="immersed_ions.html">5.6. <code class="docutils literal notranslate"><span class="pre">exec/immersedIons</span></code> – Brownian ions in a fluctuating fluid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Applications.html#other-applications">5.7. Other applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../Analysis.html">6. Analysis and Output</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Analysis.html#plotfiles">6.1. Plotfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Analysis.html#structure-factors">6.2. Structure factors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Analysis.html#means-variances-and-correlations">6.3. Means, variances and correlations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Analysis.html#checkpoint-and-restart">6.4. Checkpoint and restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Analysis.html#python-tools">6.5. Python tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../RuntimeParameters.html">7. Runtime Parameters</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../params/common.html">7.1. <code class="docutils literal notranslate"><span class="pre">common</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../params/gmres.html">7.2. <code class="docutils literal notranslate"><span class="pre">gmres</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../params/multispec.html">7.3. <code class="docutils literal notranslate"><span class="pre">multispec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../params/compressible.html">7.4. <code class="docutils literal notranslate"><span class="pre">compressible</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../params/chemistry.html">7.5. <code class="docutils literal notranslate"><span class="pre">chemistry</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../params/reactDiff.html">7.6. <code class="docutils literal notranslate"><span class="pre">reactDiff</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../params/MFsurfchem.html">7.7. <code class="docutils literal notranslate"><span class="pre">MFsurfchem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../params/dsmc.html">7.8. <code class="docutils literal notranslate"><span class="pre">dsmc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../params/surfchem_mui.html">7.9. <code class="docutils literal notranslate"><span class="pre">surfchem_mui</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../DeveloperGuide.html">8. Developer Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../DeveloperGuide.html#adding-a-new-application">8.1. Adding a new application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../DeveloperGuide.html#adding-a-runtime-parameter">8.2. Adding a runtime parameter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../DeveloperGuide.html#gpu-support">8.3. GPU support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../DeveloperGuide.html#single-precision">8.4. Single precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../DeveloperGuide.html#style">8.5. Style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../DeveloperGuide.html#documentation">8.6. Documentation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../Contributing.html">Contributing to This Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Contributing.html#editing-a-page">Editing a page</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Contributing.html#runtime-parameters">Runtime parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Contributing.html#building-locally">Building locally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Contributing.html#publishing">Publishing</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FHDeX</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../Applications.html"><span class="section-number">5. </span>Applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5.5. </span><code class="docutils literal notranslate"><span class="pre">exec/DSMC</span></code> – direct simulation Monte Carlo</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/AMReX-FHD/FHDeX/blob/main/Docs/sphinx_documentation/source/apps/dsmc.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="exec-dsmc-direct-simulation-monte-carlo">
+<span id="sec-apps-dsmc"></span><h1><span class="section-number">5.5. </span><code class="docutils literal notranslate"><span class="pre">exec/DSMC</span></code> – direct simulation Monte Carlo<a class="headerlink" href="#exec-dsmc-direct-simulation-monte-carlo" title="Link to this heading"></a></h1>
+<dl>
+<dt>Purpose</dt><dd><p>Particle simulation of dilute gas mixtures with direct simulation Monte
+Carlo, including reservoirs and arbitrary planar surfaces. It serves as a
+molecular-level reference for the continuum FHD solvers.</p>
+</dd>
+<dt>Libraries and build</dt><dd><p><code class="docutils literal notranslate"><span class="pre">src_particles</span></code> (through <code class="docutils literal notranslate"><span class="pre">MakeDSMC.package</span></code>), <code class="docutils literal notranslate"><span class="pre">src_geometry</span></code>,
+<code class="docutils literal notranslate"><span class="pre">src_analysis</span></code>, <code class="docutils literal notranslate"><span class="pre">src_rng</span></code>, <code class="docutils literal notranslate"><span class="pre">src_common</span></code>; built with
+<code class="docutils literal notranslate"><span class="pre">USE_PARTICLES</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, <code class="docutils literal notranslate"><span class="pre">DIM</span> <span class="pre">=</span> <span class="pre">3</span></code> and <code class="docutils literal notranslate"><span class="pre">MAX_SPEC</span> <span class="pre">=</span> <span class="pre">8</span></code>.
+Application sources (collisions, particle generation, statistics,
+plotfiles) are in <code class="docutils literal notranslate"><span class="pre">exec/DSMC</span></code>. Particle data use AMReX particle
+containers (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Particle.html#sec-particles-particlecontainer" title="(in amrex v26.00-dev)"><span>The ParticleContainer</span></a>).</p>
+</dd>
+<dt>Algorithm</dt><dd><p>After building the surfaces and initialising particles and collision
+cells, each time step</p>
+<ol class="arabic simple">
+<li><p>selects and performs binary collisions in every collision cell
+(<code class="docutils literal notranslate"><span class="pre">CalcSelections</span></code>, <code class="docutils literal notranslate"><span class="pre">CollideParticles</span></code>);</p></li>
+<li><p>injects particles at reservoir surfaces (<code class="docutils literal notranslate"><span class="pre">Source</span></code>);</p></li>
+<li><p>moves particles and applies surface interactions
+(<code class="docutils literal notranslate"><span class="pre">MoveParticlesCPP</span></code>);</p></li>
+<li><p>accumulates statistics (<code class="docutils literal notranslate"><span class="pre">EvaluateStats</span></code>), which are reset after
+<code class="docutils literal notranslate"><span class="pre">n_steps_skip</span></code> steps.</p></li>
+</ol>
+</dd>
+<dt>Species</dt><dd><p>Each species has a <code class="docutils literal notranslate"><span class="pre">mass</span></code>, <code class="docutils literal notranslate"><span class="pre">diameter</span></code> and <code class="docutils literal notranslate"><span class="pre">T_init</span></code>. The number of
+simulated particles per species comes from <code class="docutils literal notranslate"><span class="pre">particle_count</span></code> if it is
+non-negative, otherwise from the volume fraction <code class="docutils literal notranslate"><span class="pre">phi_domain</span></code>,
+otherwise from <code class="docutils literal notranslate"><span class="pre">rho0</span></code> and the mass fractions <code class="docutils literal notranslate"><span class="pre">Yk0</span></code>.
+<code class="docutils literal notranslate"><span class="pre">particle_neff</span></code> is the number of real molecules per simulated particle.
+With <code class="docutils literal notranslate"><span class="pre">particle_input</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>, initial positions are read from
+<code class="docutils literal notranslate"><span class="pre">particles.dat</span></code>.</p>
+</dd>
+<dt>Surfaces</dt><dd><p>The six domain faces are always surfaces. Their behaviour follows from the
+boundary-condition parameters (<code class="docutils literal notranslate"><span class="pre">bc_vel_*</span></code>, <code class="docutils literal notranslate"><span class="pre">bc_therm_*</span></code>,
+<code class="docutils literal notranslate"><span class="pre">bc_mass_*</span></code>, <code class="docutils literal notranslate"><span class="pre">t_lo/hi</span></code>, <code class="docutils literal notranslate"><span class="pre">n_lo/hi</span></code>, …); for example, reservoir
+faces inject particles at a prescribed state. Additional surfaces are read
+from a file <code class="docutils literal notranslate"><span class="pre">paramplanes.dat</span></code> in the run directory, if present. Its first
+entry is the number of extra surfaces, followed by one record per surface:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>x0 y0 z0          origin
+ux uy uz          first in-plane direction
+vx vy vz          second in-plane direction
+uTop vTop         extent along u and v
+rnx rny rnz       right-side normal
+lnx lny lnz       left-side normal
+porosity specularity temperature density[nspecies] source sink momentumCons   (right side)
+porosity specularity temperature density[nspecies] source sink momentumCons   (left side)
+periodicity area
+</pre></div>
+</div>
+<p>The notebook <code class="docutils literal notranslate"><span class="pre">exec/DSMC/py/paramPlane.ipynb</span></code> generates this file, and
+<code class="docutils literal notranslate"><span class="pre">exec/DSMC/py/paramplanes.dat</span></code> is an example.</p>
+</dd>
+<dt>Example inputs</dt><dd><p><code class="docutils literal notranslate"><span class="pre">inputs_conc</span></code>: two species under a concentration gradient between
+mass-conserving reservoirs (<code class="docutils literal notranslate"><span class="pre">bc_vel</span> <span class="pre">=</span> <span class="pre">7</span></code> in x). <code class="docutils literal notranslate"><span class="pre">inputs_conc_gpu</span></code> is
+the GPU variant, and <code class="docutils literal notranslate"><span class="pre">test_inputs/</span></code> holds periodic-equilibrium, thermal
+and concentration tests.</p>
+</dd>
+<dt>Output</dt><dd><p><code class="docutils literal notranslate"><span class="pre">pltcu*</span></code> (conserved variables, instantaneous and mean), <code class="docutils literal notranslate"><span class="pre">pltprim*</span></code>
+(primitive variables per species: number density, density, velocity,
+temperature, pressure, energy, concentration), <code class="docutils literal notranslate"><span class="pre">pltvar*</span></code> (variances),
+<code class="docutils literal notranslate"><span class="pre">pltpart*</span></code> (particles) and <code class="docutils literal notranslate"><span class="pre">plt_SF_prim*</span></code> (structure factors).</p>
+</dd>
+<dt>Related applications</dt><dd><p><code class="docutils literal notranslate"><span class="pre">exec/phononDSMC</span></code> and <code class="docutils literal notranslate"><span class="pre">exec/phononDetector</span></code> apply the same particle and
+surface machinery to phonon transport. There, all surfaces come from
+<code class="docutils literal notranslate"><span class="pre">paramplanes.dat</span></code>, with no automatic domain faces.</p>
+</dd>
+</dl>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reactdiff.html" class="btn btn-neutral float-left" title="5.4. exec/reactDiff – stochastic reaction–diffusion" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="immersed_ions.html" class="btn btn-neutral float-right" title="5.6. exec/immersedIons – Brownian ions in a fluctuating fluid" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, The FHDeX developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

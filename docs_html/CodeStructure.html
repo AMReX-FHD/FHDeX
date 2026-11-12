@@ -1,0 +1,368 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4. Code Structure &mdash; FHDeX Documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=49da6d9f" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="5. Applications" href="Applications.html" />
+    <link rel="prev" title="3. Theory and Numerical Methods" href="Theory.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FHDeX
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#what-is-fluctuating-hydrodynamics">1.1. What is fluctuating hydrodynamics?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#solver-families">1.2. Solver families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#relationship-to-amrex">1.3. Relationship to AMReX</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#repository-layout">1.4. Repository layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html">2. Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#prerequisites">2.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#downloading-the-code">2.2. Downloading the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#building-exec-hydro">2.3. Building <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#running-a-test-problem">2.4. Running a test problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#output">2.5. Output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Theory.html">3. Theory and Numerical Methods</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#fluctuating-hydrodynamics">3.1. Fluctuating hydrodynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#incompressible-flow">3.2. Incompressible flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#the-stokes-solver">3.3. The Stokes solver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#multispecies-mixtures">3.4. Multispecies mixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#compressible-flow">3.5. Compressible flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#chemistry-and-reaction-diffusion">3.6. Chemistry and reaction–diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#particle-methods">3.7. Particle methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#random-numbers">3.8. Random numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#references">3.9. References</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Code Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-an-application-is-assembled">4.1. How an application is assembled</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#source-libraries">4.2. Source libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#infrastructure">4.2.1. Infrastructure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#physics-solvers">4.2.2. Physics solvers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#particles-and-immersed-boundaries">4.2.3. Particles and immersed boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multiscale-coupling">4.2.4. Multiscale coupling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#other-directories">4.2.5. Other directories</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Applications.html">5. Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="apps/hydro.html">5.1. <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code> – incompressible fluctuating hydrodynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/multispec.html">5.2. <code class="docutils literal notranslate"><span class="pre">exec/multispec</span></code> – low-Mach multispecies mixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/compressible_stag.html">5.3. <code class="docutils literal notranslate"><span class="pre">exec/compressible_stag</span></code> – compressible staggered-grid FHD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/reactdiff.html">5.4. <code class="docutils literal notranslate"><span class="pre">exec/reactDiff</span></code> – stochastic reaction–diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/dsmc.html">5.5. <code class="docutils literal notranslate"><span class="pre">exec/DSMC</span></code> – direct simulation Monte Carlo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/immersed_ions.html">5.6. <code class="docutils literal notranslate"><span class="pre">exec/immersedIons</span></code> – Brownian ions in a fluctuating fluid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Applications.html#other-applications">5.7. Other applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Analysis.html">6. Analysis and Output</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#plotfiles">6.1. Plotfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#structure-factors">6.2. Structure factors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#means-variances-and-correlations">6.3. Means, variances and correlations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#checkpoint-and-restart">6.4. Checkpoint and restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#python-tools">6.5. Python tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="RuntimeParameters.html">7. Runtime Parameters</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="params/common.html">7.1. <code class="docutils literal notranslate"><span class="pre">common</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/gmres.html">7.2. <code class="docutils literal notranslate"><span class="pre">gmres</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/multispec.html">7.3. <code class="docutils literal notranslate"><span class="pre">multispec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/compressible.html">7.4. <code class="docutils literal notranslate"><span class="pre">compressible</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/chemistry.html">7.5. <code class="docutils literal notranslate"><span class="pre">chemistry</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/reactDiff.html">7.6. <code class="docutils literal notranslate"><span class="pre">reactDiff</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/MFsurfchem.html">7.7. <code class="docutils literal notranslate"><span class="pre">MFsurfchem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/dsmc.html">7.8. <code class="docutils literal notranslate"><span class="pre">dsmc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/surfchem_mui.html">7.9. <code class="docutils literal notranslate"><span class="pre">surfchem_mui</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DeveloperGuide.html">8. Developer Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#adding-a-new-application">8.1. Adding a new application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#adding-a-runtime-parameter">8.2. Adding a runtime parameter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#gpu-support">8.3. GPU support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#single-precision">8.4. Single precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#style">8.5. Style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#documentation">8.6. Documentation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing to This Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#editing-a-page">Editing a page</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#runtime-parameters">Runtime parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#building-locally">Building locally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#publishing">Publishing</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FHDeX</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4. </span>Code Structure</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/AMReX-FHD/FHDeX/blob/main/Docs/sphinx_documentation/source/CodeStructure.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="code-structure">
+<span id="chap-code-structure"></span><h1><span class="section-number">4. </span>Code Structure<a class="headerlink" href="#code-structure" title="Link to this heading"></a></h1>
+<p>FHDeX has no single executable. It is a set of source libraries
+(<code class="docutils literal notranslate"><span class="pre">src_*</span></code>) that applications (<code class="docutils literal notranslate"><span class="pre">exec/*</span></code>) combine at compile time. This
+chapter describes how an application is put together and what each library
+provides.</p>
+<section id="how-an-application-is-assembled">
+<h2><span class="section-number">4.1. </span>How an application is assembled<a class="headerlink" href="#how-an-application-is-assembled" title="Link to this heading"></a></h2>
+<dl>
+<dt>Source selection through <code class="docutils literal notranslate"><span class="pre">VPATH</span></code></dt><dd><p>An application’s <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code> includes the <code class="docutils literal notranslate"><span class="pre">Make.package</span></code> of each
+library it needs and appends that directory to <code class="docutils literal notranslate"><span class="pre">VPATH_LOCATIONS</span></code> and
+<code class="docutils literal notranslate"><span class="pre">INCLUDE_LOCATIONS</span></code> (see <a class="reference internal" href="GettingStarted.html#chap-getting-started"><span class="std std-ref">Getting Started</span></a> and
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#sec-build-make" title="(in amrex v26.00-dev)"><span>Building with GNU Make</span></a>). Make searches <code class="docutils literal notranslate"><span class="pre">VPATH_LOCATIONS</span></code> <strong>in
+order</strong> and uses the first file with a matching name. The application’s
+own directory (<code class="docutils literal notranslate"><span class="pre">.</span></code>) is listed first, so an application can replace any
+library file by providing a file with the same name. This is how every
+application supplies its own <code class="docutils literal notranslate"><span class="pre">main_driver.cpp</span></code>. Library order matters
+too: <code class="docutils literal notranslate"><span class="pre">exec/compressible_stag</span></code> lists <code class="docutils literal notranslate"><span class="pre">src_compressible_stag</span></code> before
+<code class="docutils literal notranslate"><span class="pre">src_compressible</span></code>, so the staggered versions of shared file names
+win.</p>
+</dd>
+<dt>Program entry</dt><dd><p><code class="docutils literal notranslate"><span class="pre">src_common/main.cpp</span></code> calls <code class="docutils literal notranslate"><span class="pre">amrex::Initialize</span></code>, passes the inputs
+file name to <code class="docutils literal notranslate"><span class="pre">main_driver()</span></code> and calls <code class="docutils literal notranslate"><span class="pre">amrex::Finalize</span></code>. The default
+<code class="docutils literal notranslate"><span class="pre">src_common/main_driver.cpp</span></code> just aborts with <em>“write a custom routine
+and put in local source directory”</em>. A real driver comes either from the
+application directory (e.g. <code class="docutils literal notranslate"><span class="pre">exec/hydro/main_driver.cpp</span></code>) or from a
+solver library (e.g. <code class="docutils literal notranslate"><span class="pre">src_compressible_stag/main_driver.cpp</span></code>).</p>
+</dd>
+<dt>Parameters as namespaces</dt><dd><p>Runtime parameters live in C++ namespaces (<code class="docutils literal notranslate"><span class="pre">common</span></code>, <code class="docutils literal notranslate"><span class="pre">gmres</span></code>,
+<code class="docutils literal notranslate"><span class="pre">multispec</span></code>, <code class="docutils literal notranslate"><span class="pre">compressible</span></code>, …). Each namespace is declared in
+<code class="docutils literal notranslate"><span class="pre">src_*/&lt;name&gt;_namespace.H</span></code> and filled by <code class="docutils literal notranslate"><span class="pre">Initialize&lt;Name&gt;Namespace()</span></code>
+in <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;_functions.cpp</span></code>, which first sets defaults and then reads the
+inputs file with <code class="docutils literal notranslate"><span class="pre">ParmParse</span></code> (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-parmparse" title="(in amrex v26.00-dev)"><span>ParmParse</span></a>). Many
+variables are <code class="docutils literal notranslate"><span class="pre">AMREX_GPU_MANAGED</span></code> so that GPU kernels can read them
+directly. A driver typically begins with</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">InitializeCommonNamespace</span><span class="p">();</span>
+<span class="n">InitializeGmresNamespace</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>Chapter <a class="reference internal" href="RuntimeParameters.html#chap-params"><span class="std std-ref">Runtime Parameters</span></a> documents every namespace.</p>
+</dd>
+<dt>Data layout</dt><dd><p>Cell-centred quantities (densities, concentrations, pressure) are
+<code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> objects. Velocities and momenta on the staggered (MAC) grid
+are stored as <code class="docutils literal notranslate"><span class="pre">std::array&lt;MultiFab,</span> <span class="pre">AMREX_SPACEDIM&gt;</span></code>, one face-centred
+<code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> per direction. The index types are predefined in the
+<code class="docutils literal notranslate"><span class="pre">common</span></code> namespace: <code class="docutils literal notranslate"><span class="pre">nodal_flag_x</span></code>/<code class="docutils literal notranslate"><span class="pre">_y</span></code>/<code class="docutils literal notranslate"><span class="pre">_z</span></code> for faces,
+<code class="docutils literal notranslate"><span class="pre">nodal_flag_xy</span></code>/<code class="docutils literal notranslate"><span class="pre">_xz</span></code>/<code class="docutils literal notranslate"><span class="pre">_yz</span></code> for edges, <code class="docutils literal notranslate"><span class="pre">nodal_flag</span></code> for nodes.
+See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-box" title="(in amrex v26.00-dev)"><span>Box, IntVect and IndexType</span></a> for AMReX index types and
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-multifab" title="(in amrex v26.00-dev)"><span>FabArray, MultiFab and iMultiFab</span></a> for the containers.</p>
+</dd>
+</dl>
+</section>
+<section id="source-libraries">
+<h2><span class="section-number">4.2. </span>Source libraries<a class="headerlink" href="#source-libraries" title="Link to this heading"></a></h2>
+<section id="infrastructure">
+<h3><span class="section-number">4.2.1. </span>Infrastructure<a class="headerlink" href="#infrastructure" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">src_common</span></code></dt><dd><p>Used by every application. Contains the <code class="docutils literal notranslate"><span class="pre">common</span></code> parameter namespace,
+the program entry point, and grid utilities: averaging and shifting
+between cell, face, edge and node centres (<code class="docutils literal notranslate"><span class="pre">AverageFaceToCC</span></code>,
+<code class="docutils literal notranslate"><span class="pre">AverageCCToFace</span></code>, …), discrete divergence, gradient, Laplacian and
+curl (<code class="docutils literal notranslate"><span class="pre">ComputeDiv</span></code>, <code class="docutils literal notranslate"><span class="pre">ComputeGrad</span></code>, <code class="docutils literal notranslate"><span class="pre">ComputeStagLap</span></code>, …),
+statistics (<code class="docutils literal notranslate"><span class="pre">ComputeBasicStats</span></code>, <code class="docutils literal notranslate"><span class="pre">WriteHorizontalAverage</span></code>) and
+physical boundary conditions (<code class="docutils literal notranslate"><span class="pre">MultiFabPhysBC*</span></code>). The file
+<code class="docutils literal notranslate"><span class="pre">src_common/README_FILLROUTINES</span></code> explains what each ghost-cell filling
+routine does at walls, reservoirs and periodic boundaries; it complements
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-boundary" title="(in amrex v26.00-dev)"><span>Boundary Conditions</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_rng</span></code></dt><dd><p>Random-number fields for the stochastic fluxes, e.g.
+<code class="docutils literal notranslate"><span class="pre">MultiFabFillRandom</span></code> and <code class="docutils literal notranslate"><span class="pre">MultiFabFillRandomNormal</span></code>. These build on
+the AMReX random-number engine (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-random" title="(in amrex v26.00-dev)"><span>Random Numbers</span></a>).</p>
+</dd>
+</dl>
+<dl class="simple" id="sec-code-analysis">
+<dt><code class="docutils literal notranslate"><span class="pre">src_analysis</span></code></dt><dd><p>Run-time analysis. The <code class="docutils literal notranslate"><span class="pre">StructFact</span></code> class accumulates static structure
+factors (spatial power spectra and cross-correlations of fluctuating
+fields) with FFTs and writes them as plotfiles. <code class="docutils literal notranslate"><span class="pre">TurbSpectra</span></code> computes
+shell-integrated kinetic-energy and scalar spectra for turbulence runs.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_gmres</span></code></dt><dd><p>Krylov solver for the saddle-point (Stokes) system of the staggered
+discretisation: GMRES with block preconditioners (<code class="docutils literal notranslate"><span class="pre">precon_type</span></code>), a
+staggered multigrid solver for the velocity block (<code class="docutils literal notranslate"><span class="pre">StagMGSolver</span></code>) and a
+MAC projection for the pressure block. It is controlled by the <code class="docutils literal notranslate"><span class="pre">gmres</span></code>
+namespace.</p>
+</dd>
+</dl>
+</section>
+<section id="physics-solvers">
+<h3><span class="section-number">4.2.2. </span>Physics solvers<a class="headerlink" href="#physics-solvers" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">src_hydro</span></code></dt><dd><p>Incompressible fluctuating hydrodynamics on the staggered grid: the time
+advance, the stochastic momentum flux (<code class="docutils literal notranslate"><span class="pre">StochMomFlux</span></code>), advective
+fluxes (centred or BDS), vorticity, and conversion between momentum and
+velocity.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_multispec</span></code></dt><dd><p>Low-Mach multispecies mixtures: diffusive and stochastic mass fluxes
+(<code class="docutils literal notranslate"><span class="pre">DiffusiveMassFluxdiv</span></code>, <code class="docutils literal notranslate"><span class="pre">StochMassFlux</span></code>), mixture properties,
+correction fluxes that keep the mass fractions summing to one, the
+reversible stress for capillary effects, and electrodiffusion of charged
+species. It is controlled by the <code class="docutils literal notranslate"><span class="pre">multispec</span></code> namespace.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_compressible</span></code></dt><dd><p>Compressible fluctuating Navier–Stokes with all variables cell-centred:
+fluxes, conversion between conserved and primitive variables, boundary
+conditions, membranes and statistics. It is controlled by the
+<code class="docutils literal notranslate"><span class="pre">compressible</span></code> namespace.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_compressible_stag</span></code></dt><dd><p>Compressible fluctuating Navier–Stokes with momentum on the staggered
+grid, advanced with a three-stage Runge–Kutta scheme
+(<code class="docutils literal notranslate"><span class="pre">RK3stepStag</span></code>). It adds particle reservoirs, membranes, turbulence
+forcing and spectral output, and provides the <code class="docutils literal notranslate"><span class="pre">main_driver</span></code> used by
+<code class="docutils literal notranslate"><span class="pre">exec/compressible_stag</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_reactDiff</span></code></dt><dd><p>Stochastic reaction–diffusion of species number densities, with several
+splitting and integration choices (<code class="docutils literal notranslate"><span class="pre">temporal_integrator</span></code>,
+<code class="docutils literal notranslate"><span class="pre">reactDiff_diffusion_type</span></code>, <code class="docutils literal notranslate"><span class="pre">reaction_type</span></code>).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_chemistry</span></code></dt><dd><p>Bulk chemical reactions (stoichiometry, rate constants) for the
+compressible and reaction–diffusion solvers (<code class="docutils literal notranslate"><span class="pre">chemistry</span></code> namespace).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_MFsurfchem</span></code></dt><dd><p>Mean-field surface chemistry (adsorption and desorption at a wall),
+coupled to the compressible staggered solver (<code class="docutils literal notranslate"><span class="pre">MFsurfchem</span></code>
+namespace).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_electrostatic</span></code></dt><dd><p>Poisson solve for the electric potential and field from a charge density
+(<code class="docutils literal notranslate"><span class="pre">esSolve</span></code>), using AMReX’s <code class="docutils literal notranslate"><span class="pre">MLPoisson</span></code> multigrid solver.</p>
+</dd>
+</dl>
+</section>
+<section id="particles-and-immersed-boundaries">
+<h3><span class="section-number">4.2.3. </span>Particles and immersed boundaries<a class="headerlink" href="#particles-and-immersed-boundaries" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">src_particles</span></code></dt><dd><p>AMReX particle containers for FHD particle methods
+(<code class="docutils literal notranslate"><span class="pre">FhdParticleContainer</span></code>) and DSMC (<code class="docutils literal notranslate"><span class="pre">DsmcParticleContainer</span></code>), and the
+<code class="docutils literal notranslate"><span class="pre">dsmc</span></code> namespace. Background on AMReX particle containers is in
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Particle.html#sec-particles-particlecontainer" title="(in amrex v26.00-dev)"><span>The ParticleContainer</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_geometry</span></code></dt><dd><p>Parametric planes (<code class="docutils literal notranslate"><span class="pre">paramPlane</span></code>) used as walls and surfaces by the
+particle codes.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_immersed-boundary</span></code></dt><dd><p>Immersed-boundary markers, flagella and colloids coupled to the fluid
+solver (<code class="docutils literal notranslate"><span class="pre">IBCore</span></code>, <code class="docutils literal notranslate"><span class="pre">IBMarkerContainer</span></code>, <code class="docutils literal notranslate"><span class="pre">IBGMRES</span></code>). Its parameters
+are read with a Fortran namelist (<code class="docutils literal notranslate"><span class="pre">src_F90/immbdy_namelist.F90</span></code>)
+rather than <code class="docutils literal notranslate"><span class="pre">ParmParse</span></code>, so they are not part of Chapter
+<a class="reference internal" href="RuntimeParameters.html#chap-params"><span class="std std-ref">Runtime Parameters</span></a>.</p>
+</dd>
+</dl>
+</section>
+<section id="multiscale-coupling">
+<h3><span class="section-number">4.2.4. </span>Multiscale coupling<a class="headerlink" href="#multiscale-coupling" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">src_mui</span></code></dt><dd><p>A bundled copy of MUI (Multiscale Universal Interface), a header-only
+library for coupling concurrently running solvers (see
+<code class="docutils literal notranslate"><span class="pre">src_mui/README.md</span></code> for the reference and licence).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">src_surfchem_mui</span></code> and <code class="docutils literal notranslate"><span class="pre">src_surfchem_amrex</span></code></dt><dd><p>Surface-chemistry coupling between FHDeX and an external particle code,
+through MUI or through AMReX’s MPMD interface respectively.</p>
+</dd>
+</dl>
+</section>
+<section id="other-directories">
+<h3><span class="section-number">4.2.5. </span>Other directories<a class="headerlink" href="#other-directories" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">src_deankow</span></code></dt><dd><p>Dean–Kawasaki (fluctuating particle density) solvers. Each subdirectory
+(<code class="docutils literal notranslate"><span class="pre">singlelevel</span></code>, <code class="docutils literal notranslate"><span class="pre">multilevel</span></code>, <code class="docutils literal notranslate"><span class="pre">ensemble</span></code>, <code class="docutils literal notranslate"><span class="pre">helfrich_membrane</span></code>,
+…) is a self-contained program with its own <code class="docutils literal notranslate"><span class="pre">main.cpp</span></code>, built from
+the matching directory under <code class="docutils literal notranslate"><span class="pre">exec/dean_kow/</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">unmaintained/</span></code></dt><dd><p>Older applications kept for reference. They are not guaranteed to build
+with the current libraries.</p>
+</dd>
+</dl>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Theory.html" class="btn btn-neutral float-left" title="3. Theory and Numerical Methods" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Applications.html" class="btn btn-neutral float-right" title="5. Applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, The FHDeX developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

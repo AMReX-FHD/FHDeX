@@ -1,10 +1,9 @@
-/* override table width restrictions */
+/* let long parameter names and descriptions wrap inside tables
+   (same override as the AMReX documentation) */
 .wy-table-responsive table td, .wy-table-responsive table th {
     white-space: normal;
 }
-
 .wy-table-responsive {
     margin-bottom: 24px;
     max-width: 100%;
-    overflow: visible;
 }

@@ -6,22 +6,22 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started &mdash; incflo 26.12-dev documentation</title>
+  <title>2. Getting Started &mdash; FHDeX Documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=49da6d9f" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=e16bea5e"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Run-time Inputs" href="Inputs_Chapter.html" />
-    <link rel="prev" title="Introduction" href="Introduction.html" /> 
+    <link rel="next" title="3. Theory and Numerical Methods" href="Theory.html" />
+    <link rel="prev" title="1. Introduction" href="Introduction.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -33,7 +33,7 @@
           
           
           <a href="index.html" class="icon icon-home">
-            incflo
+            FHDeX
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -43,32 +43,96 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#downloading-the-code">Downloading the code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#building-with-gnu-make">Building with GNU Make</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#building-with-cmake">Building with CMake</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#superbuild-instructions-recommended">SUPERBUILD Instructions (recommended)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#standalone-instructions"><strong>STANDALONE</strong> instructions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#building-amrex">Building AMReX</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#building-incflo">Building incflo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#what-is-fluctuating-hydrodynamics">1.1. What is fluctuating hydrodynamics?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#solver-families">1.2. Solver families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#relationship-to-amrex">1.3. Relationship to AMReX</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Introduction.html#repository-layout">1.4. Repository layout</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#few-more-notes-on-building-incflo">Few more notes on building incflo</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">2. Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">2.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#downloading-the-code">2.2. Downloading the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-exec-hydro">2.3. Building <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-a-test-problem">2.4. Running a test problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output">2.5. Output</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#running-the-code">Running the code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#visualizing-the-results">Visualizing the Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Theory.html">3. Theory and Numerical Methods</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#fluctuating-hydrodynamics">3.1. Fluctuating hydrodynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#incompressible-flow">3.2. Incompressible flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#the-stokes-solver">3.3. The Stokes solver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#multispecies-mixtures">3.4. Multispecies mixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#compressible-flow">3.5. Compressible flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#chemistry-and-reaction-diffusion">3.6. Chemistry and reaction–diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#particle-methods">3.7. Particle methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#random-numbers">3.8. Random numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Theory.html#references">3.9. References</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particles.html">Tracer Particles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CodeStructure.html">4. Code Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CodeStructure.html#how-an-application-is-assembled">4.1. How an application is assembled</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CodeStructure.html#source-libraries">4.2. Source libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#infrastructure">4.2.1. Infrastructure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#physics-solvers">4.2.2. Physics solvers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#particles-and-immersed-boundaries">4.2.3. Particles and immersed boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#multiscale-coupling">4.2.4. Multiscale coupling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CodeStructure.html#other-directories">4.2.5. Other directories</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Applications.html">5. Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="apps/hydro.html">5.1. <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code> – incompressible fluctuating hydrodynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/multispec.html">5.2. <code class="docutils literal notranslate"><span class="pre">exec/multispec</span></code> – low-Mach multispecies mixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/compressible_stag.html">5.3. <code class="docutils literal notranslate"><span class="pre">exec/compressible_stag</span></code> – compressible staggered-grid FHD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/reactdiff.html">5.4. <code class="docutils literal notranslate"><span class="pre">exec/reactDiff</span></code> – stochastic reaction–diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/dsmc.html">5.5. <code class="docutils literal notranslate"><span class="pre">exec/DSMC</span></code> – direct simulation Monte Carlo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apps/immersed_ions.html">5.6. <code class="docutils literal notranslate"><span class="pre">exec/immersedIons</span></code> – Brownian ions in a fluctuating fluid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Applications.html#other-applications">5.7. Other applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Analysis.html">6. Analysis and Output</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#plotfiles">6.1. Plotfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#structure-factors">6.2. Structure factors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#means-variances-and-correlations">6.3. Means, variances and correlations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#checkpoint-and-restart">6.4. Checkpoint and restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Analysis.html#python-tools">6.5. Python tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="RuntimeParameters.html">7. Runtime Parameters</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="params/common.html">7.1. <code class="docutils literal notranslate"><span class="pre">common</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/gmres.html">7.2. <code class="docutils literal notranslate"><span class="pre">gmres</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/multispec.html">7.3. <code class="docutils literal notranslate"><span class="pre">multispec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/compressible.html">7.4. <code class="docutils literal notranslate"><span class="pre">compressible</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/chemistry.html">7.5. <code class="docutils literal notranslate"><span class="pre">chemistry</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/reactDiff.html">7.6. <code class="docutils literal notranslate"><span class="pre">reactDiff</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/MFsurfchem.html">7.7. <code class="docutils literal notranslate"><span class="pre">MFsurfchem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/dsmc.html">7.8. <code class="docutils literal notranslate"><span class="pre">dsmc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="params/surfchem_mui.html">7.9. <code class="docutils literal notranslate"><span class="pre">surfchem_mui</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DeveloperGuide.html">8. Developer Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#adding-a-new-application">8.1. Adding a new application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#adding-a-runtime-parameter">8.2. Adding a runtime parameter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#gpu-support">8.3. GPU support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#single-precision">8.4. Single precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#style">8.5. Style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DeveloperGuide.html#documentation">8.6. Documentation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing to This Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#editing-a-page">Editing a page</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#runtime-parameters">Runtime parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#building-locally">Building locally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#publishing">Publishing</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -77,7 +141,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">incflo</a>
+          <a href="index.html">FHDeX</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -85,9 +149,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Getting Started</li>
+      <li class="breadcrumb-item active"><span class="section-number">2. </span>Getting Started</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/GettingStarted.rst.txt" rel="nofollow"> View page source</a>
+              <a href="https://github.com/AMReX-FHD/FHDeX/blob/main/Docs/sphinx_documentation/source/GettingStarted.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -96,363 +160,150 @@
            <div itemprop="articleBody">
              
   <section id="getting-started">
-<span id="chap-gettingstarted"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
-<p>This section walks you through a brief introduction to using incflo.</p>
-<section id="downloading-the-code">
-<span id="sec-download"></span><h2>Downloading the code<a class="headerlink" href="#downloading-the-code" title="Link to this heading"></a></h2>
-<p>incflo is built on top of the AMReX framework.  In order to run
-incflo, you must download separate git modules for incflo, AMReX
-and AMReX-Hydro.</p>
-<p>First, make sure that git is installed on your machine.</p>
-<ol class="arabic">
-<li><p>Download the AMReX repository by typing:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/amrex.git
-</pre></div>
-</div>
-<p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">amrex/</span></code> on your machine.
-For additional information on downloading the AMReX source code see <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GettingStarted.html">AMReX user guide - Downloading the code</a>.</p>
-</li>
-<li><p>Download the AMReX-Hydro repository by typing:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Fluids/AMReX-Hydro.git
-</pre></div>
-</div>
-<p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">AMReX-Hydro/</span></code> on your machine.</p>
-</li>
-<li><p>Download the incflo repository by typing:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Fluids/incflo.git
-</pre></div>
-</div>
-<p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">incflo/</span></code> on your machine.</p>
-</li>
-</ol>
-<p>You will want to periodically update each of these repositories
-by typing <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> within each repository.</p>
-<p>Next, you can choose to either <a class="reference internal" href="#sec-gnumake"><span class="std std-ref">Building with GNU Make</span></a> or <a class="reference internal" href="#sec-cmake"><span class="std std-ref">Building with CMake</span></a>.</p>
-</section>
-<section id="building-with-gnu-make">
-<span id="sec-gnumake"></span><h2>Building with GNU Make<a class="headerlink" href="#building-with-gnu-make" title="Link to this heading"></a></h2>
-<p>Here, we walk you through compiling an incflo executable.
-Decide whether you want to build the executable in 2-D vs 3-D,
-with or without EB (embedded boundaries / cut cells), and choose the corresponding
-directory: <code class="docutils literal notranslate"><span class="pre">test_2d</span></code>, <code class="docutils literal notranslate"><span class="pre">test_3d</span></code>, <code class="docutils literal notranslate"><span class="pre">test_no_eb_2d</span></code>, or <code class="docutils literal notranslate"><span class="pre">test_no_eb_3d</span></code>.
-For this example, let’s say you want to build in 2-D with cut cells.
-Then to build the code:</p>
-<ol class="arabic">
-<li><p><code class="docutils literal notranslate"><span class="pre">cd</span></code> to the desired build directory; e.g.</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>incflo/test_2d
-</pre></div>
-</div>
-</li>
-<li><p>Edit the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>:</p>
-<p>Set <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> to be the path to the directory where you have put amrex, and <code class="docutils literal notranslate"><span class="pre">AMREX_HYDRO_HOME</span></code>
-to be the path to the directory where you have put AMReX-Hydro. These default to <code class="docutils literal notranslate"><span class="pre">../../amrex</span></code> and
-<code class="docutils literal notranslate"><span class="pre">../../AMReX-Hydro</span></code>, i.e. to amrex, AMReX-Hydro and incflo having been cloned into the same directory.
-NOTE: when setting <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> in the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>, be aware that <code class="docutils literal notranslate"><span class="pre">~</span></code> does not expand, so <code class="docutils literal notranslate"><span class="pre">AMREX_HOME=~/amrex/</span></code> will yield an error.</p>
-<p>Alternatively, the paths can be set up as environment variables, <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> and <code class="docutils literal notranslate"><span class="pre">AMREX_HYDRO_HOME</span></code>, on your machine to point to the path names where you have put AMReX and AMReX-Hydro. For example, if you are using the bash shell, you can add this to your <code class="docutils literal notranslate"><span class="pre">.bashrc</span></code> as:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AMREX_HOME</span><span class="o">=</span>/path/to/amrex
-<span class="nb">export</span><span class="w"> </span><span class="nv">AMREX_HYDRO_HOME</span><span class="o">=</span>/path/to/AMReX-Hydro
-</pre></div>
-</div>
-<p>alternatively, in tcsh one can set</p>
-<div class="highlight-tcsh notranslate"><div class="highlight"><pre><span></span><span class="nb">setenv </span>AMREX_HOME /path/to/amrex
-<span class="nb">setenv </span>AMREX_HYDRO_HOME /path/to/AMReX-Hydro
-</pre></div>
-</div>
-<p>Common options that you can set in the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code> include (the default values shown are
-those set in the test directories’ <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>, or AMReX’s defaults for options not set there)</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Option name</p></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Possible values</p></th>
-<th class="head"><p>Default
-value</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>COMP</p></td>
-<td><p>Compiler (gnu or intel)</p></td>
-<td><p>gnu / intel</p></td>
-<td><p>gnu</p></td>
-</tr>
-<tr class="row-odd"><td><p>USE_MPI</p></td>
-<td><p>Whether to enable MPI</p></td>
-<td><p>TRUE / FALSE</p></td>
-<td><p>TRUE</p></td>
-</tr>
-<tr class="row-even"><td><p>USE_OMP</p></td>
-<td><p>Whether to enable OpenMP</p></td>
-<td><p>TRUE / FALSE</p></td>
-<td><p>FALSE</p></td>
-</tr>
-<tr class="row-odd"><td><p>USE_CUDA</p></td>
-<td><p>Whether to enable CUDA</p></td>
-<td><p>TRUE / FALSE</p></td>
-<td><p>FALSE</p></td>
-</tr>
-<tr class="row-even"><td><p>DEBUG</p></td>
-<td><p>Whether to use DEBUG mode</p></td>
-<td><p>TRUE / FALSE</p></td>
-<td><p>FALSE</p></td>
-</tr>
-<tr class="row-odd"><td><p>PROFILE</p></td>
-<td><p>Include profiling info</p></td>
-<td><p>TRUE / FALSE</p></td>
-<td><p>FALSE</p></td>
-</tr>
-<tr class="row-even"><td><p>TINY_PROFILE</p></td>
-<td><p>Include tiny profiling info</p></td>
-<td><p>TRUE / FALSE</p></td>
-<td><p>FALSE</p></td>
-</tr>
-<tr class="row-odd"><td><p>COMM_PROFILE</p></td>
-<td><p>Include comm profiling info</p></td>
-<td><p>TRUE / FALSE</p></td>
-<td><p>FALSE</p></td>
-</tr>
-<tr class="row-even"><td><p>TRACE_PROFILE</p></td>
-<td><p>Include trace profiling info</p></td>
-<td><p>TRUE / FALSE</p></td>
-<td><p>FALSE</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><strong>Do not set both USE_OMP and USE_CUDA to true.</strong></p>
-</div>
-<p>Additional options and information on using other compilers can be found in the
-AMReX documentation at
-<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html">https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html</a> .</p>
-</li>
-<li><p>Make the executable:</p>
-<p>Now type</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>make
-</pre></div>
-</div>
-<p>The name of the resulting executable (generated by the make system) encodes several of the build characteristics, including dimensionality of the problem, compiler name, and whether MPI and/or OpenMP were linked with the executable.
-Thus, several different build configurations may coexist simultaneously in a problem folder.
-For example, the default build in <code class="docutils literal notranslate"><span class="pre">incflo/test_2d</span></code> will look
-like <code class="docutils literal notranslate"><span class="pre">incflo2d.gnu.MPI.EB.ex</span></code>, indicating that this is a 2-d version of the code, made with
-<code class="docutils literal notranslate"><span class="pre">COMP=gnu</span></code>, <code class="docutils literal notranslate"><span class="pre">USE_MPI=TRUE</span></code> and support for embedded boundaries (EB).</p>
-</li>
-</ol>
-</section>
-<section id="building-with-cmake">
-<span id="sec-cmake"></span><h2>Building with CMake<a class="headerlink" href="#building-with-cmake" title="Link to this heading"></a></h2>
-<p>CMake build is a two-steps process. First <code class="docutils literal notranslate"><span class="pre">cmake</span></code> is invoked to create
-configuration files and makefiles in a chosen directory (<code class="docutils literal notranslate"><span class="pre">builddir</span></code>).
-Next, the actual build is performed by invoking <code class="docutils literal notranslate"><span class="pre">make</span></code> from within <code class="docutils literal notranslate"><span class="pre">builddir</span></code>.
-The CMake build process is summarized as follows:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">mkdir /path/to/builddir</span>
-<span class="go">cd    /path/to/builddir</span>
-<span class="go">cmake [options] -DCMAKE_BUILD_TYPE=[Debug|Release|RelWithDebInfo|MinSizeRel] /path/to/incflo</span>
-<span class="go">make</span>
-</pre></div>
-</div>
-<p>In the above snippet, <code class="docutils literal notranslate"><span class="pre">[options]</span></code> indicates one or more options for the
-customization of the build, as described later in this section.
-If the option <code class="docutils literal notranslate"><span class="pre">CMAKE_BUILD_TYPE</span></code> is omitted,
-<code class="docutils literal notranslate"><span class="pre">CMAKE_BUILD_TYPE=Release</span></code> is assumed.</p>
-<p>There are two modes to build incflo with CMake:</p>
+<span id="chap-getting-started"></span><h1><span class="section-number">2. </span>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
+<p>This chapter walks through downloading FHDeX, building the incompressible
+hydrodynamics application <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code> and running a short test problem.
+All other applications are built and run the same way.</p>
+<section id="prerequisites">
+<h2><span class="section-number">2.1. </span>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><strong>SUPERBUILD (recommended):</strong> AMReX and AMReX-Hydro are built as part
-of the incflo build process. This method is strongly encouraged as it
-ensures that the configuration options are consistent.</p></li>
-<li><p><strong>STANDALONE:</strong> incflo source code is built separately and linked to an existing
-AMReX installation (AMReX-Hydro is still built as part of incflo).
-This is ideal for continuous integration servers (CI)
-and regression testing applications. AMReX library version and configuration options
-must meet incflo requirements.</p></li>
+<li><p>A C++17 compiler (GCC is the default; <code class="docutils literal notranslate"><span class="pre">COMP</span></code> selects others) and GNU Make.</p></li>
+<li><p>MPI. All applications default to <code class="docutils literal notranslate"><span class="pre">USE_MPI</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>.</p></li>
+<li><p>FFTW3 with MPI support, for applications built with <code class="docutils literal notranslate"><span class="pre">USE_FFT</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>
+(structure factors and spectral analysis). The <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code> links
+<code class="docutils literal notranslate"><span class="pre">-lfftw3_mpi</span> <span class="pre">-lfftw3</span></code> from <code class="docutils literal notranslate"><span class="pre">$(FFTW_DIR)</span></code>; CUDA builds link cuFFT
+instead.</p></li>
+<li><p>Optionally CUDA or HIP for GPU builds (<code class="docutils literal notranslate"><span class="pre">USE_CUDA</span></code> / <code class="docutils literal notranslate"><span class="pre">USE_HIP</span></code>); see
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-build" title="(in amrex v26.00-dev)"><span>Building GPU Support</span></a>.</p></li>
 </ul>
+<p>AMReX itself does not need to be installed separately. Each FHDeX application
+compiles the AMReX sources it needs directly, as described in
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#sec-build-make" title="(in amrex v26.00-dev)"><span>Building with GNU Make</span></a>.</p>
+</section>
+<section id="downloading-the-code">
+<h2><span class="section-number">2.2. </span>Downloading the code<a class="headerlink" href="#downloading-the-code" title="Link to this heading"></a></h2>
+<p>FHDeX and AMReX are cloned side by side, because the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code> in every
+application looks for AMReX in <code class="docutils literal notranslate"><span class="pre">../../../amrex</span></code> by default:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/amrex.git
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-FHD/FHDeX.git
+</pre></div>
+</div>
+<p>which gives</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>amrex/
+FHDeX/
+  exec/hydro/      &lt;- AMREX_HOME ?= ../../../amrex/
+</pre></div>
+</div>
+<p>If AMReX lives somewhere else, set the <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> environment variable;
+it overrides the default in the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><strong>incflo requires CMake 3.20 or higher.</strong></p>
+<p>FHDeX is developed against the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch of AMReX (the
+default branch). If the build fails inside AMReX sources, first update
+both repositories.</p>
 </div>
-<section id="superbuild-instructions-recommended">
-<span id="sec-build-superbuild"></span><h3>SUPERBUILD Instructions (recommended)<a class="headerlink" href="#superbuild-instructions-recommended" title="Link to this heading"></a></h3>
-<p>In this mode, incflo CMake inherits AMReX CMake targets and configuration options, as well as AMReX-Hydro CMake targets; that is, incflo, AMReX and AMReX-Hydro are configured and built as a single entity.</p>
-<p>First, make sure you’ve downloaded all the source codes (see <a class="reference internal" href="#sec-download"><span class="std std-ref">Downloading the code</span></a>).</p>
-<p>Next, build the incflo executable:</p>
-<blockquote>
-<div><div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">&gt; cd incflo</span>
-<span class="go">&gt; mkdir build</span>
-<span class="go">&gt; cd build</span>
-<span class="go">&gt; cmake -DAMREX_HOME=/path/to/amrex/source/directory [amrex options] -DAMREX_HYDRO_HOME=/path/to/AMReX-Hydro/source/directory [incflo options] -DCMAKE_BUILD_TYPE=[Debug|Release|RelWithDebInfo|MinSizeRel] ..</span>
-<span class="go">&gt; make -j</span>
+</section>
+<section id="building-exec-hydro">
+<h2><span class="section-number">2.3. </span>Building <code class="docutils literal notranslate"><span class="pre">exec/hydro</span></code><a class="headerlink" href="#building-exec-hydro" title="Link to this heading"></a></h2>
+<p>Each directory under <code class="docutils literal notranslate"><span class="pre">exec/</span></code> holds one application. Its <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>
+sets the build options and pulls in the FHDeX source libraries it needs:</p>
+<div class="highlight-make notranslate"><div class="highlight"><pre><span></span><span class="nv">AMREX_HOME</span><span class="w"> </span><span class="o">?=</span><span class="w"> </span>../../../amrex/
+
+<span class="nv">DEBUG</span><span class="w">     </span><span class="o">=</span><span class="w"> </span>FALSE
+<span class="nv">USE_MPI</span><span class="w">   </span><span class="o">=</span><span class="w"> </span>TRUE
+<span class="nv">USE_OMP</span><span class="w">   </span><span class="o">=</span><span class="w"> </span>FALSE
+<span class="nv">USE_CUDA</span><span class="w">  </span><span class="o">=</span><span class="w"> </span>FALSE
+<span class="nv">COMP</span><span class="w">      </span><span class="o">=</span><span class="w"> </span>gnu
+<span class="nv">DIM</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>
+<span class="nv">MAX_SPEC</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="m">2</span>
+<span class="nv">MAX_ELEM</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="m">1</span><span class="w">     </span><span class="c1"># must be MAX_SPEC*(MAX_SPEC-1)/2</span>
+<span class="nv">USE_FFT</span><span class="w">   </span><span class="o">=</span><span class="w"> </span>TRUE
+
+<span class="cp">include $(AMREX_HOME)/Tools/GNUMake/Make.defs</span>
+
+<span class="cp">include ../../src_hydro/Make.package</span>
+<span class="nv">VPATH_LOCATIONS</span><span class="w">   </span><span class="o">+=</span><span class="w"> </span>../../src_hydro/
+<span class="nv">INCLUDE_LOCATIONS</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span>../../src_hydro/
+<span class="c"># ... the same for src_multispec, src_analysis, src_rng, src_gmres, src_common</span>
+
+<span class="cp">include $(AMREX_HOME)/Src/Base/Make.package</span>
+<span class="c"># ... AMReX FFT, Boundary and MLMG components</span>
+<span class="cp">include $(AMREX_HOME)/Tools/GNUMake/Make.rules</span>
 </pre></div>
 </div>
-</div></blockquote>
-<p>where <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> is a CMake variable pointing to the top-level source directory of the AMReX distribution you downloaded earlier; <code class="docutils literal notranslate"><span class="pre">[amrex</span> <span class="pre">options]</span></code> is a list of any of the AMReX configuration options listed in the <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#building-with-cmake">AMReX user guide - Building with CMake</a>; <code class="docutils literal notranslate"><span class="pre">AMREX_HYDRO_HOME</span></code> is a CMake variable pointing to the top-level source directory of the AMReX-Hydro distribution you downloaded earlier; <code class="docutils literal notranslate"><span class="pre">[incflo</span> <span class="pre">options]</span></code> is a list of the incflo
-configuration options listed in the table below; and <code class="docutils literal notranslate"><span class="pre">..</span></code> is the relative path pointing to the top-level source directory of incflo or this example.
-incflo sets AMReX’s dimension, MPI, OpenMP, GPU backend, EB and particle options from the
-corresponding incflo options (e.g. <code class="docutils literal notranslate"><span class="pre">-DINCFLO_DIM=2</span></code>, not <code class="docutils literal notranslate"><span class="pre">-DAMReX_SPACEDIM=2</span></code>), and always builds
-AMReX in double precision with its linear solvers.</p>
-</section>
-<section id="standalone-instructions">
-<span id="sec-build-standalone"></span><h3><strong>STANDALONE</strong> instructions<a class="headerlink" href="#standalone-instructions" title="Link to this heading"></a></h3>
-<p>For a stand alone build, incflo CMake will look for an existing
-AMReX installation on the system and link the incflo binaries against it.</p>
-<section id="building-amrex">
-<h4>Building AMReX<a class="headerlink" href="#building-amrex" title="Link to this heading"></a></h4>
-<p>First, make sure you’ve downloaded all the source codes (see <a class="reference internal" href="#sec-download"><span class="std std-ref">Downloading the code</span></a>).</p>
-<p>Next, configure, build and install AMReX as follows:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>&gt;<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/path/to/amrex
-&gt;<span class="w"> </span>mkdir<span class="w"> </span>build
-&gt;<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
-&gt;<span class="w"> </span>cmake<span class="w"> </span>-DCMAKE_BUILD_TYPE<span class="o">=[</span>Debug<span class="p">|</span>Release<span class="p">|</span>RelWithDebInfo<span class="p">|</span>MinSizeRel<span class="o">]</span><span class="w">  </span><span class="o">[</span>amrex<span class="w"> </span>options<span class="o">]</span><span class="w"> </span>-DCMAKE_INSTALL_PREFIX:PATH<span class="o">=</span>/absolute/path/to/installdir<span class="w"> </span>..
-&gt;<span class="w"> </span>make<span class="w"> </span>install
+<p>Any option can be overridden on the command line. To build the 2D version:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>FHDeX/exec/hydro
+make<span class="w"> </span>-j8<span class="w"> </span><span class="nv">DIM</span><span class="o">=</span><span class="m">2</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">[amrex</span> <span class="pre">options]</span></code> is a list of any of the AMReX configuration options listed in the
-<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#building-with-cmake">AMReX user guide - Building with CMake</a>.
-AMReX must be built with the configuration that incflo will use: the same dimension
-(<code class="docutils literal notranslate"><span class="pre">AMReX_SPACEDIM</span></code>, 3 by default), MPI, OpenMP and GPU backend, EB (<code class="docutils literal notranslate"><span class="pre">-DAMReX_EB=YES</span></code>) and particles
-if incflo uses them, double precision and the linear solvers (AMReX’s defaults). CMake checks this
-when configuring incflo.</p>
+<p>The build produces an executable whose name encodes the options, e.g.
+<code class="docutils literal notranslate"><span class="pre">main2d.gnu.MPI.ex</span></code>. The AMReX documentation lists all standard build
+options (<code class="docutils literal notranslate"><span class="pre">DEBUG</span></code>, <code class="docutils literal notranslate"><span class="pre">COMP</span></code>, <code class="docutils literal notranslate"><span class="pre">USE_OMP</span></code>, <code class="docutils literal notranslate"><span class="pre">TINY_PROFILE</span></code>, …); see
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#sec-build-make" title="(in amrex v26.00-dev)"><span>Building with GNU Make</span></a>.</p>
+<p>Two options are specific to FHDeX and are compiled in as preprocessor
+constants:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">MAX_SPEC</span></code></dt><dd><p>Maximum number of species (<code class="docutils literal notranslate"><span class="pre">-DMAX_SPECIES</span></code>). Fixed-size per-species
+arrays such as <code class="docutils literal notranslate"><span class="pre">molmass</span></code> or <code class="docutils literal notranslate"><span class="pre">rhobar</span></code> are sized by it, so the
+<code class="docutils literal notranslate"><span class="pre">nspecies</span></code> runtime parameter must not exceed it.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">MAX_ELEM</span></code></dt><dd><p>Size of the arrays holding the off-diagonal entries of symmetric
+species-pair matrices, such as the Maxwell–Stefan diffusion coefficients
+<code class="docutils literal notranslate"><span class="pre">Dbar</span></code> (<code class="docutils literal notranslate"><span class="pre">-DMAX_ELEMENT</span></code>). It must equal <code class="docutils literal notranslate"><span class="pre">MAX_SPEC*(MAX_SPEC-1)/2</span></code>;
+<code class="docutils literal notranslate"><span class="pre">src_multispec</span></code> aborts at start-up otherwise.</p>
+</dd>
+</dl>
+<p>Compressible and chemistry applications also use <code class="docutils literal notranslate"><span class="pre">MAX_REAC</span></code>
+(<code class="docutils literal notranslate"><span class="pre">-DMAX_REACTION</span></code>), the maximum number of reactions.</p>
 </section>
-<section id="building-incflo">
-<h4>Building incflo<a class="headerlink" href="#building-incflo" title="Link to this heading"></a></h4>
-<p>Build incflo:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>&gt;<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/path/to/incflo
-&gt;<span class="w"> </span>mkdir<span class="w"> </span>build
-&gt;<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
-&gt;<span class="w"> </span>cmake<span class="w"> </span>-DCMAKE_BUILD_TYPE<span class="o">=[</span>Debug<span class="p">|</span>Release<span class="p">|</span>RelWithDebInfo<span class="p">|</span>MinSizeRel<span class="o">]</span><span class="w"> </span><span class="o">[</span>incflo<span class="w"> </span>options<span class="o">]</span><span class="w"> </span>-DAMReX_ROOT<span class="o">=</span>/absolute/path/to/amrex/installdir<span class="w"> </span>-DAMREX_HYDRO_HOME<span class="o">=</span>/path/to/AMReX-Hydro/source/directory<span class="w"> </span>..
-&gt;<span class="w"> </span>make<span class="w"> </span>-j
+<section id="running-a-test-problem">
+<h2><span class="section-number">2.4. </span>Running a test problem<a class="headerlink" href="#running-a-test-problem" title="Link to this heading"></a></h2>
+<p>Every application directory contains a set of <code class="docutils literal notranslate"><span class="pre">inputs_*</span></code> files. Pass one
+as the first argument of the executable:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>./main2d.gnu.MPI.ex<span class="w"> </span>inputs_regression_vortex_2d
 </pre></div>
 </div>
-<p>Passing <code class="docutils literal notranslate"><span class="pre">-DAMReX_ROOT=/absolute/path/to/amrex/installdir</span></code> instructs CMake to search
-<code class="docutils literal notranslate"><span class="pre">/absolute/path/to/amrex/installdir</span></code> before searching system paths
-for an available AMReX installation.
-<code class="docutils literal notranslate"><span class="pre">AMReX_ROOT</span></code> can also be set as an environmental variable instead of passing it as a command line option.
-<code class="docutils literal notranslate"><span class="pre">AMREX_HYDRO_HOME</span></code> is a CMake variable pointing to the top-level source directory of the AMReX-Hydro
-distribution you downloaded earlier; it is required in both modes, since AMReX-Hydro is always built
-as part of incflo.</p>
-<p><code class="docutils literal notranslate"><span class="pre">[incflo</span> <span class="pre">options]</span></code> indicates any of the configuration option listed in the table below.</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Option name</p></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Possible values</p></th>
-<th class="head"><p>Default
-value</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>CMAKE_CXX_FLAGS</p></td>
-<td><p>User-defined C++ flags</p></td>
-<td><p>valid C++
-compiler flags</p></td>
-<td><p>None</p></td>
-</tr>
-<tr class="row-odd"><td><p>CMAKE_CUDA_FLAGS</p></td>
-<td><p>User-defined CUDA flags</p></td>
-<td><p>valid CUDA
-compiler flags</p></td>
-<td><p>None</p></td>
-</tr>
-<tr class="row-even"><td><p>INCFLO_DIM</p></td>
-<td><p>Dimensionality of the build</p></td>
-<td><p>2/3</p></td>
-<td><p>3</p></td>
-</tr>
-<tr class="row-odd"><td><p>INCFLO_MPI</p></td>
-<td><p>Enable build with MPI</p></td>
-<td><p>no/yes</p></td>
-<td><p>yes</p></td>
-</tr>
-<tr class="row-even"><td><p>INCFLO_OMP</p></td>
-<td><p>Enable build with OpenMP</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-odd"><td><p>INCFLO_CUDA</p></td>
-<td><p>Enable build with CUDA</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-even"><td><p>INCFLO_HIP</p></td>
-<td><p>Enable build with HIP</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-odd"><td><p>INCFLO_SYCL</p></td>
-<td><p>Enable build with SYCL</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-even"><td><p>INCFLO_EB</p></td>
-<td><p>Build Embedded Boundary
-support</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-odd"><td><p>INCFLO_CSG</p></td>
-<td><p>Build CSG geometry support
-(requires INCFLO_EB)</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-even"><td><p>INCFLO_HYPRE</p></td>
-<td><p>Enable HYPRE support</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-odd"><td><p>INCFLO_FPE</p></td>
-<td><p>Build with Floating-Point
-Exceptions checks</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-even"><td><p>INCFLO_PARTICLES</p></td>
-<td><p>Build Tracer Particles
-support</p></td>
-<td><p>no/yes</p></td>
-<td><p>no</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-</section>
-<section id="few-more-notes-on-building-incflo">
-<h3>Few more notes on building incflo<a class="headerlink" href="#few-more-notes-on-building-incflo" title="Link to this heading"></a></h3>
-<p>The system default C++ compiler can be overwritten as follows:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>&gt;<span class="w"> </span>cmake<span class="w"> </span>-DCMAKE_CXX_COMPILER<span class="o">=</span>&lt;c++-compiler&gt;<span class="w">  </span><span class="o">[</span>options<span class="o">]</span><span class="w">  </span>..
+<p>This runs a 32 x 32 vortex problem for three time steps, split into four
+16 x 16 boxes (one per MPI rank). The inputs file uses the AMReX
+<code class="docutils literal notranslate"><span class="pre">ParmParse</span></code> format (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-parmparse" title="(in amrex v26.00-dev)"><span>ParmParse</span></a>):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>prob_lo   = 0.0 0.0       # physical lo coordinate
+prob_hi   = 3200. 3200.   # physical hi coordinate
+prob_type = 1             # 1 = vortex
+n_cells       = 32 32
+max_grid_size = 16 16
+fixed_dt  = 10
+max_step  = 3
+plot_int  = 3
+bc_vel_lo = 1 2           # -1 periodic, 1 slip, 2 no-slip
+bc_vel_hi = 1 2
 </pre></div>
 </div>
-<p>When building on a platform that uses the <code class="docutils literal notranslate"><span class="pre">module</span></code> utility, use either
-the above command (with full path to the compilers) or the following:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>&gt;<span class="w"> </span>cmake<span class="w"> </span>-DCMAKE_CXX_COMPILER<span class="o">=</span>CC<span class="w"> </span><span class="o">[</span>options<span class="o">]</span><span class="w"> </span>..
+<p>Any parameter can also be overridden on the command line, which is handy for
+parameter scans:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>./main2d.gnu.MPI.ex<span class="w"> </span>inputs_regression_vortex_2d<span class="w"> </span><span class="nv">max_step</span><span class="o">=</span><span class="m">10</span><span class="w"> </span><span class="nv">plot_int</span><span class="o">=</span><span class="m">5</span>
 </pre></div>
 </div>
-<p>incflo uses the same compiler flags used to build AMReX, unless
-<code class="docutils literal notranslate"><span class="pre">CMAKE_CXX_FLAGS</span></code> is explicitly provided, or
-the environmental variables <code class="docutils literal notranslate"><span class="pre">CXXFLAGS</span></code> is set.</p>
+<p>Chapter <a class="reference internal" href="RuntimeParameters.html#chap-params"><span class="std std-ref">Runtime Parameters</span></a> lists every parameter with its default value.</p>
 </section>
-</section>
-<section id="running-the-code">
-<h2>Running the code<a class="headerlink" href="#running-the-code" title="Link to this heading"></a></h2>
-<p>incflo takes an input file as its first command-line argument.  The file may
-contain a set of parameter definitions that will override defaults set in the code.
-Many example inputs files can be found in the <code class="docutils literal notranslate"><span class="pre">incflo/test_XXX</span></code> directories.
-For example, to run the Taylor-Green vortices example in <code class="docutils literal notranslate"><span class="pre">incflo/test_2d</span></code> on 4 MPI processes with the
-executable built there with GNU Make (see <a class="reference internal" href="#sec-gnumake"><span class="std std-ref">Building with GNU Make</span></a>), type:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>&gt;<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>incflo/test_2d
-&gt;<span class="w"> </span>mpiexec<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>./incflo2d.gnu.MPI.EB.ex<span class="w"> </span>benchmark.taylor_green_vortices
-</pre></div>
-</div>
-<p>With CMake, the executable is <code class="docutils literal notranslate"><span class="pre">incflo.ex</span></code> in the build directory.</p>
-<p>For more information on inputs options, see the <a class="reference internal" href="Inputs_Chapter.html#chap-inputs"><span class="std std-ref">Run-time Inputs</span></a> section.</p>
-<p>incflo can generate subfolders in the current folder
-named <code class="docutils literal notranslate"><span class="pre">plt00000</span></code>, <code class="docutils literal notranslate"><span class="pre">plt00010</span></code>, etc, and <code class="docutils literal notranslate"><span class="pre">chk00000</span></code>,
-<code class="docutils literal notranslate"><span class="pre">chk00010</span></code>, etc. These are called plotfiles and checkpoint
-files. The plotfiles are used for visualization of derived fields; the checkpoint
-files are used for restarting the code. For more information see the AMReX Documentation on
-<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/IO_Chapter.html#chap-io" title="(in amrex v26.00-dev)"><span>I/O (Plotfile, Checkpoint)</span></a>.</p>
-</section>
-<section id="visualizing-the-results">
-<h2>Visualizing the Results<a class="headerlink" href="#visualizing-the-results" title="Link to this heading"></a></h2>
-<p>Options for visualizing the data are discussed in the AMReX Documentation on <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Visualization_Chapter.html#chap-visualization" title="(in amrex v26.00-dev)"><span>Visualization</span></a>.</p>
+<section id="output">
+<h2><span class="section-number">2.5. </span>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<p>The hydro application writes:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">plt0000003/</span></code></dt><dd><p>AMReX plotfile with cell-averaged velocities and pressure, written every
+<code class="docutils literal notranslate"><span class="pre">plot_int</span></code> steps. The prefix is set by <code class="docutils literal notranslate"><span class="pre">plot_base_name</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">stagx0000003/</span></code>, <code class="docutils literal notranslate"><span class="pre">stagy...</span></code>, <code class="docutils literal notranslate"><span class="pre">stagz...</span></code></dt><dd><p>The face-centred (staggered) velocity components, when <code class="docutils literal notranslate"><span class="pre">plot_stag</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">plt_SF_mag000000003/</span></code>, <code class="docutils literal notranslate"><span class="pre">plt_SF_real_imag000000003/</span></code></dt><dd><p>Static structure factor of the fluctuating fields (magnitude, and real and
+imaginary parts), when <code class="docutils literal notranslate"><span class="pre">struct_fact_int</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>; see
+<a class="reference internal" href="CodeStructure.html#sec-code-analysis"><span class="std std-ref">src_analysis</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">chk0000003/</span></code></dt><dd><p>Checkpoint files every <code class="docutils literal notranslate"><span class="pre">chk_int</span></code> steps (prefix <code class="docutils literal notranslate"><span class="pre">chk_base_name</span></code>).
+Restart from one with <code class="docutils literal notranslate"><span class="pre">restart</span> <span class="pre">=</span> <span class="pre">3</span></code>.</p>
+</dd>
+</dl>
+<p>Plotfiles can be viewed with AMReX’s <code class="docutils literal notranslate"><span class="pre">amrvis</span></code>, VisIt, ParaView or yt; see
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Visualization.html#sec-visit" title="(in amrex v26.00-dev)"><span>VisIt</span></a> and <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Post_Processing.html#sec-postprocessing" title="(in amrex v26.00-dev)"><span>Post-Processing</span></a>.</p>
 </section>
 </section>
 
@@ -460,14 +311,14 @@ files are used for restarting the code. For more information see the AMReX Docum
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Introduction.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Inputs_Chapter.html" class="btn btn-neutral float-right" title="Run-time Inputs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Introduction.html" class="btn btn-neutral float-left" title="1. Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Theory.html" class="btn btn-neutral float-right" title="3. Theory and Numerical Methods" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2017-2026, Incflo Team.</p>
+    <p>&#169; Copyright 2026, The FHDeX developers.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

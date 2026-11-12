@@ -1,39 +1,105 @@
+.. _chap:introduction:
+
 Introduction
 ============
 
-incflo is a massively parallel code for solving the incompressible Navier-Stokes
-equations in 2-D or 3-D,  with the option for an embedded boundary (cut cell) representation
-of complex geometries.
+What is fluctuating hydrodynamics?
+----------------------------------
 
-It is built on top of :ref:`AMReX <amrex:amrex_doc_indx>`, a publicly available software framework designed for building
-massively parallel block-structured adaptive mesh refinement (AMR)
-applications. It also utilizes :ref:`AMReX-Hydro <hydro:amrex_hydro_indx>`, a set of routines that support the construction
-of convective terms for incompressible and low Mach number flow modeling in cartesian coordinates
-with (or without) embedded boundaries and R-Z coordinate systems.
+At mesoscopic scales (from nanometres to micrometres) thermal fluctuations
+change how fluids behave. They drive diffusion enhancement, giant
+concentration fluctuations, the onset of instabilities and spontaneous
+pattern formation. Fluctuating hydrodynamics models these effects by adding
+stochastic fluxes to the usual conservation laws of continuum fluid
+dynamics. The noise amplitude is fixed by the fluctuation--dissipation
+theorem, so that the equations reproduce the correct equilibrium
+fluctuations.
 
-Another AMReX-based code, :ref:`IAMR <iamr:iamr_doc_indx>`, also solves the variable-density incompressible
-Navier-Stokes equations in 2-D or 3-D but is based on a subcycling-in-time approach.
+The simplest example is the incompressible fluctuating Stokes / Navier--Stokes
+system for the velocity :math:`\mathbf{v}` and pressure :math:`\pi`,
 
-Key software and algorithmic features of incflo include:
+.. math::
 
--  Fluid velocity, density and tracers are defined at cell centroids; pressure is defined at nodes
-   (or at cell centers with ``incflo.use_cc_proj = 1``).
+   \rho\,\partial_t \mathbf{v} + \nabla\pi
+     = -\rho\,\nabla\cdot(\mathbf{v}\mathbf{v}^T)
+       + \eta\nabla^2\mathbf{v}
+       + \nabla\cdot\left(\sqrt{2\eta k_B T}\;\boldsymbol{\mathcal{W}}\right),
+   \qquad \nabla\cdot\mathbf{v} = 0,
 
--  Possible advection algorithms: a Method-Of-Lines (MOL) approach and a Godunov-method algorithm.
-   Both use an intermediate MAC projection for face-centered advection velocities
+where :math:`\boldsymbol{\mathcal{W}}` is a white-noise random tensor field.
+FHDeX solves this system and extends it to multispecies mixtures, compressible
+flows, chemical reactions, charged species, and coupling to particles and
+immersed boundaries.
 
--  Incompressibility of the fluid is imposed through the use of a projection at the end of the time step
+The equations and numerical methods of all solver families are described in
+:ref:`chap:theory`.
 
--  Implicit, Crank-Nicolson or explicit discretization of viscous terms with variable viscosity
+Solver families
+---------------
 
--  The representation of the complex geometry uses the embedded boundary, or cut-cell, approach
+FHDeX contains several groups of solvers. Each group is a set of source
+libraries (``src_*``) together with one or more applications (``exec/*``):
 
--  Hybrid parallelization via MPI+X where X = OpenMP for multicore machines, and CUDA/HIP/SYCL for CPU/GPU systems
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
 
--  Parallel I/O using AMReX native I/O.
+   * - Family
+     - Description
+   * - Incompressible hydrodynamics
+     - Staggered-grid (MAC) fluctuating Navier--Stokes with a GMRES Stokes
+       solver and multigrid preconditioner (``src_hydro``, ``src_gmres``;
+       application ``exec/hydro``).
+   * - Low-Mach multispecies
+     - Multispecies mixtures with stochastic mass fluxes, optional
+       electrodiffusion for charged species, inertial and Boussinesq time
+       integrators (``src_multispec``; application ``exec/multispec``).
+   * - Compressible
+     - Compressible fluctuating Navier--Stokes for multispecies gas mixtures,
+       in a collocated (``src_compressible``) and a staggered
+       (``src_compressible_stag``) formulation, with optional chemistry and
+       surface chemistry.
+   * - Reaction--diffusion
+     - Stochastic reaction--diffusion of species number densities, with
+       deterministic, chemical-Langevin, SSA or tau-leaping reactions and
+       explicit, semi-implicit or multinomial diffusion
+       (``src_reactDiff``; application ``exec/reactDiff``).
+   * - Particle methods
+     - DSMC, Brownian / immersed ions and immersed-boundary markers built on
+       AMReX particle containers (``src_particles``,
+       ``src_immersed-boundary``).
+   * - Multiscale coupling
+     - Coupling of continuum solvers to external particle codes through the
+       MUI library (``src_mui``, ``src_surfchem_mui``).
 
--  Plotfile format supported by AmrVis, VisIt, ParaView, and yt.
+Relationship to AMReX
+---------------------
 
-The incflo source code can be found at https://github.com/AMReX-Fluids/incflo/.
-incflo heavily leverages AMReX (see https://amrex-codes.github.io/) which was supported by
-the Exascale Computing Project (ECP) as part of the AMReX Co-Design Center.
+FHDeX applications are AMReX applications. All grid data are stored in AMReX
+``MultiFab`` objects, staggered velocities are face-centred (nodal in one
+direction) ``MultiFab`` objects, parallelism uses AMReX's MPI domain
+decomposition and GPU offloading, and input parameters are read with
+``ParmParse``. Readers new to AMReX should first read:
+
+* :ref:`amrex:sec:basics:box`, :ref:`amrex:sec:basics:ba` and
+  :ref:`amrex:sec:basics:dm` -- how the domain is split into boxes and
+  distributed over MPI ranks;
+* :ref:`amrex:sec:basics:multifab` and :ref:`amrex:sec:basics:mfiter` -- the
+  data containers and loops used in every FHDeX kernel;
+* :ref:`amrex:sec:basics:parmparse` -- the input-file format;
+* :ref:`amrex:sec:build:make` -- the GNU Make build system used by every
+  ``exec/*`` directory.
+
+Repository layout
+-----------------
+
+.. code-block:: text
+
+   FHDeX/
+     src_*/          source libraries, one per physics component (see Code Structure)
+     exec/           applications: one directory per executable, each with a
+                     GNUmakefile and a set of inputs_* files (see Applications)
+     python/         post-processing scripts (AMReX particle output -> ParaView)
+     tools/          template for a local Path.local (sets AMREX_HOME)
+     unmaintained/   old applications kept for reference; not documented here
+     Docs/           this guide
