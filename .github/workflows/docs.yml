@@ -1,15 +1,40 @@
+name: Build and Deploy
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-docs
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
-      ...
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Dependencies
+        run: |
+          .github/workflows/dependencies/documentation.sh
+          echo "Installing python packages for docs..."
+          pip3 install sphinx sphinx_rtd_theme breathe
+
+      - name: Install and Build
+        run: |
+          cd Docs/sphinx_documentation
+          echo "Build the Sphinx documentation for FHDeX."
+          make html
+
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-FHD/FHDeX' && github.ref == 'refs/heads/main'
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages
-          folder: Docs/sphinx_documentation/build/html
-          target-folder: docs_html
-          clean: false
+          branch: gh-pages # The branch the action should deploy to.
+          folder: Docs/sphinx_documentation/build/html # The folder the action should deploy.
+          target-folder: docs_html # The folder the action should deploy to.
+          clean: false # Do not remove existing files from the deploy target.
