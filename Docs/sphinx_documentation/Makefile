@@ -1,11 +1,15 @@
-# Minimal makefile for Sphinx documentation
+# Makefile for the FHDeX Sphinx documentation (adapted from AMReX).
 #
+#   make html        web site in build/html       (what the GitHub Action runs)
+#   make latexpdf    PDF in build/latex/fhdex.pdf  (needs a LaTeX installation)
+#
+# Every target first regenerates the runtime-parameter tables in
+# source/params/ from the FHDeX sources (gen_params.py).
 
-# You can set these variables from the command line.
-PYTHON       ?= python
+PYTHON       ?= python3
 SPHINXOPTS    =
 SPHINXBUILD   = $(PYTHON) -msphinx
-SPHINXPROJ    = incflo
+SPHINXPROJ    = FHDeX
 SOURCEDIR     = source
 BUILDDIR      = build
 
@@ -13,14 +17,15 @@ BUILDDIR      = build
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile
+.PHONY: help clean params Makefile
+
+params:
+	$(PYTHON) -I gen_params.py ../.. $(SOURCEDIR)/params
 
 clean:
-	rm -rf build ../Doxygen/xml source/class source/file
-	rm -f source/classlist.rst source/filelist.rst
-	rm -rf source/*_files.rst
+	rm -rf $(BUILDDIR) $(SOURCEDIR)/params
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
+%: Makefile params
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
