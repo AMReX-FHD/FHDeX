@@ -3,8 +3,8 @@
 Welcome to incflo's documentation!
 ====================================
 
-incflo is an AMReX-based simulation code for modeling
-the variable density incompressible Navier-Stokes equations in the presence
+incflo is an AMReX-based simulation code for modeling the
+variable density incompressible Navier-Stokes equations in the presence
 of complex geometries.  It includes adaptive mesh refinement (AMR)
 but without subcycling in time.
 
