@@ -1,0 +1,239 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fluid Variables &mdash; incflo 26.12-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=e16bea5e"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Time Step" href="TimeStep.html" />
+    <link rel="prev" title="Solving the Fluid Equations" href="Fluids_Chapter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            incflo
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Fluid Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fluid-equations">Fluid Equations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#background-pressure">Background pressure</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TimeStep.html">Time Step</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particles.html">Tracer Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">incflo</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+      <li class="breadcrumb-item active">Fluid Variables</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/FluidEquations.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fluid-variables">
+<h1>Fluid Variables<a class="headerlink" href="#fluid-variables" title="Link to this heading"></a></h1>
+<blockquote>
+<div><table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Definition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Fluid density</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(U\)</span></p></td>
+<td><p>Fluid velocity</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(p\)</span></p></td>
+<td><p>Pressure</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\eta\)</span></p></td>
+<td><p>Viscosity (<code class="docutils literal notranslate"><span class="pre">incflo.mu</span></code> for a Newtonian fluid)</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\tau\)</span></p></td>
+<td><p>Viscous stress tensor, <span class="math notranslate nohighlight">\(\eta (\nabla U + (\nabla U)^T)\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mu_s\)</span></p></td>
+<td><p>scalar diffusivity</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mu_T\)</span></p></td>
+<td><p>thermal conductivity</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(c_p\)</span></p></td>
+<td><p>Specific heat (<code class="docutils literal notranslate"><span class="pre">incflo.cp</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\({\bf g}\)</span></p></td>
+<td><p>Gravitational acceleration</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\({\bf H}_U\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(= (H_x , H_y , H_z )\)</span>, External Forces</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(H_s\)</span></p></td>
+<td><p>External sources</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(H_T\)</span></p></td>
+<td><p>External heat sources</p></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</section>
+<section id="fluid-equations">
+<h1>Fluid Equations<a class="headerlink" href="#fluid-equations" title="Link to this heading"></a></h1>
+<p>Conservation of fluid mass:</p>
+<div class="math notranslate nohighlight">
+\[\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho U)  = 0\]</div>
+<p>Conservation of fluid momentum:</p>
+<div class="math notranslate nohighlight">
+\[\frac{ \partial (\rho U)}{\partial t}
++ \nabla \cdot (\rho U U) + \nabla p = \nabla \cdot \tau  + {\bf H}_U\]</div>
+<p>By default, incflo solves the equivalent convective form,
+<span class="math notranslate nohighlight">\(\rho ( \partial U / \partial t + U \cdot \nabla U ) + \nabla p = \nabla \cdot \tau + {\bf H}_U\)</span>;
+<code class="docutils literal notranslate"><span class="pre">incflo.advect_momentum</span> <span class="pre">=</span> <span class="pre">true</span></code> selects the conservative form above.
+With <code class="docutils literal notranslate"><span class="pre">incflo.use_tensor_solve</span> <span class="pre">=</span> <span class="pre">false</span></code>, the velocity components are diffused separately, with
+<span class="math notranslate nohighlight">\(\nabla \cdot (\eta \nabla U)\)</span> in place of <span class="math notranslate nohighlight">\(\nabla \cdot \tau\)</span> (the two are equal for a
+constant viscosity).</p>
+<p>Velocity constraint:</p>
+<div class="math notranslate nohighlight">
+\[\nabla \cdot U = 0\]</div>
+<p>or, with <code class="docutils literal notranslate"><span class="pre">incflo.use_divu_source</span> <span class="pre">=</span> <span class="pre">1</span></code>, the constraint</p>
+<div class="math notranslate nohighlight">
+\[\nabla \cdot U = S\]</div>
+<p>for a given source <span class="math notranslate nohighlight">\(S\)</span>, as in low Mach number models. Mass is still conserved, so
+the density changes along particle paths as <span class="math notranslate nohighlight">\(D\rho/Dt = -\rho S\)</span>. With
+<code class="docutils literal notranslate"><span class="pre">incflo.constant_density</span> <span class="pre">=</span> <span class="pre">1</span></code> the density is not evolved, so mass is not conserved:
+the constraint adds mass at the rate <span class="math notranslate nohighlight">\(\rho_0 S\)</span> per unit volume. That is not a low
+Mach number model, and incflo warns about it, but it has exact solutions that are useful
+for testing. <span class="math notranslate nohighlight">\(S\)</span> comes from <code class="docutils literal notranslate"><span class="pre">incflo::compute_divu_source</span></code>, which by default
+uses an analytic <span class="math notranslate nohighlight">\(S\)</span> defined for the chosen <code class="docutils literal notranslate"><span class="pre">incflo.probtype</span></code>. It is virtual,
+so a class derived from <code class="docutils literal notranslate"><span class="pre">incflo</span></code> can compute <span class="math notranslate nohighlight">\(S\)</span> from the state instead.
+In a closed domain (only walls and periodic boundaries) the
+projections can only enforce <span class="math notranslate nohighlight">\(\nabla \cdot U = S - \bar{S}\)</span>, where <span class="math notranslate nohighlight">\(\bar{S}\)</span> is
+the mean of <span class="math notranslate nohighlight">\(S\)</span>; incflo warns when <span class="math notranslate nohighlight">\(\bar{S} \ne 0\)</span>. That is a uniform change
+of the thermodynamic pressure, which incflo does not evolve.</p>
+<p>Tracer(s): for conservative,</p>
+<div class="math notranslate nohighlight">
+\[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho U s)  =  \nabla \cdot \mu_s \nabla s + \rho H_s\]</div>
+<p>or, for non-conservative (see <code class="docutils literal notranslate"><span class="pre">incflo.trac_is_conservative</span></code>),</p>
+<div class="math notranslate nohighlight">
+\[\frac{\partial s}{\partial t} + U \cdot \nabla s  =  \nabla \cdot \mu_s \nabla s + H_s\]</div>
+<p>Optional temperature:</p>
+<div class="math notranslate nohighlight">
+\[\rho c_p \left( \frac{\partial T}{\partial t} + U \cdot \nabla T \right)  =  \nabla \cdot \mu_T \nabla T + H_T\]</div>
+<p>By default, <span class="math notranslate nohighlight">\(H_s = 0\)</span>,  <span class="math notranslate nohighlight">\(H_T = 0\)</span>, and <span class="math notranslate nohighlight">\({\bf H}_U = {\bf 0}\)</span>.
+If gravity is set (<code class="docutils literal notranslate"><span class="pre">incflo.gravity</span></code>), then <span class="math notranslate nohighlight">\({\bf H}_U = \rho {\bf g}\)</span>, except for the
+Boussinesq problems (<code class="docutils literal notranslate"><span class="pre">incflo.probtype</span></code> = 11, 111, 112, 113 and 500), which use
+<span class="math notranslate nohighlight">\({\bf H}_U = \rho s_0 {\bf g}\)</span>, where <span class="math notranslate nohighlight">\(s_0\)</span> is the first tracer.</p>
+<section id="background-pressure">
+<span id="sec-backgroundpressure"></span><h2>Background pressure<a class="headerlink" href="#background-pressure" title="Link to this heading"></a></h2>
+<p>Except for the Boussinesq problems, incflo writes the pressure as <span class="math notranslate nohighlight">\(p = p_0 + p'\)</span>, where the
+background pressure <span class="math notranslate nohighlight">\(p_0\)</span> has a constant gradient, and solves for <span class="math notranslate nohighlight">\(p'\)</span>:</p>
+<ul class="simple">
+<li><p>in a direction with gravity, <span class="math notranslate nohighlight">\(\nabla p_0 = \rho_0 {\bf g}\)</span>, the hydrostatic pressure gradient
+for the density <span class="math notranslate nohighlight">\(\rho_0\)</span> (<code class="docutils literal notranslate"><span class="pre">incflo.ro_0</span></code>);</p></li>
+<li><p>in the direction in which <code class="docutils literal notranslate"><span class="pre">incflo.delp</span></code> is non-zero, <span class="math notranslate nohighlight">\(\nabla p_0 = - \mathrm{delp} / L\)</span>,
+where <span class="math notranslate nohighlight">\(L\)</span> is the length of the domain in that direction. This pressure drop drives the flow,
+e.g. in a periodic channel;</p></li>
+<li><p>in a direction with a pressure inflow at one end and a pressure outflow at the other,
+<span class="math notranslate nohighlight">\(\nabla p_0 = (p_{hi} - p_{lo}) / L\)</span>, where <span class="math notranslate nohighlight">\(p_{lo}\)</span> and <span class="math notranslate nohighlight">\(p_{hi}\)</span> are the
+boundary pressures.</p></li>
+</ul>
+<p>Only one direction can have a <code class="docutils literal notranslate"><span class="pre">delp</span></code> or a pressure inflow/outflow pair, and gravity cannot be in
+that direction. The pressure written to plotfiles (<code class="docutils literal notranslate"><span class="pre">p</span></code>) is <span class="math notranslate nohighlight">\(p'\)</span>, while the pressure gradient
+(<code class="docutils literal notranslate"><span class="pre">gpx</span></code>, <code class="docutils literal notranslate"><span class="pre">gpy</span></code> and <code class="docutils literal notranslate"><span class="pre">gpz</span></code>) includes <span class="math notranslate nohighlight">\(\nabla p_0\)</span>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Fluids_Chapter.html" class="btn btn-neutral float-left" title="Solving the Fluid Equations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="TimeStep.html" class="btn btn-neutral float-right" title="Time Step" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2026, Incflo Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
