@@ -228,6 +228,9 @@ FlockPC::MaxTurningRate (FlockingParams const& fp) const
         return p.rdata(FlockRealIdx::qx)*p.rdata(FlockRealIdx::qx)
              + p.rdata(FlockRealIdx::qy)*p.rdata(FlockRealIdx::qy);
     });
+    // ReduceMax is local to each rank; an empty rank returns the lowest Real
+    q2 = amrex::max(q2, Real(0.0));
+    ParallelDescriptor::ReduceRealMax(q2);
     return fp.align_eps*std::sqrt(q2);
 }
 

@@ -9,8 +9,14 @@ A plotfile needs uniform cell spacing, so the z cell size is the mean interval
 between outputs, optionally scaled by --tscale. The actual step and time of each
 slice are written to <output>/times.txt.
 
+When output times are very uneven (plot_int fixed while dt shrinks), --dt puts the
+slices on a uniform time grid instead: slice k is the plotfile nearest to
+t0 + k*DT, copied unchanged. With --dt auto, DT is the largest gap between
+plotfiles, so no plotfile is used twice and dense stretches are thinned.
+
 Example:
     python3 stack_plotfiles_time.py plt_hk_* -o spacetime_plt --tscale 10
+    python3 stack_plotfiles_time.py plt_cn_* -o st_cn --vars phi0 --dt auto --tscale 20
 """
 
 import argparse
@@ -166,10 +172,34 @@ def write_plotfile(out, data, varnames, prob_lo, dx, time=0.0, step=0):
         f.write("Level_0/Cell\n")
 
 
-def stack(files, out, varnames=None, every=1, tscale=1.0, use_index=False, kchunk=32):
+def uniform_pick(times, dt, tmin, tmax):
+    """Indices of the plotfiles nearest to a uniform time grid t0 + k*dt.
+
+    times must be increasing. dt = "auto" uses the largest gap, so that no
+    plotfile is picked twice. Returns (indices, target times, dt)."""
+    if np.any(np.diff(times) <= 0.0):
+        sys.exit("plotfile times are not increasing; --dt needs increasing times")
+    if dt == "auto":
+        dt = np.max(np.diff(times))
+    t0 = times[0] if tmin is None else max(tmin, times[0])
+    t1 = times[-1] if tmax is None else min(tmax, times[-1])
+    nt = int(np.floor((t1 - t0) / dt * (1.0 + 1e-12))) + 1
+    targets = t0 + dt * np.arange(nt)
+    hi = np.clip(np.searchsorted(times, targets), 1, len(times) - 1)
+    lo = hi - 1
+    idx = np.where(targets - times[lo] <= times[hi] - targets, lo, hi)
+    return idx, targets, dt
+
+
+def stack(files, out, varnames=None, every=1, tscale=1.0, use_index=False, kchunk=32,
+          dt=None, tmin=None, tmax=None):
     headers = [(read_header(p), p) for p in files]
     headers.sort(key=lambda hp: hp[0]["step"])
     headers = headers[::every]
+    if tmin is not None or tmax is not None:
+        lo = -np.inf if tmin is None else tmin
+        hi = np.inf if tmax is None else tmax
+        headers = [hp for hp in headers if lo <= hp[0]["time"] <= hi]
     if len(headers) < 2:
         sys.exit("need at least two plotfiles")
     h0 = headers[0][0]
@@ -191,10 +221,24 @@ def stack(files, out, varnames=None, every=1, tscale=1.0, use_index=False, kchun
             sys.exit("unknown variable %s; available: %s" % (v, " ".join(allvars)))
     comps = [allvars.index(v) for v in varnames]
 
+    targets = None
+    if dt is not None:
+        idx, targets, dt = uniform_pick(np.array([h["time"] for h, _ in headers]),
+                                        dt, tmin, tmax)
+        headers = [headers[i] for i in idx]
     nt = len(headers)
     steps = [h["step"] for h, _ in headers]
     times = np.array([h["time"] for h, _ in headers])
-    if use_index:
+    if targets is not None:
+        if nt < 2:
+            sys.exit("--dt %g gives fewer than two slices" % dt)
+        nrep = nt - len(set(steps))
+        print("uniform time: dt = %.6g, %d slices from %d plotfiles; %d slices repeat "
+              "a plotfile; max |t - t_target| = %.3g dt"
+              % (dt, nt, len(set(steps)), nrep, np.max(np.abs(times - targets)) / dt))
+        dz = dt * tscale
+        zlo = targets[0] * tscale - 0.5 * dz
+    elif use_index:
         dz, zlo = 1.0, 0.0
     else:
         dz = (times[-1] - times[0]) / (nt - 1)
@@ -270,9 +314,15 @@ def stack(files, out, varnames=None, every=1, tscale=1.0, use_index=False, kchun
         f.write("Level_0/Cell\n")
 
     with open(os.path.join(out, "times.txt"), "w") as f:
-        f.write("# k step time z_center\n")
-        for k in range(nt):
-            f.write("%d %d %.17g %.17g\n" % (k, steps[k], times[k], zlo + (k + 0.5) * dz))
+        if targets is None:
+            f.write("# k step time z_center\n")
+            for k in range(nt):
+                f.write("%d %d %.17g %.17g\n" % (k, steps[k], times[k], zlo + (k + 0.5) * dz))
+        else:
+            f.write("# k step time t_target z_center\n")
+            for k in range(nt):
+                f.write("%d %d %.17g %.17g %.17g\n"
+                        % (k, steps[k], times[k], targets[k], zlo + (k + 0.5) * dz))
 
     print("wrote %s: %d x %d x %d cells, z in [%g, %g], dz = %g"
           % (out, nx, ny, nt, zlo, zhi, dz))
@@ -293,7 +343,8 @@ def selftest(out, files):
     for p in files:
         h = read_header(p)
         bystep[h["step"]] = (h, p)
-    for k, step, _, _ in rows:
+    for row in rows:
+        k, step = row[0], row[1]
         h, p = bystep[int(step)]
         ref = read_level0(p, h)[[h["varnames"].index(v) for v in h3["varnames"]]]
         if not np.array_equal(ref, slices[int(k)]):
@@ -312,15 +363,31 @@ def main():
                     help="scale factor for the time axis, to set the aspect ratio")
     ap.add_argument("--index", action="store_true",
                     help="use the slice index as z (dz = 1) instead of time")
+    ap.add_argument("--dt",
+                    help="uniform slice interval in time, or 'auto' for the largest gap "
+                         "between plotfiles; each slice is the nearest plotfile")
+    ap.add_argument("--tmin", type=float, help="ignore plotfiles before this time")
+    ap.add_argument("--tmax", type=float, help="ignore plotfiles after this time")
     ap.add_argument("--kchunk", type=int, default=32, help="z slices per output box")
     ap.add_argument("--selftest", action="store_true",
                     help="after writing, check every slice against its input")
     args = ap.parse_args()
     if args.every < 1 or args.kchunk < 1 or args.tscale <= 0.0:
         ap.error("--every and --kchunk must be >= 1 and --tscale > 0")
+    dt = args.dt
+    if dt is not None:
+        if args.index:
+            ap.error("--dt and --index cannot be combined")
+        if dt != "auto":
+            try:
+                dt = float(dt)
+            except ValueError:
+                ap.error("--dt must be a positive number or 'auto'")
+            if dt <= 0.0:
+                ap.error("--dt must be a positive number or 'auto'")
 
     stack(args.plotfiles, args.output, args.vars, args.every, args.tscale,
-          args.index, args.kchunk)
+          args.index, args.kchunk, dt, args.tmin, args.tmax)
     if args.selftest:
         selftest(args.output, args.plotfiles)
 

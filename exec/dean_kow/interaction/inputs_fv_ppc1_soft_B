@@ -1,0 +1,117 @@
+# *****************************************************************
+# 2D ppc1 collective collapse, moderately softened: core radius 0.09, for the centred drift flux.
+# Same physics as inputs_fv_ppc1_collapse (cluster gas made unstable at the
+# box scale by a long tail) but with a wider, softer core so that the cell
+# Peclet number dx*|grad C|/D stays lower. For one cluster of mass m the code's
+# diagnostic is about m*max|U'|*dx/D, and max|U'| is set by the core:
+# U'' = |eps|*alpha/R ~ Uhat_core(0)/r_core^4, so Pe ~ r_core^-3.
+#   ip_R = 0.5 (= L/2, the longest compact tail), core radius a*R = 0.09
+#   ip_eps, ip_pp_beta: Uhat(0) = 5 core + 6 tail (ppc1_collapse: 5 + 10)
+#   fastest mode sigma ~ 1420, t_form ~ 0.0045, ~22 clusters ~0.23 apart,
+#     R/nn = 2.17 (ppc1_collapse: 32 clusters, 0.19, 2.37)
+#   cluster-gas rate k^2 |Uhat_tail(k)| ~ 122 at wavelength 1 (the box)
+#   estimated Pe: 1.8 at formation, 9.9 at m = 0.25, 39 with all mass in one
+#     cluster (ppc1_collapse: 2.4, 19, 77)
+# Centred drift flux, smoothed-Heaviside noise; stop_time 0.08 since the
+# collapse rate is about half that of ppc1_collapse.
+# *****************************************************************
+
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 10000000
+stop_time = 0.08
+
+seed = 1
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+diff_coeff = 1.0
+alg_type = 0
+dorand = 1.
+num_part = 327680.         # 5 particles per cell on 256^2
+
+# SPDE discretization options (defaults reproduce the original scheme)
+noise_avg_type  = 1        # 0: average of sqrt(phi); 1: smoothed Heaviside cutoff below one particle per cell
+drift_flux_type = 0        # 0: centered drift flux; 1: Scharfetter-Gummel (positivity-preserving, dt limited by measured drift)
+neg_diag_int    = 1000     # print min phi, negative cell fraction and negative mass every n steps (0 = off)
+drift_diag_int  = 1000     # print drift CFL number and max cell Peclet number every n steps (0 = off)
+#drift_cfl       = 0.5     # also limit dt*sum_d max|grad(C+V_ext)|/dx_d <= drift_cfl (0 = off)
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0
+geometry.prob_hi     =  1.0  1.0
+geometry.is_periodic =  1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+amr.n_cell          = 256 256    # dx ~ 0.0039: core radius 15 cells
+amr.max_grid_size_x = 64 64
+amr.max_grid_size_y = 64 64
+
+amr.max_level       = 0
+amr.use_particles   = 0      # Turn particles on or off
+amr.ref_ratio       = 1
+
+# Interaction potential (ip_ prefix)
+amr.use_int_pot = 1
+amr.ip_type      = ppc1     # C1 piecewise parabolic; ip_range defaults to ip_R
+amr.ip_eps       = -1.455e5 # negative is attractive
+amr.ip_R         = 0.5      # tail radius
+amr.ip_pp_a      = 0.18     # core radius / ip_R: core radius 0.09
+amr.ip_pp_alpha  = 1.       # core stiffness
+amr.ip_pp_beta   = 1.26e-3  # tail stiffness: tail |Uhat(0)| = 1.2 x core |Uhat(0)|
+amr.ip_local_rep = 0.5      # local repulsion: C = U*phi + ip_local_rep*phi (mesh only)
+
+# External potential (ep_ prefix)
+amr.use_ext_pot = 0
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+amr.blocking_factor_x = 2
+amr.blocking_factor_y = 2
+
+amr.regrid_int      = 100000000  # how often to regrid
+
+amr.n_error_buf = 0 0
+amr.grid_eff = 0.96
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.5     # fraction of the forward Euler stability limit; SG keeps phi >= 0 (deterministic part) for cfl <= 1
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  if phi < phierr at level 0, then refine
+# *****************************************************************
+adv.phierr = 10.
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt_sb_    # root name of plot file
+amr.plot_int   = 2000
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk_sb_   # root name of checkpoint file
+amr.chk_int  = 100000   # number of timesteps between checkpoint files

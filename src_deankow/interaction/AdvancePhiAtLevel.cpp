@@ -29,7 +29,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real /*time*/, Real dt_lev, int /*iterat
 
     if (pot.use_int_pot) {
 
-        r2c_forward->forward(U, Uhat);
+        // Uhat is fixed; InitFFTLevel0 computes it at startup and on restart
         r2c_forward->forward(phi_old[lev], Phihat);
 
        // Spectral multiply: Chat = Uhat * Phihat

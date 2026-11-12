@@ -4,6 +4,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_BCRec.H>
+#include "PotParams.H"
 
 using namespace amrex;
 
@@ -13,5 +14,6 @@ void advance_phi (amrex::MultiFab& phi_old,
                   amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& stochFlux,
                   amrex::Real dt, amrex::Real npts_scale,
                   amrex::Geometry const& geom,
-                  Vector<amrex::BCRec> const& BoundaryCondition);
+                  Vector<amrex::BCRec> const& BoundaryCondition,
+                  PotParams const& pot);
 #endif

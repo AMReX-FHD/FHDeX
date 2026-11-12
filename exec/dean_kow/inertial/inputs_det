@@ -1,0 +1,8 @@
+# Deterministic mean-field equation (no noise), MUSCL + Heun
+FILE = inputs_common
+inertial.run_mode = 0
+amr.plot_file     = plt_det_
+dorand            = 0
+adv_order         = 2
+limiter           = 1      # MC
+time_integrator   = 1      # Heun

@@ -139,6 +139,10 @@ AmrCoreAdv::Evolve ()
 {
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
+    // InitData has just written a plotfile at this time (start or restart)
+    Real last_plot_time = cur_time;
+    // the run's starting step, so a restart that takes no steps writes no checkpoint
+    int last_chk_file_step = istep[0];
 
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
@@ -178,13 +182,16 @@ AmrCoreAdv::Evolve ()
             t_new[lev] = cur_time;
         }
 
-        if (plot_int > 0 && (step+1) % plot_int == 0) {
+        if ((plot_int > 0 && (step+1) % plot_int == 0) ||
+            (plot_time_int > 0. && cur_time - last_plot_time >= plot_time_int*(1. - 1.e-12))) {
             last_plot_file_step = step+1;
+            last_plot_time = cur_time;
             WritePlotFile();
             WriteStructFact();
         }
 
         if (chk_int > 0 && (step+1) % chk_int == 0) {
+            last_chk_file_step = step+1;
             WriteCheckpointFile();
         }
 
@@ -199,8 +206,12 @@ AmrCoreAdv::Evolve ()
         if (cur_time >= stop_time - 1.e-6*dt[0]) { break; }
     }
 
-    if (plot_int > 0 && istep[0] > last_plot_file_step) {
+    if ((plot_int > 0 || plot_time_int > 0.) && istep[0] > last_plot_file_step) {
         WritePlotFile();
+    }
+    // a final checkpoint, so the run can be continued from where it stopped
+    if (chk_int > 0 && istep[0] > last_chk_file_step) {
+        WriteCheckpointFile();
     }
     WriteStructFact();
 }
@@ -245,7 +256,7 @@ AmrCoreAdv::InitData ()
         InitFFTLevel0();
     }
     if (struct_fact_int > 0) { InitStructFact(); }
-    if (plot_int > 0) {
+    if (plot_int > 0 || plot_time_int > 0.) {
         WritePlotFile();
     }
 }
@@ -774,7 +785,7 @@ AmrCoreAdv::ComputeInteractionStiffness ()
     // |C_i - C_{i-1}|/dx <= max|dU/dr| * sum|phi| cellvol, so max|dU/dr| bounds
     // the interaction drift velocity per unit mass
     drift_wmax = 0.;
-    if (drift_flux_type == 1 || drift_cfl > 0.) {
+    if (drift_flux_type != 0 || drift_cfl > 0.) {
         Real lhalf = 0.5*Geom(lev).ProbLength(0);
         for (int d = 1; d < AMREX_SPACEDIM; ++d) { lhalf = amrex::min(lhalf, 0.5*Geom(lev).ProbLength(d)); }
         constexpr int nsamp = 4096;
@@ -936,19 +947,23 @@ PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmi
             amrex::Print() << "  WARNING: ip_R/dx = " << R/dxmin
                            << " < 8; the HK kernel and its ~R cluster wavelength are under-resolved\n";
         }
-    } else if (pot.ip_type == IntPotType::PP) {
+    } else if (pot.ip_type == IntPotType::PP || pot.ip_type == IntPotType::PPC1) {
         // PP is a sum of two HK paraboloids: beta times HK of radius R plus
         // (alpha-beta)*a times HK of radius a*R, so with the HK transform
         //   Uhat_HK(k; R) = eps*R^(d+1)*S(kR), S(q) = (2pi)^(d/2) J_{d/2+1}(q)/q^(d/2+1),
         // Uhat(k) = beta*Uhat_HK(k; R) + (alpha-beta)*a*Uhat_HK(k; a R).
+        // PPC1 has the same structure with each paraboloid (1-s^2)/2 replaced
+        // by (1-s^2)^2/4, whose transform is S(q) = 2 (2pi)^(d/2) J_{d/2+2}(q)/q^(d/2+2).
+        const bool c1    = (pot.ip_type == IntPotType::PPC1);
         const Real alpha = pot.ip_pp_alpha;
         const Real beta  = pot.ip_pp_beta;
         const Real a     = pot.ip_pp_a;
-        const Real nu    = d/2. + 1.;
+        const Real nu    = c1 ? d/2. + 2. : d/2. + 1.;
+        const Real pref  = c1 ? 2. : 1.;
         auto S = [=] (Real q) -> Real
         {
-            if (q < 1.e-6) { return std::pow(2.*pi, d/2.)/(std::pow(2., nu)*std::tgamma(nu+1.)); }
-            return std::pow(2.*pi, d/2.)*std::cyl_bessel_j(nu, q)/std::pow(q, nu);
+            if (q < 1.e-6) { return pref*std::pow(2.*pi, d/2.)/(std::pow(2., nu)*std::tgamma(nu+1.)); }
+            return pref*std::pow(2.*pi, d/2.)*std::cyl_bessel_j(nu, q)/std::pow(q, nu);
         };
         auto uhat_of = [=] (Real kk) -> Real
         {
@@ -969,7 +984,7 @@ PrintContinuumStability (PotentialParams const& pot, Real mu0, Real D, Real dxmi
             const Real sig = -kk*kk*(D + mu0*u);
             if (sig > sig_max) { sig_max = sig; k_sig = kk; }
         }
-        amrex::Print() << "Continuum stability (PP): Uhat(0) = " << uhat0
+        amrex::Print() << "Continuum stability (" << (c1 ? "PPC1" : "PP") << "): Uhat(0) = " << uhat0
                        << "; this box (|k| >= " << kbox << "): Uhat min = " << uhat_min_box
                        << " at |k| = " << k_min_box
                        << " (discrete min over k != 0 = " << uhat_min_disc << ")";
@@ -1335,11 +1350,11 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
             Abort("noise_avg_type must be 0 (average of square roots) or 1 (smoothed Heaviside)");
         }
         pp.query("drift_flux_type", drift_flux_type);
-        if (drift_flux_type != 0 && drift_flux_type != 1) {
-            Abort("drift_flux_type must be 0 (centered) or 1 (Scharfetter-Gummel)");
+        if (drift_flux_type < 0 || drift_flux_type > 2) {
+            Abort("drift_flux_type must be 0 (centered), 1 (Scharfetter-Gummel) or 2 (hybrid)");
         }
-        if (drift_flux_type == 1 && diff_coeff <= 0.) {
-            Abort("drift_flux_type = 1 needs diff_coeff > 0");
+        if (drift_flux_type != 0 && diff_coeff <= 0.) {
+            Abort("drift_flux_type = 1 or 2 needs diff_coeff > 0");
         }
         pp.query("neg_diag_int", neg_diag_int);
         pp.query("drift_diag_int", drift_diag_int);
@@ -1372,6 +1387,7 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.query("regrid_int", regrid_int);
         pp.query("plot_file", plot_file);
         pp.query("plot_int", plot_int);
+        pp.query("plot_time_int", plot_time_int);
         pp.query("chk_file", chk_file);
         pp.query("chk_int", chk_int);
         pp.query("restart",restart_chkfile);
@@ -1696,7 +1712,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
     Real wsum = 0.;
     if (drift_measured) {
         for (int d = 0; d < AMREX_SPACEDIM; ++d) { wsum += drift_face_max[d]/dx[d]; }
-    } else if (pot.use_int_pot && (drift_flux_type == 1 || drift_cfl > 0.)) {
+    } else if (pot.use_int_pot && (drift_flux_type != 0 || drift_cfl > 0.)) {
         const Real cellvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
         wsum = drift_wmax * phi_new[lev].norm1(0) * cellvol
              * (AMREX_D_TERM(1./dx[0], + 1./dx[1], + 1./dx[2]));
@@ -1706,13 +1722,15 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
                   * (AMREX_D_TERM(1./(dx[0]*dx[0]), + 1./(dx[1]*dx[1]), + 1./(dx[2]*dx[2])));
         }
     }
-    if (drift_flux_type == 1) {
+    if (drift_flux_type != 0) {
         // The Scharfetter-Gummel update keeps phi >= 0 when
         //   dt * sum_d (2D/dx_d^2 + 2|w_d|/dx_d) <= 1
         // (the Bernoulli weights on the two faces of a cell add to at most
         // 2 + |Pe_lo| + |Pe_hi|, the worst case being flow out of both faces).
         // With dt = cfl*2/lambda that holds for cfl <= 1 when lambda includes
-        // 4*wsum.
+        // 4*wsum. The hybrid flux (drift_flux_type = 2) uses the same limit: its
+        // centered faces have |Pe| <= 2, where the centered outflow weight
+        // 1 + |Pe|/2 is below the Scharfetter-Gummel bound 1 + |Pe|.
         lambda_max += 4. * wsum;
     }
 
@@ -1978,9 +1996,18 @@ AmrCoreAdv::ReadCheckpointFile ()
     // read in title line
     std::getline(is, line);
 
-    // read in finest_level
-    is >> finest_level;
+    // read in finest_level. A checkpoint with more levels than amr.max_level is
+    // restarted on the first max_level+1 of them: with max_level = 0, a particle
+    // run continues as the SPDE from its level-0 phi, which AverageDown keeps
+    // equal to the particle density.
+    int chk_finest_level;
+    is >> chk_finest_level;
     GotoNextLine(is);
+    finest_level = std::min(chk_finest_level, max_level);
+    if (finest_level < chk_finest_level) {
+        amrex::Print() << "Checkpoint has finest level " << chk_finest_level
+                       << "; restarting on levels 0.." << finest_level << " only\n";
+    }
 
     // read in array of istep
     std::getline(is, line);
@@ -1988,7 +2015,8 @@ AmrCoreAdv::ReadCheckpointFile ()
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
-            istep[i++] = std::stoi(word);
+            if (i <= finest_level) { istep[i] = std::stoi(word); }
+            ++i;
         }
     }
 
@@ -1998,7 +2026,8 @@ AmrCoreAdv::ReadCheckpointFile ()
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
-            dt[i++] = std::stod(word);
+            if (i <= finest_level) { dt[i] = std::stod(word); }
+            ++i;
         }
     }
 
@@ -2008,13 +2037,15 @@ AmrCoreAdv::ReadCheckpointFile ()
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
-            t_new[i++] = std::stod(word);
+            if (i <= finest_level) { t_new[i] = std::stod(word); }
+            ++i;
         }
     }
 
     for (int lev = 0; lev <= finest_level; ++lev) {
 
-        // read in level 'lev' BoxArray from Header
+        // read in level 'lev' BoxArray from Header (the BoxArrays of any dropped
+        // levels follow and are never read)
         BoxArray ba;
         ba.readFrom(is);
         GotoNextLine(is);
@@ -2052,10 +2083,11 @@ AmrCoreAdv::ReadCheckpointFile ()
 
 #ifdef AMREX_PARTICLES
     // rebuild the grown fine BoxArray used for the particle/grid coupling
+    // with only level 0 there are no particles to restart
     if (finest_level >= 1) {
         MakeFBA(grids[1]);
+        particleData.Restart((amrex::ParGDBBase*)GetParGDB(),grown_fba,restart_chkfile);
     }
-    particleData.Restart((amrex::ParGDBBase*)GetParGDB(),grown_fba,restart_chkfile);
 #endif
 
 

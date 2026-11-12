@@ -9,6 +9,7 @@ ip_U in src_deankow/interaction/Potentials.H:
   morse  U = -eps_att exp(-(r - re)/R_att) + eps_rep exp(-(r - re)/R_rep)
   pp     U = -eps R w(r/R), w(s) = alpha (s^2 - a^2)/2 + beta (a^2 - 1)/2 for s <= a,
                               beta (s^2 - 1)/2 for a < s <= 1, else 0
+  ppc1   U = -eps R w(r/R), w(s) = -beta (1 - s^2)_+^2/4 - (alpha - beta) a^2 (1 - (s/a)^2)_+^2/4
 
 amr.ip_local_rep (local_rep) adds local_rep*delta(r) to U, a repulsive core
 narrower than a cell: Uhat(k) gains the constant local_rep. U(r) itself is
@@ -71,7 +72,7 @@ class Kernel:
         self.pp_a, self.pp_alpha, self.pp_beta = pp_a, pp_alpha, pp_beta
         if ip_type == "gema":
             self.rmax = 8.0*R
-        elif ip_type in ("hk", "pp"):
+        elif ip_type in ("hk", "pp", "ppc1"):
             self.rmax = R
         elif ip_type == "morse":
             self.rmax = max(re, 0.0) + 40.0*max(R_att, R_rep)
@@ -104,8 +105,8 @@ class Kernel:
             return "gema eps=%g R=%g alpha=%g" % (self.eps, self.R, self.alpha)
         if self.ip_type == "hk":
             return "hk eps=%g R=%g" % (self.eps, self.R)
-        if self.ip_type == "pp":
-            return "pp eps=%g R=%g a=%g alpha=%g beta=%g" % (self.eps, self.R, self.pp_a,
+        if self.ip_type in ("pp", "ppc1"):
+            return "%s eps=%g R=%g a=%g alpha=%g beta=%g" % (self.ip_type, self.eps, self.R, self.pp_a,
                                                             self.pp_alpha, self.pp_beta)
         return "morse eps_att=%g eps_rep=%g R_att=%g R_rep=%g re=%g" % (
             self.eps_att, self.eps_rep, self.R_att, self.R_rep, self.re)
@@ -122,6 +123,12 @@ class Kernel:
             w = np.where(s <= a, 0.5*self.pp_alpha*(s*s - a*a) + 0.5*self.pp_beta*(a*a - 1.0),
                          0.5*self.pp_beta*(s*s - 1.0))
             return np.where(r < self.R, -self.eps*self.R*w, 0.0)
+        if self.ip_type == "ppc1":
+            s, a = r/self.R, self.pp_a
+            t = np.clip(1.0 - s*s, 0.0, None)
+            c = np.clip(1.0 - (s/a)**2, 0.0, None)
+            w = -0.25*self.pp_beta*t*t - 0.25*(self.pp_alpha - self.pp_beta)*a*a*c*c
+            return -self.eps*self.R*w
         return (-self.eps_att*np.exp(-(r - self.re)/self.R_att)
                 + self.eps_rep*np.exp(-(r - self.re)/self.R_rep))
 
@@ -157,7 +164,7 @@ def add_kernel_args(ap):
     """Command-line options shared by the scripts that use a Kernel."""
     g = ap.add_argument_group("interaction potential (default: gema eps=666 R=0.1 alpha=3)")
     g.add_argument("--inputs", help="read amr.ip_* from this AMReX inputs file")
-    g.add_argument("--ip-type", default="gema", choices=["gema", "hk", "morse", "pp"])
+    g.add_argument("--ip-type", default="gema", choices=["gema", "hk", "morse", "pp", "ppc1"])
     g.add_argument("--eps", type=float, default=666.0)
     g.add_argument("--R", type=float, default=0.1)
     g.add_argument("--alpha", type=float, default=3.0, help="gema exponent")

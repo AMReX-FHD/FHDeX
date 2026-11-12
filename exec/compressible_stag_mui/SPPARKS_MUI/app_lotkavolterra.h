@@ -84,6 +84,7 @@ class AppLotkavolterra : public AppLattice {
   int *firstevent;         // index of 1st event for each owned site
   int freeevent;           // index of 1st unused event in list
 
+  double site_propensity_full(int);
   void clear_events(int);
   void add_event(int, int, int, double, int, int);
   void grow_reactions(int);
@@ -93,6 +94,7 @@ class AppLotkavolterra : public AppLattice {
   void amrex_init_agg ();
   void amrex_push_agg(int,char **);
   void amrex_fetch_agg(int,char **);
+  double site_propensity_ads(int);
 
   double amrex_fhd_lattice_size_x;
   double amrex_fhd_lattice_size_y;
@@ -100,6 +102,12 @@ class AppLotkavolterra : public AppLattice {
   double amrex_kmc_lattice_offset_y;
 
   int ads_wall_dir;
+
+  int update_full;         // ads-only update or full update
+  int *bordersite;         // near a sector border: always full rebuild
+  int *cellrep;            // one representative site per FHD cell
+  double *preyprop_cell;   // per-cell prey propensities [nprey x ncell]
+
   int dir1, dir2;
   int nlocalFHDcell;               // number of FHD cells overlapping with local domain
   amrex::Vector<double> xFHD;      // x-coord of COM of each overlapping FHD cell region

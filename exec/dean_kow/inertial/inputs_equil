@@ -1,0 +1,11 @@
+# Equilibrium fluctuations: start at phi_eq; SPDE with run_mode = 0, particles with
+#   mpirun -np 4 ./main2d.gnu.MPI.ex inputs_equil inertial.run_mode=1 amr.plot_file=plt_eqpart_
+FILE = inputs_common
+inertial.ic_type  = 0
+inertial.run_mode = 0
+amr.plot_file     = plt_eqspde_
+dorand            = 1
+adv_order         = 0
+time_integrator   = 2
+stop_time         = 10.0
+amr.plot_dt       = 0.5

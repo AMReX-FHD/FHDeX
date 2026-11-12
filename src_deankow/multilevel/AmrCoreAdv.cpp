@@ -155,7 +155,11 @@ AmrCoreAdv::Evolve ()
                        << " DT = " << dt[0] << " Sum_old Sum_new Diff (Phi) = "    << std::setw(20) << std::setprecision(12)
                        << std::scientific <<  sum_phi_old << " " << std::setw(2l) << std::setprecision(12)
                        << std::scientific <<  sum_phi_new << " " << std::setw(2l) << std::setprecision(12)
-                       << std::scientific << (sum_phi_new - sum_phi_old) << std::endl;
+                       << std::scientific << (sum_phi_new - sum_phi_old)
+#ifdef AMREX_PARTICLES
+                       << " particles = " << particleData.num_particles()
+#endif
+                       << std::endl;
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -203,7 +207,13 @@ AmrCoreAdv::InitData ()
 
 #ifdef AMREX_PARTICLES
         if (max_level > 0) {
-            particleData.init_particles((amrex::ParGDBBase*)GetParGDB(), grown_fba, phi_new[0], phi_new[1]);
+            if (finest_level > 0) {
+                particleData.init_particles((amrex::ParGDBBase*)GetParGDB(), grown_fba,
+                                            phi_new[0], phi_new[1], pot);
+            } else {
+                // no cell tagged at the start: level 1 may appear at a later regrid
+                particleData.init_empty((amrex::ParGDBBase*)GetParGDB());
+            }
         }
 #endif
         AverageDown();
@@ -229,11 +239,18 @@ AmrCoreAdv::InitData ()
     }
 }
 
+// Build grown_fba: the one-cell ghost ring around the level-1 grids (clipped to
+// the domain, wrapped in periodic directions, every ring cell exactly once),
+// followed by the level-1 grids themselves. The ring cells are where particles
+// are sampled from the SPDE each step; a cell present twice would be sampled
+// twice and deposit its crossings twice, i.e. a local mass source.
 void AmrCoreAdv::MakeFBA(const BoxArray& ba)
 {
     int lev = 1;
     Box domain(Geom(lev).Domain());
     BoxList valid_bl(ba);
+    // one layer of cells around the grids, minus the grids; may extend outside
+    // the domain, and across a periodic boundary may land on other grids
     BoxList com_bl = GetBndryCells(ba,1);
 #if (AMREX_SPACEDIM == 2)
     Vector<IntVect> pshifts(9);
@@ -241,60 +258,65 @@ void AmrCoreAdv::MakeFBA(const BoxArray& ba)
     Vector<IntVect> pshifts(27);
 #endif
 
-    BoxList com_bl_fixed;
+    BoxList com_bl_raw;
 
-    //
-    // Loop over boxes created by GetBndryCells call -- note that if periodic
-    // some of these boxes may intersect the valid_bl so we remove those intersections
-    // by intersecting with the copmlement of the valid ba
-    //
     for (auto& b : com_bl) {
         Box bx(b);
 
-        //
-        // First intersect the existing box with the domain and keep that
-        // Note that GetBndryCells would not include any cells inside the domain
-        // that are part of the original ba
-        //
+        // the part inside the domain (GetBndryCells never returns cells of ba)
         Box b1 = bx & domain;
         if (!b1.isEmpty()) {
-            com_bl_fixed.push_back(b1);
+            com_bl_raw.push_back(b1);
         }
 
-        //
-        // Next add the pieces that were outside the domain in a periodic direction
-        // Note that GetBndryCells DOES include cells outside the domain
-        // that are part of the original ba if shifted periodically
-        //
+        // the parts outside the domain in a periodic direction, shifted back in
+        // and with any overlap with the grids removed
         geom[lev].periodicShift(domain, bx, pshifts);
         for (int n = 0; n < pshifts.size(); n++) {
             Box bx_shift(b);
             bx_shift.shift(pshifts[n]);
             Box b2 = bx_shift & domain;
             if (!b2.isEmpty()) {
-                // Now we have to make sure we don't include any intersection of this b2
-                // with the valid boxArray
                 BoxList bl_comp = complementIn(b2,valid_bl);
                 for (auto& b_comp : bl_comp) {
-                    Box bx_comp(b_comp);
-                    if (!bx_comp.isEmpty()) {
-                        com_bl_fixed.push_back(bx_comp);
+                    if (!b_comp.isEmpty()) {
+                        com_bl_raw.push_back(b_comp);
                     }
                 }
             }
         }
     }
 
-    //
-    // Remove any duplicated regions in the boundary cells
-    //
-    com_bl_fixed.simplify();
+    // A shifted image can land on ring cells that another grid's ring already
+    // contributed (unshifted), and BoxList::simplify only merges boxes that
+    // line up, so remove the overlaps explicitly.
+    Long npts_raw = 0;
+    for (auto const& b : com_bl_raw) { npts_raw += b.numPts(); }
 
-    //
-    // Add the valid boxes
-    //
-    com_bl_fixed.catenate(valid_bl);
-    grown_fba.define(com_bl_fixed);
+    BoxArray ring(com_bl_raw);
+    if (ring.size() > 0) { ring.removeOverlap(); }
+    const Long npts_ring = ring.numPts();
+    const Long n_dup = npts_raw - npts_ring;
+
+    BoxList ring_bl = ring.boxList();
+
+    // check: no ring box may intersect a level-1 grid
+    for (auto const& b : ring_bl) {
+        if (ba.intersects(b)) {
+            amrex::Print() << "MakeFBA: ring box " << b << " intersects the level-1 grids\n";
+            amrex::Abort("MakeFBA: ghost ring overlaps the particle region");
+        }
+    }
+
+    if (Verbose() > 0) {
+        amrex::Print() << "MakeFBA: level-1 grids " << ba.size() << " boxes, " << ba.numPts()
+                       << " cells; ghost ring " << ring_bl.size() << " boxes, " << npts_ring
+                       << " cells (" << n_dup << " duplicate ring cells removed)\n";
+    }
+
+    // ring boxes first, then the valid boxes
+    ring_bl.catenate(valid_bl);
+    grown_fba.define(ring_bl);
 }
 
 // Make a new level using provided BoxArray and DistributionMapping and
@@ -310,6 +332,10 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 
     amrex::Print() << " CREATE LEVEL " << lev << " " << ba << std::endl;
 
+    if (lev == 1) {
+        MakeFBA(ba);
+    }
+
     phi_new[lev].define(ba, dm, ncomp, ng);
     phi_old[lev].define(ba, dm, ncomp, ng);
 
@@ -321,6 +347,14 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
     }
 
     FillCoarsePatch(lev, time, phi_new[lev], 0, ncomp);
+
+#ifdef AMREX_PARTICLES
+    // level 1 appeared mid-run: sample particles in every one of its cells from
+    // the coarse phi (an empty "old" BoxArray means all cells are new)
+    if (lev == 1) {
+        particleData.regrid_particles(grown_fba, ba, dm, BoxArray{}, phi_new[1], pot);
+    }
+#endif
 }
 
 // Make a new level using provided BoxArray and DistributionMapping and
@@ -359,7 +393,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 
 #ifdef AMREX_PARTICLES
         if (lev == 1) {
-            particleData.regrid_particles(grown_fba, ba, old_fine_ba, phi_new[1]);
+            particleData.regrid_particles(grown_fba, ba, dm, old_fine_ba, phi_new[1], pot);
         }
 #endif
 }
@@ -373,6 +407,14 @@ AmrCoreAdv::ClearLevel (int lev)
     phi_old[lev].clear();
     flux_reg[lev].reset(nullptr);
     fillpatcher[lev].reset(nullptr);
+    if (lev == 1) {
+        // the level-1 mass is already in the coarse phi (AverageDown), so the
+        // particles can simply go
+        grown_fba = BoxArray{};
+#ifdef AMREX_PARTICLES
+        particleData.clear_particles();
+#endif
+    }
 }
 
 // Make a new level from scratch using provided BoxArray and DistributionMapping.
@@ -415,15 +457,29 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     int Ncomp = phi_new[lev].nComp();
 
     if (lev == 0) {
+        if (ic.type == 1) {
+            // normalize the Boltzmann factor so the mean is ic.npc particles per cell
+            const Box& dom = Geom(0).Domain();
+            Real s = 0.;
+            for (int j = dom.smallEnd(1); j <= dom.bigEnd(1); ++j) {
+                for (int i = dom.smallEnd(0); i <= dom.bigEnd(0); ++i) {
+                    const Real x = problo[0] + (i + 0.5)*dx[0];
+                    const Real y = problo[1] + (j + 0.5)*dx[1];
+                    s += std::exp(-2.*pot.V(x,y)/pot.gamma);
+                }
+            }
+            ic.norm = s/Real(dom.length(0)*dom.length(1));
+        }
+        const ICParams ic_local = ic;
+        const PotParams pot_local = pot;
         for (MFIter mfi(phi_new[lev]); mfi.isValid(); ++mfi)
         {
             const Box& vbx = mfi.validbox();
             auto const& phi_arr = phi_new[lev].array(mfi);
-            auto npts_scale_local = npts_scale;
             amrex::ParallelFor(vbx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
-                init_phi(i,j,k,phi_arr,dx,problo,npts_scale_local,Ncomp);
+                init_phi(i,j,k,phi_arr,dx,problo,ic_local,pot_local,Ncomp);
             });
         }
     } else {
@@ -453,6 +509,15 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
         if (n > 0) {
             pp.getarr("phierr", phierr, 0, n);
         }
+    }
+
+    // testing: a fixed particle region
+    if (!tag_boxes.empty()) {
+        if (lev == 0) {
+            Vector<Box> tb = tag_boxes;
+            tags.setVal(BoxArray(BoxList(std::move(tb))), TagBox::SET);
+        }
+        return;
     }
 
     if (lev >= phierr.size()) { return; }
@@ -538,6 +603,93 @@ AmrCoreAdv::ReadParameters ( amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_h
         pp.query("cfl", cfl);
         pp.query("do_reflux", do_reflux);
         pp.query("do_subcycle", do_subcycle);
+
+        // external potential
+        pp.query("ext_pot", pot.ext_pot);
+        pp.query("pot_alpha", pot.alpha);
+        pp.query("pot_beta", pot.beta);
+        pp.query("pot_gamma", pot.gamma);
+        pp.query("pot_ky", pot.ky);
+        pp.query("pot_sampler_only", pot.sampler_only);
+        if (pot.ext_pot != 0 && pot.ext_pot != 1) { amrex::Abort("adv.ext_pot must be 0 or 1"); }
+        if (pot.sampler_only == 1) {
+            amrex::Print() << "WARNING: adv.pot_sampler_only = 1: the ghost-cell sampler uses the potential"
+                              " but the dynamics do not (testing only; this is biased)\n";
+        }
+        if (pot.ext_pot == 1 && pot.gamma <= 0.) { amrex::Abort("adv.pot_gamma must be > 0"); }
+#if (AMREX_SPACEDIM == 3)
+        if (pot.ext_pot == 1) { amrex::Abort("adv.ext_pot = 1 is implemented in 2D only"); }
+#endif
+        {
+            int on_surf = 0;
+            ParmParse ppa("amr");
+            ppa.query("on_surf", on_surf);
+            if (pot.ext_pot == 1 && on_surf == 1) {
+                amrex::Abort("adv.ext_pot = 1 and amr.on_surf = 1 cannot be combined");
+            }
+        }
+        if (pot.ext_pot == 1) {
+            // the force must be single valued on a periodic face, or the two boxes
+            // sharing the face apply different fluxes and mass is created
+            const Real* plo = Geom(0).ProbLo();
+            const Real* phi = Geom(0).ProbHi();
+            const Real tol = 1.e-12;
+            if (Geom(0).isPeriodic(0) && std::abs(pot.dVx(plo[0]) - pot.dVx(phi[0])) > tol) {
+                amrex::Abort("adv.ext_pot = 1 with periodic x needs dV/dx equal at prob_lo and prob_hi "
+                             "(e.g. prob_lo = pot_alpha, prob_hi = pot_beta)");
+            }
+            if (Geom(0).isPeriodic(1) && std::abs(pot.dVy(plo[1]) - pot.dVy(phi[1])) > tol) {
+                amrex::Abort("adv.ext_pot = 1 with periodic y needs dV/dy equal at prob_lo and prob_hi "
+                             "(e.g. adv.pot_ky = 0)");
+            }
+        }
+
+        // initial condition
+        pp.query("ic_type", ic.type);
+        pp.query("ic_npc", ic.npc);
+        pp.query("ic_npc_in", ic.npc_in);
+        if (ic.type < 0 || ic.type > 2) { amrex::Abort("adv.ic_type must be 0, 1 or 2"); }
+        if (ic.type == 1 && pot.ext_pot != 1) {
+            amrex::Abort("adv.ic_type = 1 (Boltzmann) needs adv.ext_pot = 1");
+        }
+        if (ic.type == 2) {
+            Vector<int> b;
+            pp.getarr("ic_box", b);
+            if (b.size() != 2*AMREX_SPACEDIM) { amrex::Abort("adv.ic_box needs 2*DIM integers"); }
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                ic.box_lo[d] = b[d];
+                ic.box_hi[d] = b[AMREX_SPACEDIM + d];
+            }
+        }
+
+        // fixed particle region for testing: i0 j0 [k0] i1 j1 [k1] per box
+        {
+            Vector<int> b;
+            pp.queryarr("tag_boxes", b);
+            if (b.size() % (2*AMREX_SPACEDIM) != 0) {
+                amrex::Abort("adv.tag_boxes needs 2*DIM integers per box");
+            }
+            for (int n = 0; n < int(b.size()); n += 2*AMREX_SPACEDIM) {
+                IntVect lo(AMREX_D_DECL(b[n], b[n+1], b[n+2]));
+                IntVect hi(AMREX_D_DECL(b[n+AMREX_SPACEDIM], b[n+AMREX_SPACEDIM+1], b[n+AMREX_SPACEDIM+2]));
+                tag_boxes.push_back(Box(lo, hi));
+            }
+        }
+    }
+
+    amrex::Print() << "Potential: ext_pot = " << pot.ext_pot;
+    if (pot.ext_pot == 1) {
+        amrex::Print() << " V = (x-" << pot.alpha << ")^2 (x-" << pot.beta
+                       << ")^2 + " << pot.ky << " (y-1/2)^4, gamma = " << pot.gamma
+                       << " (equilibrium ~ exp(-2V/gamma); the sampler uses it)";
+    }
+    amrex::Print() << "\nInitial condition: ic_type = " << ic.type << " npc = " << ic.npc;
+    if (ic.type == 2) { amrex::Print() << " npc_in = " << ic.npc_in; }
+    amrex::Print() << "\n";
+    if (!tag_boxes.empty()) {
+        amrex::Print() << "Tagging: fixed boxes";
+        for (auto const& b : tag_boxes) { amrex::Print() << " " << b; }
+        amrex::Print() << "\n";
     }
 
 #ifdef AMREX_PARTICLES
@@ -739,7 +891,8 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 
     AdvancePhiAtLevel(lev, time, dt[lev], iteration, nsub);
 
-    if (finest_level > 0) {
+    // remove the SPDE flux across the coarse/fine faces (the particles carry it)
+    if (finest_level > 0 && do_reflux && flux_reg[lev+1]) {
         flux_reg[lev+1]->Reflux(phi_new[lev], 1.0, 0, 0, phi_new[lev].nComp(), geom[lev]);
     }
 
@@ -750,20 +903,20 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 
     int lev_for_particles = finest_level;
 #ifdef AMREX_PARTICLES
-    // We set this to finest_level rather than 1 so that we can run with max_level = 0;
-    //    in that case the advance_particle routine will return without doing anything
+    // Particles live on level 1; with no level 1 (max_level = 0, or nothing
+    // tagged right now) there is nothing to advance.
     if (finest_level > 0) {
         std::swap(phi_old[lev_for_particles], phi_new[lev_for_particles]);
-    }
-    const Real* dx  =  geom[lev_for_particles].CellSize();
+        const Real* dx  =  geom[lev_for_particles].CellSize();
 #if (AMREX_SPACEDIM == 2)
-    const Real cell_vol = dx[0]*dx[1];
+        const Real cell_vol = dx[0]*dx[1];
 #else
-    const Real cell_vol = dx[0]*dx[1]*dx[2];
+        const Real cell_vol = dx[0]*dx[1]*dx[2];
 #endif
-    particleData.advance_particles(lev_for_particles, dt[lev_for_particles], cell_vol,
-                                   phi_old[0], phi_new[0], phi_new[lev_for_particles]);
-    particleData.Redistribute();
+        particleData.advance_particles(lev_for_particles, dt[lev_for_particles], cell_vol,
+                                       phi_old[0], phi_new[0], phi_new[lev_for_particles], pot);
+        particleData.Redistribute();
+    }
 #endif
 
     // Make sure the coarser levels are consistent with the finer levels
@@ -942,7 +1095,9 @@ AmrCoreAdv::WritePlotFile () const
     }
 
 #ifdef AMREX_PARTICLES
-   particleData.writePlotFile(plotfilename,phi_new[1]);
+   if (finest_level > 0) {
+       particleData.writePlotFile(plotfilename,phi_new[1]);
+   }
 #endif
 }
 
