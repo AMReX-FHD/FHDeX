@@ -24,7 +24,7 @@ periodic boundaries, where phi > threshold * mean(phi), kept if its mass is at
 least mmin times the total mass (default 1e-4, smaller than in 2D because 3D
 boxes hold many more clusters). Cluster centres use the circular mean in each
 direction. Labelling and the per-cluster sums are vectorized, so 128^3
-plotfiles take seconds.
+plotfiles take seconds and 256^3 plotfiles about a minute.
 
 The field g(r) uses cell counts n = phi * num_part * dV: their circular
 autocorrelation (by FFT) minus the self pairs, normalized so that a Poisson
@@ -66,25 +66,46 @@ def min_image(d, length):
 def label_periodic_3d(mask):
     """Face-connected (6-neighbour) components of a 3D mask with periodic wrap.
 
-    Max-label propagation over the six neighbours until nothing changes; the
-    number of sweeps is about the largest cluster's diameter in cells.
+    Union-find over the mask cells only: hook each face pair's roots to the
+    larger one and compress paths until every pair shares a root, which takes a
+    few rounds. Components are numbered in order of their largest flat cell
+    index, as in the max-label propagation of cluster_diagnostics_3d_old.py
+    (whose sweep count grows with cluster size, minutes per 256^3 frame).
     Returns (labels, n) with labels 1..n and 0 outside the mask."""
-    lab = np.where(mask, np.arange(1, mask.size + 1).reshape(mask.shape), 0)
+    shape = mask.shape
+    cells = np.flatnonzero(mask)
+    m = cells.size
+    labels = np.zeros(shape, dtype=np.int64)
+    if m == 0:
+        return labels, 0
+    # face pairs (cell, +1 neighbour along each axis, periodic), as positions in cells
+    coords = np.unravel_index(cells, shape)
+    us, vs = [], []
+    for axis in range(3):
+        nb = list(coords)
+        nb[axis] = (coords[axis] + 1) % shape[axis]
+        nflat = np.ravel_multi_index(nb, shape)
+        pos = np.searchsorted(cells, nflat)
+        pos[pos == m] = 0
+        ok = cells[pos] == nflat
+        us.append(np.flatnonzero(ok))
+        vs.append(pos[ok])
+    u, v = np.concatenate(us), np.concatenate(vs)
+    parent = np.arange(m)
     while True:
-        new = lab
-        for axis in range(3):
-            for shift in (1, -1):
-                new = np.maximum(new, np.roll(lab, shift, axis=axis))
-        new = np.where(mask, new, 0)
-        if np.array_equal(new, lab):
+        pu, pv = parent[u], parent[v]
+        diff = pu != pv
+        if not diff.any():
             break
-        lab = new
-    uniq, inv = np.unique(lab, return_inverse=True)
-    inv = inv.reshape(lab.shape)
-    # uniq[0] is 0 when some cell is outside the mask
-    if uniq.size and uniq[0] == 0:
-        return inv, uniq.size - 1
-    return inv + 1, uniq.size
+        np.maximum.at(parent, np.minimum(pu[diff], pv[diff]), np.maximum(pu[diff], pv[diff]))
+        while True:
+            pp = parent[parent]
+            if np.array_equal(pp, parent):
+                break
+            parent = pp
+    _, comp = np.unique(parent, return_inverse=True)
+    labels.ravel()[cells] = comp + 1
+    return labels, int(comp.max()) + 1
 
 
 def find_clusters(phi, coords, dv, lengths, threshold, mmin):
