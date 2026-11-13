@@ -2042,6 +2042,14 @@ AmrCoreAdv::ReadCheckpointFile ()
         }
     }
 
+    // The grids are re-chopped to this run's amr.max_grid_size ("regrid on
+    // restart"), so a checkpoint written with 8 boxes of 64^3 can continue on
+    // 64 ranks with 32^3 boxes, and vice versa. The data are then read on the
+    // checkpoint's grids and copied over. Only done without particles: the
+    // particle restart assumes the checkpoint's level-1 grids.
+    Vector<BoxArray> chk_grids(finest_level+1);
+    bool rechop = (finest_level == 0);
+
     for (int lev = 0; lev <= finest_level; ++lev) {
 
         // read in level 'lev' BoxArray from Header (the BoxArrays of any dropped
@@ -2049,6 +2057,16 @@ AmrCoreAdv::ReadCheckpointFile ()
         BoxArray ba;
         ba.readFrom(is);
         GotoNextLine(is);
+        chk_grids[lev] = ba;
+
+        if (rechop) {
+            ba.maxSize(max_grid_size[lev]);
+            if (ba != chk_grids[lev]) {
+                amrex::Print() << "Re-chopping the checkpoint grids on level " << lev
+                               << " to max_grid_size " << max_grid_size[lev] << ": "
+                               << chk_grids[lev].size() << " -> " << ba.size() << " boxes\n";
+            }
+        }
 
         // create a distribution mapping
         DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
@@ -2075,10 +2093,18 @@ AmrCoreAdv::ReadCheckpointFile ()
         }
     }
 
-    // read in the MultiFab data
+    // read in the MultiFab data (VisMF::Read requires the file's BoxArray, so
+    // re-chopped grids go through a temporary on the checkpoint's grids)
     for (int lev = 0; lev <= finest_level; ++lev) {
-        VisMF::Read(phi_new[lev],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, "Level_", "phi"));
+        std::string prefix = amrex::MultiFabFileFullPrefix(lev, restart_chkfile, "Level_", "phi");
+        if (chk_grids[lev] == grids[lev]) {
+            VisMF::Read(phi_new[lev], prefix);
+        } else {
+            DistributionMapping chk_dm { chk_grids[lev], ParallelDescriptor::NProcs() };
+            MultiFab tmp(chk_grids[lev], chk_dm, phi_new[lev].nComp(), 0);
+            VisMF::Read(tmp, prefix);
+            phi_new[lev].ParallelCopy(tmp, 0, 0, phi_new[lev].nComp());
+        }
     }
 
 #ifdef AMREX_PARTICLES
