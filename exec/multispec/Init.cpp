@@ -124,14 +124,11 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               Real x,y;
               [[maybe_unused]] Real z=0.0;
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
-                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             y = prob_lo[1] + (j+0.5)*dx[1] - 1.6e-6;,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
 //                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
-//                y = prob_lo[1] + (j+0.5)*dx[1] - 1.6e-6 ;,
-//                            z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
-                //y = prob_lo[1] + (j+0.5)*dx[1] - 1.6e-6 ;,
-                    //y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
-                             //y = prob_lo[1] + (j+0.5)*dx[1] - rad*std::cos(alpha) ;,
+//                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+//                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
 
                 Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
 
